@@ -1,115 +1,137 @@
-Hệ thống LMS Tương tác Thời gian thực (Compact Real-Time LMS)
-Một hệ thống quản lý học tập (LMS) nhỏ gọn được thiết kế cho giảng viên và sinh viên, tập trung vào việc cung cấp trải nghiệm học tập tương tác cao thông qua các tính năng thời gian thực như chat, livestream và trắc nghiệm trực tuyến.
+# Compact Real-Time LMS (Hệ thống LMS Tương tác Thời gian thực)
 
-Dự án này là một giải pháp All-in-One, thay thế nhu cầu sử dụng nhiều dịch vụ riêng lẻ như Zoom, Kahoot, và Slack, mang lại trải nghiệm liền mạch và tập trung cho cả người dạy và người học.
+Một hệ thống quản lý học tập (LMS) nhẹ, dành cho giảng viên và sinh viên, tập trung vào trải nghiệm tương tác real-time: chat, livestream và quiz.
 
-✨ Tính năng chính
-👥 Quản lý Vai trò: Phân quyền rõ ràng cho Giảng viên (tạo khóa học, quản lý nội dung, livestream, tạo quiz) và Sinh viên (tham gia khóa học, chat, làm quiz).
+Dự án này hướng tới việc thay thế nhiều công cụ rời rạc (Zoom, Kahoot, Slack) bằng một giải pháp tích hợp, đơn giản và tập trung.
 
-📚 Quản lý Khóa học: Giảng viên có thể thực hiện các thao tác CRUD (Tạo, Đọc, Cập nhật, Xóa) với các khóa học và học phần.
+---
 
-💬 Chat Thời gian thực: Phòng chat riêng cho mỗi lớp học, hỗ trợ tin nhắn văn bản, chia sẻ file và trạng thái online/offline của người dùng.
+## ✨ Tính năng chính
 
-🎥 Livestream Tương tác: Giảng viên có thể bắt đầu buổi học trực tiếp, cho phép sinh viên tham gia và tương tác ngay lập tức.
+- Quản lý vai trò (RBAC): Giảng viên và Sinh viên với quyền khác nhau.
+- Quản lý khóa học: CRUD cho khóa học và học phần.
+- Chat thời gian thực: Phòng chat theo lớp, hỗ trợ text, chia sẻ file, trạng thái online/offline.
+- Livestream tương tác: Giảng viên phát trực tiếp, sinh viên tham gia và tương tác.
+- Quiz thời gian thực: Tạo/khởi chạy trắc nghiệm (MCQ, True/False, short answer) với bảng xếp hạng và kết quả cập nhật ngay lập tức.
+- Xác thực & bảo mật: JWT, OAuth (tùy chọn), kiểm soát truy cập theo vai trò.
+- Thông báo real-time: Thông báo khi có tin nhắn, quiz mới, v.v.
 
-❓ Quiz Thời gian thực: Tạo và khởi chạy các bài trắc nghiệm (trắc nghiệm, đúng/sai, trả lời ngắn) ngay trong buổi học, với bảng xếp hạng và kết quả cập nhật real-time.
+## 🛠️ Ngăn xếp công nghệ
 
-🔐 Xác thực & Bảo mật: Đăng nhập/Đăng ký an toàn sử dụng JWT, hỗ trợ OAuth và kiểm soát truy cập dựa trên vai trò (RBAC).
+| Lĩnh vực              | Công nghệ                        |
+|----------------------:|:---------------------------------|
+| Frontend              | React (hoặc Vue)                 |
+| Backend               | Node.js + Express                |
+| Real-time             | Socket.IO                        |
+| Database              | PostgreSQL                       |
+| Caching / Pub/Sub     | Redis                            |
+| Triển khai            | Docker, Docker Compose           |
 
-🔔 Thông báo Real-time: Gửi thông báo đẩy (push notifications) tới người dùng khi có sự kiện mới (tin nhắn, quiz bắt đầu, v.v.).
+---
 
-🛠️ Ngăn xếp Công nghệ (Technology Stack)
-Lĩnh vực	Công nghệ
-Frontend	React.js (hoặc Vue.js)
-Backend	Node.js với Express.js
-Giao tiếp Real-time	Socket.IO
-Cơ sở dữ liệu	PostgreSQL
-Caching & Pub/Sub	Redis
-Triển khai	Docker, Docker Compose
+## 🚀 Bắt đầu
 
-Export to Sheets
-🚀 Bắt đầu (Getting Started)
-Hướng dẫn cài đặt và chạy dự án trên máy cục bộ của bạn.
+Hướng dẫn này giúp bạn chạy dự án trên máy cục bộ.
 
-Yêu cầu cài đặt
-Node.js (v18.x trở lên)
+### Yêu cầu
 
-npm / yarn
+- Node.js v18+
+- npm hoặc yarn
+- PostgreSQL
+- Redis
+- Docker (khuyến nghị)
 
-PostgreSQL
+### Cài đặt
 
-Redis
+1. Clone repository:
 
-Docker (khuyến nghị)
-
-Hướng dẫn cài đặt
-Clone repository:
-
-Bash
-
+```bash
 git clone https://github.com/your-username/real-time-lms.git
 cd real-time-lms
-Cài đặt Backend:
+```
 
-Bash
+2. Cài đặt backend:
 
+```bash
 cd backend
 npm install
-Tạo file .env từ file .env.example và cấu hình các biến môi trường:
+```
 
-Code snippet
+3. Tạo file môi trường (`.env`) từ `.env.example` trong thư mục `backend` và cập nhật các biến sau (ví dụ):
 
+```env
 DATABASE_URL="postgresql://user:password@localhost:5432/lms_db"
 REDIS_URL="redis://localhost:6379"
 JWT_SECRET="your_super_secret_key"
-Cài đặt Frontend:
+```
 
-Bash
+4. Cài đặt frontend:
 
+```bash
 cd ../frontend
 npm install
-Khởi chạy Database & Redis:
-Đảm bảo PostgreSQL và Redis server đang chạy trên máy của bạn.
+```
 
-Chạy dự án:
+### Chạy dịch vụ (local)
 
-Mở một terminal và chạy Backend:
+Đảm bảo PostgreSQL và Redis đang chạy, sau đó mở 2 terminal:
 
-Bash
+Terminal A (Backend):
 
+```bash
 cd backend
 npm run dev
-Mở một terminal khác và chạy Frontend:
+```
 
-Bash
+Terminal B (Frontend):
 
+```bash
 cd frontend
 npm start
-🐳 Triển khai với Docker
-Dự án đã được container hóa để việc triển khai trở nên đơn giản và nhất quán.
+```
 
-Cấu hình file .env trong thư mục backend như hướng dẫn ở trên.
+---
 
-Chạy Docker Compose:
+## 🐳 Chạy với Docker
 
-Bash
+1. Cấu hình file `.env` trong `backend` như phần hướng dẫn ở trên.
 
+2. Khởi động bằng Docker Compose:
+
+```bash
 docker-compose up -d --build
-Lệnh này sẽ tự động build các image và khởi chạy tất cả các dịch vụ cần thiết (Frontend, Backend, PostgreSQL, Redis).
+```
 
-🗺️ Lộ trình phát triển (Roadmap)
-Đây là những tính năng và cải tiến được đề xuất để nâng cấp sản phẩm mà không làm tăng độ phức tạp quá mức.
+Lệnh trên sẽ build image và khởi chạy các service (frontend, backend, postgres, redis).
 
-[ ] Tích hợp Docker để đơn giản hóa việc triển khai.
+---
 
-[ ] PWA cơ bản: Cải thiện trải nghiệm trên mobile và cho phép truy cập offline cơ bản bằng Service Worker.
+## 🗺️ Lộ trình (Roadmap)
 
-[ ] Chia sẻ màn hình: Tích hợp tính năng chia sẻ màn hình vào chức năng livestream hiện có.
+- [ ] Tích hợp Docker để đơn giản hóa triển khai
+- [ ] PWA: trải nghiệm mobile & offline cơ bản
+- [ ] Tích hợp chia sẻ màn hình cho livestream
+- [ ] Dashboard thống kê tương tác và kết quả quiz
+- [ ] Tối ưu caching với Redis
+- [ ] Nâng cao bảo mật: Rate limiting, input validation
+- [ ] Cải thiện UX/UI: Dark mode, phím tắt, hệ thống thông báo
 
-[ ] Bảng phân tích cơ bản: Xây dựng dashboard đơn giản để theo dõi mức độ tương tác của sinh viên và hiệu suất làm quiz.
+---
 
-[ ] Tối ưu Caching: Xây dựng chiến lược cache chi tiết hơn với Redis.
+## Đóng góp
 
-[ ] Tăng cường bảo mật: Bổ sung Rate Limiting, xác thực và làm sạch đầu vào (input validation & sanitization).
+Rất hoan nghênh PR, issue và ý tưởng cải thiện. Vui lòng tạo issue trước khi gửi pull request để thảo luận các thay đổi lớn.
 
-[ ] Cải thiện UX/UI: Bổ sung Dark/Light mode, phím tắt và hệ thống thông báo trình duyệt.
+---
+
+## Giấy phép
+
+Ghi rõ giấy phép của dự án ở đây (ví dụ: MIT) hoặc xóa phần nếu chưa quyết định.
+
+---
+
+Nếu bạn muốn, tôi có thể:
+
+- Thêm các huy hiệu (badges) CI / coverage / license.
+- Viết file CONTRIBUTING.md và mẫu issue/PR.
+- Dịch sang tiếng Anh song song.
