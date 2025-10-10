@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: lms_db
       POSTGRES_USER: lms_user
-      POSTGRES_PASSWORD: lms_password
+      POSTGRES_PASSWORD: 123456
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -47,7 +47,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://lms_user:lms_password@postgres:5432/lms_db
+      - DATABASE_URL=postgresql://lms_user:123456@postgres:5432/lms_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your_super_secret_jwt_key_here_make_it_long_and_random
       - PORT=3000

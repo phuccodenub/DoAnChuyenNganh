@@ -1,0 +1,121 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "success": "Thành công",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "previous": "Trước đó",
+    "continue": "Tiếp tục",
+    "submit": "Gửi",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "sort": "Sắp xếp",
+    "view": "Xem",
+    "download": "Tải xuống",
+    "upload": "Tải lên"
+  },
+  "auth": {
+    "login": {
+      "title": "Chào mừng trở lại",
+      "subtitle": "Đăng nhập vào tài khoản của bạn",
+      "email": "Email",
+      "emailPlaceholder": "Nhập email của bạn",
+      "emailRequired": "Email là bắt buộc",
+      "emailInvalid": "Email không hợp lệ",
+      "password": "Mật khẩu",
+      "passwordPlaceholder": "Nhập mật khẩu của bạn",
+      "passwordRequired": "Mật khẩu là bắt buộc",
+      "submit": "Đăng nhập",
+      "demoAccounts": "Tài khoản Demo",
+      "instructorDemo": "Demo Giáo viên",
+      "studentDemo": "Demo Học sinh",
+      "demoPasswordHint": "Tất cả tài khoản demo sử dụng mật khẩu: demo123",
+      "noAccount": "Chưa có tài khoản?",
+      "signUp": "Đăng ký"
+    },
+    "register": {
+      "title": "Tạo tài khoản",
+      "subtitle": "Tham gia cộng đồng học tập của chúng tôi",
+      "fullName": "Họ và tên",
+      "fullNamePlaceholder": "Nhập họ và tên của bạn",
+      "email": "Email",
+      "emailPlaceholder": "Nhập email của bạn",
+      "password": "Mật khẩu",
+      "passwordPlaceholder": "Tạo mật khẩu",
+      "confirmPassword": "Xác nhận mật khẩu",
+      "confirmPasswordPlaceholder": "Xác nhận mật khẩu của bạn",
+      "submit": "Tạo tài khoản",
+      "haveAccount": "Đã có tài khoản?",
+      "signIn": "Đăng nhập"
+    }
+  },
+  "home": {
+    "title": "Hệ thống quản lý học tập thời gian thực",
+    "subtitle": "Hệ thống quản lý học tập hiện đại với chat thời gian thực, phát trực tiếp và bài kiểm tra tương tác. Hoàn hảo cho trải nghiệm giáo dục trực tuyến hấp dẫn.",
+    "getStarted": "Bắt đầu",
+    "signIn": "Đăng nhập",
+    "welcomeBack": "Chào mừng trở lại",
+    "goToDashboard": "Đến bảng điều khiển",
+    "features": {
+      "chat": {
+        "title": "Chat thời gian thực",
+        "description": "Tham gia thảo luận trực tiếp với giảng viên và bạn học. Chia sẻ tệp, đặt câu hỏi và cộng tác trong thời gian thực."
+      },
+      "streaming": {
+        "title": "Phát trực tiếp",
+        "description": "Tham gia các bài giảng và hội thảo trực tiếp. Phát video tương tác với chia sẻ màn hình và hỏi đáp thời gian thực."
+      },
+      "quiz": {
+        "title": "Bài kiểm tra tương tác",
+        "description": "Tham gia các bài kiểm tra và đánh giá thời gian thực. Nhận phản hồi ngay lập tức và theo dõi tiến trình học tập của bạn."
+      }
+    },
+    "status": {
+      "title": "Trạng thái hệ thống",
+      "frontendReady": "Frontend đã sẵn sàng",
+      "backendPending": "Thiết lập cơ sở dữ liệu backend đang chờ xử lý"
+    }
+  },
+  "navigation": {
+    "dashboard": "Bảng điều khiển",
+    "myCourses": "Khóa học của tôi",
+    "courses": "Khóa học",
+    "liveStream": "Phát trực tiếp",
+    "chat": "Chat",
+    "notifications": "Thông báo",
+    "profile": "Hồ sơ",
+    "settings": "Cài đặt",
+    "logout": "Đăng xuất",
+    "language": "Ngôn ngữ"
+  },
+  "dashboard": {
+    "title": "Bảng điều khiển",
+    "welcome": "Chào mừng đến với bảng điều khiển học tập của bạn",
+    "recentCourses": "Khóa học gần đây",
+    "upcomingEvents": "Sự kiện sắp tới",
+    "progress": "Tiến trình",
+    "notifications": "Thông báo",
+    "quickActions": "Hành động nhanh"
+  },
+  "courses": {
+    "title": "Khóa học",
+    "allCourses": "Tất cả khóa học",
+    "myCourses": "Khóa học của tôi",
+    "enrolled": "Đã đăng ký",
+    "completed": "Đã hoàn thành",
+    "inProgress": "Đang tiến hành",
+    "search": "Tìm kiếm khóa học...",
+    "filter": "Lọc",
+    "sort": "Sắp xếp theo",
+    "enroll": "Đăng ký",
+    "unenroll": "Hủy đăng ký",
+    "viewDetails": "Xem chi tiết"
+  }
+}
+

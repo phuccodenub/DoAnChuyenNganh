@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 
 import App from './App.tsx'
+import { ThemeProvider } from './contexts/ThemeContext'
 import './index.css'
 
 // Create a query client
@@ -20,9 +21,10 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <App />
         <Toaster 
           position="top-right"
           toastOptions={{
@@ -47,7 +49,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             },
           }}
         />
-      </BrowserRouter>
-    </QueryClientProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 )

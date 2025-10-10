@@ -15,7 +15,7 @@ const rateLimit = require('express-rate-limit');
 const { sequelize } = require('./config/database');
 const logger = require('./config/logger');
 const corsConfig = require('./config/cors');
-const redisClient = require('./config/redis');
+const { redisClient, connectRedis } = require('./config/redis');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -116,9 +116,8 @@ async function startServer() {
     await sequelize.authenticate();
     logger.info('Database connection established successfully');
     
-    // Test Redis connection
-    await redisClient.ping();
-    logger.info('Redis connection established successfully');
+    // Connect to Redis
+    await connectRedis();
     
     // Sync database models (in development only)
     if (process.env.NODE_ENV !== 'production') {

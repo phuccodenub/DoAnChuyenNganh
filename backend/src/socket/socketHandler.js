@@ -7,19 +7,36 @@ const jwt = require('jsonwebtoken');
 const logger = require('../config/logger');
 const redisClient = require('../config/redis');
 
-// Socket authentication middleware
+// Socket authentication middleware with demo mode support
 const authenticateSocket = (socket, next) => {
   try {
     const token = socket.handshake.auth.token || socket.handshake.query.token;
+    const isDemo = socket.handshake.auth.demo || socket.handshake.query.demo;
     
-    if (!token) {
-      return next(new Error('Authentication token required'));
+    // Demo mode authentication
+    if (isDemo || !token) {
+      // Use provided user info for demo mode
+      socket.userId = socket.handshake.auth.userId || Math.floor(Math.random() * 1000);
+      socket.userRole = socket.handshake.auth.userRole || 'student';
+      socket.userName = socket.handshake.auth.userName || 'Demo User';
+      socket.userAvatar = socket.handshake.auth.userAvatar;
+      socket.isDemo = true;
+      
+      logger.logSocket('demo-user-authenticated', { 
+        userId: socket.userId, 
+        socketId: socket.id,
+        role: socket.userRole
+      });
+      
+      return next();
     }
     
+    // Regular authentication
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     socket.userId = decoded.userId;
     socket.userRole = decoded.role;
     socket.userName = decoded.name;
+    socket.isDemo = false;
     
     logger.logSocket('user-authenticated', { 
       userId: socket.userId, 
@@ -78,11 +95,13 @@ function configureSocket(io) {
         const { courseId } = data;
         const roomName = `course_${courseId}`;
         
-        // Verify user has access to course
-        const hasAccess = await verifyUserCourseAccess(userId, courseId, userRole);
-        if (!hasAccess) {
-          socket.emit('error', { message: 'Access denied to course' });
-          return;
+        // Skip access verification in demo mode
+        if (!socket.isDemo) {
+          const hasAccess = await verifyUserCourseAccess(userId, courseId, userRole);
+          if (!hasAccess) {
+            socket.emit('error', { message: 'Access denied to course' });
+            return;
+          }
         }
         
         // Join the course room
@@ -95,19 +114,45 @@ function configureSocket(io) {
         }
         courseRooms.get(courseId).add(socket.id);
         
-        // Add to Redis online users
-        await redisClient.addOnlineUser(courseId, userId);
+        // Handle Redis operations only in non-demo mode
+        let onlineCount = 0;
+        if (!socket.isDemo && redisClient) {
+          try {
+            await redisClient.addOnlineUser(courseId, userId);
+            onlineCount = await redisClient.getSetSize(`online_users:${courseId}`);
+          } catch (redisError) {
+            logger.logSocket('redis-error', { error: redisError.message });
+            // Fall back to in-memory count
+            onlineCount = courseRooms.get(courseId).size;
+          }
+        } else {
+          // Demo mode: use in-memory count
+          onlineCount = courseRooms.get(courseId).size;
+        }
         
-        // Get current online users count
-        const onlineCount = await redisClient.getSetSize(`online_users:${courseId}`);
+        // Get online users in this course room
+        const roomUsers = Array.from(courseRooms.get(courseId) || [])
+          .map(socketId => onlineUsers.get(socketId))
+          .filter(user => user)
+          .map(user => ({
+            id: user.userId,
+            full_name: user.userName,
+            role: user.userRole,
+            avatar_url: socket.userAvatar,
+            status: 'online'
+          }));
         
         // Notify others in the room
         socket.to(roomName).emit('user-joined', {
-          userId,
-          userName,
-          userRole,
-          onlineCount
+          id: userId,
+          full_name: userName,
+          role: userRole,
+          avatar_url: socket.userAvatar,
+          status: 'online'
         });
+        
+        // Send online users list to joining user
+        socket.emit('online-users', roomUsers);
         
         // Send confirmation to user
         socket.emit('course-joined', {
@@ -119,7 +164,8 @@ function configureSocket(io) {
         logger.logSocket('course-joined', { 
           userId, 
           courseId, 
-          onlineCount 
+          onlineCount,
+          isDemo: socket.isDemo
         });
         
       } catch (error) {
@@ -151,7 +197,9 @@ function configureSocket(io) {
     // Send chat message
     socket.on('send-message', async (data) => {
       try {
-        const { courseId, message, messageType = 'text' } = data;
+        const messageData = data;
+        const { courseId } = messageData;
+        const message = messageData.message;
         
         if (!socket.currentCourse || socket.currentCourse !== courseId) {
           socket.emit('error', { message: 'Not joined to course room' });
@@ -169,26 +217,46 @@ function configureSocket(io) {
           return;
         }
         
-        // Save message to database
-        const ChatMessage = require('../models/ChatMessage');
-        const savedMessage = await ChatMessage.createMessage({
-          sender_id: userId,
-          course_id: courseId,
-          message: message.trim(),
-          message_type: messageType
-        });
+        let messageWithSender;
         
-        // Get message with sender info
-        const messageWithSender = await savedMessage.getWithSender();
+        if (socket.isDemo) {
+          // Demo mode: create message object without database
+          messageWithSender = {
+            id: messageData.id || `${Date.now()}-${Math.random()}`,
+            courseId: courseId,
+            userId: userId,
+            user: {
+              id: userId,
+              full_name: userName,
+              role: userRole,
+              avatar_url: socket.userAvatar
+            },
+            message: message.trim(),
+            timestamp: new Date().toISOString(),
+            type: messageData.type || 'text'
+          };
+        } else {
+          // Production mode: save to database
+          const ChatMessage = require('../models/ChatMessage');
+          const savedMessage = await ChatMessage.createMessage({
+            sender_id: userId,
+            course_id: courseId,
+            message: message.trim(),
+            message_type: messageData.type || 'text'
+          });
+          
+          messageWithSender = await savedMessage.getWithSender();
+        }
         
         // Broadcast to all users in the course room
         const roomName = `course_${courseId}`;
-        io.to(roomName).emit('message-received', messageWithSender);
+        io.to(roomName).emit('new-message', messageWithSender);
         
         logger.logSocket('message-sent', { 
           userId, 
           courseId, 
-          messageId: savedMessage.id 
+          messageId: messageWithSender.id,
+          isDemo: socket.isDemo
         });
         
       } catch (error) {

@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import './i18n' // Import cấu hình i18n
 
 // Components
 import Layout from '@/components/Layout/Layout'
@@ -11,8 +12,11 @@ import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
 import DashboardPage from '@/pages/DashboardPage'
 import CoursePage from '@/pages/CoursePage'
+import CourseDetail from '@/pages/CourseDetail'
+import MyCourses from '@/pages/MyCourses'
 import LiveStreamPage from '@/pages/LiveStreamPage'
 import NotFoundPage from '@/pages/NotFoundPage'
+import NotificationDemo from '@/components/demo/NotificationDemo'
 
 // Hooks
 import { useEffect } from 'react'
@@ -49,6 +53,22 @@ function App() {
           </ProtectedRoute>
         } />
         
+        <Route path="/my-courses" element={
+          <ProtectedRoute>
+            <Layout>
+              <MyCourses />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/courses/:courseId" element={
+          <ProtectedRoute>
+            <Layout>
+              <CourseDetail />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
         <Route path="/course/:id" element={
           <ProtectedRoute>
             <Layout>
@@ -61,6 +81,14 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <LiveStreamPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/notifications-demo" element={
+          <ProtectedRoute>
+            <Layout>
+              <NotificationDemo />
             </Layout>
           </ProtectedRoute>
         } />

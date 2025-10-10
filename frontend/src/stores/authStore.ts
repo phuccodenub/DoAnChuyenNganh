@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import toast from 'react-hot-toast'
-import { authService } from '@/services/authService'
+// Use mock service for demo mode (switch to authService when backend is ready)
+import { mockAuthService as authService } from '@/services/mockAuthService'
 
 export interface User {
   id: number
@@ -55,7 +56,7 @@ export const useAuthStore = create<AuthStore>()(
           
           const response = await authService.login(email, password)
           
-          if (response.success) {
+          if (response.success && response.data) {
             set({
               user: response.data.user,
               token: response.data.token,
@@ -84,7 +85,7 @@ export const useAuthStore = create<AuthStore>()(
           
           const response = await authService.register(data)
           
-          if (response.success) {
+          if (response.success && response.data) {
             set({
               user: response.data.user,
               token: response.data.token,
@@ -128,7 +129,7 @@ export const useAuthStore = create<AuthStore>()(
           
           const response = await authService.updateProfile(data)
           
-          if (response.success) {
+          if (response.success && response.data) {
             set({
               user: response.data.user,
               isLoading: false
@@ -164,7 +165,7 @@ export const useAuthStore = create<AuthStore>()(
               }
             })
             .then((response) => {
-              if (response.success) {
+              if (response.success && response.data) {
                 set({
                   user: response.data.user,
                   isAuthenticated: true,

@@ -3,7 +3,7 @@ import type { AxiosInstance, AxiosError } from 'axios'
 import toast from 'react-hot-toast'
 
 // Get API base URL from environment
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api'
 
 // Create axios instance
 export const apiClient: AxiosInstance = axios.create({
