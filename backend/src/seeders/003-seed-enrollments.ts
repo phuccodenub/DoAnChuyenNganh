@@ -2,7 +2,7 @@
  * Seeder 003: Seed enrollments
  */
 
-import { Sequelize } from 'sequelize';
+import { Sequelize, QueryTypes } from 'sequelize';
 
 export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
   const enrollments = [
@@ -22,6 +22,9 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       completed_lessons: 19,
       total_lessons: 25,
       last_accessed_at: new Date('2024-03-10'),
+      completion_date: null,
+      certificate_issued: false,
+      certificate_url: null,
       rating: 5,
       review: 'Excellent course! Very well structured and easy to follow.',
       review_date: new Date('2024-03-05'),
@@ -35,6 +38,10 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       status: 'completed',
       enrollment_type: 'free',
       payment_status: 'paid',
+      payment_method: null,
+      payment_id: null,
+      amount_paid: 0,
+      currency: 'USD',
       progress_percentage: 100.00,
       completed_lessons: 10,
       total_lessons: 10,
@@ -64,6 +71,12 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       completed_lessons: 14,
       total_lessons: 30,
       last_accessed_at: new Date('2024-03-12'),
+      completion_date: null,
+      certificate_issued: false,
+      certificate_url: null,
+      rating: null,
+      review: null,
+      review_date: null,
       created_at: new Date('2024-02-20'),
       updated_at: new Date('2024-03-12')
     },
@@ -107,6 +120,12 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       completed_lessons: 12,
       total_lessons: 20,
       last_accessed_at: new Date('2024-03-11'),
+      completion_date: null,
+      certificate_issued: false,
+      certificate_url: null,
+      rating: null,
+      review: null,
+      review_date: null,
       created_at: new Date('2024-02-10'),
       updated_at: new Date('2024-03-11')
     },
@@ -125,6 +144,12 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       completed_lessons: 4,
       total_lessons: 15,
       last_accessed_at: new Date('2024-03-08'),
+      completion_date: null,
+      certificate_issued: false,
+      certificate_url: null,
+      rating: null,
+      review: null,
+      review_date: null,
       created_at: new Date('2024-03-05'),
       updated_at: new Date('2024-03-08')
     },
@@ -160,6 +185,10 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       status: 'completed',
       enrollment_type: 'free',
       payment_status: 'paid',
+      payment_method: null,
+      payment_id: null,
+      amount_paid: 0,
+      currency: 'USD',
       progress_percentage: 100.00,
       completed_lessons: 10,
       total_lessons: 10,
@@ -189,6 +218,12 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       completed_lessons: 9,
       total_lessons: 30,
       last_accessed_at: new Date('2024-03-09'),
+      completion_date: null,
+      certificate_issued: false,
+      certificate_url: null,
+      rating: null,
+      review: null,
+      review_date: null,
       created_at: new Date('2024-02-25'),
       updated_at: new Date('2024-03-09')
     },
@@ -199,6 +234,10 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       status: 'completed',
       enrollment_type: 'free',
       payment_status: 'paid',
+      payment_method: null,
+      payment_id: null,
+      amount_paid: 0,
+      currency: 'USD',
       progress_percentage: 100.00,
       completed_lessons: 10,
       total_lessons: 10,
@@ -227,6 +266,13 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       progress_percentage: 0.00,
       completed_lessons: 0,
       total_lessons: 25,
+      last_accessed_at: null,
+      completion_date: null,
+      certificate_issued: false,
+      certificate_url: null,
+      rating: null,
+      review: null,
+      review_date: null,
       created_at: new Date('2024-03-12'),
       updated_at: new Date('2024-03-12')
     },
@@ -246,6 +292,12 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
       completed_lessons: 3,
       total_lessons: 20,
       last_accessed_at: new Date('2024-02-05'),
+      completion_date: null,
+      certificate_issued: false,
+      certificate_url: null,
+      rating: null,
+      review: null,
+      review_date: null,
       created_at: new Date('2024-01-15'),
       updated_at: new Date('2024-02-10')
     }
@@ -253,6 +305,20 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
 
   // Insert enrollments
   for (const enrollment of enrollments) {
+    // Check if enrollment already exists
+    const existingEnrollment = await sequelize.query(
+      'SELECT id FROM enrollments WHERE id = ?',
+      {
+        replacements: [enrollment.id],
+        type: QueryTypes.SELECT
+      }
+    );
+
+    if (existingEnrollment.length > 0) {
+      console.log(`Enrollment ${enrollment.id} already exists, skipping...`);
+      continue;
+    }
+
     await sequelize.query(
       `INSERT INTO enrollments (
         id, user_id, course_id, status, enrollment_type, payment_status,

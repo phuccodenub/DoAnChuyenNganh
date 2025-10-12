@@ -18,7 +18,7 @@ type PublicUserFields = Pick<
   | 'avatar'
   | 'role'
   | 'status'
-  | 'is_email_verified'
+  | 'email_verified'
   | 'created_at'
   | 'student_id'
   | 'class'
@@ -60,7 +60,7 @@ export const userUtils = {
       avatar,
       role,
       status,
-      is_email_verified,
+      email_verified,
       created_at,
       student_id,
       class: userClass,
@@ -90,7 +90,7 @@ export const userUtils = {
       avatar,
       role,
       status,
-      is_email_verified,
+      email_verified,
       created_at,
       student_id,
       class: userClass,
@@ -160,7 +160,7 @@ export const userUtils = {
    * @returns True if email is verified
    */
   isEmailVerified(user: UserInstance): boolean {
-    return user.is_email_verified === true;
+    return user.email_verified === true;
   },
 
   /**
@@ -280,7 +280,7 @@ export const userUtils = {
    */
   async comparePassword(user: UserInstance, candidatePassword: string): Promise<boolean> {
     try {
-      return await comparePassword(candidatePassword, user.password_hash);
+      return await comparePassword(candidatePassword, user.password);
     } catch (error) {
       throw new Error('Password comparison failed');
     }
@@ -302,7 +302,7 @@ export const userUtils = {
       'avatar',
       'role',
       'status',
-      'is_email_verified',
+      'email_verified',
       'created_at',
       'student_id',
       'class',

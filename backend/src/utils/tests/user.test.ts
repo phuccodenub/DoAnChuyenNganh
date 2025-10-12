@@ -5,7 +5,7 @@ import { UserInstance } from '../../types/user.types';
 const mockUser: UserInstance = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   email: 'test@example.com',
-  password_hash: 'hashed_password',
+  password: 'hashed_password',
   first_name: 'Nguyễn',
   last_name: 'Văn A',
   phone: '0123456789',
@@ -13,7 +13,7 @@ const mockUser: UserInstance = {
   avatar: 'https://example.com/avatar.jpg',
   role: 'student',
   status: 'active',
-  is_email_verified: true,
+  email_verified: true,
   email_verified_at: new Date(),
   token_version: 1,
   last_login: new Date(),
@@ -72,7 +72,7 @@ describe('User Utils', () => {
       expect(profile.instructor_id).toBeUndefined();
       
       // Should not include sensitive data
-      expect((profile as any).password_hash).toBeUndefined();
+      expect((profile as any).password).toBeUndefined();
     });
 
     test('should return instructor profile with instructor fields', () => {
@@ -145,7 +145,7 @@ describe('User Utils', () => {
     test('should check if email is verified', () => {
       expect(userUtils.isEmailVerified(mockUser)).toBe(true);
       
-      const unverifiedUser = { ...mockUser, is_email_verified: false };
+      const unverifiedUser = { ...mockUser, email_verified: false };
       expect(userUtils.isEmailVerified(unverifiedUser)).toBe(false);
     });
   });
@@ -270,7 +270,7 @@ describe('User Utils', () => {
       expect(sanitized.last_name).toBe(mockUser.last_name);
       
       // Should not include sensitive data
-      expect((sanitized as any).password_hash).toBeUndefined();
+      expect((sanitized as any).password).toBeUndefined();
     });
   });
 

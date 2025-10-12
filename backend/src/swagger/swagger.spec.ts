@@ -6,9 +6,25 @@ import { userPaths } from './paths/user.paths';
 export const swaggerSpec = {
   openapi: '3.0.0',
   info: {
-    title: 'LMS Backend API',
+    title: 'LMS Backend API with AI & Blockchain',
     version: '1.0.0',
-    description: 'Learning Management System Backend API Documentation',
+    description: `
+      Learning Management System Backend API Documentation
+      
+      ## Features
+      - **Username-based Authentication**: Login using student ID, instructor ID, or admin username
+      - **AI-Powered Features**: Smart recommendations, automated grading, learning analytics
+      - **Blockchain Integration**: Digital certificates, credential verification, transparent records
+      - **Role-Based Access Control**: Student, Instructor, Admin, Super Admin roles
+      - **Real-time Communication**: Chat system for courses
+      - **Comprehensive Monitoring**: Health checks, metrics, and performance monitoring
+      
+      ## Authentication
+      Use username (not email) for login:
+      - Students: Student ID (e.g., 2021001234)
+      - Instructors: Instructor ID (e.g., GV001)
+      - Admins: Admin username (e.g., admin, superadmin)
+    `,
     contact: {
       name: 'LMS Team',
       email: 'support@lms.com'
@@ -20,12 +36,12 @@ export const swaggerSpec = {
   },
   servers: [
     {
-      url: 'http://localhost:3000',
-      description: 'Development server'
+      url: 'http://localhost:3000/api/v1.2.0',
+      description: 'Development server (v1.2.0)'
     },
     {
-      url: 'https://api.lms.com',
-      description: 'Production server'
+      url: 'https://api.lms.com/api/v1.2.0',
+      description: 'Production server (v1.2.0)'
     }
   ],
   components: {

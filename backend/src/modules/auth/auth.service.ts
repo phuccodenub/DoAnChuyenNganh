@@ -25,9 +25,15 @@ export class AuthModuleService {
     try {
       logger.info('Starting user registration', { email: userData.email });
 
-      // Check if user already exists
-      const existingUser = await this.authRepository.findUserForAuth(userData.email);
-      if (existingUser) {
+      // Check if user already exists by username
+      const existingUserByUsername = await this.authRepository.findUserForAuth(userData.username);
+      if (existingUserByUsername) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.CONFLICT, 'Username already exists');
+      }
+
+      // Check if user already exists by email
+      const existingUserByEmail = await this.authRepository.findUserByEmailForAuth(userData.email);
+      if (existingUserByEmail) {
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.CONFLICT, 'Email already exists');
       }
 
@@ -49,7 +55,7 @@ export class AuthModuleService {
       // Create new user
       const newUser = await this.authRepository.createUserForAuth({
         ...userData,
-        password_hash: hashedPassword
+        password: hashedPassword
       });
 
       const userProfile = userUtils.getPublicProfile(newUser) as AuthTypes.UserProfile;
@@ -70,31 +76,31 @@ export class AuthModuleService {
    */
   async login(credentials: AuthTypes.LoginCredentials, device: string, ipAddress: string, userAgent: string): Promise<{ user: AuthTypes.UserProfile; tokens: AuthTypes.AuthTokens }> {
     try {
-      logger.info('Starting user login', { email: credentials.email });
+      logger.info('Starting user login', { username: credentials.username });
 
       // Check if account is locked
-      const isLocked = await globalServices.accountLockout.isAccountLocked(credentials.email);
+      const isLocked = await globalServices.accountLockout.isAccountLocked(credentials.username);
       if (isLocked) {
-        const lockoutInfo = await globalServices.accountLockout.getLockoutInfo(credentials.email);
+        const lockoutInfo = await globalServices.accountLockout.getLockoutInfo(credentials.username);
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 
           `Account is locked due to multiple failed attempts. Try again after ${lockoutInfo.lockedUntil}`);
       }
 
-      // Find user by email
-      const user = await this.authRepository.findUserForAuth(credentials.email);
+      // Find user by username
+      const user = await this.authRepository.findUserForAuth(credentials.username);
       
       if (!user) {
         // Increment failed attempts even for non-existent users
-        await globalServices.accountLockout.incrementFailedAttempts(credentials.email);
+        await globalServices.accountLockout.incrementFailedAttempts(credentials.username);
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'Invalid credentials');
       }
 
       // Check password
-      const isPasswordValid = await globalServices.auth.comparePassword(credentials.password, user.password_hash);
+      const isPasswordValid = await globalServices.auth.comparePassword(credentials.password, user.password);
       
       if (!isPasswordValid) {
         // Increment failed attempts
-        const lockoutResult = await globalServices.accountLockout.incrementFailedAttempts(credentials.email);
+        const lockoutResult = await globalServices.accountLockout.incrementFailedAttempts(credentials.username);
         
         if (lockoutResult.isLocked) {
           throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 
@@ -127,7 +133,7 @@ export class AuthModuleService {
       }
 
       // Reset failed attempts on successful login
-      await globalServices.accountLockout.resetFailedAttempts(credentials.email);
+      await globalServices.accountLockout.resetFailedAttempts(credentials.username);
 
       // Update last login
       await this.authRepository.updateLastLogin(user.id);
@@ -217,7 +223,7 @@ export class AuthModuleService {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await globalServices.auth.comparePassword(data.currentPassword, user.password_hash);
+      const isCurrentPasswordValid = await globalServices.auth.comparePassword(data.currentPassword, user.password);
       if (!isCurrentPasswordValid) {
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'Invalid current password');
       }
@@ -393,7 +399,7 @@ export class AuthModuleService {
    */
   async loginWith2FA(credentials: AuthTypes.LoginCredentials, code: string, device: string, ipAddress: string, userAgent: string): Promise<{ user: AuthTypes.UserProfile; tokens: AuthTypes.AuthTokens }> {
     try {
-      logger.info('Starting 2FA login', { email: credentials.email });
+      logger.info('Starting 2FA login', { username: credentials.username });
 
       // First, do regular login validation
       const loginResult = await this.login(credentials, device, ipAddress, userAgent);
@@ -416,7 +422,7 @@ export class AuthModuleService {
         }
       }
 
-      logger.info('2FA login successful', { email: credentials.email });
+      logger.info('2FA login successful', { username: credentials.username });
       return loginResult;
     } catch (error) {
       logger.error('Error logging in with 2FA:', error);

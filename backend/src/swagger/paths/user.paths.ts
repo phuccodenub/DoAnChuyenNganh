@@ -1,5 +1,5 @@
 export const userPaths = {
-  '/api/users/profile': {
+  '/users/profile': {
     get: {
       summary: 'Get user profile',
       description: 'Retrieve the current user\'s profile information',
@@ -22,6 +22,7 @@ export const userPaths = {
                 message: 'Profile retrieved successfully',
                 data: {
                   id: '123e4567-e89b-12d3-a456-426614174000',
+                  username: '2021001234',
                   email: 'student@example.com',
                   first_name: 'Nguyen',
                   last_name: 'Van A',
@@ -30,8 +31,8 @@ export const userPaths = {
                   avatar: 'https://example.com/avatar.jpg',
                   role: 'student',
                   status: 'active',
-                  is_email_verified: true,
-                  student_id: 'SV001',
+                  email_verified: true,
+                  student_id: '2021001234',
                   class: 'CNTT-K62',
                   major: 'Công nghệ thông tin',
                   year: 2021,
