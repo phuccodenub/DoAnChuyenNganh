@@ -1,0 +1,246 @@
+export const userPaths = {
+  '/api/users/profile': {
+    get: {
+      summary: 'Get user profile',
+      description: 'Retrieve the current user\'s profile information',
+      tags: ['Users'],
+      security: [
+        {
+          bearerAuth: []
+        }
+      ],
+      responses: {
+        '200': {
+          description: 'Profile retrieved successfully',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ProfileResponse'
+              },
+              example: {
+                success: true,
+                message: 'Profile retrieved successfully',
+                data: {
+                  id: '123e4567-e89b-12d3-a456-426614174000',
+                  email: 'student@example.com',
+                  first_name: 'Nguyen',
+                  last_name: 'Van A',
+                  phone: '0123456789',
+                  bio: 'Student at University',
+                  avatar: 'https://example.com/avatar.jpg',
+                  role: 'student',
+                  status: 'active',
+                  is_email_verified: true,
+                  student_id: 'SV001',
+                  class: 'CNTT-K62',
+                  major: 'Công nghệ thông tin',
+                  year: 2021,
+                  gpa: 3.5,
+                  date_of_birth: '2000-01-01',
+                  gender: 'male',
+                  address: 'Hà Nội',
+                  emergency_contact: 'Nguyen Van B',
+                  emergency_phone: '0987654321',
+                  created_at: '2025-01-01T00:00:00.000Z',
+                  updated_at: '2025-01-01T00:00:00.000Z'
+                }
+              }
+            }
+          }
+        },
+        '401': {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'Unauthorized',
+                data: null
+              }
+            }
+          }
+        },
+        '404': {
+          description: 'User not found',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'User not found',
+                data: null
+              }
+            }
+          }
+        },
+        '500': {
+          description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'Internal server error',
+                data: null
+              }
+            }
+          }
+        }
+      }
+    },
+
+    put: {
+      summary: 'Update user profile',
+      description: 'Update the current user\'s profile information',
+      tags: ['Users'],
+      security: [
+        {
+          bearerAuth: []
+        }
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            },
+            examples: {
+              student: {
+                summary: 'Update student profile',
+                value: {
+                  first_name: 'Nguyen',
+                  last_name: 'Van A',
+                  phone: '0123456789',
+                  bio: 'Updated bio',
+                  student_id: 'SV001',
+                  class: 'CNTT-K62',
+                  major: 'Công nghệ thông tin',
+                  year: 2021,
+                  gpa: 3.8,
+                  date_of_birth: '2000-01-01',
+                  gender: 'male',
+                  address: 'Hà Nội',
+                  emergency_contact: 'Nguyen Van B',
+                  emergency_phone: '0987654321'
+                }
+              },
+              instructor: {
+                summary: 'Update instructor profile',
+                value: {
+                  first_name: 'Tran',
+                  last_name: 'Thi B',
+                  phone: '0987654321',
+                  bio: 'Updated instructor bio',
+                  instructor_id: 'GV001',
+                  department: 'Khoa Công nghệ thông tin',
+                  specialization: 'Lập trình web',
+                  experience_years: 6,
+                  education_level: 'phd',
+                  research_interests: 'Machine Learning, AI',
+                  date_of_birth: '1985-05-15',
+                  gender: 'female',
+                  address: 'TP.HCM'
+                }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        '200': {
+          description: 'Profile updated successfully',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ProfileResponse'
+              },
+              example: {
+                success: true,
+                message: 'Profile updated successfully',
+                data: {
+                  id: '123e4567-e89b-12d3-a456-426614174000',
+                  email: 'student@example.com',
+                  first_name: 'Nguyen',
+                  last_name: 'Van A',
+                  phone: '0123456789',
+                  bio: 'Updated bio',
+                  role: 'student',
+                  status: 'active',
+                  student_id: 'SV001',
+                  class: 'CNTT-K62',
+                  major: 'Công nghệ thông tin',
+                  year: 2021,
+                  gpa: 3.8,
+                  updated_at: '2025-01-01T00:00:00.000Z'
+                }
+              }
+            }
+          }
+        },
+        '400': {
+          description: 'Validation error',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ValidationError'
+              }
+            }
+          }
+        },
+        '401': {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'Unauthorized',
+                data: null
+              }
+            }
+          }
+        },
+        '404': {
+          description: 'User not found',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'User not found',
+                data: null
+              }
+            }
+          }
+        },
+        '500': {
+          description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'Internal server error',
+                data: null
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+};
