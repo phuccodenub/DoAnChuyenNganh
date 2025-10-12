@@ -6,6 +6,7 @@ import { validatorsUtils } from '../utils/validators.util';
 export const authValidation = {
   // Register schema
   register: z.object({
+    username: baseValidation.username,
     email: baseValidation.email,
     password: baseValidation.password,
     first_name: baseValidation.name,
@@ -16,7 +17,7 @@ export const authValidation = {
   
   // Login schema
   login: z.object({
-    email: baseValidation.email,
+    username: baseValidation.username,
     password: z.string().min(1, 'Password is required')
   }),
   
@@ -58,7 +59,7 @@ export const authValidation = {
   
   // Login with 2FA schema
   loginWith2FA: z.object({
-    email: baseValidation.email,
+    username: baseValidation.username,
     password: z.string().min(1, 'Password is required'),
     code: z.string().length(6, '2FA code must be 6 digits').regex(/^\d{6}$/, '2FA code must contain only numbers')
   }),

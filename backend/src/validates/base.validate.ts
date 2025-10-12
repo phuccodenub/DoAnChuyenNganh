@@ -11,6 +11,15 @@ export const baseValidation = {
   uuid: z.string().uuid('Invalid UUID format'),
   
   /**
+   * Username validation (for LMS login)
+   */
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username must be less than 50 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
+    .transform(val => val.toLowerCase().trim()),
+
+  /**
    * Email validation
    */
   email: z.string()

@@ -8,7 +8,7 @@ export class GlobalAuthService {
   // Generate tokens for any user
   async generateTokens(user: any): Promise<{ accessToken: string; refreshToken: string }> {
     try {
-      return tokenUtils.generateTokenPair(user);
+      return tokenUtils.jwt.generateTokenPair(user);
     } catch (error) {
       logger.error('Error generating tokens:', error);
       throw error;

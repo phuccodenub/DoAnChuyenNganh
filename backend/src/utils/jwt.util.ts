@@ -1,4 +1,5 @@
-import { tokenUtils } from './token.util';
+import jwt from 'jsonwebtoken';
+import { jwtConfig } from '../config/jwt.config';
 import logger from './logger.util';
 
 /**
@@ -49,10 +50,7 @@ export const jwtUtils: JWTUtils = {
    */
   signToken(payload: object, secret: string, options?: any): string {
     try {
-      // This would need to be implemented in tokenUtils if needed
-      // For now, we'll use the high-level methods
-      logger.warn('Direct signToken called - consider using specific token generation methods');
-      throw new Error('Use specific token generation methods instead');
+      return jwt.sign(payload, secret, options);
     } catch (error) {
       logger.error('JWT sign token error:', error);
       throw new Error('Token signing failed');
@@ -104,7 +102,23 @@ export const jwtUtils: JWTUtils = {
    * @returns Access token string
    */
   generateAccessToken(userId: string, email: string, role: string): string {
-    return tokenUtils.jwt.generateAccessToken(userId, email, role);
+    try {
+      const payload = {
+        userId,
+        email,
+        role,
+        type: 'access'
+      };
+
+      return jwtUtils.signToken(payload, jwtConfig.secret, {
+        expiresIn: jwtConfig.expiresIn as any,
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      });
+    } catch (error) {
+      logger.error('Access token generation error:', error);
+      throw new Error('Failed to generate access token');
+    }
   },
 
   /**
@@ -123,7 +137,22 @@ export const jwtUtils: JWTUtils = {
    * @returns Refresh token string
    */
   generateRefreshToken(userId: string, tokenVersion: number): string {
-    return tokenUtils.jwt.generateRefreshToken(userId, tokenVersion);
+    try {
+      const payload = {
+        userId,
+        tokenVersion,
+        type: 'refresh'
+      };
+
+      return jwtUtils.signToken(payload, jwtConfig.secret, {
+        expiresIn: jwtConfig.refreshExpiresIn as any,
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      });
+    } catch (error) {
+      logger.error('Refresh token generation error:', error);
+      throw new Error('Failed to generate refresh token');
+    }
   },
 
   /**
@@ -217,7 +246,15 @@ export const jwtUtils: JWTUtils = {
    * @returns Object with accessToken and refreshToken
    */
   generateTokenPair(user: any): { accessToken: string; refreshToken: string } {
-    return tokenUtils.jwt.generateTokenPair(user);
+    try {
+      const accessToken = this.generateAccessToken(user.id, user.email, user.role);
+      const refreshToken = this.generateRefreshToken(user.id, user.token_version);
+      
+      return { accessToken, refreshToken };
+    } catch (error) {
+      logger.error('Token pair generation error:', error);
+      throw new Error('Failed to generate token pair');
+    }
   },
 
   // ===== TOKEN UTILITIES (delegated to tokenUtils.utils) =====

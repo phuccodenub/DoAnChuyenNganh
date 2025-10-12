@@ -15,6 +15,7 @@ import { addIndexesToUsersTable } from './005-add-indexes-to-users-table';
 import { addIndexesToCoursesTable } from './006-add-indexes-to-courses-table';
 import { addIndexesToEnrollmentsTable } from './007-add-indexes-to-enrollments-table';
 import { addIndexesToChatMessagesTable } from './008-add-indexes-to-chat-messages-table';
+import { up as addInstructorStudentFields, down as removeInstructorStudentFields } from './010-add-instructor-student-fields';
 
 // Migration interface
 export interface Migration {
@@ -99,6 +100,12 @@ export const migrations: Migration[] = [
       await queryInterface.removeIndex('chat_messages', 'idx_chat_messages_user_id');
       await queryInterface.removeIndex('chat_messages', 'idx_chat_messages_created_at');
     }
+  },
+  {
+    version: '010',
+    description: 'Add instructor and student fields to users table',
+    up: addInstructorStudentFields,
+    down: removeInstructorStudentFields
   }
 ];
 

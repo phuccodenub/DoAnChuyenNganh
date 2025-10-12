@@ -5,7 +5,7 @@ import { UserInstance } from '../../types/user.types';
 const mockStudent: UserInstance = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   email: 'student@example.com',
-  password_hash: 'hashed_password',
+  password: 'hashed_password',
   first_name: 'Nguyễn',
   last_name: 'Văn A',
   phone: '0123456789',
@@ -13,7 +13,7 @@ const mockStudent: UserInstance = {
   avatar: 'https://example.com/avatar.jpg',
   role: 'student',
   status: 'active',
-  is_email_verified: true,
+  email_verified: true,
   email_verified_at: new Date(),
   token_version: 1,
   last_login: new Date(),

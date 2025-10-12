@@ -9,13 +9,19 @@ const User = sequelize.define('User', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  username: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    unique: true,
+    comment: 'Tên đăng nhập (mã số sinh viên/giảng viên hoặc username admin)',
+  },
   email: {
     type: DataTypes.STRING(255),
     allowNull: false,
     unique: true,
     validate: { isEmail: true },
   },
-  password_hash: {
+  password: {
     type: DataTypes.STRING(255),
     allowNull: false,
   },
@@ -38,7 +44,7 @@ const User = sequelize.define('User', {
     type: DataTypes.ENUM('active', 'inactive', 'suspended', 'pending'),
     defaultValue: 'active',
   },
-  is_email_verified: {
+  email_verified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
@@ -143,14 +149,14 @@ const User = sequelize.define('User', {
 // Hooks for password hashing (DISABLED - password already hashed in AuthService)
 /*
 User.beforeCreate(async (user) => {
-  if (user.password_hash) {
-    user.password_hash = await bcrypt.hash(user.password_hash, 12);
+  if (user.password) {
+    user.password = await bcrypt.hash(user.password, 12);
   }
 });
 
 User.beforeUpdate(async (user) => {
-  if (user.changed('password_hash')) {
-    user.password_hash = await bcrypt.hash(user.password_hash, 12);
+  if (user.changed('password')) {
+    user.password = await bcrypt.hash(user.password, 12);
   }
 });
 */

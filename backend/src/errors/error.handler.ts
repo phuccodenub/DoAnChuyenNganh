@@ -16,7 +16,7 @@ import { ExternalServiceError } from './external-service.error';
 import { ErrorFactory } from './error.factory';
 import { ErrorUtils } from './error.utils';
 import { responseUtils } from '../utils/response.util';
-import { loggerUtils } from '../utils/logger.util';
+import logger from '../utils/logger.util';
 
 export class ErrorHandler {
   /**
@@ -41,7 +41,7 @@ export class ErrorHandler {
 
       // Log error if necessary
       if (ErrorUtils.shouldLog(baseError)) {
-        loggerUtils.error('Error occurred:', ErrorUtils.formatForLogging(baseError, {
+        logger.logError('Error occurred:', ErrorUtils.formatForLogging(baseError, {
           url: req.url,
           method: req.method,
           ip: req.ip,
@@ -52,10 +52,10 @@ export class ErrorHandler {
       }
 
       // Send error response
-      this.sendErrorResponse(res, baseError);
+      ErrorHandler.sendErrorResponse(res, baseError);
     } catch (handlerError) {
       // Fallback error handling
-      loggerUtils.error('Error handler failed:', {
+      logger.logError('Error handler failed:', {
         originalError: error.message,
         handlerError: handlerError instanceof Error ? handlerError.message : 'Unknown error'
       });
@@ -82,9 +82,9 @@ export class ErrorHandler {
       requestId: (req as any).requestId
     });
 
-    loggerUtils.warn('Validation error:', ErrorUtils.formatForLogging(validationError));
+    logger.logWarning('Validation error:', ErrorUtils.formatForLogging(validationError));
 
-    this.sendErrorResponse(res, validationError);
+    ErrorHandler.sendErrorResponse(res, validationError);
   }
 
   /**
@@ -105,9 +105,9 @@ export class ErrorHandler {
       requestId: (req as any).requestId
     });
 
-    loggerUtils.error('Database error:', ErrorUtils.formatForLogging(databaseError));
+    logger.logError('Database error:', ErrorUtils.formatForLogging(databaseError));
 
-    this.sendErrorResponse(res, databaseError);
+    ErrorHandler.sendErrorResponse(res, databaseError);
   }
 
   /**
@@ -125,9 +125,9 @@ export class ErrorHandler {
       userAgent: req.get('User-Agent')
     });
 
-    loggerUtils.warn('Route not found:', ErrorUtils.formatForLogging(notFoundError));
+    logger.logWarning('Route not found:', ErrorUtils.formatForLogging(notFoundError));
 
-    this.sendErrorResponse(res, notFoundError);
+    ErrorHandler.sendErrorResponse(res, notFoundError);
   }
 
   /**
@@ -179,7 +179,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     });
 
-    loggerUtils.error('Uncaught exception:', ErrorUtils.formatForLogging(baseError));
+    logger.logError('Uncaught exception:', ErrorUtils.formatForLogging(baseError));
 
     // Exit process for critical errors
     if (ErrorUtils.isCritical(baseError)) {
@@ -198,7 +198,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     });
 
-    loggerUtils.error('Unhandled rejection:', ErrorUtils.formatForLogging(baseError));
+    logger.logError('Unhandled rejection:', ErrorUtils.formatForLogging(baseError));
 
     // Exit process for critical errors
     if (ErrorUtils.isCritical(baseError)) {

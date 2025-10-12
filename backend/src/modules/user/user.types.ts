@@ -71,7 +71,7 @@ export interface UserProfile {
   avatar?: string;
   role: 'student' | 'instructor' | 'admin' | 'super_admin';
   status: 'active' | 'inactive' | 'suspended' | 'pending';
-  is_email_verified: boolean;
+  email_verified: boolean;
   email_verified_at?: Date;
   token_version: number;
   last_login?: Date;

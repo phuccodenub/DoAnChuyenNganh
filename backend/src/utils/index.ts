@@ -23,7 +23,8 @@ export * as paginationUtils from './pagination.util';
 
 // ===== RESPONSE & LOGGING UTILITIES =====
 export * as responseUtils from './response.util';
-export * as loggerUtils from './logger.util';
+export { loggerUtils } from './logger.util';
+export { default as logger } from './logger.util';
 
 // ===== USER & DOMAIN UTILITIES =====
 export * as userUtils from './user.util';

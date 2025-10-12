@@ -10,23 +10,45 @@ export class AuthRepository extends BaseUserRepository {
   }
 
   /**
-   * Find user by email for authentication
+   * Find user by username for authentication (LMS login)
    */
-  async findUserForAuth(email: string): Promise<UserInstance | null> {
+  async findUserForAuth(username: string): Promise<UserInstance | null> {
     try {
-      logger.debug('Finding user for authentication', { email });
+      logger.debug('Finding user for authentication', { username });
       
-      const user = await this.findByEmail(email);
+      const user = await this.findByUsername(username);
       
       if (user) {
-        logger.debug('User found for authentication', { email });
+        logger.debug('User found for authentication', { username });
       } else {
-        logger.debug('User not found for authentication', { email });
+        logger.debug('User not found for authentication', { username });
       }
       
       return user;
     } catch (error) {
       logger.error('Error finding user for authentication:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by email for authentication (legacy support)
+   */
+  async findUserByEmailForAuth(email: string): Promise<UserInstance | null> {
+    try {
+      logger.debug('Finding user by email for authentication', { email });
+      
+      const user = await this.findByEmail(email);
+      
+      if (user) {
+        logger.debug('User found by email for authentication', { email });
+      } else {
+        logger.debug('User not found by email for authentication', { email });
+      }
+      
+      return user;
+    } catch (error) {
+      logger.error('Error finding user by email for authentication:', error);
       throw error;
     }
   }
@@ -56,7 +78,7 @@ export class AuthRepository extends BaseUserRepository {
       logger.debug('Updating user password', { userId });
       
       const user = await this.update(userId, {
-        password_hash: passwordHash,
+        password: passwordHash,
         token_version: tokenVersion
       });
       
@@ -76,7 +98,7 @@ export class AuthRepository extends BaseUserRepository {
       logger.debug('Updating email verification', { userId, isVerified });
       
       const user = await this.update(userId, {
-        is_email_verified: isVerified,
+        email_verified: isVerified,
         email_verified_at: isVerified ? new Date() : null
       });
       
