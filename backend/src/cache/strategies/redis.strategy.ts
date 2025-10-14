@@ -5,6 +5,7 @@
 
 import { redisClient } from '../../config/redis.config';
 import logger from '../../utils/logger.util';
+import { metricsMiddleware } from '../../monitoring/metrics/metrics.middleware';
 import { CacheStrategy, CacheStats, CacheOptions, CacheKeyOptions, CacheMetadata } from './cache.strategy';
 
 export class RedisCacheStrategy implements CacheStrategy {
@@ -49,6 +50,8 @@ export class RedisCacheStrategy implements CacheStrategy {
       const value = await redisClient.get(cacheKey);
       
       if (value === null) {
+        // metrics: cache miss
+        metricsMiddleware['metricsService'].incrementCounter('redis_cache_misses_total', { key: cacheKey });
         this.stats.misses++;
         this.updateHitRate();
         return null;
@@ -57,6 +60,8 @@ export class RedisCacheStrategy implements CacheStrategy {
       // Update access metadata
       await this.updateAccessMetadata(cacheKey);
       
+      // metrics: cache hit
+      metricsMiddleware['metricsService'].incrementCounter('redis_cache_hits_total', { key: cacheKey });
       this.stats.hits++;
       this.updateHitRate();
       
@@ -78,7 +83,8 @@ export class RedisCacheStrategy implements CacheStrategy {
       const serializedValue = this.serialize(value);
       const cacheTtl = ttl || this.options.ttl!;
       
-      await redisClient.setex(cacheKey, cacheTtl, serializedValue);
+      await redisClient.setEx(cacheKey, cacheTtl, serializedValue);
+      metricsMiddleware['metricsService'].incrementCounter('redis_operations_total', { op: 'set' });
       
       // Store metadata
       await this.storeMetadata(cacheKey, cacheTtl);
@@ -97,6 +103,7 @@ export class RedisCacheStrategy implements CacheStrategy {
     try {
       const cacheKey = this.buildKey(key);
       await redisClient.del(cacheKey);
+      metricsMiddleware['metricsService'].incrementCounter('redis_operations_total', { op: 'del' });
       
       // Delete metadata
       await redisClient.del(`${cacheKey}:meta`);
@@ -174,14 +181,14 @@ export class RedisCacheStrategy implements CacheStrategy {
    */
   public async mset<T>(keyValuePairs: Array<{ key: string; value: T; ttl?: number }>): Promise<void> {
     try {
-      const pipeline = redisClient.pipeline();
+      const pipeline = redisClient.multi();
       
       for (const { key, value, ttl } of keyValuePairs) {
         const cacheKey = this.buildKey(key);
         const serializedValue = this.serialize(value);
         const cacheTtl = ttl || this.options.ttl!;
         
-        pipeline.setex(cacheKey, cacheTtl, serializedValue);
+        pipeline.setEx(cacheKey, cacheTtl, serializedValue);
         this.storeMetadata(cacheKey, cacheTtl);
       }
       
@@ -295,7 +302,7 @@ export class RedisCacheStrategy implements CacheStrategy {
         tags: this.keyOptions.tags || []
       };
       
-      await redisClient.setex(`${key}:meta`, ttl, JSON.stringify(metadata));
+      await redisClient.setEx(`${key}:meta`, ttl, JSON.stringify(metadata));
     } catch (error) {
       logger.error('Redis cache metadata store error', { key, error: error.message });
     }
@@ -314,7 +321,7 @@ export class RedisCacheStrategy implements CacheStrategy {
         metadata.accessCount++;
         metadata.lastAccessed = new Date();
         
-        await redisClient.setex(metaKey, await redisClient.ttl(key), JSON.stringify(metadata));
+        await redisClient.setEx(metaKey, await redisClient.ttl(key), JSON.stringify(metadata));
       }
     } catch (error) {
       logger.error('Redis cache metadata update error', { key, error: error.message });

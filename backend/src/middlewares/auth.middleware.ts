@@ -30,7 +30,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     
     try {
-      const decoded = tokenUtils.verifyAccessToken(token);
+      logger.info('Verifying token:', token.substring(0, 50) + '...');
+      const decoded = tokenUtils.jwt.verifyAccessToken(token);
+      logger.info('Token verified successfully:', decoded);
       req.user = decoded;
       next();
     } catch (error) {
@@ -86,7 +88,7 @@ export const optionalAuthMiddleware = async (req: Request, res: Response, next: 
       const token = authHeader.substring(7);
       
       try {
-        const decoded = tokenUtils.verifyAccessToken(token);
+        const decoded = tokenUtils.jwt.verifyAccessToken(token);
         req.user = decoded;
       } catch (error) {
         // Ignore token errors for optional auth

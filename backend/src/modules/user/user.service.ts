@@ -18,6 +18,135 @@ export class UserModuleService {
     this.userRepository = new UserModuleRepository();
   }
 
+  // ===== USER MANAGEMENT METHODS =====
+
+  /**
+   * Get all users with pagination and filtering
+   */
+  async getAllUsers(options: {
+    page: number;
+    limit: number;
+    role?: string;
+    status?: string;
+    search?: string;
+    sortBy: string;
+    sortOrder: string;
+  }): Promise<{ users: any[]; pagination: any }> {
+    try {
+      logger.info('Getting all users', options);
+
+      const result = await this.userRepository.findAllWithPagination(options);
+      
+      logger.info('All users retrieved successfully', { 
+        count: result.users.length, 
+        total: result.pagination.total 
+      });
+      
+      return result;
+    } catch (error) {
+      logger.error('Error getting all users:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user by ID
+   */
+  async getUserById(userId: string): Promise<any> {
+    try {
+      logger.info('Getting user by ID', { userId });
+
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'User not found');
+      }
+
+      const publicProfile = userUtils.getPublicProfile(user);
+      
+      logger.info('User retrieved successfully', { userId });
+      return publicProfile;
+    } catch (error) {
+      logger.error('Error getting user by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user status
+   */
+  async updateUserStatus(userId: string, status: string): Promise<any> {
+    try {
+      logger.info('Updating user status', { userId, status });
+
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'User not found');
+      }
+
+      // Update user status
+      const updatedUser = await this.userRepository.update(userId, { status });
+      
+      // Clear cache
+      await globalServices.user.clearUserCache(userId);
+      
+      const publicProfile = userUtils.getPublicProfile(updatedUser);
+      
+      logger.info('User status updated successfully', { userId, status });
+      return publicProfile;
+    } catch (error) {
+      logger.error('Error updating user status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user enrollments
+   */
+  async getUserEnrollments(userId: string): Promise<any[]> {
+    try {
+      logger.info('Getting user enrollments', { userId });
+
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'User not found');
+      }
+
+      // Get user enrollments
+      const enrollments = await this.userRepository.getUserEnrollments(userId);
+      
+      logger.info('User enrollments retrieved successfully', { userId, count: enrollments.length });
+      return enrollments;
+    } catch (error) {
+      logger.error('Error getting user enrollments:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user progress
+   */
+  async getUserProgress(userId: string): Promise<any> {
+    try {
+      logger.info('Getting user progress', { userId });
+
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'User not found');
+      }
+
+      // Get user progress
+      const progress = await this.userRepository.getUserProgress(userId);
+      
+      logger.info('User progress retrieved successfully', { userId });
+      return progress;
+    } catch (error) {
+      logger.error('Error getting user progress:', error);
+      throw error;
+    }
+  }
+
+  // ===== USER PROFILE METHODS =====
+
   /**
    * Get user profile
    */

@@ -244,4 +244,97 @@ export const userPaths = {
       }
     }
   }
+  ,
+  '/users': {
+    get: {
+      summary: 'List users',
+      description: 'Get paginated list of users with filter/sort',
+      tags: ['Users'],
+      parameters: [
+        { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+        { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+        { name: 'sort', in: 'query', schema: { type: 'string', enum: ['created_at','last_name','role','status'], default: 'created_at' } },
+        { name: 'order', in: 'query', schema: { type: 'string', enum: ['asc','desc'], default: 'desc' } },
+        { name: 'search', in: 'query', schema: { type: 'string' } },
+        { name: 'role', in: 'query', schema: { type: 'string', enum: ['student','instructor','admin','super_admin'] } },
+        { name: 'status', in: 'query', schema: { type: 'string', enum: ['active','suspended','pending'] } }
+      ],
+      responses: {
+        '200': {
+          description: 'User list',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  items: { type: 'array', items: { $ref: '#/components/schemas/User' } },
+                  page: { type: 'integer' },
+                  limit: { type: 'integer' },
+                  total: { type: 'integer' }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  ,
+  '/users/{id}': {
+    get: {
+      summary: 'Get user by id',
+      tags: ['Users'],
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }
+      ],
+      responses: {
+        '200': { description: 'User detail', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
+        '404': { description: 'User not found' }
+      }
+    }
+  }
+  ,
+  '/users/{id}/status': {
+    patch: {
+      summary: 'Update user status',
+      tags: ['Users'],
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }
+      ],
+      requestBody: {
+        required: true,
+        content: { 'application/json': { schema: { type: 'object', required: ['status'], properties: { status: { type: 'string', enum: ['active','suspended','pending'] } } } } }
+      },
+      responses: {
+        '200': { description: 'Status updated' },
+        '404': { description: 'User not found' }
+      }
+    }
+  }
+  ,
+  '/users/{id}/enrollments': {
+    get: {
+      summary: 'List user enrollments',
+      tags: ['Users'],
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }
+      ],
+      responses: {
+        '200': { description: 'Enrollment list', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Enrollment' } } } } }
+      }
+    }
+  }
+  ,
+  '/users/{id}/progress': {
+    get: {
+      summary: 'Get user progress overview',
+      tags: ['Users'],
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }
+      ],
+      responses: {
+        '200': { description: 'Progress overview', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Progress' } } } } }
+      }
+    }
+  }
 };

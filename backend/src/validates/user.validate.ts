@@ -108,7 +108,10 @@ export const userValidation = {
   
   // User query schema
   userQuery: z.object({
-    ...baseValidation.pagination.shape,
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    sort: z.string().optional(),
+    order: z.enum(['ASC', 'DESC', 'asc', 'desc']).transform(val => val.toUpperCase()).default('DESC'),
     role: z.enum(['student', 'instructor', 'admin', 'super_admin']).optional(),
     status: z.enum(['active', 'inactive', 'suspended', 'pending']).optional(),
     search: z.string().min(1, 'Search term cannot be empty').optional()
@@ -118,9 +121,9 @@ export const userValidation = {
   userRole: z.object({
     role: z.enum(['student', 'instructor', 'admin', 'super_admin'])
   }),
-  
+
   // Update user status schema
-  updateStatus: z.object({
+  updateUserStatus: z.object({
     status: z.enum(['active', 'inactive', 'suspended', 'pending'])
   })
 };

@@ -61,10 +61,17 @@ export const APP_CONSTANTS = {
     MAX_FILES: 5
   } as const,
   
-  // CORS
+  // CORS (read from centralized CORS_* envs with sensible defaults)
   CORS: {
-    ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
-    ALLOWED_METHODS: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] as string[],
-    ALLOWED_HEADERS: ['Content-Type', 'Authorization', 'X-Requested-With'] as string[]
+    ALLOWED_ORIGINS: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000')
+      .split(',')
+      .map(o => o.trim())
+      .filter(Boolean),
+    ALLOWED_METHODS: (process.env.CORS_ALLOWED_METHODS || 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+      .split(',')
+      .map(m => m.trim()) as string[],
+    ALLOWED_HEADERS: (process.env.CORS_ALLOWED_HEADERS || 'Content-Type,Authorization,X-Requested-With')
+      .split(',')
+      .map(h => h.trim()) as string[]
   } as const
 } as const;

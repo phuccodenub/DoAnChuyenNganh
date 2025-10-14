@@ -24,7 +24,7 @@ export const userValidation = {
     
     body('phone')
       .optional()
-      .custom(validatorsUtils.isPhoneNumber)
+      .custom(validatorsUtils.isPhone)
       .withMessage('Invalid phone number format'),
     
     body('bio')
@@ -63,7 +63,7 @@ export const userValidation = {
     
     body('emergency_phone')
       .optional()
-      .custom(validatorsUtils.isPhoneNumber)
+      .custom(validatorsUtils.isPhone)
       .withMessage('Invalid emergency phone number format'),
     
     // Student-specific fields

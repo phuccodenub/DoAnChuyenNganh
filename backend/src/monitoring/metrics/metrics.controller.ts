@@ -21,8 +21,7 @@ export class MetricsController {
   public getAllMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const metrics = this.metricsService.getAllMetrics();
-      
-      res.status(200).json(responseUtils.success(metrics, 'All metrics retrieved'));
+      responseUtils.sendSuccess(res, 'All metrics retrieved', metrics);
     } catch (error) {
       next(error);
     }
@@ -35,8 +34,7 @@ export class MetricsController {
   public getApplicationMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const metrics = this.metricsService.getApplicationMetrics();
-      
-      res.status(200).json(responseUtils.success(metrics, 'Application metrics retrieved'));
+      responseUtils.sendSuccess(res, 'Application metrics retrieved', metrics);
     } catch (error) {
       next(error);
     }
@@ -61,8 +59,7 @@ export class MetricsController {
       for (const name of counterNames) {
         counters[name] = this.metricsService.getCounter(name);
       }
-      
-      res.status(200).json(responseUtils.success(counters, 'Counter metrics retrieved'));
+      responseUtils.sendSuccess(res, 'Counter metrics retrieved', counters);
     } catch (error) {
       next(error);
     }
@@ -87,8 +84,7 @@ export class MetricsController {
       for (const name of gaugeNames) {
         gauges[name] = this.metricsService.getGauge(name);
       }
-      
-      res.status(200).json(responseUtils.success(gauges, 'Gauge metrics retrieved'));
+      responseUtils.sendSuccess(res, 'Gauge metrics retrieved', gauges);
     } catch (error) {
       next(error);
     }
@@ -116,8 +112,7 @@ export class MetricsController {
           histograms[name] = stats;
         }
       }
-      
-      res.status(200).json(responseUtils.success(histograms, 'Histogram metrics retrieved'));
+      responseUtils.sendSuccess(res, 'Histogram metrics retrieved', histograms);
     } catch (error) {
       next(error);
     }
@@ -145,8 +140,7 @@ export class MetricsController {
           timers[name] = stats;
         }
       }
-      
-      res.status(200).json(responseUtils.success(timers, 'Timer metrics retrieved'));
+      responseUtils.sendSuccess(res, 'Timer metrics retrieved', timers);
     } catch (error) {
       next(error);
     }
@@ -162,11 +156,10 @@ export class MetricsController {
       const metrics = this.metricsService.getMetrics(name);
       
       if (metrics.length === 0) {
-        res.status(404).json(responseUtils.error(`Metric '${name}' not found`));
+        responseUtils.sendNotFound(res, `Metric '${name}' not found`);
         return;
       }
-      
-      res.status(200).json(responseUtils.success(metrics, `Metric '${name}' retrieved`));
+      responseUtils.sendSuccess(res, `Metric '${name}' retrieved`, metrics);
     } catch (error) {
       next(error);
     }
@@ -179,8 +172,7 @@ export class MetricsController {
   public resetMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       this.metricsService.reset();
-      
-      res.status(200).json(responseUtils.success(null, 'All metrics reset'));
+      responseUtils.sendSuccess(res, 'All metrics reset', null);
     } catch (error) {
       next(error);
     }
@@ -213,6 +205,18 @@ export class MetricsController {
           prometheusOutput += `# HELP ${name} ${name} counter\n`;
           prometheusOutput += `# TYPE ${name} counter\n`;
           prometheusOutput += `${name} ${value}\n\n`;
+
+          // Labeled counter series (if any)
+          const labeled = this.metricsService.getLabeledCounters(name);
+          for (const series of labeled) {
+            const labelStr = Object.keys(series.labels)
+              .map(k => `${k}="${series.labels[k]}"`)
+              .join(',');
+            prometheusOutput += `${name}{${labelStr}} ${series.value}\n`;
+          }
+          if (labeled.length > 0) {
+            prometheusOutput += `\n`;
+          }
         } else if (latestMetric.type === 'gauge') {
           const value = this.metricsService.getGauge(name);
           prometheusOutput += `# HELP ${name} ${name} gauge\n`;
@@ -223,13 +227,67 @@ export class MetricsController {
           if (stats) {
             prometheusOutput += `# HELP ${name} ${name} histogram\n`;
             prometheusOutput += `# TYPE ${name} histogram\n`;
+            // For duration histogram, expose standard buckets
+            if (name === 'http_request_duration_seconds') {
+              const all = (this as any).metricsService['histograms'].get(name) as number[] | undefined;
+              const boundaries = [0.1, 0.3, 0.5, 1, 2, 5];
+              if (all && all.length > 0) {
+                for (const le of boundaries) {
+                  const c = all.filter(v => v <= le).length;
+                  prometheusOutput += `${name}_bucket{le="${le}"} ${c}\n`;
+                }
+              }
+            }
             prometheusOutput += `${name}_count ${stats.count}\n`;
             prometheusOutput += `${name}_sum ${stats.sum}\n`;
             prometheusOutput += `${name}_bucket{le="+Inf"} ${stats.count}\n\n`;
           }
+
+          // Labeled histogram series (if any)
+          const labeledH = this.metricsService.getLabeledHistogramStats(name);
+          for (const series of labeledH) {
+            const labelStr = Object.keys(series.labels)
+              .map(k => `${k}="${series.labels[k]}"`)
+              .join(',');
+            if (name === 'http_request_duration_seconds') {
+              const key = `${name}|` + Object.keys(series.labels).sort().map(k => `${k}=${series.labels[k]}`).join(',');
+              const all = (this as any).metricsService['labeledHistograms'].get(key) as number[] | undefined;
+              const boundaries = [0.1, 0.3, 0.5, 1, 2, 5];
+              if (all && all.length > 0) {
+                for (const le of boundaries) {
+                  const c = all.filter(v => v <= le).length;
+                  prometheusOutput += `${name}_bucket{${labelStr},le="${le}"} ${c}\n`;
+                }
+              }
+            }
+            prometheusOutput += `${name}_count{${labelStr}} ${series.stats.count}\n`;
+            prometheusOutput += `${name}_sum{${labelStr}} ${series.stats.sum}\n`;
+            prometheusOutput += `${name}_bucket{${labelStr},le="+Inf"} ${series.stats.count}\n`;
+          }
+          if (labeledH.length > 0) {
+            prometheusOutput += `\n`;
+          }
         }
       }
       
+      // If no metrics yet, expose a minimal baseline so the endpoint is not empty
+      if (!prometheusOutput) {
+        const up = 1;
+        prometheusOutput += `# HELP lms_up LMS service availability\n`;
+        prometheusOutput += `# TYPE lms_up gauge\n`;
+        prometheusOutput += `lms_up ${up}\n\n`;
+
+        const uptimeSeconds = Math.floor(process.uptime());
+        prometheusOutput += `# HELP lms_process_uptime_seconds Process uptime in seconds\n`;
+        prometheusOutput += `# TYPE lms_process_uptime_seconds gauge\n`;
+        prometheusOutput += `lms_process_uptime_seconds ${uptimeSeconds}\n\n`;
+
+        const mem = process.memoryUsage();
+        prometheusOutput += `# HELP lms_process_resident_memory_bytes Resident memory size in bytes\n`;
+        prometheusOutput += `# TYPE lms_process_resident_memory_bytes gauge\n`;
+        prometheusOutput += `lms_process_resident_memory_bytes ${mem.rss}\n`;
+      }
+
       res.set('Content-Type', 'text/plain');
       res.status(200).send(prometheusOutput);
     } catch (error) {

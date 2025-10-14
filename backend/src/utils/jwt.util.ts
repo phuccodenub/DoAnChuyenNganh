@@ -127,7 +127,23 @@ export const jwtUtils: JWTUtils = {
    * @returns User data { userId, email, role }
    */
   verifyAccessToken(token: string): { userId: string; email: string; role: string } {
-    return tokenUtils.jwt.verifyAccessToken(token);
+    try {
+      logger.info('JWT verifyAccessToken called with token:', token.substring(0, 50) + '...');
+      const decoded = jwt.verify(token, jwtConfig.secret, {
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      }) as any;
+      logger.info('JWT decoded successfully:', decoded);
+      if (decoded?.type !== 'access') {
+        logger.error('Invalid token type:', decoded?.type);
+        throw new Error('Invalid token type');
+      }
+      logger.info('Token type validation passed');
+      return { userId: decoded.userId, email: decoded.email, role: decoded.role };
+    } catch (error) {
+      logger.error('Access token verification error:', error);
+      throw new Error('Invalid access token');
+    }
   },
 
   /**
@@ -161,7 +177,19 @@ export const jwtUtils: JWTUtils = {
    * @returns User data { userId, tokenVersion }
    */
   verifyRefreshToken(token: string): { userId: string; tokenVersion: number } {
-    return tokenUtils.jwt.verifyRefreshToken(token);
+    try {
+      const decoded = jwt.verify(token, jwtConfig.secret, {
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      }) as any;
+      if (decoded?.type !== 'refresh') {
+        throw new Error('Invalid token type');
+      }
+      return { userId: decoded.userId, tokenVersion: decoded.tokenVersion };
+    } catch (error) {
+      logger.error('Refresh token verification error:', error);
+      throw new Error('Invalid refresh token');
+    }
   },
 
   /**
@@ -171,7 +199,17 @@ export const jwtUtils: JWTUtils = {
    * @returns Password reset token string
    */
   generatePasswordResetToken(userId: string, email: string): string {
-    return tokenUtils.jwt.generatePasswordResetToken(userId, email);
+    try {
+      const payload = { userId, email, type: 'password_reset' };
+      return jwt.sign(payload, jwtConfig.secret, {
+        expiresIn: '15m',
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      });
+    } catch (error) {
+      logger.error('Password reset token generation error:', error);
+      throw new Error('Failed to generate password reset token');
+    }
   },
 
   /**
@@ -180,7 +218,19 @@ export const jwtUtils: JWTUtils = {
    * @returns User data { userId, email }
    */
   verifyPasswordResetToken(token: string): { userId: string; email: string } {
-    return tokenUtils.jwt.verifyPasswordResetToken(token);
+    try {
+      const decoded = jwt.verify(token, jwtConfig.secret, {
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      }) as any;
+      if (decoded?.type !== 'password_reset') {
+        throw new Error('Invalid token type');
+      }
+      return { userId: decoded.userId, email: decoded.email };
+    } catch (error) {
+      logger.error('Password reset token verification error:', error);
+      throw new Error('Invalid password reset token');
+    }
   },
 
   /**
@@ -190,7 +240,17 @@ export const jwtUtils: JWTUtils = {
    * @returns Email verification token string
    */
   generateEmailVerificationToken(userId: string, email: string): string {
-    return tokenUtils.jwt.generateEmailVerificationToken(userId, email);
+    try {
+      const payload = { userId, email, type: 'email_verification' };
+      return jwt.sign(payload, jwtConfig.secret, {
+        expiresIn: '24h',
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      });
+    } catch (error) {
+      logger.error('Email verification token generation error:', error);
+      throw new Error('Failed to generate email verification token');
+    }
   },
 
   /**
@@ -199,7 +259,19 @@ export const jwtUtils: JWTUtils = {
    * @returns User data { userId, email }
    */
   verifyEmailVerificationToken(token: string): { userId: string; email: string } {
-    return tokenUtils.jwt.verifyEmailVerificationToken(token);
+    try {
+      const decoded = jwt.verify(token, jwtConfig.secret, {
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      }) as any;
+      if (decoded?.type !== 'email_verification') {
+        throw new Error('Invalid token type');
+      }
+      return { userId: decoded.userId, email: decoded.email };
+    } catch (error) {
+      logger.error('Email verification token verification error:', error);
+      throw new Error('Invalid email verification token');
+    }
   },
 
   /**
@@ -209,7 +281,17 @@ export const jwtUtils: JWTUtils = {
    * @returns API key token string
    */
   generateApiKeyToken(userId: string, permissions: string[] = []): string {
-    return tokenUtils.jwt.generateApiKeyToken(userId, permissions);
+    try {
+      const payload = { userId, permissions, type: 'api_key' };
+      return jwt.sign(payload, jwtConfig.secret, {
+        expiresIn: '30d',
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      });
+    } catch (error) {
+      logger.error('API key token generation error:', error);
+      throw new Error('Failed to generate API key token');
+    }
   },
 
   /**
@@ -218,7 +300,19 @@ export const jwtUtils: JWTUtils = {
    * @returns User data { userId, permissions }
    */
   verifyApiKeyToken(token: string): { userId: string; permissions: string[] } {
-    return tokenUtils.jwt.verifyApiKeyToken(token);
+    try {
+      const decoded = jwt.verify(token, jwtConfig.secret, {
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      }) as any;
+      if (decoded?.type !== 'api_key') {
+        throw new Error('Invalid token type');
+      }
+      return { userId: decoded.userId, permissions: decoded.permissions || [] };
+    } catch (error) {
+      logger.error('API key token verification error:', error);
+      throw new Error('Invalid API key token');
+    }
   },
 
   /**
@@ -228,7 +322,17 @@ export const jwtUtils: JWTUtils = {
    * @returns Session token string
    */
   generateSessionToken(userId: string, sessionId: string): string {
-    return tokenUtils.jwt.generateSessionToken(userId, sessionId);
+    try {
+      const payload = { userId, sessionId, type: 'session' };
+      return jwt.sign(payload, jwtConfig.secret, {
+        expiresIn: '7d',
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      });
+    } catch (error) {
+      logger.error('Session token generation error:', error);
+      throw new Error('Failed to generate session token');
+    }
   },
 
   /**
@@ -237,7 +341,19 @@ export const jwtUtils: JWTUtils = {
    * @returns User data { userId, sessionId }
    */
   verifySessionToken(token: string): { userId: string; sessionId: string } {
-    return tokenUtils.jwt.verifySessionToken(token);
+    try {
+      const decoded = jwt.verify(token, jwtConfig.secret, {
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience
+      }) as any;
+      if (decoded?.type !== 'session') {
+        throw new Error('Invalid token type');
+      }
+      return { userId: decoded.userId, sessionId: decoded.sessionId };
+    } catch (error) {
+      logger.error('Session token verification error:', error);
+      throw new Error('Invalid session token');
+    }
   },
 
   /**
@@ -265,7 +381,12 @@ export const jwtUtils: JWTUtils = {
    * @returns Token string or null if invalid
    */
   extractTokenFromHeader(authHeader: string): string | null {
-    return tokenUtils.utils.extractTokenFromHeader(authHeader);
+    if (!authHeader) return null;
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2) return null;
+    const [scheme, token] = parts;
+    if (!/^Bearer$/i.test(scheme)) return null;
+    return token || null;
   },
 
   /**
@@ -274,7 +395,9 @@ export const jwtUtils: JWTUtils = {
    * @returns True if valid format, false otherwise
    */
   isValidTokenFormat(token: string): boolean {
-    return tokenUtils.utils.isValidTokenFormat(token);
+    if (!token || typeof token !== 'string') return false;
+    const segments = token.split('.');
+    return segments.length === 3;
   },
 
   /**
@@ -283,7 +406,14 @@ export const jwtUtils: JWTUtils = {
    * @returns True if expired, false otherwise
    */
   isTokenExpired(token: string): boolean {
-    return tokenUtils.utils.isTokenExpired(token);
+    try {
+      const decoded: any = jwt.decode(token);
+      if (!decoded || !decoded.exp) return false;
+      const now = Math.floor(Date.now() / 1000);
+      return decoded.exp < now;
+    } catch {
+      return true;
+    }
   },
 
   /**
@@ -292,6 +422,12 @@ export const jwtUtils: JWTUtils = {
    * @returns Expiration date or null if invalid
    */
   getTokenExpiration(token: string): Date | null {
-    return tokenUtils.utils.getTokenExpiration(token);
+    try {
+      const decoded: any = jwt.decode(token);
+      if (!decoded || !decoded.exp) return null;
+      return new Date(decoded.exp * 1000);
+    } catch {
+      return null;
+    }
   }
 };

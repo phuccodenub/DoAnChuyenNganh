@@ -126,7 +126,7 @@ export const authPaths = {
             },
             example: {
               username: '2021001234',
-              password: 'password123'
+              password: 'Student123!'
             }
           }
         }

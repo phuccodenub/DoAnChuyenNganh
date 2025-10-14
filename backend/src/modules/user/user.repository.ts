@@ -3,11 +3,82 @@ import { UserInstance } from '../../types/user.types';
 import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
 import { UserTypes } from './user.types';
 import logger from '../../utils/logger.util';
+import { Op } from 'sequelize';
 
 export class UserModuleRepository extends BaseUserRepository {
   constructor() {
-    super();
+    super('User');
   }
+
+  // ===== USER MANAGEMENT METHODS =====
+
+  /**
+   * Find all users with pagination and filtering
+   */
+  async findAllWithPagination(options: {
+    page: number;
+    limit: number;
+    role?: string;
+    status?: string;
+    search?: string;
+    sortBy: string;
+    sortOrder: string;
+  }): Promise<{ users: any[]; pagination: any }> {
+    try {
+      logger.debug('Finding all users with pagination', options);
+
+      const { page, limit, role, status, search, sortBy, sortOrder } = options;
+      const offset = (page - 1) * limit;
+
+      // Build where clause
+      const whereClause: any = {};
+      if (role) whereClause.role = role;
+      if (status) whereClause.status = status;
+      if (search) {
+        whereClause[Op.or] = [
+          { username: { [Op.iLike]: `%${search}%` } },
+          { email: { [Op.iLike]: `%${search}%` } },
+          { first_name: { [Op.iLike]: `%${search}%` } },
+          { last_name: { [Op.iLike]: `%${search}%` } }
+        ];
+      }
+
+      // Get total count
+      const total = await this.count({ where: whereClause });
+
+      // Get users
+      const users = await this.findAll({
+        where: whereClause,
+        limit,
+        offset,
+        order: [[sortBy, sortOrder.toUpperCase()]],
+        attributes: { exclude: ['password'] } // Exclude password from results
+      });
+
+      const pagination = {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      };
+
+      logger.debug('Users with pagination retrieved', { 
+        count: users.length, 
+        total, 
+        page, 
+        limit 
+      });
+
+      return { users, pagination };
+    } catch (error) {
+      logger.error('Error finding all users with pagination:', error);
+      throw error;
+    }
+  }
+
+  // ===== USER PROFILE METHODS =====
 
   /**
    * Find user with preferences
@@ -441,6 +512,79 @@ export class UserModuleRepository extends BaseUserRepository {
       logger.debug('Privacy settings updated', { userId });
     } catch (error) {
       logger.error('Error updating privacy settings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user enrollments
+   */
+  async getUserEnrollments(userId: string): Promise<any[]> {
+    try {
+      logger.debug('Getting user enrollments', { userId });
+      
+      const { Enrollment, Course } = require('../../models');
+      
+      const enrollments = await Enrollment.findAll({
+        where: { user_id: userId },
+        include: [
+          {
+            model: Course,
+            as: 'course',
+            attributes: ['id', 'title', 'description', 'instructor_id', 'status', 'created_at']
+          }
+        ],
+        order: [['enrolled_at', 'DESC']]
+      });
+      
+      logger.debug('User enrollments retrieved', { userId, count: enrollments.length });
+      return enrollments;
+    } catch (error) {
+      logger.error('Error getting user enrollments:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user progress
+   */
+  async getUserProgress(userId: string): Promise<any> {
+    try {
+      logger.debug('Getting user progress', { userId });
+      
+      const { Enrollment } = require('../../models');
+      
+      // Get enrollment statistics
+      const totalEnrollments = await Enrollment.count({
+        where: { user_id: userId }
+      });
+      
+      const completedEnrollments = await Enrollment.count({
+        where: { 
+          user_id: userId,
+          status: 'completed'
+        }
+      });
+      
+      const inProgressEnrollments = await Enrollment.count({
+        where: { 
+          user_id: userId,
+          status: 'active'
+        }
+      });
+      
+      const progress = {
+        total_enrollments: totalEnrollments,
+        completed_enrollments: completedEnrollments,
+        in_progress_enrollments: inProgressEnrollments,
+        completion_rate: totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0,
+        last_activity: new Date() // TODO: Get actual last activity from enrollments
+      };
+      
+      logger.debug('User progress retrieved', { userId, progress });
+      return progress;
+    } catch (error) {
+      logger.error('Error getting user progress:', error);
       throw error;
     }
   }
