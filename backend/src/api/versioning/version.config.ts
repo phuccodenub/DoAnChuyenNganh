@@ -4,6 +4,7 @@
  */
 
 import { VersionManager, ApiVersion } from './version.manager';
+import env from '../../config/env.config';
 
 // Define API versions
 const versions = new Map<string, ApiVersion>([
@@ -88,10 +89,34 @@ const versions = new Map<string, ApiVersion>([
   }]
 ]);
 
-// Create version manager instance
+// Ensure default/supported versions from ENV exist in the map (add minimal metadata if missing)
+const ensureVersion = (v: string) => {
+  if (!versions.has(v)) {
+    versions.set(v, {
+      version: v,
+      status: 'stable',
+      releaseDate: new Date(),
+      description: `Auto-registered version ${v} from environment`,
+      changes: [],
+      breakingChanges: [],
+      migrationGuide: undefined
+    });
+  }
+};
+
+ensureVersion(env.api.defaultVersion);
+env.api.supportedVersions.forEach(ensureVersion);
+
+// Guarantee default version is included in supported versions
+const supportedVersionsFinal = Array.from(new Set([
+  ...env.api.supportedVersions,
+  env.api.defaultVersion
+]));
+
+// Create version manager instance (driven by ENV)
 export const versionManager = new VersionManager({
-  defaultVersion: 'v1.2.0',
-  supportedVersions: ['v1.0.0', 'v1.1.0', 'v1.2.0', 'v2.0.0'],
+  defaultVersion: env.api.defaultVersion,
+  supportedVersions: supportedVersionsFinal,
   versions,
   deprecationWarningDays: 30,
   sunsetWarningDays: 7
@@ -99,8 +124,8 @@ export const versionManager = new VersionManager({
 
 // Export version information
 export const VERSION_INFO = {
-  CURRENT: 'v1.2.0',
-  LATEST: 'v1.2.0',
+  CURRENT: env.api.defaultVersion,
+  LATEST: env.api.defaultVersion,
   BETA: 'v2.0.0',
   DEPRECATED: ['v1.0.0-beta'],
   SUNSET: []
@@ -111,6 +136,7 @@ export const API_VERSIONS = {
   V1_0_0: 'v1.0.0',
   V1_1_0: 'v1.1.0',
   V1_2_0: 'v1.2.0',
+  V1_3_0: 'v1.3.0',
   V2_0_0: 'v2.0.0',
   V1_0_0_BETA: 'v1.0.0-beta'
 } as const;

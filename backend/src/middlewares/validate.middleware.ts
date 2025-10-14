@@ -18,7 +18,9 @@ export const validateRequest = (schema: {
 
       // Validate query
       if (schema.query) {
-        req.query = schema.query.parse(req.query) as any;
+        const parsedQuery = schema.query.parse(req.query);
+        // Don't modify req.query directly, store parsed data in req.validatedQuery
+        (req as any).validatedQuery = parsedQuery;
       }
 
       // Validate params

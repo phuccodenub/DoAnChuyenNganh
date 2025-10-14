@@ -25,6 +25,78 @@ export class UserModuleController {
     return userId;
   }
 
+  // ===== USER MANAGEMENT ROUTES =====
+
+  // Get all users with pagination
+  async getAllUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Use validated query if available, otherwise use raw query
+      const queryData = (req as any).validatedQuery || req.query;
+      
+      const options = {
+        page: parseInt(queryData.page as string) || 1,
+        limit: parseInt(queryData.limit as string) || 10,
+        role: queryData.role as string,
+        status: queryData.status as string,
+        search: queryData.search as string,
+        sortBy: (queryData.sort as string) || 'created_at',
+        sortOrder: (queryData.order as string) || 'DESC'
+      };
+      
+      const result = await this.userModuleService.getAllUsers(options);
+      responseUtils.sendPaginated(res, result.users, result.pagination, 'Users retrieved successfully');
+    } catch (error) {
+      logger.error('Error getting all users:', error);
+      next(error);
+    }
+  }
+
+  // Get user by ID
+  async getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.params.id;
+      const user = await this.userModuleService.getUserById(userId);
+      responseUtils.sendSuccess(res, 'User retrieved successfully', user);
+    } catch (error) {
+      logger.error('Error getting user by ID:', error);
+      next(error);
+    }
+  }
+
+  async updateUserStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.params.id;
+      const { status } = req.body;
+      const user = await this.userModuleService.updateUserStatus(userId, status);
+      responseUtils.sendSuccess(res, 'User status updated successfully', user);
+    } catch (error) {
+      logger.error('Error updating user status:', error);
+      next(error);
+    }
+  }
+
+  async getUserEnrollments(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.params.id;
+      const enrollments = await this.userModuleService.getUserEnrollments(userId);
+      responseUtils.sendSuccess(res, 'User enrollments retrieved successfully', enrollments);
+    } catch (error) {
+      logger.error('Error getting user enrollments:', error);
+      next(error);
+    }
+  }
+
+  async getUserProgress(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.params.id;
+      const progress = await this.userModuleService.getUserProgress(userId);
+      responseUtils.sendSuccess(res, 'User progress retrieved successfully', progress);
+    } catch (error) {
+      logger.error('Error getting user progress:', error);
+      next(error);
+    }
+  }
+
   // ===== NGHIỆP VỤ RIÊNG CỦA USER =====
 
   // Get user profile

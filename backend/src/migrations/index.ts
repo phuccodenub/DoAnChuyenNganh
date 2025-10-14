@@ -16,6 +16,11 @@ import { addIndexesToCoursesTable } from './006-add-indexes-to-courses-table';
 import { addIndexesToEnrollmentsTable } from './007-add-indexes-to-enrollments-table';
 import { addIndexesToChatMessagesTable } from './008-add-indexes-to-chat-messages-table';
 import { up as addInstructorStudentFields, down as removeInstructorStudentFields } from './010-add-instructor-student-fields';
+import { up as addCoreIndexes, down as removeCoreIndexes } from './011-add-core-indexes-and-constraints';
+import { up as createAssignmentsTable, down as dropAssignmentsTable } from './012-create-assignments-table';
+import { up as createSubmissionsTable, down as dropSubmissionsTable } from './013-create-submissions-table';
+import { up as createGradeTables, down as dropGradeTables } from './014-create-grade-components-and-final-grades';
+import { up as createRubricTables, down as dropRubricTables } from './015-create-rubric-tables';
 
 // Migration interface
 export interface Migration {
@@ -106,6 +111,41 @@ export const migrations: Migration[] = [
     description: 'Add instructor and student fields to users table',
     up: addInstructorStudentFields,
     down: removeInstructorStudentFields
+  }
+  ,
+  {
+    version: '011',
+    description: 'Add core indexes and constraints',
+    up: addCoreIndexes,
+    down: removeCoreIndexes
+  }
+  ,
+  {
+    version: '012',
+    description: 'Create assignments table',
+    up: createAssignmentsTable,
+    down: dropAssignmentsTable
+  }
+  ,
+  {
+    version: '013',
+    description: 'Create submissions table with unique constraint',
+    up: createSubmissionsTable,
+    down: dropSubmissionsTable
+  }
+  ,
+  {
+    version: '014',
+    description: 'Create grade components and final grades tables',
+    up: createGradeTables,
+    down: dropGradeTables
+  }
+  ,
+  {
+    version: '015',
+    description: 'Create rubric templates and items tables',
+    up: createRubricTables,
+    down: dropRubricTables
   }
 ];
 

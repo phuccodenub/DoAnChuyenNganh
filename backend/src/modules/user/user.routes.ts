@@ -27,12 +27,51 @@ const upload = multer({
 // All routes require authentication
 router.use(authMiddleware);
 
+// ===== USER MANAGEMENT ROUTES =====
+
+// Get all users (Admin/Instructor only)
+router.get(
+  '/',
+  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  validateQuery(userSchemas.userQuery),
+  (req, res, next) => userModuleController.getAllUsers(req, res, next)
+);
+
 // ===== NGHIỆP VỤ RIÊNG CỦA USER =====
 
-// Get user profile (authenticated users only)
+// Get user profile (authenticated users only) - MUST be before /:id route
 router.get(
   '/profile',
   (req, res, next) => userModuleController.getProfile(req, res, next)
+);
+
+// Get user by ID (All authenticated users) - MUST be after specific routes
+router.get(
+  '/:id',
+  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT),
+  (req, res, next) => userModuleController.getUserById(req, res, next)
+);
+
+// Update user status (Admin/Super Admin only)
+router.patch(
+  '/:id/status',
+  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  validateBody(userSchemas.updateUserStatus),
+  (req, res, next) => userModuleController.updateUserStatus(req, res, next)
+);
+
+// Get user enrollments (All authenticated users)
+router.get(
+  '/:id/enrollments',
+  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT),
+  (req, res, next) => userModuleController.getUserEnrollments(req, res, next)
+);
+
+// Get user progress (All authenticated users)
+router.get(
+  '/:id/progress',
+  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT),
+  (req, res, next) => userModuleController.getUserProgress(req, res, next)
 );
 
 // Update user profile (authenticated users only)

@@ -80,6 +80,12 @@ export class MetricsService {
   private gauges: Map<string, number> = new Map();
   private histograms: Map<string, number[]> = new Map();
   private timers: Map<string, number[]> = new Map();
+  // Labeled metric stores
+  private labeledCounters: Map<string, number> = new Map();
+  private labeledCounterLabels: Map<string, Record<string, string>> = new Map();
+  private labeledHistograms: Map<string, number[]> = new Map();
+  private labeledHistogramLabels: Map<string, Record<string, string>> = new Map();
+  private defaultLabels: Record<string, string> = {};
   
   private readonly maxMetricsPerType = 1000;
   private readonly cleanupInterval = 5 * 60 * 1000; // 5 minutes
@@ -90,9 +96,17 @@ export class MetricsService {
   }
 
   /**
+   * Set labels applied to every metric series
+   */
+  public setDefaultLabels(labels: Record<string, string>): void {
+    this.defaultLabels = { ...labels };
+  }
+
+  /**
    * Increment a counter metric
    */
   public incrementCounter(name: string, labels?: Record<string, string>): void {
+    const mergedLabels = { ...this.defaultLabels, ...(labels || {}) };
     const current = this.counters.get(name) || 0;
     this.counters.set(name, current + 1);
     
@@ -101,9 +115,20 @@ export class MetricsService {
       type: 'counter',
       value: current + 1,
       timestamp: dateUtils.formatDate(new Date()),
-      labels,
+      labels: mergedLabels,
       increment: 1
     } as CounterMetric);
+
+    // Also track labeled counters when labels are provided
+    if (mergedLabels && Object.keys(mergedLabels).length > 0) {
+      const key = this.makeLabelKey(name, mergedLabels);
+      const cur = this.labeledCounters.get(key) || 0;
+      this.labeledCounters.set(key, cur + 1);
+      // Persist canonical labels for this series key
+      if (!this.labeledCounterLabels.has(key)) {
+        this.labeledCounterLabels.set(key, mergedLabels);
+      }
+    }
   }
 
   /**
@@ -117,7 +142,7 @@ export class MetricsService {
       type: 'gauge',
       value,
       timestamp: dateUtils.formatDate(new Date()),
-      labels,
+      labels: { ...this.defaultLabels, ...(labels || {}) },
       current: value
     } as GaugeMetric);
   }
@@ -126,6 +151,7 @@ export class MetricsService {
    * Record a histogram value
    */
   public recordHistogram(name: string, value: number, labels?: Record<string, string>): void {
+    const mergedLabels = { ...this.defaultLabels, ...(labels || {}) };
     const values = this.histograms.get(name) || [];
     values.push(value);
     
@@ -136,16 +162,32 @@ export class MetricsService {
     
     this.histograms.set(name, values);
     
+    const isDurationSeconds = name === 'http_request_duration_seconds';
+    const durationBucketsSeconds = [0.1, 0.3, 0.5, 1, 2, 5];
     this.addMetric({
       name,
       type: 'histogram',
       value,
       timestamp: dateUtils.formatDate(new Date()),
-      labels,
-      buckets: this.calculateBuckets(values),
+      labels: mergedLabels,
+      buckets: this.calculateBuckets(values, isDurationSeconds ? durationBucketsSeconds : undefined),
       count: values.length,
       sum: values.reduce((sum, val) => sum + val, 0)
     } as HistogramMetric);
+
+    // Also track labeled histograms
+    if (mergedLabels && Object.keys(mergedLabels).length > 0) {
+      const key = this.makeLabelKey(name, mergedLabels);
+      const labeledValues = this.labeledHistograms.get(key) || [];
+      labeledValues.push(value);
+      if (labeledValues.length > this.maxMetricsPerType) {
+        labeledValues.splice(0, labeledValues.length - this.maxMetricsPerType);
+      }
+      this.labeledHistograms.set(key, labeledValues);
+      if (!this.labeledHistogramLabels.has(key)) {
+        this.labeledHistogramLabels.set(key, mergedLabels);
+      }
+    }
   }
 
   /**
@@ -224,6 +266,47 @@ export class MetricsService {
       p95: this.getPercentile(sorted, 95),
       p99: this.getPercentile(sorted, 99)
     };
+  }
+
+  /**
+   * Get labeled counters for a metric name
+   */
+  public getLabeledCounters(name: string): Array<{ labels: Record<string, string>; value: number }> {
+    const results: Array<{ labels: Record<string, string>; value: number }> = [];
+    for (const [key, value] of this.labeledCounters.entries()) {
+      if (key.startsWith(name + '|')) {
+        const labels = this.labeledCounterLabels.get(key)!;
+        results.push({ labels, value });
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Get labeled histogram stats for a metric name
+   */
+  public getLabeledHistogramStats(name: string): Array<{ labels: Record<string, string>; stats: { count: number; sum: number; average: number; p50: number; p95: number; p99: number } }> {
+    const results: Array<{ labels: Record<string, string>; stats: { count: number; sum: number; average: number; p50: number; p95: number; p99: number } }> = [];
+    for (const [key, values] of this.labeledHistograms.entries()) {
+      if (key.startsWith(name + '|') && values && values.length > 0) {
+        const sorted = [...values].sort((a, b) => a - b);
+        const count = values.length;
+        const sum = values.reduce((total, val) => total + val, 0);
+        const average = sum / count;
+        results.push({
+          labels: this.labeledHistogramLabels.get(key)!,
+          stats: {
+            count,
+            sum,
+            average,
+            p50: this.getPercentile(sorted, 50),
+            p95: this.getPercentile(sorted, 95),
+            p99: this.getPercentile(sorted, 99)
+          }
+        });
+      }
+    }
+    return results;
   }
 
   /**
@@ -317,6 +400,8 @@ export class MetricsService {
    * Add a metric to storage
    */
   private addMetric(metric: MetricData): void {
+    // merge default labels if not already done
+    metric.labels = { ...(this.defaultLabels || {}), ...(metric.labels || {}) };
     const metrics = this.metrics.get(metric.name) || [];
     metrics.push(metric);
     
@@ -331,9 +416,11 @@ export class MetricsService {
   /**
    * Calculate histogram buckets
    */
-  private calculateBuckets(values: number[]): Record<string, number> {
+  private calculateBuckets(values: number[], boundaries?: number[]): Record<string, number> {
     const buckets: Record<string, number> = {};
-    const bucketBoundaries = [0.1, 0.5, 1, 2.5, 5, 10, 25, 50, 100, 250, 500, 1000];
+    // Default generic buckets in milliseconds for non-duration histograms
+    const defaultBoundaries = [0.1, 0.5, 1, 2.5, 5, 10, 25, 50, 100, 250, 500, 1000];
+    const bucketBoundaries = boundaries && boundaries.length > 0 ? boundaries : defaultBoundaries;
     
     for (const boundary of bucketBoundaries) {
       buckets[`le_${boundary}`] = values.filter(val => val <= boundary).length;
@@ -351,6 +438,17 @@ export class MetricsService {
     
     const index = Math.ceil((percentile / 100) * sortedValues.length) - 1;
     return sortedValues[Math.max(0, index)];
+  }
+
+  /**
+   * Build a deterministic label key for storage
+   */
+  private makeLabelKey(name: string, labels: Record<string, string>): string {
+    const parts = Object.keys(labels)
+      .sort()
+      .map((k) => `${k}=${labels[k]}`)
+      .join(',');
+    return `${name}|${parts}`;
   }
 
   /**

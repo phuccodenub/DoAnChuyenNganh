@@ -161,4 +161,25 @@ User.beforeUpdate(async (user) => {
 });
 */
 
+// Define associations
+User.associate = function(models: any) {
+  // User has many Courses (as instructor)
+  User.hasMany(models.Course, {
+    foreignKey: 'instructor_id',
+    as: 'courses'
+  });
+
+  // User has many Enrollments (as student)
+  User.hasMany(models.Enrollment, {
+    foreignKey: 'user_id',
+    as: 'enrollments'
+  });
+
+  // User has many ChatMessages
+  User.hasMany(models.ChatMessage, {
+    foreignKey: 'user_id',
+    as: 'chatMessages'
+  });
+};
+
 export default User;

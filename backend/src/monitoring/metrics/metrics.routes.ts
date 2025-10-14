@@ -5,11 +5,13 @@
 
 import { Router } from 'express';
 import { MetricsController } from './metrics.controller';
-import { MetricsService } from './metrics.service';
+import { metricsMiddleware } from './metrics.middleware';
 
 const router = Router();
-const metricsService = new MetricsService();
-const metricsController = new MetricsController(metricsService);
+// Use the SAME singleton MetricsService instance as the middleware
+// to ensure counters/gauges recorded by middleware are visible to controllers
+const sharedMetricsService: any = (metricsMiddleware as any)['metricsService'];
+const metricsController = new MetricsController(sharedMetricsService);
 
 /**
  * @swagger
@@ -241,6 +243,9 @@ router.get('/timers', metricsController.getTimerMetrics);
  *       404:
  *         description: Metric not found
  */
+// Place specific routes BEFORE the parameterized route to avoid conflicts
+router.get('/prometheus', metricsController.getPrometheusMetrics);
+router.post('/reset', metricsController.resetMetrics);
 router.get('/:name', metricsController.getMetricByName);
 
 /**
@@ -265,7 +270,7 @@ router.get('/:name', metricsController.getMetricByName);
  *                 data:
  *                   type: null
  */
-router.post('/reset', metricsController.resetMetrics);
+// moved above
 
 /**
  * @swagger
@@ -282,6 +287,6 @@ router.post('/reset', metricsController.resetMetrics);
  *             schema:
  *               type: string
  */
-router.get('/prometheus', metricsController.getPrometheusMetrics);
+// moved above
 
 export default router;

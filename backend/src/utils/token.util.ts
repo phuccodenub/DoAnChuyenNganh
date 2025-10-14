@@ -105,25 +105,7 @@ export const tokenUtils = {
      * @returns User data { userId, email, role }
      */
     verifyAccessToken(token: string): { userId: string; email: string; role: string } {
-      try {
-        const payload = jwtUtils.verifyToken<AccessTokenPayload>(token, jwtConfig.secret, {
-          issuer: jwtConfig.issuer,
-          audience: jwtConfig.audience
-        });
-
-        if (payload.type !== 'access') {
-          throw new Error('Invalid token type');
-        }
-
-        return {
-          userId: payload.userId,
-          email: payload.email,
-          role: payload.role
-        };
-      } catch (error) {
-        logger.error('Access token verification error:', error);
-        throw new Error('Invalid access token');
-      }
+      return jwtUtils.verifyAccessToken(token);
     },
 
     /**
@@ -157,24 +139,7 @@ export const tokenUtils = {
      * @returns User data { userId, tokenVersion }
      */
     verifyRefreshToken(token: string): { userId: string; tokenVersion: number } {
-      try {
-        const payload = jwtUtils.verifyToken<RefreshTokenPayload>(token, jwtConfig.secret, {
-          issuer: jwtConfig.issuer,
-          audience: jwtConfig.audience
-        });
-
-        if (payload.type !== 'refresh') {
-          throw new Error('Invalid token type');
-        }
-
-        return {
-          userId: payload.userId,
-          tokenVersion: payload.tokenVersion
-        };
-      } catch (error) {
-        logger.error('Refresh token verification error:', error);
-        throw new Error('Invalid refresh token');
-      }
+      return jwtUtils.verifyRefreshToken(token);
     },
 
     /**
@@ -206,21 +171,7 @@ export const tokenUtils = {
      * @returns User data { userId, email }
      */
     verifyPasswordResetToken(token: string): { userId: string; email: string } {
-      try {
-        const payload = jwtUtils.verifyToken<PasswordResetTokenPayload>(token, jwtConfig.secret);
-
-        if (payload.type !== 'password_reset') {
-          throw new Error('Invalid token type');
-        }
-
-        return {
-          userId: payload.userId,
-          email: payload.email
-        };
-      } catch (error) {
-        logger.error('Password reset token verification error:', error);
-        throw new Error('Invalid password reset token');
-      }
+      return jwtUtils.verifyPasswordResetToken(token);
     },
 
     /**
@@ -252,21 +203,7 @@ export const tokenUtils = {
      * @returns User data { userId, email }
      */
     verifyEmailVerificationToken(token: string): { userId: string; email: string } {
-      try {
-        const payload = jwtUtils.verifyToken<EmailVerificationTokenPayload>(token, jwtConfig.secret);
-
-        if (payload.type !== 'email_verification') {
-          throw new Error('Invalid token type');
-        }
-
-        return {
-          userId: payload.userId,
-          email: payload.email
-        };
-      } catch (error) {
-        logger.error('Email verification token verification error:', error);
-        throw new Error('Invalid email verification token');
-      }
+      return jwtUtils.verifyEmailVerificationToken(token);
     },
 
     /**
@@ -298,21 +235,7 @@ export const tokenUtils = {
      * @returns User data { userId, permissions }
      */
     verifyApiKeyToken(token: string): { userId: string; permissions: string[] } {
-      try {
-        const payload = jwtUtils.verifyToken<ApiKeyTokenPayload>(token, jwtConfig.secret);
-
-        if (payload.type !== 'api_key') {
-          throw new Error('Invalid token type');
-        }
-
-        return {
-          userId: payload.userId,
-          permissions: payload.permissions
-        };
-      } catch (error) {
-        logger.error('API key token verification error:', error);
-        throw new Error('Invalid API key token');
-      }
+      return jwtUtils.verifyApiKeyToken(token);
     },
 
     /**
@@ -344,21 +267,7 @@ export const tokenUtils = {
      * @returns User data { userId, sessionId }
      */
     verifySessionToken(token: string): { userId: string; sessionId: string } {
-      try {
-        const payload = jwtUtils.verifyToken<SessionTokenPayload>(token, jwtConfig.secret);
-
-        if (payload.type !== 'session') {
-          throw new Error('Invalid token type');
-        }
-
-        return {
-          userId: payload.userId,
-          sessionId: payload.sessionId
-        };
-      } catch (error) {
-        logger.error('Session token verification error:', error);
-        throw new Error('Invalid session token');
-      }
+      return jwtUtils.verifySessionToken(token);
     },
 
     /**
@@ -423,16 +332,7 @@ export const tokenUtils = {
      * @returns True if expired, false otherwise
      */
     isTokenExpired(token: string): boolean {
-      try {
-        const decoded = jwtUtils.decodeToken(token) as any;
-        if (!decoded || !decoded.exp) return true;
-        
-        const currentTime = Math.floor(dateUtils.timestamp() / 1000);
-        return decoded.exp < currentTime;
-      } catch (error) {
-        logger.error('Token expiration check error:', error);
-        return true;
-      }
+      return jwtUtils.isTokenExpired(token);
     },
 
     /**
@@ -441,15 +341,7 @@ export const tokenUtils = {
      * @returns Expiration date or null if invalid
      */
     getTokenExpiration(token: string): Date | null {
-      try {
-        const decoded = jwtUtils.decodeToken(token) as any;
-        if (!decoded || !decoded.exp) return null;
-        
-        return new Date(decoded.exp * 1000);
-      } catch (error) {
-        logger.error('Token expiration get error:', error);
-        return null;
-      }
+      return jwtUtils.getTokenExpiration(token);
     }
   },
 

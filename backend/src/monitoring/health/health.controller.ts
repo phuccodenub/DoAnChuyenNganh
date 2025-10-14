@@ -23,7 +23,7 @@ export class HealthController {
     try {
       const health = await this.healthService.getBasicHealth();
       
-      res.status(200).json(responseUtils.success(health, 'Health check passed'));
+      responseUtils.sendSuccess(res, 'Health check passed', health);
     } catch (error) {
       next(error);
     }
@@ -37,7 +37,7 @@ export class HealthController {
     try {
       const health = await this.healthService.getDetailedHealth();
       
-      res.status(200).json(responseUtils.success(health, 'Detailed health check completed'));
+      responseUtils.sendSuccess(res, 'Detailed health check completed', health);
     } catch (error) {
       next(error);
     }
@@ -52,9 +52,9 @@ export class HealthController {
       const readiness = await this.healthService.getReadiness();
       
       if (readiness.status === 'ready') {
-        res.status(200).json(responseUtils.success(readiness, 'Service is ready'));
+        responseUtils.sendSuccess(res, 'Service is ready', readiness);
       } else {
-        res.status(503).json(responseUtils.error('Service is not ready', readiness));
+        responseUtils.sendError(res, 'Service is not ready', 503);
       }
     } catch (error) {
       next(error);
@@ -70,9 +70,9 @@ export class HealthController {
       const liveness = await this.healthService.getLiveness();
       
       if (liveness.status === 'alive') {
-        res.status(200).json(responseUtils.success(liveness, 'Service is alive'));
+        responseUtils.sendSuccess(res, 'Service is alive', liveness);
       } else {
-        res.status(503).json(responseUtils.error('Service is not alive', liveness));
+        responseUtils.sendError(res, 'Service is not alive', 503);
       }
     } catch (error) {
       next(error);
@@ -88,9 +88,9 @@ export class HealthController {
       const dbHealth = await this.healthService.getDatabaseHealth();
       
       if (dbHealth.status === 'healthy') {
-        res.status(200).json(responseUtils.success(dbHealth, 'Database is healthy'));
+        responseUtils.sendSuccess(res, 'Database is healthy', dbHealth);
       } else {
-        res.status(503).json(responseUtils.error('Database is unhealthy', dbHealth));
+        responseUtils.sendError(res, 'Database is unhealthy', 503);
       }
     } catch (error) {
       next(error);
@@ -106,9 +106,9 @@ export class HealthController {
       const redisHealth = await this.healthService.getRedisHealth();
       
       if (redisHealth.status === 'healthy') {
-        res.status(200).json(responseUtils.success(redisHealth, 'Redis is healthy'));
+        responseUtils.sendSuccess(res, 'Redis is healthy', redisHealth);
       } else {
-        res.status(503).json(responseUtils.error('Redis is unhealthy', redisHealth));
+        responseUtils.sendError(res, 'Redis is unhealthy', 503);
       }
     } catch (error) {
       next(error);
@@ -123,7 +123,7 @@ export class HealthController {
     try {
       const memoryHealth = await this.healthService.getMemoryHealth();
       
-      res.status(200).json(responseUtils.success(memoryHealth, 'Memory health check completed'));
+      responseUtils.sendSuccess(res, 'Memory health check completed', memoryHealth);
     } catch (error) {
       next(error);
     }
@@ -137,7 +137,7 @@ export class HealthController {
     try {
       const metrics = await this.healthService.getSystemMetrics();
       
-      res.status(200).json(responseUtils.success(metrics, 'System metrics retrieved'));
+      responseUtils.sendSuccess(res, 'System metrics retrieved', metrics);
     } catch (error) {
       next(error);
     }

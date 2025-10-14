@@ -5,6 +5,7 @@
 
 import logger from '../../utils/logger.util';
 import { CacheStrategy, CacheStats, CacheOptions, CacheKeyOptions, CacheMetadata } from './cache.strategy';
+import { metricsMiddleware } from '../../monitoring/metrics/metrics.middleware';
 
 interface CacheEntry<T> {
   value: T;
@@ -62,6 +63,7 @@ export class MemoryCacheStrategy implements CacheStrategy {
       const entry = this.cache.get(cacheKey);
       
       if (!entry) {
+        metricsMiddleware['metricsService'].incrementCounter('memory_cache_misses_total', { key: cacheKey });
         this.stats.misses++;
         this.updateHitRate();
         return null;
@@ -82,6 +84,7 @@ export class MemoryCacheStrategy implements CacheStrategy {
       entry.metadata.accessCount++;
       entry.metadata.lastAccessed = new Date();
       
+      metricsMiddleware['metricsService'].incrementCounter('memory_cache_hits_total', { key: cacheKey });
       this.stats.hits++;
       this.updateHitRate();
       
@@ -408,8 +411,11 @@ export class MemoryCacheStrategy implements CacheStrategy {
       }
       
       for (const key of expiredKeys) {
-        this.cache.delete(key);
-        this.removeFromList(this.cache.get(key)!);
+        const entry = this.cache.get(key);
+        if (entry) {
+          this.removeFromList(entry);
+          this.cache.delete(key);
+        }
       }
       
       this.stats.size = this.cache.size;

@@ -1,4 +1,4 @@
-import 'dotenv-flow/config';
+import env from './config/env.config';
 import app from './app';
 import { connectRedis } from './config/redis.config';
 import { connectDatabase } from './config/db';
@@ -10,7 +10,7 @@ import { ErrorHandler } from './errors/error.handler';
 // Import all models to register them with sequelize
 import './models';
 
-const PORT = process.env.PORT || 3000;
+const PORT = env.port;
 
 async function startServer() {
   try {
@@ -26,7 +26,7 @@ async function startServer() {
     // Start server
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
-      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`Environment: ${env.nodeEnv}`);
     });
     
   } catch (error) {

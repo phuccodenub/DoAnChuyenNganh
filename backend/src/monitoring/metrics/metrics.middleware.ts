@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { MetricsService } from './metrics.service';
+import env from '../../config/env.config';
 import logger from '../../utils/logger.util';
 
 export class MetricsMiddleware {
@@ -12,6 +13,12 @@ export class MetricsMiddleware {
 
   constructor(metricsService: MetricsService) {
     this.metricsService = metricsService;
+    // Set global labels for all metrics
+    this.metricsService.setDefaultLabels({
+      service: 'lms-backend',
+      env: env.nodeEnv,
+      version: env.api.defaultVersion
+    });
   }
 
   /**
@@ -21,12 +28,6 @@ export class MetricsMiddleware {
     const startTime = Date.now();
     const timer = this.metricsService.startTimer('http_requests_duration');
     
-    // Increment total requests counter
-    this.metricsService.incrementCounter('http_requests_total', {
-      method: req.method,
-      route: req.route?.path || req.path,
-      status: 'unknown'
-    });
 
     // Override res.end to capture response metrics
     const originalEnd = res.end;
@@ -34,22 +35,27 @@ export class MetricsMiddleware {
       const duration = Date.now() - startTime;
       const statusCode = res.statusCode.toString();
       
-      // Record response time
+      // Record response time (as histogram in ms)
       timer();
+      metricsService.recordHistogram('http_request_duration_seconds', duration / 1000, {
+        method: req.method,
+        route: normalizeRoute(req),
+        status: statusGroup(statusCode)
+      });
       
       // Increment status-specific counters
       metricsService.incrementCounter('http_requests_total', {
         method: req.method,
-        route: req.route?.path || req.path,
-        status: statusCode
+        route: normalizeRoute(req),
+        status: statusGroup(statusCode)
       });
 
       // Increment error counter if status >= 400
       if (res.statusCode >= 400) {
         metricsService.incrementCounter('http_errors_total', {
           method: req.method,
-          route: req.route?.path || req.path,
-          status: statusCode,
+          route: normalizeRoute(req),
+          status: statusGroup(statusCode),
           error_type: res.statusCode >= 500 ? 'server_error' : 'client_error'
         });
       }
@@ -59,8 +65,8 @@ export class MetricsMiddleware {
         const responseSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk || '', encoding);
         metricsService.recordHistogram('http_response_size', responseSize, {
           method: req.method,
-          route: req.route?.path || req.path,
-          status: statusCode
+          route: normalizeRoute(req),
+          status: statusGroup(statusCode)
         });
       }
 
@@ -69,7 +75,7 @@ export class MetricsMiddleware {
       if (requestSize > 0) {
         metricsService.recordHistogram('http_request_size', requestSize, {
           method: req.method,
-          route: req.route?.path || req.path
+          route: normalizeRoute(req)
         });
       }
 
@@ -238,3 +244,22 @@ export class MetricsMiddleware {
 
 // Export singleton instance
 export const metricsMiddleware = new MetricsMiddleware(new MetricsService());
+
+// Helpers
+function normalizeRoute(req: Request): string {
+  // Prefer Express route pattern if available; fallback to path with dynamic segments masked
+  const pattern = (req as any).route?.path as string | undefined;
+  if (pattern) return pattern;
+  // Replace UUIDs and numeric IDs with :id
+  const masked = (req.path || '')
+    .replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, ':id')
+    .replace(/\b\d+\b/g, ':id');
+  return masked;
+}
+
+function statusGroup(status: string): string {
+  if (status === '304' || status === '301' || status === '302' || status === '307' || status === '308') {
+    return status === '304' ? 'not_modified' : 'redirect';
+  }
+  return status;
+}

@@ -48,7 +48,7 @@ export const authValidation = {
     
     body('phone')
       .optional()
-      .custom(validatorsUtils.isPhoneNumber)
+      .custom(validatorsUtils.isPhone)
       .withMessage('Invalid phone number format'),
     
     body('date_of_birth')
@@ -388,7 +388,7 @@ export const authValidation = {
     
     body('phone')
       .optional()
-      .custom(validatorsUtils.isPhoneNumber)
+      .custom(validatorsUtils.isPhone)
       .withMessage('Invalid phone number format'),
     
     body('bio')
@@ -427,7 +427,7 @@ export const authValidation = {
     
     body('emergency_phone')
       .optional()
-      .custom(validatorsUtils.isPhoneNumber)
+      .custom(validatorsUtils.isPhone)
       .withMessage('Invalid emergency phone number format')
   ],
 

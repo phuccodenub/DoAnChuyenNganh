@@ -6,9 +6,10 @@ export const baseValidation = {
   // ===== COMMON FIELD VALIDATIONS =====
   
   /**
-   * UUID validation
+   * UUID validation (custom regex to accept all valid UUID formats)
    */
-  uuid: z.string().uuid('Invalid UUID format'),
+  uuid: z.string()
+    .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, 'Invalid UUID format'),
   
   /**
    * Username validation (for LMS login)
@@ -51,7 +52,7 @@ export const baseValidation = {
    * Phone number validation
    */
   phone: z.string()
-    .refine((phone) => validatorsUtils.isPhoneNumber(phone), 'Invalid phone number format')
+    .refine((phone) => validatorsUtils.isPhone(phone), 'Invalid phone number format')
     .optional(),
   
   /**

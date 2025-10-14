@@ -3,7 +3,7 @@
  * Provides health check logic and system monitoring
  */
 
-import { sequelize } from '../../config/database.config';
+import { getSequelize } from '../../config/db';
 import { redisClient } from '../../config/redis.config';
 import logger from '../../utils/logger.util';
 import { dateUtils } from '../../utils/date.util';
@@ -134,7 +134,7 @@ export class HealthService {
       status: 'healthy',
       timestamp: dateUtils.formatDate(new Date()),
       uptime,
-      version: process.env.npm_package_version || '1.0.0',
+      version: (await import('../../config/env.config')).default.api.defaultVersion,
       environment: process.env.NODE_ENV || 'development'
     };
   }
@@ -171,7 +171,7 @@ export class HealthService {
       status: overallStatus,
       timestamp: dateUtils.formatDate(new Date()),
       uptime: Date.now() - this.startTime,
-      version: process.env.npm_package_version || '1.0.0',
+      version: (await import('../../config/env.config')).default.api.defaultVersion,
       environment: process.env.NODE_ENV || 'development',
       services: {
         database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : { status: 'unhealthy', error: 'Failed to check database health' },
@@ -226,10 +226,11 @@ export class HealthService {
     
     try {
       // Test database connection
-      await sequelize.authenticate();
+      const db = getSequelize();
+      await db.authenticate();
       
       // Get connection pool info
-      const pool = (sequelize as any).connectionManager.pool;
+      const pool = (db as any).connectionManager.pool;
       const connectionPool = {
         total: pool.size,
         used: pool.used,
@@ -353,7 +354,8 @@ export class HealthService {
    */
   private async checkDatabaseConnection(): Promise<boolean> {
     try {
-      await sequelize.authenticate();
+      const db = getSequelize();
+      await db.authenticate();
       return true;
     } catch (error) {
       logger.error('Database connection check failed', { error: error.message });
