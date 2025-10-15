@@ -11,7 +11,15 @@ const router = Router();
 // Use the SAME singleton MetricsService instance as the middleware
 // to ensure counters/gauges recorded by middleware are visible to controllers
 const sharedMetricsService: any = (metricsMiddleware as any)['metricsService'];
-const metricsController = new MetricsController(sharedMetricsService);
+const databaseMetrics = metricsMiddleware.getDatabaseMetrics();
+const redisMetrics = metricsMiddleware.getRedisMetrics();
+const backgroundTasksMetrics = metricsMiddleware.getBackgroundTasksMetrics();
+const metricsController = new MetricsController(
+  sharedMetricsService,
+  databaseMetrics,
+  redisMetrics,
+  backgroundTasksMetrics
+);
 
 /**
  * @swagger
@@ -209,6 +217,213 @@ router.get('/histograms', metricsController.getHistogramMetrics);
  *                         type: number
  */
 router.get('/timers', metricsController.getTimerMetrics);
+
+/**
+ * @swagger
+ * /metrics/database:
+ *   get:
+ *     summary: Get database metrics
+ *     description: Returns database-specific metrics including query counts, slow queries, and connection pool stats
+ *     tags: [Metrics]
+ *     responses:
+ *       200:
+ *         description: Database metrics retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     queries:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         slow:
+ *                           type: number
+ *                         byType:
+ *                           type: object
+ *                     connections:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         idle:
+ *                           type: number
+ *                         using:
+ *                           type: number
+ *                         waiting:
+ *                           type: number
+ *                         utilization:
+ *                           type: number
+ *                     transactions:
+ *                       type: object
+ *                     migrations:
+ *                       type: object
+ *       404:
+ *         description: Database metrics not initialized
+ */
+router.get('/database', metricsController.getDatabaseMetrics);
+
+/**
+ * @swagger
+ * /metrics/redis:
+ *   get:
+ *     summary: Get Redis metrics
+ *     description: Returns Redis-specific metrics including operations, cache hits/misses, and memory usage
+ *     tags: [Metrics]
+ *     responses:
+ *       200:
+ *         description: Redis metrics retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     operations:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         byType:
+ *                           type: object
+ *                         errors:
+ *                           type: number
+ *                     cache:
+ *                       type: object
+ *                       properties:
+ *                         hits:
+ *                           type: number
+ *                         misses:
+ *                           type: number
+ *                         hitRatio:
+ *                           type: number
+ *                     memory:
+ *                       type: object
+ *                       properties:
+ *                         used:
+ *                           type: number
+ *                         peak:
+ *                           type: number
+ *                         rss:
+ *                           type: number
+ *                     keys:
+ *                       type: number
+ *       404:
+ *         description: Redis metrics not initialized
+ */
+router.get('/redis', metricsController.getRedisMetrics);
+
+/**
+ * @swagger
+ * /metrics/background-tasks:
+ *   get:
+ *     summary: Get background tasks metrics
+ *     description: Returns background tasks metrics including cron jobs, scheduled tasks, and job queue stats
+ *     tags: [Metrics]
+ *     responses:
+ *       200:
+ *         description: Background tasks metrics retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tasks:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         running:
+ *                           type: number
+ *                         byType:
+ *                           type: object
+ *                     executions:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                         successful:
+ *                           type: number
+ *                         failed:
+ *                           type: number
+ *                     jobs:
+ *                       type: object
+ *                       properties:
+ *                         enqueued:
+ *                           type: number
+ *                         processing:
+ *                           type: number
+ *                         completed:
+ *                           type: number
+ *                         failed:
+ *                           type: number
+ *                     schedules:
+ *                       type: object
+ *                       properties:
+ *                         triggered:
+ *                           type: number
+ *                         byType:
+ *                           type: object
+ *       404:
+ *         description: Background tasks metrics not initialized
+ */
+router.get('/background-tasks', metricsController.getBackgroundTasksMetrics);
+
+/**
+ * @swagger
+ * /metrics/system:
+ *   get:
+ *     summary: Get comprehensive system metrics
+ *     description: Returns all system metrics including application, database, Redis, and background tasks
+ *     tags: [Metrics]
+ *     responses:
+ *       200:
+ *         description: System metrics retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     application:
+ *                       type: object
+ *                     database:
+ *                       type: object
+ *                     redis:
+ *                       type: object
+ *                     backgroundTasks:
+ *                       type: object
+ *                     timestamp:
+ *                       type: string
+ */
+router.get('/system', metricsController.getSystemMetrics);
 
 /**
  * @swagger

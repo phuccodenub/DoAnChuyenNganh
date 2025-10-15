@@ -5,20 +5,67 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { MetricsService } from './metrics.service';
+import { DatabaseMetrics } from './database.metrics';
+import { RedisMetrics } from './redis.metrics';
+import { BackgroundTasksMetrics } from './background-tasks.metrics';
 import env from '../../config/env.config';
 import logger from '../../utils/logger.util';
 
 export class MetricsMiddleware {
   private metricsService: MetricsService;
+  private databaseMetrics?: DatabaseMetrics;
+  private redisMetrics?: RedisMetrics;
+  private backgroundTasksMetrics: BackgroundTasksMetrics;
 
   constructor(metricsService: MetricsService) {
     this.metricsService = metricsService;
+    this.backgroundTasksMetrics = new BackgroundTasksMetrics(metricsService);
+    
     // Set global labels for all metrics
     this.metricsService.setDefaultLabels({
       service: 'lms-backend',
       env: env.nodeEnv,
-      version: env.api.defaultVersion
+      version: env.api.defaultVersion,
+      instance: `${process.env.HOSTNAME || 'localhost'}:${env.port}`
     });
+  }
+
+  /**
+   * Initialize database metrics
+   */
+  public initializeDatabaseMetrics(sequelize: any): void {
+    this.databaseMetrics = new DatabaseMetrics(this.metricsService, sequelize);
+    logger.info('Database metrics initialized');
+  }
+
+  /**
+   * Initialize Redis metrics
+   */
+  public initializeRedisMetrics(redisClient: any): void {
+    this.redisMetrics = new RedisMetrics(this.metricsService, redisClient);
+    this.redisMetrics.startPeriodicCollection();
+    logger.info('Redis metrics initialized');
+  }
+
+  /**
+   * Get database metrics instance
+   */
+  public getDatabaseMetrics(): DatabaseMetrics | undefined {
+    return this.databaseMetrics;
+  }
+
+  /**
+   * Get Redis metrics instance
+   */
+  public getRedisMetrics(): RedisMetrics | undefined {
+    return this.redisMetrics;
+  }
+
+  /**
+   * Get background tasks metrics instance
+   */
+  public getBackgroundTasksMetrics(): BackgroundTasksMetrics {
+    return this.backgroundTasksMetrics;
   }
 
   /**
@@ -250,11 +297,35 @@ function normalizeRoute(req: Request): string {
   // Prefer Express route pattern if available; fallback to path with dynamic segments masked
   const pattern = (req as any).route?.path as string | undefined;
   if (pattern) return pattern;
-  // Replace UUIDs and numeric IDs with :id
-  const masked = (req.path || '')
-    .replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, ':id')
-    .replace(/\b\d+\b/g, ':id');
-  return masked;
+  
+  let path = req.path || '';
+  
+  // Mask UUIDs with :id
+  path = path.replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, ':id');
+  
+  // Mask numeric IDs with :id
+  path = path.replace(/\b\d+\b/g, ':id');
+  
+  // Mask common query patterns to reduce cardinality
+  path = path.replace(/\/search\?.*$/, '/search');
+  path = path.replace(/\/filter\?.*$/, '/filter');
+  path = path.replace(/\/page=\d+.*$/, '/page=:page');
+  path = path.replace(/\/limit=\d+.*$/, '/limit=:limit');
+  path = path.replace(/\/sort=.*$/, '/sort=:sort');
+  
+  // Mask email-like patterns
+  path = path.replace(/\/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '/:email');
+  
+  // Mask long strings (likely tokens or hashes)
+  path = path.replace(/\/[a-zA-Z0-9]{32,}/g, '/:token');
+  
+  // Limit path depth to prevent excessive cardinality
+  const segments = path.split('/').slice(0, 6); // Max 5 segments after root
+  if (segments.length > 5) {
+    segments[5] = '...';
+  }
+  
+  return segments.join('/') || '/';
 }
 
 function statusGroup(status: string): string {
