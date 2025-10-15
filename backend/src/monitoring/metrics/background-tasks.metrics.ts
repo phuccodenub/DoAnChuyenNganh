@@ -104,10 +104,11 @@ export class BackgroundTasksMetrics {
       const duration = Date.now() - startTime;
       
       // Record failed execution
+      const err = error as Error;
       this.metricsService.incrementCounter('background_tasks_failures_total', {
         task_name: taskName,
         task_type: task.type,
-        error_type: error.name || 'unknown'
+        error_type: err.name || 'unknown'
       });
 
       // Record execution duration for failed tasks
@@ -120,7 +121,7 @@ export class BackgroundTasksMetrics {
       logger.error('Background task failed', {
         taskName,
         duration,
-        error: error.message,
+        error: err.message,
         type: task.type
       });
 

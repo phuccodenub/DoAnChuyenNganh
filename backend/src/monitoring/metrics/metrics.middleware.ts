@@ -77,21 +77,21 @@ export class MetricsMiddleware {
     
 
     // Override res.end to capture response metrics
-    const originalEnd = res.end;
-    res.end = function(chunk?: any, encoding?: any, cb?: any) {
+    const originalEnd = res.end.bind(res);
+    res.end = ((chunk?: any, encoding?: any, cb?: any) => {
       const duration = Date.now() - startTime;
       const statusCode = res.statusCode.toString();
       
       // Record response time (as histogram in ms)
       timer();
-      metricsService.recordHistogram('http_request_duration_seconds', duration / 1000, {
+      this.metricsService.recordHistogram('http_request_duration_seconds', duration / 1000, {
         method: req.method,
         route: normalizeRoute(req),
         status: statusGroup(statusCode)
       });
       
       // Increment status-specific counters
-      metricsService.incrementCounter('http_requests_total', {
+      this.metricsService.incrementCounter('http_requests_total', {
         method: req.method,
         route: normalizeRoute(req),
         status: statusGroup(statusCode)
@@ -99,7 +99,7 @@ export class MetricsMiddleware {
 
       // Increment error counter if status >= 400
       if (res.statusCode >= 400) {
-        metricsService.incrementCounter('http_errors_total', {
+        this.metricsService.incrementCounter('http_errors_total', {
           method: req.method,
           route: normalizeRoute(req),
           status: statusGroup(statusCode),
@@ -109,8 +109,8 @@ export class MetricsMiddleware {
 
       // Record response size
       if (chunk) {
-        const responseSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk || '', encoding);
-        metricsService.recordHistogram('http_response_size', responseSize, {
+        const responseSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk || '', encoding as any);
+        this.metricsService.recordHistogram('http_response_size', responseSize, {
           method: req.method,
           route: normalizeRoute(req),
           status: statusGroup(statusCode)
@@ -120,15 +120,15 @@ export class MetricsMiddleware {
       // Record request size
       const requestSize = req.get('content-length') ? parseInt(req.get('content-length')!) : 0;
       if (requestSize > 0) {
-        metricsService.recordHistogram('http_request_size', requestSize, {
+        this.metricsService.recordHistogram('http_request_size', requestSize, {
           method: req.method,
           route: normalizeRoute(req)
         });
       }
 
       // Call original end method
-      originalEnd.call(this, chunk, encoding, cb);
-    };
+      return originalEnd(chunk as any, encoding as any, cb as any);
+    }) as any;
 
     next();
   };
