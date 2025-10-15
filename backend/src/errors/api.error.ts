@@ -19,10 +19,23 @@ export class ApiError extends BaseError {
   public readonly requestId?: string;
   public readonly userId?: string;
 
-  constructor(options: ApiErrorOptions = {}) {
+  // Overload to support legacy (message, statusCode)
+  constructor(message?: string, statusCode?: number);
+  constructor(options?: ApiErrorOptions);
+  constructor(optionsOrMessage: ApiErrorOptions | string = {}, maybeStatusCode?: number) {
+    let options: ApiErrorOptions;
+    if (typeof optionsOrMessage === 'string') {
+      options = {
+        message: optionsOrMessage,
+        statusCode: (maybeStatusCode as HttpStatusCode) || 500
+      } as ApiErrorOptions;
+    } else {
+      options = optionsOrMessage as ApiErrorOptions;
+    }
+
     const {
       code = 'INTERNAL_SERVER_ERROR',
-      statusCode = 500,
+      statusCode = 500 as HttpStatusCode,
       type = 'SYSTEM',
       severity = 'MEDIUM',
       endpoint,
@@ -30,11 +43,11 @@ export class ApiError extends BaseError {
       requestId,
       userId,
       ...baseOptions
-    } = options;
+    } = options || {};
 
     super({
       code,
-      statusCode,
+      statusCode: statusCode as HttpStatusCode,
       type,
       severity,
       ...baseOptions
@@ -191,3 +204,4 @@ export class ApiError extends BaseError {
     };
   }
 }
+

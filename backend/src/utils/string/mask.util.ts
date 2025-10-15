@@ -260,3 +260,4 @@ export const maskUtils = {
     return this.maskString(address, visibleChars, visibleChars, maskChar);
   }
 };
+

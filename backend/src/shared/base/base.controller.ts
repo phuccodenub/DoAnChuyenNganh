@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-import { BaseService, ApiResponse, PaginationOptions } from '../../types/common.types';
+import { BaseService as IBaseService, ApiResponse, PaginationOptions } from '../../types/common.types';
 import { sendSuccessResponse, sendErrorResponse, sendNotFoundResponse } from '../../utils/response.util';
 import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
 import logger from '../../utils/logger.util';
 
 // Base Controller class to avoid code duplication
 export abstract class BaseController<T, CreateDto, UpdateDto> {
-  protected service: BaseService<T, CreateDto, UpdateDto>;
+  protected service: IBaseService<T, CreateDto, UpdateDto>;
 
-  constructor(service: BaseService<T, CreateDto, UpdateDto>) {
+  constructor(service: IBaseService<T, CreateDto, UpdateDto>) {
     this.service = service;
   }
 
@@ -22,7 +22,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
     try {
       const result = await this.service.create(createData);
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.CREATED, result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error in create:', error);
       next(error);
     }
@@ -42,7 +42,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
         return;
       }
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error in findById:', error);
       next(error);
     }
@@ -58,7 +58,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
     try {
       const result = await this.service.findAll(options);
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error in findAll:', error);
       next(error);
     }
@@ -79,7 +79,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
         return;
       }
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.UPDATED, result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error in update:', error);
       next(error);
     }
@@ -99,7 +99,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
         return;
       }
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.DELETED, null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error in delete:', error);
       next(error);
     }
@@ -119,7 +119,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
     try {
       const result = await this.model.create(data);
       return result.toJSON();
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating resource:', error);
       throw error;
     }
@@ -130,7 +130,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
     try {
       const result = await this.model.findByPk(id);
       return result ? result.toJSON() : null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding resource by id:', error);
       throw error;
     }
@@ -149,7 +149,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
       });
 
       return result.rows.map((item: any) => item.toJSON());
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding all resources:', error);
       throw error;
     }
@@ -169,7 +169,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
 
       const result = await this.model.findByPk(id);
       return result ? result.toJSON() : null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating resource:', error);
       throw error;
     }
@@ -183,9 +183,10 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
       });
 
       return affectedRows > 0;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deleting resource:', error);
       throw error;
     }
   }
 }
+

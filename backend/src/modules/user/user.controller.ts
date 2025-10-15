@@ -33,7 +33,7 @@ export class UserModuleController {
       const userId = this.getUserId(req);
       const profile = await this.userModuleService.getProfile(userId);
       responseUtils.sendSuccess(res, 'Profile retrieved successfully', profile);
-    } catch (error) {
+    } catch (error: unknown) {
       if ((error as Error).message === 'User ID not found in request') {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
         return;
@@ -51,7 +51,7 @@ export class UserModuleController {
       const userData = req.body;
       const updatedProfile = await this.userModuleService.updateProfile(userId, userData);
       responseUtils.sendSuccess(res, 'Profile updated successfully', updatedProfile);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating profile:', error);
       next(error);
     }
@@ -74,7 +74,7 @@ export class UserModuleController {
 
       const result = await this.userModuleService.uploadAvatar(userId!, file);
       responseUtils.sendSuccess(res, 'Avatar uploaded successfully', result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error uploading avatar:', error);
       next(error);
     }
@@ -88,7 +88,7 @@ export class UserModuleController {
       
       const updatedPreferences = await this.userModuleService.updatePreferences(userId, preferences);
       responseUtils.sendSuccess(res, 'Preferences updated successfully', updatedPreferences);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating preferences:', error);
       next(error);
     }
@@ -101,7 +101,7 @@ export class UserModuleController {
       const sessions = await this.userModuleService.getActiveSessions(userId);
       
       responseUtils.sendSuccess(res, 'Active sessions retrieved', sessions);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting active sessions:', error);
       next(error);
     }
@@ -114,7 +114,7 @@ export class UserModuleController {
       await this.userModuleService.logoutAllDevices(userId);
       
       responseUtils.sendSuccess(res, 'Logged out from all devices', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error logging out all devices:', error);
       next(error);
     }
@@ -127,7 +127,7 @@ export class UserModuleController {
       const result = await this.userModuleService.enableTwoFactor(userId);
       
       responseUtils.sendSuccess(res, 'Two-factor authentication enabled', result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error enabling 2FA:', error);
       next(error);
     }
@@ -137,10 +137,11 @@ export class UserModuleController {
   async disableTwoFactor(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-      await this.userModuleService.disableTwoFactor(userId);
+      const { code } = req.body as { code: string };
+      await this.userModuleService.disableTwoFactor(userId, code);
       
       responseUtils.sendSuccess(res, 'Two-factor authentication disabled', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error disabling 2FA:', error);
       next(error);
     }
@@ -154,7 +155,7 @@ export class UserModuleController {
       
       await this.userModuleService.linkSocialAccount(userId, provider, socialId);
       responseUtils.sendSuccess(res, 'Social account linked successfully', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error linking social account:', error);
       next(error);
     }
@@ -167,7 +168,7 @@ export class UserModuleController {
       const analytics = await this.userModuleService.getUserAnalytics(userId);
       
       responseUtils.sendSuccess(res, 'User analytics retrieved', analytics);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user analytics:', error);
       next(error);
     }
@@ -181,7 +182,7 @@ export class UserModuleController {
       
       await this.userModuleService.updateNotificationSettings(userId, settings);
       responseUtils.sendSuccess(res, 'Notification settings updated', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating notification settings:', error);
       next(error);
     }
@@ -195,9 +196,10 @@ export class UserModuleController {
       
       await this.userModuleService.updatePrivacySettings(userId, settings);
       responseUtils.sendSuccess(res, 'Privacy settings updated', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating privacy settings:', error);
       next(error);
     }
   }
 }
+

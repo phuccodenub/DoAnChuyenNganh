@@ -34,13 +34,21 @@ export async function connectDatabase(): Promise<void> {
     await db.authenticate();
     console.log('Database connection has been established successfully');
     
+    // Setup model associations before sync
+    const { setupAssociations } = await import('../models/associations');
+    setupAssociations();
+    
+    const { setupExtendedAssociations } = await import('../models/associations-extended');
+    setupExtendedAssociations();
+    
     // Sync database in development
     if (process.env.NODE_ENV !== 'production') {
       await db.sync({ force: false }); // Disable alter to avoid migration issues
       console.log('Database models synchronized');
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Unable to connect to the database:', error);
     throw error;
   }
 }
+

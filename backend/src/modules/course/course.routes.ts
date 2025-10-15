@@ -138,7 +138,7 @@ router.get('/:id', courseController.getCourseById);
 router.post('/', 
   authMiddleware, 
   authorizeRoles(['instructor', 'admin', 'super_admin']),
-  validateRequest(courseValidation.createCourse),
+  validateRequest({ body: courseValidation.createCourse }),
   courseController.createCourse
 );
 
@@ -189,7 +189,7 @@ router.post('/',
 router.put('/:id', 
   authMiddleware, 
   authorizeRoles(['instructor', 'admin', 'super_admin']),
-  validateRequest(courseValidation.updateCourse),
+  validateRequest({ body: courseValidation.updateCourse }),
   courseController.updateCourse
 );
 
@@ -562,3 +562,4 @@ router.get('/:courseId/students',
 );
 
 export { router as courseRoutes };
+

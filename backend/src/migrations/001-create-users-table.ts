@@ -138,3 +138,4 @@ export async function createUsersTable(queryInterface: QueryInterface): Promise<
     }
   });
 }
+

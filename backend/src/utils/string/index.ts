@@ -86,3 +86,4 @@ export const cleanVietnameseText = normalizeUtils.cleanVietnameseText;
 export const normalizeUnicode = normalizeUtils.normalizeUnicode;
 export const cleanForDatabase = normalizeUtils.cleanForDatabase;
 export const cleanForDisplay = normalizeUtils.cleanForDisplay;
+

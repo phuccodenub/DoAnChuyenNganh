@@ -1,4 +1,4 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
 
 // Rate limiting cho auth endpoints
 export const authRateLimit = rateLimit({
@@ -12,8 +12,7 @@ export const authRateLimit = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Chỉ đếm failed attempts
   keyGenerator: (req) => {
-    // Sử dụng ipKeyGenerator helper để handle IPv6 properly
-    const ip = ipKeyGenerator(req);
+    const ip = (req.ip || (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown').toString();
     const userAgent = req.get('User-Agent') || 'unknown';
     return `${ip}-${userAgent}`;
   }
@@ -42,3 +41,5 @@ export const registrationRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
+
+

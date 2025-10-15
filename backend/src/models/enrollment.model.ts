@@ -1,5 +1,6 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model } from 'sequelize';
 import { getSequelize } from '../config/db';
+import { EnrollmentAttributes, EnrollmentCreationAttributes, EnrollmentInstance } from '../types/model.types';
 
 const sequelize = getSequelize();
 
@@ -65,4 +66,6 @@ const Enrollment = sequelize.define('Enrollment', {
   ]
 });
 
-export default Enrollment;
+export default Enrollment as any;
+
+

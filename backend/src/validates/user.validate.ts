@@ -122,6 +122,81 @@ export const userValidation = {
   // Update user status schema
   updateStatus: z.object({
     status: z.enum(['active', 'inactive', 'suspended', 'pending'])
+  }),
+
+  // Update user preferences schema
+  updatePreferences: z.object({
+    theme: z.enum(['light', 'dark', 'auto']).optional(),
+    language: z.enum(['vi', 'en']).optional(),
+    timezone: z.string().min(3).max(50).optional(),
+    notifications: z.object({
+      email: z.object({
+        course_updates: z.boolean().optional(),
+        announcements: z.boolean().optional(),
+        reminders: z.boolean().optional()
+      }).partial().optional(),
+      push: z.object({
+        course_updates: z.boolean().optional(),
+        announcements: z.boolean().optional(),
+        reminders: z.boolean().optional()
+      }).partial().optional(),
+      sms: z.object({
+        urgent_updates: z.boolean().optional(),
+        security_alerts: z.boolean().optional()
+      }).partial().optional()
+    }).partial().optional(),
+    privacy: z.object({
+      profile_visibility: z.enum(['public', 'private', 'friends_only']).optional(),
+      email_visibility: z.enum(['public', 'private', 'friends_only']).optional(),
+      phone_visibility: z.enum(['public', 'private', 'friends_only']).optional(),
+      show_online_status: z.boolean().optional(),
+      allow_friend_requests: z.boolean().optional(),
+      show_last_seen: z.boolean().optional(),
+      data_sharing: z.object({
+        analytics: z.boolean().optional(),
+        marketing: z.boolean().optional(),
+        research: z.boolean().optional()
+      }).partial().optional()
+    }).partial().optional()
+  }),
+
+  // Link social account schema
+  linkSocialAccount: z.object({
+    provider: z.enum(['google', 'facebook', 'github', 'linkedin', 'twitter']),
+    socialId: z.string().min(1).max(100)
+  }),
+
+  // Update notification settings schema
+  updateNotificationSettings: z.object({
+    email: z.object({
+      course_updates: z.boolean().optional(),
+      announcements: z.boolean().optional(),
+      reminders: z.boolean().optional()
+    }).partial().optional(),
+    push: z.object({
+      course_updates: z.boolean().optional(),
+      announcements: z.boolean().optional(),
+      reminders: z.boolean().optional()
+    }).partial().optional(),
+    sms: z.object({
+      urgent_updates: z.boolean().optional(),
+      security_alerts: z.boolean().optional()
+    }).partial().optional()
+  }),
+
+  // Update privacy settings schema
+  updatePrivacySettings: z.object({
+    profile_visibility: z.enum(['public', 'private', 'friends_only']).optional(),
+    email_visibility: z.enum(['public', 'private', 'friends_only']).optional(),
+    phone_visibility: z.enum(['public', 'private', 'friends_only']).optional(),
+    show_online_status: z.boolean().optional(),
+    allow_friend_requests: z.boolean().optional(),
+    show_last_seen: z.boolean().optional(),
+    data_sharing: z.object({
+      analytics: z.boolean().optional(),
+      marketing: z.boolean().optional(),
+      research: z.boolean().optional()
+    }).partial().optional()
   })
 };
 
@@ -158,3 +233,5 @@ export const userValidateHelpers = {
 
 // Legacy export for backward compatibility
 export const userSchemas = userValidation;
+
+

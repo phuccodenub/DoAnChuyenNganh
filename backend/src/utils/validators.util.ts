@@ -345,3 +345,4 @@ export const validatorsUtils = {
     return this.isNumber(value) && value >= min && value <= max;
   }
 };
+

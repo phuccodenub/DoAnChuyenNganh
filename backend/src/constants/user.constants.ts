@@ -83,3 +83,4 @@ export const SYSTEM_CONSTANTS = {
     VERY_LONG: 24 * 60 * 60 // 24 hours
   } as const
 } as const;
+

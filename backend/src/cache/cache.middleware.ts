@@ -35,7 +35,7 @@ export class CacheMiddleware {
   /**
    * Cache GET requests
    */
-  public cacheGet = (options: CacheMiddlewareOptions = {}) => {
+  public cacheGet(options: CacheMiddlewareOptions = {}) {
     const mergedOptions = { ...this.options, ...options };
     
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -66,7 +66,8 @@ export class CacheMiddleware {
           }
 
           logger.debug('Cache hit', { key: cacheKey, url: req.url });
-          return res.json(cachedResponse);
+          res.json(cachedResponse);
+          return;
         }
 
         // Cache miss - continue to handler
@@ -74,10 +75,11 @@ export class CacheMiddleware {
         
         // Override res.json to cache response
         const originalJson = res.json;
+        const cacheManager = this.cacheManager;
         res.json = function(body: any) {
           // Cache the response
           setImmediate(() => {
-            cacheManager.set(cacheKey, body, mergedOptions.ttl, mergedOptions.strategy).catch(error => {
+            cacheManager.set(cacheKey, body, mergedOptions.ttl, mergedOptions.strategy).catch((error: any) => {
               logger.error('Cache set error', { key: cacheKey, error: error.message });
             });
           });
@@ -92,8 +94,8 @@ export class CacheMiddleware {
         };
 
         next();
-      } catch (error) {
-        logger.error('Cache middleware error', { error: error.message, url: req.url });
+      } catch (error: unknown) {
+        logger.error('Cache middleware error', { error: (error as Error).message, url: req.url });
         next();
       }
     };
@@ -102,7 +104,7 @@ export class CacheMiddleware {
   /**
    * Cache POST requests (for idempotent operations)
    */
-  public cachePost = (options: CacheMiddlewareOptions = {}) => {
+  public cachePost(options: CacheMiddlewareOptions = {}) {
     const mergedOptions = { ...this.options, ...options };
     
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -128,7 +130,8 @@ export class CacheMiddleware {
           }
 
           logger.debug('Cache hit for POST', { key: cacheKey, url: req.url });
-          return res.json(cachedResponse);
+          res.json(cachedResponse);
+          return;
         }
 
         // Cache miss - continue to handler
@@ -136,11 +139,12 @@ export class CacheMiddleware {
         
         // Override res.json to cache response
         const originalJson = res.json;
+        const cacheManager = this.cacheManager;
         res.json = function(body: any) {
           // Cache the response
           setImmediate(() => {
             cacheManager.set(cacheKey, body, mergedOptions.ttl, mergedOptions.strategy).catch(error => {
-              logger.error('Cache set error', { key: cacheKey, error: error.message });
+              logger.error('Cache set error', { key: cacheKey, error: (error as Error).message });
             });
           });
 
@@ -154,8 +158,8 @@ export class CacheMiddleware {
         };
 
         next();
-      } catch (error) {
-        logger.error('Cache middleware error', { error: error.message, url: req.url });
+      } catch (error: unknown) {
+        logger.error('Cache middleware error', { error: (error as Error).message, url: req.url });
         next();
       }
     };
@@ -174,12 +178,13 @@ export class CacheMiddleware {
       try {
         // Override res.json to invalidate cache after successful response
         const originalJson = res.json;
+        const cacheManager = this.cacheManager;
         res.json = function(body: any) {
           // Invalidate cache after successful response
           if (res.statusCode >= 200 && res.statusCode < 300) {
             setImmediate(() => {
               invalidateCachePatterns(patterns, req).catch(error => {
-                logger.error('Cache invalidation error', { patterns, error: error.message });
+                logger.error('Cache invalidation error', { patterns, error: (error as Error).message });
               });
             });
           }
@@ -188,8 +193,8 @@ export class CacheMiddleware {
         };
 
         next();
-      } catch (error) {
-        logger.error('Cache invalidation middleware error', { error: error.message, url: req.url });
+      } catch (error: unknown) {
+        logger.error('Cache invalidation middleware error', { error: (error as Error).message, url: req.url });
         next();
       }
     };
@@ -198,7 +203,7 @@ export class CacheMiddleware {
   /**
    * Cache user-specific data
    */
-  public cacheUserData = (options: CacheMiddlewareOptions = {}) => {
+  public cacheUserData(options: CacheMiddlewareOptions = {}) {
     const mergedOptions = { ...this.options, ...options };
     
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -225,7 +230,8 @@ export class CacheMiddleware {
           }
 
           logger.debug('User cache hit', { key: cacheKey, userId, url: req.url });
-          return res.json(cachedResponse);
+          res.json(cachedResponse);
+          return;
         }
 
         // Cache miss - continue to handler
@@ -233,11 +239,12 @@ export class CacheMiddleware {
         
         // Override res.json to cache response
         const originalJson = res.json;
+        const cacheManager = this.cacheManager;
         res.json = function(body: any) {
           // Cache the response
           setImmediate(() => {
             cacheManager.set(cacheKey, body, mergedOptions.ttl, mergedOptions.strategy).catch(error => {
-              logger.error('User cache set error', { key: cacheKey, error: error.message });
+              logger.error('User cache set error', { key: cacheKey, error: (error as Error).message });
             });
           });
 
@@ -251,8 +258,8 @@ export class CacheMiddleware {
         };
 
         next();
-      } catch (error) {
-        logger.error('User cache middleware error', { error: error.message, url: req.url });
+      } catch (error: unknown) {
+        logger.error('User cache middleware error', { error: (error as Error).message, url: req.url });
         next();
       }
     };
@@ -326,8 +333,8 @@ async function invalidateCachePatterns(patterns: string[], req: Request): Promis
         logger.info('Cache invalidated', { pattern: resolvedPattern, keysCount: keys.length });
       }
     }
-  } catch (error) {
-    logger.error('Cache pattern invalidation error', { patterns, error: error.message });
+  } catch (error: unknown) {
+    logger.error('Cache pattern invalidation error', { patterns, error: (error as Error).message });
   }
 }
 
@@ -342,3 +349,5 @@ export const cacheMiddleware = new CacheMiddleware(
     }
   })
 );
+
+

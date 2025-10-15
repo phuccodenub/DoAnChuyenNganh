@@ -1,10 +1,10 @@
 import Course from '../../models/course.model';
 import User from '../../models/user.model';
 import Enrollment from '../../models/enrollment.model';
-import { CourseInstance } from '../../types/course.types';
-import { UserInstance } from '../../types/user.types';
-import { EnrollmentInstance } from '../../types/enrollment.types';
-import { CourseTypes } from './course.types';
+import { CourseInstance } from '../../types/model.types';
+import { UserInstance } from '../../types/model.types';
+import { EnrollmentInstance } from '../../types/model.types';
+import * as CourseTypes from './course.types';
 import { BaseRepository } from '../../repositories/base.repository';
 import logger from '../../utils/logger.util';
 
@@ -26,7 +26,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
   async findInstructorById(instructorId: string): Promise<UserInstance | null> {
     try {
       return await User.findByPk(instructorId);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding instructor by ID:', error);
       throw error;
     }
@@ -38,7 +38,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
   async findUserById(userId: string): Promise<UserInstance | null> {
     try {
       return await User.findByPk(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user by ID:', error);
       throw error;
     }
@@ -95,7 +95,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
           totalPages: Math.ceil(count / limit)
         }
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding courses with pagination:', error);
       throw error;
     }
@@ -139,7 +139,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
           totalPages: Math.ceil(count / limit)
         }
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding courses by instructor:', error);
       throw error;
     }
@@ -191,7 +191,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
           totalPages: Math.ceil(count / limit)
         }
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding enrolled courses by user:', error);
       throw error;
     }
@@ -209,7 +209,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
           user_id: userId
         }
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding enrollment:', error);
       throw error;
     }
@@ -227,7 +227,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         status: 'active',
         enrolled_at: new Date()
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating enrollment:', error);
       throw error;
     }
@@ -242,7 +242,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       await Enrollment.destroy({
         where: { id: enrollmentId }
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deleting enrollment:', error);
       throw error;
     }
@@ -283,9 +283,10 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
           totalPages: Math.ceil(count / limit)
         }
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding students by course:', error);
       throw error;
     }
   }
 }
+

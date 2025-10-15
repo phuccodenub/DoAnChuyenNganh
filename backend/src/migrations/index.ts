@@ -15,6 +15,7 @@ import { addIndexesToUsersTable } from './005-add-indexes-to-users-table';
 import { addIndexesToCoursesTable } from './006-add-indexes-to-courses-table';
 import { addIndexesToEnrollmentsTable } from './007-add-indexes-to-enrollments-table';
 import { addIndexesToChatMessagesTable } from './008-add-indexes-to-chat-messages-table';
+import { createExtendedLmsTables, dropExtendedLmsTables } from './009-create-extended-lms-tables';
 
 // Migration interface
 export interface Migration {
@@ -100,6 +101,13 @@ export const migrations: Migration[] = [
       await queryInterface.removeIndex('chat_messages', 'idx_chat_messages_created_at');
     }
   }
+  ,
+  {
+    version: '009',
+    description: 'Create extended LMS tables and alter existing ones',
+    up: createExtendedLmsTables,
+    down: dropExtendedLmsTables
+  }
 ];
 
 // Migration management class
@@ -140,7 +148,7 @@ export class MigrationManager {
       });
 
       logger.info('Migration tracking table created');
-    } catch (error) {
+    } catch (error: unknown) {
       // Table might already exist
       logger.info('Migration tracking table already exists');
     }
@@ -155,7 +163,7 @@ export class MigrationManager {
         'SELECT version FROM migrations ORDER BY version'
       );
       return (results as any[]).map(row => row.version);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting executed migrations:', error);
       return [];
     }
@@ -211,7 +219,7 @@ export class MigrationManager {
         await this.markMigrationExecuted(migration.version, migration.description);
         
         logger.info(`Migration ${migration.version} completed successfully`);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Migration ${migration.version} failed:`, error);
         throw error;
       }
@@ -246,7 +254,7 @@ export class MigrationManager {
       await this.unmarkMigrationExecuted(migration.version);
       
       logger.info(`Migration ${migration.version} rolled back successfully`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Rollback of migration ${migration.version} failed:`, error);
       throw error;
     }
@@ -282,7 +290,7 @@ export class MigrationManager {
         await this.unmarkMigrationExecuted(migration.version);
         
         logger.info(`Migration ${migration.version} rolled back successfully`);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Rollback of migration ${migration.version} failed:`, error);
         throw error;
       }
@@ -315,3 +323,4 @@ export class MigrationManager {
     };
   }
 }
+

@@ -1,11 +1,9 @@
 import Course from '../../models/course.model';
 import User from '../../models/user.model';
 import Enrollment from '../../models/enrollment.model';
-import { CourseInstance } from '../../types/course.types';
-import { UserInstance } from '../../types/user.types';
-import { EnrollmentInstance } from '../../types/enrollment.types';
+import { CourseInstance, UserInstance, EnrollmentInstance } from '../../types/model.types';
 import { CourseRepository } from './course.repository';
-import { CourseTypes } from './course.types';
+import * as CourseTypes from './course.types';
 import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
 import { ApiError } from '../../middlewares/error.middleware';
 import logger from '../../utils/logger.util';
@@ -35,7 +33,7 @@ export class CourseService {
       
       logger.info('Course created successfully', { courseId: course.id });
       return course;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating course:', error);
       throw error;
     }
@@ -52,7 +50,7 @@ export class CourseService {
       
       logger.info('Courses retrieved successfully', { count: courses.data.length });
       return courses;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting courses:', error);
       throw error;
     }
@@ -74,7 +72,7 @@ export class CourseService {
       }
       
       return course;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting course by ID:', error);
       throw error;
     }
@@ -106,7 +104,7 @@ export class CourseService {
       
       logger.info('Course updated successfully', { courseId: id });
       return updatedCourse;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating course:', error);
       throw error;
     }
@@ -137,7 +135,7 @@ export class CourseService {
       await this.courseRepository.delete(id);
       
       logger.info('Course deleted successfully', { courseId: id });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deleting course:', error);
       throw error;
     }
@@ -154,7 +152,7 @@ export class CourseService {
       
       logger.info('Instructor courses retrieved successfully', { instructorId, count: courses.data.length });
       return courses;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting courses by instructor:', error);
       throw error;
     }
@@ -171,7 +169,7 @@ export class CourseService {
       
       logger.info('Enrolled courses retrieved successfully', { userId, count: courses.data.length });
       return courses;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting enrolled courses:', error);
       throw error;
     }
@@ -201,7 +199,7 @@ export class CourseService {
       
       logger.info('User enrolled in course successfully', { courseId, userId });
       return enrollment;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error enrolling in course:', error);
       throw error;
     }
@@ -224,7 +222,7 @@ export class CourseService {
       await this.courseRepository.deleteEnrollment(enrollment.id);
       
       logger.info('User unenrolled from course successfully', { courseId, userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error unenrolling from course:', error);
       throw error;
     }
@@ -254,9 +252,10 @@ export class CourseService {
       
       logger.info('Course students retrieved successfully', { courseId, count: students.data.length });
       return students;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting course students:', error);
       throw error;
     }
   }
 }
+

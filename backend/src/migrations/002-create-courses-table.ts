@@ -157,3 +157,4 @@ export async function createCoursesTable(queryInterface: QueryInterface): Promis
     }
   });
 }
+

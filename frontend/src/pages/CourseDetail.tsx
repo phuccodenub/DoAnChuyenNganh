@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useTranslation } from 'react-i18next'
 import { mockCourses } from '@/services/mockData'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -13,6 +14,7 @@ import { useState, useMemo } from 'react'
 function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>()
   const { user } = useAuthStore()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'chat' | 'quizzes' | 'files'>('overview')
 
@@ -24,13 +26,13 @@ function CourseDetail() {
   if (!course) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-semibold text-gray-900">Course Not Found</h2>
-        <p className="text-gray-600 mt-2">The course you're looking for doesn't exist.</p>
-        <Button 
-          onClick={() => navigate('/dashboard')} 
+        <h2 className="text-2xl font-semibold text-gray-900">Không tìm thấy khóa học</h2>
+        <p className="text-gray-600 mt-2">Khóa học bạn đang tìm kiếm không tồn tại.</p>
+        <Button
+          onClick={() => navigate('/dashboard')}
           className="mt-4"
         >
-          Back to Dashboard
+          Về trang chủ
         </Button>
       </div>
     )
@@ -40,19 +42,19 @@ function CourseDetail() {
   const isEnrolled = user?.role === 'student' // For demo, assume all students can see any course
 
   const tabs = [
-    { id: 'overview', name: 'Overview', icon: '📋' },
-    { id: 'content', name: 'Content', icon: '📚' },
-    { id: 'files', name: 'Files', icon: '📁' },
-    { id: 'quizzes', name: 'Quizzes', icon: '📝' },
-    { id: 'chat', name: 'Discussion', icon: '💬' },
+    { id: 'overview', name: 'Tổng quan', icon: '📋' },
+    { id: 'content', name: 'Nội dung', icon: '📚' },
+    { id: 'files', name: 'Tệp tin', icon: '📁' },
+    { id: 'quizzes', name: 'Bài kiểm tra', icon: '📝' },
+    { id: 'chat', name: 'Thảo luận', icon: '💬' },
   ] as const
 
   const mockLessons = [
-    { id: '1', title: 'Introduction to the Course', type: 'video', duration: '15 min', completed: true },
-    { id: '2', title: 'Basic Concepts', type: 'reading', duration: '30 min', completed: true },
-    { id: '3', title: 'Practice Exercise', type: 'assignment', duration: '2 hours', completed: false },
-    { id: '4', title: 'Advanced Topics', type: 'video', duration: '45 min', completed: false },
-    { id: '5', title: 'Final Project', type: 'assignment', duration: '1 week', completed: false },
+    { id: '1', title: 'Giới thiệu khóa học', type: 'video', duration: '15 phút', completed: true },
+    { id: '2', title: 'Khái niệm cơ bản', type: 'reading', duration: '30 phút', completed: true },
+    { id: '3', title: 'Bài tập thực hành', type: 'assignment', duration: '2 giờ', completed: false },
+    { id: '4', title: 'Chủ đề nâng cao', type: 'video', duration: '45 phút', completed: false },
+    { id: '5', title: 'Dự án cuối khóa', type: 'assignment', duration: '1 tuần', completed: false },
   ]
 
   return (
@@ -123,19 +125,19 @@ function CourseDetail() {
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
               <Card className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Course Information</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Thông tin khóa học</h3>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Description</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">Mô tả</h4>
                     <p className="text-gray-600">{course.description}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Schedule</h4>
+                      <h4 className="font-medium text-gray-900 mb-1">Lịch học</h4>
                       <p className="text-gray-600">{course.schedule}</p>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Credits</h4>
+                      <h4 className="font-medium text-gray-900 mb-1">Tín chỉ</h4>
                       <p className="text-gray-600">{course.credits}</p>
                     </div>
                   </div>
@@ -143,23 +145,23 @@ function CourseDetail() {
               </Card>
 
               <Card className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Learning Objectives</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Mục tiêu học tập</h3>
                 <ul className="space-y-2 text-gray-600">
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2">✓</span>
-                    Understand fundamental concepts and principles
+                    Hiểu các khái niệm và nguyên tắc cơ bản
                   </li>
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2">✓</span>
-                    Apply theoretical knowledge to practical scenarios
+                    Áp dụng kiến thức lý thuyết vào các tình huống thực tế
                   </li>
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2">✓</span>
-                    Develop critical thinking and problem-solving skills
+                    Phát triển tư duy phản biện và kỹ năng giải quyết vấn đề
                   </li>
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2">✓</span>
-                    Complete hands-on projects and assignments
+                    Hoàn thành các dự án thực hành và bài tập
                   </li>
                 </ul>
               </Card>
@@ -179,7 +181,7 @@ function CourseDetail() {
                     </div>
                   </div>
                   <div className="text-sm text-gray-600">
-                    <p>2 of 5 lessons completed</p>
+                    <p>2 trong 5 bài học đã hoàn thành</p>
                   </div>
                 </div>
               </Card>
@@ -192,7 +194,7 @@ function CourseDetail() {
                     onClick={() => setActiveTab('content')}
                   >
                     <span className="text-lg mr-2">📚</span>
-                    View Course Content
+                    Xem nội dung khóa học
                   </Button>
                   <Button 
                     variant="outline" 
@@ -208,19 +210,19 @@ function CourseDetail() {
               <RecommendationPanel courseId={course.id} />
               
               <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Live Session</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Phiên trực tiếp</h3>
                 <div className="space-y-3">
                   <Button 
                     className="w-full justify-start"
                     onClick={() => navigate(`/course/${courseId}/live`)}
                   >
                     <span className="text-lg mr-2">📹</span>
-                    {isInstructor ? 'Start Live Stream' : 'Join Live Stream'}
+                    {isInstructor ? 'Bắt đầu phát trực tiếp' : 'Tham gia phát trực tiếp'}
                   </Button>
                   {isInstructor && (
                     <Button variant="outline" className="w-full justify-start">
                       <span className="text-lg mr-2">👥</span>
-                      Manage Students
+                      Quản lý học sinh
                     </Button>
                   )}
                 </div>
@@ -232,11 +234,11 @@ function CourseDetail() {
         {activeTab === 'content' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Course Content</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Nội dung khóa học</h2>
               {isInstructor && (
                 <Button className="bg-green-600 hover:bg-green-700">
                   <span className="text-lg mr-2">➕</span>
-                  Add Content
+                  Thêm nội dung
                 </Button>
               )}
             </div>
@@ -256,7 +258,11 @@ function CourseDetail() {
                       <div>
                         <h3 className="font-medium text-gray-900">{lesson.title}</h3>
                         <div className="flex items-center space-x-3 text-sm text-gray-500">
-                          <span className="capitalize">{lesson.type}</span>
+                          <span className="capitalize">
+                            {lesson.type === 'video' ? 'Video' :
+                             lesson.type === 'reading' ? 'Đọc' :
+                             lesson.type === 'assignment' ? 'Bài tập' : lesson.type}
+                          </span>
                           <span>•</span>
                           <span>{lesson.duration}</span>
                         </div>
@@ -270,7 +276,7 @@ function CourseDetail() {
                         variant={lesson.completed ? 'outline' : 'default'}
                         size="sm"
                       >
-                        {lesson.completed ? 'Review' : 'Start'}
+                        {lesson.completed ? 'Ôn tập' : 'Bắt đầu'}
                       </Button>
                     </div>
                   </div>

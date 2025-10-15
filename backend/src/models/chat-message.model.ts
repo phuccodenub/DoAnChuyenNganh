@@ -1,5 +1,6 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model, Op } from 'sequelize';
 import { getSequelize } from '../config/db';
+import { ChatMessageAttributes, ChatMessageCreationAttributes, ChatMessageInstance } from '../types/model.types';
 
 const sequelize = getSequelize();
 
@@ -76,12 +77,12 @@ const ChatMessage = sequelize.define('ChatMessage', {
 });
 
 // Add search method
-ChatMessage.searchInCourse = async function(courseId: string, searchTerm: string) {
+;(ChatMessage as any).searchInCourse = async function(courseId: string, searchTerm: string) {
   return await this.findAll({
     where: {
       course_id: courseId,
       message: {
-        [sequelize.Sequelize.Op.iLike]: `%${searchTerm}%`
+        [Op.iLike]: `%${searchTerm}%`
       },
       is_deleted: false
     },
@@ -97,4 +98,6 @@ ChatMessage.searchInCourse = async function(courseId: string, searchTerm: string
   });
 };
 
-export default ChatMessage;
+export default ChatMessage as any;
+
+

@@ -3,7 +3,7 @@ import { UserModuleController } from './user.controller';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { UserRole } from '../../constants/roles.enum';
 import { validateBody, validateQuery } from '../../middlewares/validate.middleware';
-import { userSchemas } from '../../validates/user.validate';
+import { userValidation as userSchemas } from '../../validates/user.validate';
 import multer from 'multer';
 
 const router = Router();
@@ -95,15 +95,16 @@ router.get(
 // Notification settings (authenticated users only)
 router.patch(
   '/notifications',
-  validateBody(userSchemas.notificationSettings),
+  validateBody(userSchemas.updateNotificationSettings),
   (req, res, next) => userModuleController.updateNotificationSettings(req, res, next)
 );
 
 // Privacy settings (authenticated users only)
 router.patch(
   '/privacy',
-  validateBody(userSchemas.privacySettings),
+  validateBody(userSchemas.updatePrivacySettings),
   (req, res, next) => userModuleController.updatePrivacySettings(req, res, next)
 );
 
 export default router;
+

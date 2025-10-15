@@ -76,3 +76,4 @@ export async function addIndexesToEnrollmentsTable(queryInterface: QueryInterfac
     unique: true
   });
 }
+

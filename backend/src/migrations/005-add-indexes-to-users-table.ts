@@ -59,3 +59,4 @@ export async function addIndexesToUsersTable(queryInterface: QueryInterface): Pr
     name: 'idx_users_last_login'
   });
 }
+

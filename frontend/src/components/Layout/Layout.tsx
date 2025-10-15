@@ -64,7 +64,7 @@ function Layout({ children }: LayoutProps) {
     ...(user?.role === 'instructor' ? [
       { name: t('navigation.myCourses'), href: '/my-courses', icon: '📚' },
     ] : []),
-    { name: 'Notifications Demo', href: '/notifications-demo', icon: '🔔' },
+    { name: t('navigation.notificationsDemo'), href: '/notifications-demo', icon: '🔔' },
   ]
   
   return (
@@ -242,8 +242,8 @@ function Layout({ children }: LayoutProps) {
       <div className="fixed bottom-4 right-4 bg-purple-600 text-white px-3 md:px-4 py-2 rounded-lg shadow-lg text-xs md:text-sm z-30">
         <div className="flex items-center space-x-1 md:space-x-2">
           <span>🧪</span>
-          <span className="hidden sm:inline">Demo Mode</span>
-          <span className="sm:hidden">Demo</span>
+          <span className="hidden sm:inline">{t('demo.demoModeBanner')}</span>
+          <span className="sm:hidden">{t('demo.demoModeShort')}</span>
         </div>
       </div>
       

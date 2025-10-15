@@ -51,3 +51,4 @@ export const createCourseModule = () => ({
 
 // ===== DEFAULT EXPORT =====
 export default courseModule;
+

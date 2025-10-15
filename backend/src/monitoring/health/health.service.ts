@@ -3,7 +3,7 @@
  * Provides health check logic and system monitoring
  */
 
-import { sequelize } from '../../config/database.config';
+import { getSequelize } from '../../config/db';
 import { redisClient } from '../../config/redis.config';
 import logger from '../../utils/logger.util';
 import { dateUtils } from '../../utils/date.util';
@@ -226,10 +226,10 @@ export class HealthService {
     
     try {
       // Test database connection
-      await sequelize.authenticate();
+      await getSequelize().authenticate();
       
       // Get connection pool info
-      const pool = (sequelize as any).connectionManager.pool;
+      const pool = (getSequelize() as any).connectionManager.pool;
       const connectionPool = {
         total: pool.size,
         used: pool.used,
@@ -250,12 +250,12 @@ export class HealthService {
         connectionPool,
         queries
       };
-    } catch (error) {
-      logger.error('Database health check failed', { error: error.message });
+    } catch (error: unknown) {
+      logger.error('Database health check failed', { error: (error as Error).message });
       
       return {
         status: 'unhealthy',
-        error: error.message,
+        error: (error as Error).message,
         connectionPool: { total: 0, used: 0, idle: 0 },
         queries: { total: 0, active: 0 }
       };
@@ -285,12 +285,12 @@ export class HealthService {
         clients: memoryInfo.clients,
         keyspace: memoryInfo.keyspace
       };
-    } catch (error) {
-      logger.error('Redis health check failed', { error: error.message });
+    } catch (error: unknown) {
+      logger.error('Redis health check failed', { error: (error as Error).message });
       
       return {
         status: 'unhealthy',
-        error: error.message,
+        error: (error as Error).message,
         memory: { used: 0, peak: 0, fragmentation: 0 },
         clients: { connected: 0, blocked: 0 },
         keyspace: { keys: 0, expires: 0 }
@@ -353,10 +353,10 @@ export class HealthService {
    */
   private async checkDatabaseConnection(): Promise<boolean> {
     try {
-      await sequelize.authenticate();
+      await getSequelize().authenticate();
       return true;
-    } catch (error) {
-      logger.error('Database connection check failed', { error: error.message });
+    } catch (error: unknown) {
+      logger.error('Database connection check failed', { error: (error as Error).message });
       return false;
     }
   }
@@ -368,8 +368,8 @@ export class HealthService {
     try {
       await redisClient.ping();
       return true;
-    } catch (error) {
-      logger.error('Redis connection check failed', { error: error.message });
+    } catch (error: unknown) {
+      logger.error('Redis connection check failed', { error: (error as Error).message });
       return false;
     }
   }
@@ -420,3 +420,4 @@ export class HealthService {
     return result;
   }
 }
+

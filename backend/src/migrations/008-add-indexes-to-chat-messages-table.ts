@@ -65,3 +65,4 @@ export async function addIndexesToChatMessagesTable(queryInterface: QueryInterfa
     name: 'idx_chat_messages_course_pinned'
   });
 }
+

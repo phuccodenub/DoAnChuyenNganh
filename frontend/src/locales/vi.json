@@ -89,6 +89,7 @@
     "liveStream": "Phát trực tiếp",
     "chat": "Chat",
     "notifications": "Thông báo",
+    "notificationsDemo": "Demo Thông báo",
     "profile": "Hồ sơ",
     "settings": "Cài đặt",
     "logout": "Đăng xuất",
@@ -116,6 +117,69 @@
     "enroll": "Đăng ký",
     "unenroll": "Hủy đăng ký",
     "viewDetails": "Xem chi tiết"
+  },
+  "demo": {
+    "mode": "Chế độ Demo",
+    "demoMode": "Chế độ Demo",
+    "demoModeActive": "Chế độ Demo đang hoạt động",
+    "demoNotice": "Chế độ Demo",
+    "connected": "Đã kết nối",
+    "demoModeShort": "Demo",
+    "demoModeFiles": "Chế độ Demo: Tệp được lưu trữ trong bộ nhớ trình duyệt (IndexedDB).",
+    "demoModeQuiz": "Chế độ Demo: Hệ thống bài kiểm tra hoạt động với phản hồi thời gian thực.",
+    "demoModeWebRTC": "Chế độ Demo: Implementation WebRTC hoạt động với quyền truy cập camera/micro thực tế.",
+    "demoModeChat": "Chế độ Demo: Chat thời gian thực yêu cầu kết nối backend",
+    "demoModeLocal": "Chế độ demo: Tin nhắn sẽ được mô phỏng cục bộ",
+    "demoModeRegistration": "Chế độ Demo: Đăng ký này tạo tài khoản tạm thời để thử nghiệm.",
+    "demoModeBanner": "Chế độ Demo",
+    "notificationDemo": {
+      "title": "Demo Hệ thống Thông báo",
+      "subtitle": "Kiểm tra hệ thống thông báo thời gian thực bằng cách kích hoạt các loại thông báo khác nhau. Kiểm tra chuông thông báo trong tiêu đề để xem các thông báo chưa đọc.",
+      "loginRequired": "Vui lòng đăng nhập để kiểm tra thông báo.",
+      "chatMessages": {
+        "title": "Tin nhắn Chat",
+        "description": "Mô phỏng việc nhận tin nhắn chat mới trong khóa học.",
+        "button": "Tin nhắn Chat mới"
+      },
+      "quizStarted": {
+        "title": "Bài kiểm tra bắt đầu",
+        "description": "Thông báo cho học sinh rằng bài kiểm tra mới đã có sẵn.",
+        "button": "Bắt đầu bài kiểm tra"
+      },
+      "liveStream": {
+        "title": "Phát trực tiếp",
+        "description": "Cảnh báo học sinh rằng giảng viên đã bắt đầu phát trực tiếp.",
+        "button": "Bắt đầu phát trực tiếp"
+      },
+      "newAssignment": {
+        "title": "Bài tập mới",
+        "description": "Thông báo cho học sinh về việc đăng bài tập mới.",
+        "button": "Đăng bài tập"
+      },
+      "systemAlert": {
+        "title": "Cảnh báo hệ thống",
+        "description": "Gửi các thông báo quan trọng trên toàn hệ thống.",
+        "button": "Cảnh báo hệ thống"
+      },
+      "announcement": {
+        "title": "Thông báo",
+        "description": "Tạo các thông báo dành riêng cho khóa học cho học sinh.",
+        "button": "Cập nhật khóa học"
+      },
+      "successMessage": {
+        "title": "Thông báo thành công",
+        "description": "Hiển thị xác nhận thành công cho các hành động đã hoàn thành.",
+        "button": "Cảnh báo thành công"
+      },
+      "errorMessage": {
+        "title": "Thông báo lỗi",
+        "description": "Hiển thị thông báo lỗi với các nút hành động.",
+        "button": "Cảnh báo lỗi"
+      },
+      "instructions": {
+        "title": "Cách kiểm tra:"
+      }
+    }
   }
 }
 

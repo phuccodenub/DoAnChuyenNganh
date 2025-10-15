@@ -16,7 +16,7 @@ export const bcryptUtils = {
   async hashPassword(password: string, saltRounds: number = 12): Promise<string> {
     try {
       return await bcrypt.hash(password, saltRounds);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('bcrypt failed, falling back to crypto:', error);
       // Fallback to crypto native hashing
       return this.hashPasswordWithCrypto(password);
@@ -32,7 +32,7 @@ export const bcryptUtils = {
   async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
     try {
       return await bcrypt.compare(password, hashedPassword);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('bcrypt compare failed, falling back to crypto:', error);
       // Fallback to crypto native comparison
       return this.comparePasswordWithCrypto(password, hashedPassword);
@@ -47,7 +47,7 @@ export const bcryptUtils = {
   async generateSalt(saltRounds: number = 12): Promise<string> {
     try {
       return await bcrypt.genSalt(saltRounds);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('bcrypt salt generation failed, falling back to crypto:', error);
       // Fallback to crypto native salt
       return crypto.randomBytes(16).toString('hex');
@@ -65,7 +65,7 @@ export const bcryptUtils = {
       // Extract rounds from bcrypt hash
       const rounds = parseInt(hashedPassword.split('$')[2]);
       return rounds < saltRounds;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Could not determine if rehashing needed:', error);
       return false;
     }
@@ -98,7 +98,7 @@ export const bcryptUtils = {
       const salt = crypto.randomBytes(16).toString('hex');
       const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
       return `crypto:${salt}:${hash}`;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Crypto native hashing failed:', error);
       throw new Error('Password hashing failed');
     }
@@ -125,7 +125,7 @@ export const bcryptUtils = {
       const testHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
       
       return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(testHash, 'hex'));
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Crypto native comparison failed:', error);
       return false;
     }

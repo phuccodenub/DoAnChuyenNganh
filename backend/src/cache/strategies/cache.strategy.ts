@@ -48,6 +48,21 @@ export interface CacheStrategy {
    * Get cache statistics
    */
   getStats(): Promise<CacheStats>;
+
+  /**
+   * Get keys by pattern
+   */
+  getKeysByPattern?(pattern: string): Promise<string[]>;
+
+  /**
+   * Get TTL for a key
+   */
+  getTTL?(key: string): Promise<number>;
+
+  /**
+   * Set TTL for a key
+   */
+  setTTL?(key: string, ttl: number): Promise<void>;
 }
 
 export interface CacheStats {
@@ -84,3 +99,4 @@ export interface CacheMetadata {
   size: number;
   tags: string[];
 }
+

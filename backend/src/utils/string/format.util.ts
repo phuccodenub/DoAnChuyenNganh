@@ -245,3 +245,4 @@ export const formatUtils = {
     return this.toReverseCase(text);
   }
 };
+

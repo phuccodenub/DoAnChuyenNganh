@@ -277,3 +277,4 @@ export class DatabaseError extends BaseError {
     };
   }
 }
+

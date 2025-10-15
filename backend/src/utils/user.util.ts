@@ -1,4 +1,5 @@
-import { UserInstance, UserPublicProfile } from '../types/user.types';
+import { UserInstance } from '../types/model.types';
+import { UserPublicProfile } from '../types/user.types';
 import { comparePassword } from './hash.util';
 import { stringUtils } from './string';
 import { validatorsUtils } from './validators.util';
@@ -49,7 +50,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns Public user profile
    */
-  getPublicProfile(user: UserInstance): PublicUserFields {
+getPublicProfile(user: any): PublicUserFields {
     const {
       id,
       email,
@@ -116,7 +117,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns Full name string
    */
-  getFullName(user: UserInstance): string {
+getFullName(user: any): string {
     const firstName = user.first_name || '';
     const lastName = user.last_name || '';
     return stringUtils.normalize(`${firstName} ${lastName}`, { trim: true });
@@ -127,7 +128,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns Display name string
    */
-  getDisplayName(user: UserInstance): string {
+getDisplayName(user: any): string {
     const fullName = this.getFullName(user);
     return fullName || user.email;
   },
@@ -137,7 +138,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns Initials string
    */
-  getInitials(user: UserInstance): string {
+getInitials(user: any): string {
     const firstName = user.first_name || '';
     const lastName = user.last_name || '';
     const firstInitial = firstName.charAt(0).toUpperCase();
@@ -150,7 +151,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns True if user is active
    */
-  isActive(user: UserInstance): boolean {
+isActive(user: any): boolean {
     return user.status === 'active';
   },
 
@@ -159,7 +160,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns True if email is verified
    */
-  isEmailVerified(user: UserInstance): boolean {
+isEmailVerified(user: any): boolean {
     return user.is_email_verified === true;
   },
 
@@ -168,10 +169,10 @@ export const userUtils = {
    * @param user - User instance
    * @returns Age in years or null if date_of_birth is not available
    */
-  getAge(user: UserInstance): number | null {
+getAge(user: any): number | null {
     if (!user.date_of_birth) return null;
     
-    const birthDate = new Date(user.date_of_birth);
+    const birthDate = new Date(user.date_of_birth as any);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -188,7 +189,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns Academic year string or null if not a student
    */
-  getAcademicYear(user: UserInstance): string | null {
+getAcademicYear(user: any): string | null {
     if (user.role !== 'student' || !user.year) return null;
     return `Khóa ${user.year}`;
   },
@@ -198,7 +199,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns Department string or null if not an instructor
    */
-  getDepartment(user: UserInstance): string | null {
+getDepartment(user: any): string | null {
     if (!['instructor', 'admin', 'super_admin'].includes(user.role) || !user.department) {
       return null;
     }
@@ -210,7 +211,7 @@ export const userUtils = {
    * @param userData - User data to validate
    * @returns True if user data is valid
    */
-  validateUserData(userData: Partial<UserInstance>): boolean {
+validateUserData(userData: any): boolean {
     const requiredFields: (keyof UserInstance)[] = ['email', 'first_name', 'last_name'];
     
     return requiredFields.every(field => {
@@ -224,7 +225,7 @@ export const userUtils = {
    * @param profileData - Profile data to validate
    * @returns Object with validation result and errors
    */
-  validateProfileData(profileData: Partial<UserInstance>): { isValid: boolean; errors: string[] } {
+validateProfileData(profileData: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     // Validate email
@@ -278,10 +279,10 @@ export const userUtils = {
    * @param candidatePassword - Password to compare
    * @returns True if passwords match
    */
-  async comparePassword(user: UserInstance, candidatePassword: string): Promise<boolean> {
+async comparePassword(user: any, candidatePassword: string): Promise<boolean> {
     try {
       return await comparePassword(candidatePassword, user.password_hash);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error('Password comparison failed');
     }
   },
@@ -291,7 +292,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns Sanitized user data
    */
-  sanitizeForPublic(user: UserInstance): Partial<UserInstance> {
+sanitizeForPublic(user: any): Partial<any> {
     const publicFields: (keyof UserInstance)[] = [
       'id',
       'email',
@@ -338,7 +339,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns True if profile is complete
    */
-  hasCompleteProfile(user: UserInstance): boolean {
+hasCompleteProfile(user: any): boolean {
     const requiredFields: (keyof UserInstance)[] = [
       'first_name',
       'last_name',
@@ -356,7 +357,7 @@ export const userUtils = {
    * @param user - User instance
    * @returns Profile completion percentage (0-100)
    */
-  getProfileCompletionPercentage(user: UserInstance): number {
+getProfileCompletionPercentage(user: any): number {
     const fields: (keyof UserInstance)[] = [
       'first_name',
       'last_name',

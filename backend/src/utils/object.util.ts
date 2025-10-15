@@ -41,9 +41,9 @@ export const objectUtils = {
       for (const key in source) {
         if (source.hasOwnProperty(key)) {
           if (this.isObject(result[key]) && this.isObject(source[key])) {
-            result[key] = this.merge(result[key], source[key]);
+            result[key] = this.merge(result[key] as Record<string, any>, source[key] as Record<string, any>) as any;
           } else {
-            result[key] = source[key];
+            result[key] = source[key] as any;
           }
         }
       }
@@ -60,9 +60,9 @@ export const objectUtils = {
       for (const key in source) {
         if (source.hasOwnProperty(key)) {
           if (this.isObject(result[key]) && this.isObject(source[key])) {
-            result[key] = this.deepMerge(result[key], source[key]);
+            result[key] = this.deepMerge(result[key] as Record<string, any>, source[key] as Record<string, any>) as any;
           } else {
-            result[key] = source[key];
+            result[key] = source[key] as any;
           }
         }
       }
@@ -324,7 +324,7 @@ export const objectUtils = {
     const result = {} as T;
     
     for (const key of sortedKeys) {
-      result[key] = obj[key];
+      (result as any)[key] = (obj as any)[key];
     }
     
     return result;
@@ -335,7 +335,7 @@ export const objectUtils = {
     obj: T,
     compareFn?: (a: any, b: any) => number
   ): Record<string, any> {
-    const entries = Object.entries(obj);
+    const entries = Object.entries(obj as Record<string, any>);
     entries.sort(([, a], [, b]) => {
       if (compareFn) {
         return compareFn(a, b);
@@ -444,3 +444,4 @@ export const objectUtils = {
     return Object.entries(obj);
   }
 };
+

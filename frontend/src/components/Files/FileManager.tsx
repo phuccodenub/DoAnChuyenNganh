@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
+import { useTranslation } from 'react-i18next'
 import fileService, { type CourseFile, type Assignment } from '@/services/fileService'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -13,6 +14,7 @@ interface FileManagerProps {
 
 function FileManager({ courseId }: FileManagerProps) {
   const { user } = useAuthStore()
+  const { t } = useTranslation()
   const [files, setFiles] = useState<CourseFile[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [view, setView] = useState<'files' | 'assignments'>('files')
@@ -464,8 +466,8 @@ function FileManager({ courseId }: FileManagerProps) {
       {/* Demo Notice */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
         <p className="text-sm text-amber-700">
-          <span className="font-medium">🧪 Demo Mode:</span> Files are stored in browser storage (IndexedDB). 
-          All file operations work locally without requiring a backend server.
+          <span className="font-medium">🧪 {t('demo.demoNotice')}:</span> {t('demo.demoModeFiles')}
+          Tất cả các thao tác tệp hoạt động cục bộ không cần máy chủ backend.
         </p>
       </div>
     </div>

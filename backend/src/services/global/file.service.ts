@@ -51,7 +51,7 @@ export class FileService {
         filename,
         size: file.size
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error uploading file:', error);
       throw error;
     }
@@ -68,7 +68,7 @@ export class FileService {
       // For now, we'll simulate the deletion
       
       logger.info('File deleted successfully', { filePath });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deleting file:', error);
       throw error;
     }
@@ -91,7 +91,7 @@ export class FileService {
 
       logger.info('File info retrieved successfully', { filePath });
       return info;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting file info:', error);
       throw error;
     }
@@ -110,9 +110,10 @@ export class FileService {
 
       logger.info('Signed URL generated successfully', { filePath });
       return signedUrl;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error generating signed URL:', error);
       throw error;
     }
   }
 }
+

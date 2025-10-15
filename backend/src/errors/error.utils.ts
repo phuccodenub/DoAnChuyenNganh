@@ -62,7 +62,7 @@ export class ErrorUtils {
    */
   static getCode(error: Error): ErrorCode {
     if (error instanceof BaseError) {
-      return error.code;
+      return (error as any).code;
     }
     return 'INTERNAL_SERVER_ERROR';
   }
@@ -76,9 +76,9 @@ export class ErrorUtils {
     }
 
     return {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
+      name: (error as Error).name,
+      message: (error as Error).message,
+      stack: (error as Error).stack,
       type: 'SYSTEM',
       severity: 'MEDIUM',
       code: 'INTERNAL_SERVER_ERROR',
@@ -91,9 +91,9 @@ export class ErrorUtils {
    */
   static formatForApi(error: Error, includeStack = false): Record<string, any> {
     if (error instanceof BaseError) {
-      const formatted = {
-        code: error.code,
-        message: error.message,
+      const formatted: Record<string, any> = {
+        code: (error as any).code,
+        message: (error as Error).message,
         type: error.type,
         severity: error.severity,
         timestamp: error.timestamp.toISOString(),
@@ -101,13 +101,13 @@ export class ErrorUtils {
       };
 
       if (includeStack) {
-        formatted.stack = error.stack;
+        formatted.stack = (error as Error).stack;
       }
 
       return formatted;
     }
 
-    const formatted = {
+    const formatted: Record<string, any> = {
       code: 'INTERNAL_SERVER_ERROR',
       message: 'Internal server error',
       type: 'SYSTEM',
@@ -116,7 +116,7 @@ export class ErrorUtils {
     };
 
     if (includeStack) {
-      formatted.stack = error.stack;
+      formatted.stack = (error as Error).stack;
     }
 
     return formatted;
@@ -167,7 +167,7 @@ export class ErrorUtils {
     if (error instanceof BaseError) {
       // Return user-friendly message for operational errors
       if (error.isOperationalError()) {
-        return error.message;
+        return (error as Error).message;
       }
     }
     
@@ -180,10 +180,10 @@ export class ErrorUtils {
    */
   static getDeveloperMessage(error: Error): string {
     if (error instanceof BaseError) {
-      return `${error.name}: ${error.message} (Code: ${error.code}, Status: ${error.statusCode})`;
+      return `${(error as Error).name}: ${(error as Error).message} (Code: ${(error as any).code}, Status: ${(error as any).statusCode})`;
     }
     
-    return `${error.name}: ${error.message}`;
+    return `${(error as Error).name}: ${(error as Error).message}`;
   }
 
   /**
@@ -265,9 +265,9 @@ export class ErrorUtils {
         chainError.addDetails(`error_${i}`, error.toJSON());
       } else {
         chainError.addDetails(`error_${i}`, {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
+          name: (error as Error).name,
+          message: (error as Error).message,
+          stack: (error as Error).stack
         });
       }
     }
@@ -275,3 +275,4 @@ export class ErrorUtils {
     return chainError;
   }
 }
+

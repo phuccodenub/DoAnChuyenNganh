@@ -49,11 +49,9 @@ export const jwtUtils: JWTUtils = {
    */
   signToken(payload: object, secret: string, options?: any): string {
     try {
-      // This would need to be implemented in tokenUtils if needed
-      // For now, we'll use the high-level methods
-      logger.warn('Direct signToken called - consider using specific token generation methods');
-      throw new Error('Use specific token generation methods instead');
-    } catch (error) {
+      const jsonwebtoken = require('jsonwebtoken') as typeof import('jsonwebtoken');
+      return jsonwebtoken.sign(payload as any, secret, options);
+    } catch (error: unknown) {
       logger.error('JWT sign token error:', error);
       throw new Error('Token signing failed');
     }
@@ -68,11 +66,9 @@ export const jwtUtils: JWTUtils = {
    */
   verifyToken<T = any>(token: string, secret: string, options?: any): T {
     try {
-      // This would need to be implemented in tokenUtils if needed
-      // For now, we'll use the high-level methods
-      logger.warn('Direct verifyToken called - consider using specific token verification methods');
-      throw new Error('Use specific token verification methods instead');
-    } catch (error) {
+      const jsonwebtoken = require('jsonwebtoken') as typeof import('jsonwebtoken');
+      return jsonwebtoken.verify(token, secret, options) as T;
+    } catch (error: unknown) {
       logger.error('JWT verify token error:', error);
       throw new Error('Token verification failed');
     }
@@ -85,10 +81,9 @@ export const jwtUtils: JWTUtils = {
    */
   decodeToken(token: string): any {
     try {
-      // This would need to be implemented in tokenUtils if needed
-      logger.warn('Direct decodeToken called - consider using token utilities');
-      return null;
-    } catch (error) {
+      const jsonwebtoken = require('jsonwebtoken') as typeof import('jsonwebtoken');
+      return jsonwebtoken.decode(token);
+    } catch (error: unknown) {
       logger.error('JWT decode token error:', error);
       return null;
     }

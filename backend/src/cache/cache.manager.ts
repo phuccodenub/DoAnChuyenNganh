@@ -73,8 +73,8 @@ export class CacheManager {
         strategies: Array.from(this.strategies.keys()),
         default: this.defaultStrategy
       });
-    } catch (error) {
-      logger.error('Cache strategy initialization error', { error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache strategy initialization error', { error: (error as Error).message });
       throw error;
     }
   }
@@ -118,12 +118,12 @@ export class CacheManager {
       }
       
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       if (this.options.enableMetrics) {
         this.incrementMetric('cache_errors_total');
       }
       
-      logger.error('Cache get error', { key, strategy, error: error.message });
+      logger.error('Cache get error', { key, strategy, error: (error as Error).message });
       return null;
     }
   }
@@ -150,12 +150,12 @@ export class CacheManager {
           duration: Date.now() - startTime
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       if (this.options.enableMetrics) {
         this.incrementMetric('cache_errors_total');
       }
       
-      logger.error('Cache set error', { key, strategy, error: error.message });
+      logger.error('Cache set error', { key, strategy, error: (error as Error).message });
       throw error;
     }
   }
@@ -181,12 +181,12 @@ export class CacheManager {
           duration: Date.now() - startTime
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       if (this.options.enableMetrics) {
         this.incrementMetric('cache_errors_total');
       }
       
-      logger.error('Cache delete error', { key, strategy, error: error.message });
+      logger.error('Cache delete error', { key, strategy, error: (error as Error).message });
       throw error;
     }
   }
@@ -198,8 +198,8 @@ export class CacheManager {
     try {
       const cacheStrategy = this.getStrategy(strategy);
       return await cacheStrategy.exists(key);
-    } catch (error) {
-      logger.error('Cache exists error', { key, strategy, error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache exists error', { key, strategy, error: (error as Error).message });
       return false;
     }
   }
@@ -223,8 +223,8 @@ export class CacheManager {
       }
       
       logger.info('Cache cleared', { strategy: strategy || 'all' });
-    } catch (error) {
-      logger.error('Cache clear error', { strategy, error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache clear error', { strategy, error: (error as Error).message });
       throw error;
     }
   }
@@ -236,8 +236,8 @@ export class CacheManager {
     try {
       const cacheStrategy = this.getStrategy(strategy);
       return await cacheStrategy.mget<T>(keys);
-    } catch (error) {
-      logger.error('Cache mget error', { keys, strategy, error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache mget error', { keys, strategy, error: (error as Error).message });
       return keys.map(() => null);
     }
   }
@@ -253,8 +253,8 @@ export class CacheManager {
       if (this.options.enableMetrics) {
         this.incrementMetric('cache_mset_total');
       }
-    } catch (error) {
-      logger.error('Cache mset error', { keyValuePairs, strategy, error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache mset error', { keyValuePairs, strategy, error: (error as Error).message });
       throw error;
     }
   }
@@ -270,8 +270,8 @@ export class CacheManager {
       if (this.options.enableMetrics) {
         this.incrementMetric('cache_mdel_total');
       }
-    } catch (error) {
-      logger.error('Cache mdel error', { keys, strategy, error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache mdel error', { keys, strategy, error: (error as Error).message });
       throw error;
     }
   }
@@ -307,8 +307,8 @@ export class CacheManager {
           lastCleanup: new Date()
         });
       }
-    } catch (error) {
-      logger.error('Cache stats error', { strategy, error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache stats error', { strategy, error: (error as Error).message });
       return {
         hits: 0,
         misses: 0,
@@ -327,9 +327,9 @@ export class CacheManager {
   public async getKeysByPattern(pattern: string, strategy?: CacheStrategyType): Promise<string[]> {
     try {
       const cacheStrategy = this.getStrategy(strategy);
-      return await cacheStrategy.getKeysByPattern(pattern);
-    } catch (error) {
-      logger.error('Cache keys pattern error', { pattern, strategy, error: error.message });
+      return await cacheStrategy.getKeysByPattern?.(pattern) || [];
+    } catch (error: unknown) {
+      logger.error('Cache keys pattern error', { pattern, strategy, error: (error as Error).message });
       return [];
     }
   }
@@ -340,9 +340,9 @@ export class CacheManager {
   public async getTTL(key: string, strategy?: CacheStrategyType): Promise<number> {
     try {
       const cacheStrategy = this.getStrategy(strategy);
-      return await cacheStrategy.getTTL(key);
-    } catch (error) {
-      logger.error('Cache TTL error', { key, strategy, error: error.message });
+      return await cacheStrategy.getTTL?.(key) || -1;
+    } catch (error: unknown) {
+      logger.error('Cache TTL error', { key, strategy, error: (error as Error).message });
       return -1;
     }
   }
@@ -353,9 +353,9 @@ export class CacheManager {
   public async setTTL(key: string, ttl: number, strategy?: CacheStrategyType): Promise<void> {
     try {
       const cacheStrategy = this.getStrategy(strategy);
-      await cacheStrategy.setTTL(key, ttl);
-    } catch (error) {
-      logger.error('Cache set TTL error', { key, ttl, strategy, error: error.message });
+      await cacheStrategy.setTTL?.(key, ttl);
+    } catch (error: unknown) {
+      logger.error('Cache set TTL error', { key, ttl, strategy, error: (error as Error).message });
       throw error;
     }
   }
@@ -374,8 +374,8 @@ export class CacheManager {
       }
       
       logger.info('Cache warm-up completed', { count: data.length, strategy });
-    } catch (error) {
-      logger.error('Cache warm-up error', { strategy, error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache warm-up error', { strategy, error: (error as Error).message });
       throw error;
     }
   }
@@ -391,8 +391,8 @@ export class CacheManager {
       } else {
         logger.warn('Preload to memory only available for hybrid strategy');
       }
-    } catch (error) {
-      logger.error('Cache preload error', { error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache preload error', { error: (error as Error).message });
       throw error;
     }
   }
@@ -424,8 +424,8 @@ export class CacheManager {
       }
       
       logger.info('Cache manager stopped');
-    } catch (error) {
-      logger.error('Cache manager stop error', { error: error.message });
+    } catch (error: unknown) {
+      logger.error('Cache manager stop error', { error: (error as Error).message });
     }
   }
 
@@ -448,3 +448,4 @@ export class CacheManager {
     logger.info('Default cache strategy switched', { strategy });
   }
 }
+

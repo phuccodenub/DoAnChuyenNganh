@@ -41,7 +41,7 @@ function OnlineUsers({ users, isVisible, onToggle }: OnlineUsersProps) {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-gray-900 flex items-center">
             <span className="text-green-500 mr-2">🟢</span>
-            Online ({users.length})
+            Trực tuyến ({users.length})
           </h3>
           <button className="text-gray-400 hover:text-gray-600">
             <span className={`transition-transform ${isVisible ? 'rotate-180' : ''}`}>
@@ -57,7 +57,7 @@ function OnlineUsers({ users, isVisible, onToggle }: OnlineUsersProps) {
           {users.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-4xl mb-2">👥</div>
-              <p className="text-sm text-gray-500">No one is online</p>
+              <p className="text-sm text-gray-500">Không có ai trực tuyến</p>
             </div>
           ) : (
             users.map((user) => (
@@ -90,17 +90,19 @@ function OnlineUsers({ users, isVisible, onToggle }: OnlineUsersProps) {
                       {user.full_name}
                     </p>
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${getRoleColor(user.role)}`}>
-                      {user.role}
+                      {user.role === 'instructor' ? 'Giảng viên' : user.role === 'student' ? 'Học sinh' : user.role}
                     </span>
                   </div>
                   
                   <p className="text-xs text-gray-500 capitalize">
-                    {user.status}
+                    {user.status === 'online' ? 'trực tuyến' :
+                     user.status === 'away' ? 'vắng mặt' :
+                     user.status === 'offline' ? 'ngoại tuyến' : user.status}
                   </p>
                 </div>
 
                 {user.role === 'instructor' && (
-                  <div className="text-yellow-500" title="Instructor">
+                  <div className="text-yellow-500" title="Giảng viên">
                     ⭐
                   </div>
                 )}
@@ -118,13 +120,13 @@ function OnlineUsers({ users, isVisible, onToggle }: OnlineUsersProps) {
               <div className="font-medium text-purple-600">
                 {users.filter(u => u.role === 'instructor').length}
               </div>
-              <div className="text-gray-500">Instructors</div>
+              <div className="text-gray-500">Giảng viên</div>
             </div>
             <div className="text-center">
               <div className="font-medium text-blue-600">
                 {users.filter(u => u.role === 'student').length}
               </div>
-              <div className="text-gray-500">Students</div>
+              <div className="text-gray-500">Học sinh</div>
             </div>
           </div>
         </div>

@@ -242,3 +242,4 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
     );
   }
 }
+

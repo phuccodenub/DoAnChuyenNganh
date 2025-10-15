@@ -129,6 +129,9 @@ export interface UserInstance extends UserAttributes {
   isStudent(): boolean;
 }
 
+// Alias to align tests and repositories using different UserInstance
+export type SequelizeUserInstance = import('./model.types').UserInstance;
+
 // User role enum
 export enum UserRole {
   STUDENT = 'student',
@@ -144,3 +147,4 @@ export enum UserStatus {
   SUSPENDED = 'suspended',
   PENDING = 'pending'
 }
+

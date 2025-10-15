@@ -16,7 +16,7 @@ import { ExternalServiceError } from './external-service.error';
 import { ErrorFactory } from './error.factory';
 import { ErrorUtils } from './error.utils';
 import { responseUtils } from '../utils/response.util';
-import { loggerUtils } from '../utils/logger.util';
+import logger from '../utils/logger.util';
 
 export class ErrorHandler {
   /**
@@ -41,7 +41,7 @@ export class ErrorHandler {
 
       // Log error if necessary
       if (ErrorUtils.shouldLog(baseError)) {
-        loggerUtils.error('Error occurred:', ErrorUtils.formatForLogging(baseError, {
+        logger.error('Error occurred:', ErrorUtils.formatForLogging(baseError, {
           url: req.url,
           method: req.method,
           ip: req.ip,
@@ -55,8 +55,8 @@ export class ErrorHandler {
       this.sendErrorResponse(res, baseError);
     } catch (handlerError) {
       // Fallback error handling
-      loggerUtils.error('Error handler failed:', {
-        originalError: error.message,
+      logger.error('Error handler failed:', {
+        originalError: (error as Error).message,
         handlerError: handlerError instanceof Error ? handlerError.message : 'Unknown error'
       });
 
@@ -82,7 +82,7 @@ export class ErrorHandler {
       requestId: (req as any).requestId
     });
 
-    loggerUtils.warn('Validation error:', ErrorUtils.formatForLogging(validationError));
+    logger.warn('Validation error:', ErrorUtils.formatForLogging(validationError));
 
     this.sendErrorResponse(res, validationError);
   }
@@ -105,7 +105,7 @@ export class ErrorHandler {
       requestId: (req as any).requestId
     });
 
-    loggerUtils.error('Database error:', ErrorUtils.formatForLogging(databaseError));
+    logger.error('Database error:', ErrorUtils.formatForLogging(databaseError));
 
     this.sendErrorResponse(res, databaseError);
   }
@@ -125,7 +125,7 @@ export class ErrorHandler {
       userAgent: req.get('User-Agent')
     });
 
-    loggerUtils.warn('Route not found:', ErrorUtils.formatForLogging(notFoundError));
+    logger.warn('Route not found:', ErrorUtils.formatForLogging(notFoundError));
 
     this.sendErrorResponse(res, notFoundError);
   }
@@ -142,22 +142,22 @@ export class ErrorHandler {
 
     // Send appropriate response based on error type
     if (error instanceof ValidationError) {
-      responseUtils.sendValidationError(res, error.message, error.validationErrors || []);
+      responseUtils.sendValidationError(res, (error as Error).message, error.validationErrors || []);
     } else if (error instanceof AuthenticationError) {
-      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
+      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), (error as any).statusCode);
     } else if (error instanceof AuthorizationError) {
-      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
+      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), (error as any).statusCode);
     } else if (error instanceof DatabaseError) {
-      const message = isDevelopment ? error.message : 'Database error occurred';
-      responseUtils.sendError(res, message, error.statusCode);
+      const message = isDevelopment ? (error as Error).message : 'Database error occurred';
+      responseUtils.sendError(res, message, (error as any).statusCode);
     } else if (error instanceof FileError) {
-      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
+      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), (error as any).statusCode);
     } else if (error instanceof ExternalServiceError) {
-      const message = isDevelopment ? error.message : 'External service error occurred';
-      responseUtils.sendError(res, message, error.statusCode);
+      const message = isDevelopment ? (error as Error).message : 'External service error occurred';
+      responseUtils.sendError(res, message, (error as any).statusCode);
     } else {
       // Generic API error
-      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
+      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), (error as any).statusCode);
     }
   }
 
@@ -179,7 +179,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     });
 
-    loggerUtils.error('Uncaught exception:', ErrorUtils.formatForLogging(baseError));
+    logger.error('Uncaught exception:', ErrorUtils.formatForLogging(baseError));
 
     // Exit process for critical errors
     if (ErrorUtils.isCritical(baseError)) {
@@ -198,7 +198,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     });
 
-    loggerUtils.error('Unhandled rejection:', ErrorUtils.formatForLogging(baseError));
+    logger.error('Unhandled rejection:', ErrorUtils.formatForLogging(baseError));
 
     // Exit process for critical errors
     if (ErrorUtils.isCritical(baseError)) {
@@ -221,3 +221,4 @@ export const zodErrorHandler = ErrorHandler.handleZodError;
 export const sequelizeErrorHandler = ErrorHandler.handleSequelizeError;
 export const notFoundHandler = ErrorHandler.handleNotFound;
 export const asyncHandler = ErrorHandler.asyncHandler;
+

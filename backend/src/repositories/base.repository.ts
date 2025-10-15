@@ -41,7 +41,7 @@ export abstract class BaseRepository<T extends Model> {
       
       logger.debug(`${this.modelName} created successfully`, { id: instance.get('id') });
       return instance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error creating ${this.modelName}:`, error);
       throw error;
     }
@@ -64,7 +64,7 @@ export abstract class BaseRepository<T extends Model> {
       }
       
       return instance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding ${this.modelName} by ID:`, error);
       throw error;
     }
@@ -87,7 +87,7 @@ export abstract class BaseRepository<T extends Model> {
       }
       
       return instance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding ${this.modelName}:`, error);
       throw error;
     }
@@ -105,7 +105,7 @@ export abstract class BaseRepository<T extends Model> {
       
       logger.debug(`${this.modelName} found`, { count: instances.length });
       return instances;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding all ${this.modelName}:`, error);
       throw error;
     }
@@ -123,7 +123,7 @@ export abstract class BaseRepository<T extends Model> {
       
       logger.debug(`${this.modelName} found and counted`, { count: result.count, rows: result.rows.length });
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding and counting ${this.modelName}:`, error);
       throw error;
     }
@@ -153,7 +153,7 @@ export abstract class BaseRepository<T extends Model> {
       
       logger.debug(`${this.modelName} updated successfully`, { id });
       return updatedInstance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error updating ${this.modelName}:`, error);
       throw error;
     }
@@ -177,7 +177,7 @@ export abstract class BaseRepository<T extends Model> {
       }
       
       logger.debug(`${this.modelName} deleted successfully`, { id });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error deleting ${this.modelName}:`, error);
       throw error;
     }
@@ -195,7 +195,7 @@ export abstract class BaseRepository<T extends Model> {
       
       logger.debug(`${this.modelName} counted`, { count });
       return count;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error counting ${this.modelName}:`, error);
       throw error;
     }
@@ -209,12 +209,12 @@ export abstract class BaseRepository<T extends Model> {
       logger.debug(`Checking if ${this.modelName} exists`, { id });
       
       const model = this.getModelInstance();
-      const count = await model.count({ where: { id } });
+      const count = await model.count({ where: { id: id as any } as any });
       
-      const exists = count > 0;
+      const exists = (count as any as number) > 0;
       logger.debug(`${this.modelName} exists check`, { id, exists });
       return exists;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error checking if ${this.modelName} exists:`, error);
       throw error;
     }
@@ -235,7 +235,7 @@ export abstract class BaseRepository<T extends Model> {
       
       logger.debug(`${this.modelName} found by field`, { field, value, count: instances.length });
       return instances;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding ${this.modelName} by field:`, error);
       throw error;
     }
@@ -261,7 +261,7 @@ export abstract class BaseRepository<T extends Model> {
       }
       
       return instance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding ${this.modelName} by field:`, error);
       throw error;
     }
@@ -279,7 +279,7 @@ export abstract class BaseRepository<T extends Model> {
       
       logger.debug(`${this.modelName} bulk created`, { count: instances.length });
       return instances;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error bulk creating ${this.modelName}:`, error);
       throw error;
     }
@@ -296,7 +296,7 @@ export abstract class BaseRepository<T extends Model> {
       await model.bulkCreate(data, { updateOnDuplicate: Object.keys(data[0] || {}), ...options });
       
       logger.debug(`${this.modelName} bulk updated`, { count: data.length });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error bulk updating ${this.modelName}:`, error);
       throw error;
     }
@@ -312,7 +312,7 @@ export abstract class BaseRepository<T extends Model> {
       await this.update(id, { deleted_at: new Date() });
       
       logger.debug(`${this.modelName} soft deleted`, { id });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error soft deleting ${this.modelName}:`, error);
       throw error;
     }
@@ -328,7 +328,7 @@ export abstract class BaseRepository<T extends Model> {
       await this.update(id, { deleted_at: null });
       
       logger.debug(`${this.modelName} restored`, { id });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error restoring ${this.modelName}:`, error);
       throw error;
     }
@@ -368,9 +368,10 @@ export abstract class BaseRepository<T extends Model> {
         data: result.rows,
         pagination
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error paginating ${this.modelName}:`, error);
       throw error;
     }
   }
 }
+

@@ -1,0 +1,52 @@
+import { DataTypes, Model } from 'sequelize';
+import { getSequelize } from '../config/db';
+import { QuizAnswerAttributes, QuizAnswerCreationAttributes, QuizAnswerInstance } from '../types/model.types';
+
+const sequelize = getSequelize();
+
+const QuizAnswer = sequelize.define('QuizAnswer', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  attempt_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'quiz_attempts', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  question_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'quiz_questions', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  selected_option_id: {
+    type: DataTypes.UUID,
+    references: { model: 'quiz_options', key: 'id' }
+  },
+  selected_options: {
+    type: DataTypes.JSON,
+    comment: 'For multiple choice questions'
+  },
+  is_correct: DataTypes.BOOLEAN,
+  points_earned: DataTypes.DECIMAL(5, 2)
+}, {
+  tableName: 'quiz_answers',
+  timestamps: true,
+  underscored: true,
+  indexes: [
+    { fields: ['attempt_id'] },
+    { unique: true, fields: ['attempt_id', 'question_id'] }
+  ]
+});
+
+export default QuizAnswer as any;
+
+
+
+
+
+
+

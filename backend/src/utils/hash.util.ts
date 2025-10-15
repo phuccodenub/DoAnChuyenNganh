@@ -21,7 +21,7 @@ export const hashUtils = {
       try {
         const normalizedPassword = password.normalize('NFC');
         return await bcryptUtils.hashPassword(normalizedPassword);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Password hashing failed:', error);
         throw new Error('Password hashing failed');
       }
@@ -37,7 +37,7 @@ export const hashUtils = {
       try {
         const normalizedPassword = password.normalize('NFC');
         return await bcryptUtils.comparePassword(normalizedPassword, hashedPassword);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Password comparison failed:', error);
         throw new Error('Password comparison failed');
       }
@@ -75,7 +75,7 @@ export const hashUtils = {
     hashStringSHA256(input: string): string {
       try {
         return crypto.createHash('sha256').update(input).digest('hex');
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('SHA256 hashing failed:', error);
         throw new Error('String hashing failed');
       }
@@ -89,7 +89,7 @@ export const hashUtils = {
     hashStringSHA512(input: string): string {
       try {
         return crypto.createHash('sha512').update(input).digest('hex');
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('SHA512 hashing failed:', error);
         throw new Error('String hashing failed');
       }
@@ -103,7 +103,7 @@ export const hashUtils = {
     hashStringMD5(input: string): string {
       try {
         return crypto.createHash('md5').update(input).digest('hex');
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('MD5 hashing failed:', error);
         throw new Error('String hashing failed');
       }
@@ -119,7 +119,7 @@ export const hashUtils = {
     hashStringHMAC(input: string, secret: string, algorithm: string = 'sha256'): string {
       try {
         return crypto.createHmac(algorithm, secret).update(input).digest('hex');
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('HMAC hashing failed:', error);
         throw new Error('HMAC hashing failed');
       }

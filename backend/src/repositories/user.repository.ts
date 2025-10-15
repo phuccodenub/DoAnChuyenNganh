@@ -1,5 +1,5 @@
 import User from '../models/user.model';
-import { UserInstance } from '../types/user.types';
+import { UserInstance } from '../types/model.types';
 import { BaseRepository } from './base.repository';
 import logger from '../utils/logger.util';
 
@@ -33,7 +33,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user by email:', error);
       throw error;
     }
@@ -57,7 +57,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user by student ID:', error);
       throw error;
     }
@@ -81,7 +81,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user by instructor ID:', error);
       throw error;
     }
@@ -101,7 +101,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('Users found by role', { role, count: users.length });
       return users;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding users by role:', error);
       throw error;
     }
@@ -121,7 +121,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('Users found by status', { status, count: users.length });
       return users;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding users by status:', error);
       throw error;
     }
@@ -141,7 +141,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('Users found by department', { department, count: users.length });
       return users;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding users by department:', error);
       throw error;
     }
@@ -161,7 +161,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('Users found by major', { major, count: users.length });
       return users;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding users by major:', error);
       throw error;
     }
@@ -181,7 +181,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('Users found by class', { className, count: users.length });
       return users;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding users by class:', error);
       throw error;
     }
@@ -201,7 +201,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('Users found by year', { year, count: users.length });
       return users;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding users by year:', error);
       throw error;
     }
@@ -231,7 +231,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('Users found by search', { searchTerm, count: users.length });
       return users;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error searching users:', error);
       throw error;
     }
@@ -290,7 +290,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('User statistics retrieved', { stats });
       return stats;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user statistics:', error);
       throw error;
     }
@@ -318,7 +318,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('Users by role with pagination retrieved', { role, page, limit, total: result.pagination.total });
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting users by role with pagination:', error);
       throw error;
     }
@@ -335,7 +335,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('User last login updated', { userId });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user last login:', error);
       throw error;
     }
@@ -355,7 +355,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('User email verification updated', { userId, isVerified });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user email verification:', error);
       throw error;
     }
@@ -372,7 +372,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       
       logger.debug('User status updated', { userId, status });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user status:', error);
       throw error;
     }
@@ -409,9 +409,23 @@ export class UserRepository extends BaseRepository<UserInstance> {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with enrollments:', error);
       throw error;
     }
   }
 }
+
+// Export singleton instance and alias methods for backward compatibility
+const userRepository = new UserRepository();
+
+export const findUserById = (id: string) => userRepository.findById(id);
+export const findUserByEmail = (email: string) => userRepository.findByEmail(email);
+export const createUser = (userData: any) => userRepository.create(userData);
+export const updateUser = (id: string, updateData: any) => userRepository.update(id, updateData);
+export const deleteUser = (id: string) => userRepository.delete(id);
+export const findAllUsers = (options: any) => userRepository.paginate(options.page || 1, options.limit || 10, options);
+export const findUsersByRole = (role: string) => userRepository.findByRole(role);
+export const getUserStatistics = () => userRepository.getUserStats();
+
+export default userRepository;

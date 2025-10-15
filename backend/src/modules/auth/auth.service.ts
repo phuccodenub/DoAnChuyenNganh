@@ -1,5 +1,5 @@
 import { AuthRepository } from './auth.repository';
-import { AuthTypes } from './auth.types';
+import * as AuthTypes from './auth.types';
 import { UserInstance } from '../../types/user.types';
 import { globalServices } from '../../services/global';
 import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
@@ -50,7 +50,7 @@ export class AuthModuleService {
       const newUser = await this.authRepository.createUserForAuth({
         ...userData,
         password_hash: hashedPassword
-      });
+      } as any);
 
       const userProfile = userUtils.getPublicProfile(newUser) as AuthTypes.UserProfile;
       
@@ -59,7 +59,7 @@ export class AuthModuleService {
 
       logger.info('User registered successfully', { email: userData.email, userId: newUser.id });
       return userProfile;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error registering user:', error);
       throw error;
     }
@@ -164,7 +164,7 @@ export class AuthModuleService {
         user: userProfile,
         tokens
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error logging in user:', error);
       throw error;
     }
@@ -198,7 +198,7 @@ export class AuthModuleService {
       
       logger.info('Token refreshed successfully', { userId: decoded.userId });
       return tokens;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error refreshing token:', error);
       throw error;
     }
@@ -241,7 +241,7 @@ export class AuthModuleService {
       await this.authRepository.updateUserPassword(userId, hashedNewPassword, user.token_version + 1);
 
       logger.info('Password changed successfully', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error changing password:', error);
       throw error;
     }
@@ -260,7 +260,7 @@ export class AuthModuleService {
       await globalServices.cache.deleteWithPattern(`session:${userId}`);
       
       logger.info('User logged out successfully', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error logging out user:', error);
       throw error;
     }
@@ -281,7 +281,7 @@ export class AuthModuleService {
       await this.authRepository.updateEmailVerification(userId, true);
 
       logger.info('Email verified successfully', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error verifying email:', error);
       throw error;
     }
@@ -322,7 +322,7 @@ export class AuthModuleService {
         secret,
         backupCodes
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error enabling 2FA:', error);
       throw error;
     }
@@ -347,7 +347,7 @@ export class AuthModuleService {
       }
 
       return isValid;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error verifying 2FA setup:', error);
       throw error;
     }
@@ -382,7 +382,7 @@ export class AuthModuleService {
       await globalServices.twoFactor.disable2FA(userId);
 
       logger.info('2FA disabled successfully', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error disabling 2FA:', error);
       throw error;
     }
@@ -418,7 +418,7 @@ export class AuthModuleService {
 
       logger.info('2FA login successful', { email: credentials.email });
       return loginResult;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error logging in with 2FA:', error);
       throw error;
     }

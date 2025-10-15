@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
+import { useTranslation } from 'react-i18next'
 import socketService from '@/services/socketService'
 import webRTCService, { WebRTCService, type StreamParticipant } from '@/services/webRTCService'
 import { Button } from '@/components/ui/Button'
@@ -12,6 +13,7 @@ interface LiveStreamInterfaceProps {
 
 function LiveStreamInterface({ courseId, courseName }: LiveStreamInterfaceProps) {
   const { user } = useAuthStore()
+  const { t } = useTranslation()
   const [isStreaming, setIsStreaming] = useState(false)
   const [isJoined, setIsJoined] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -391,8 +393,8 @@ function LiveStreamInterface({ courseId, courseName }: LiveStreamInterfaceProps)
       {/* Demo Mode Notice */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
         <p className="text-sm text-amber-700">
-          <span className="font-medium">🧪 Demo Mode:</span> This WebRTC implementation works with real camera/microphone access. 
-          For full functionality, start the Socket.IO demo server to enable signaling between participants.
+          <span className="font-medium">🧪 {t('demo.demoNotice')}:</span> {t('demo.demoModeWebRTC')}
+          Để có đầy đủ chức năng, hãy khởi động máy chủ demo Socket.IO để kích hoạt tín hiệu giữa những người tham gia.
         </p>
       </div>
     </div>

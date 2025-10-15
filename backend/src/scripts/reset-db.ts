@@ -1,4 +1,4 @@
-import { sequelize } from '../config/database.config';
+import { getSequelize } from '../config/db';
 import logger from '../utils/logger.util';
 
 async function resetDatabase() {
@@ -6,6 +6,7 @@ async function resetDatabase() {
     logger.info('Starting database reset...');
     
     // Drop all tables
+    const sequelize = getSequelize();
     await sequelize.drop();
     logger.info('All tables dropped');
     
@@ -15,10 +16,11 @@ async function resetDatabase() {
     
     logger.info('Database reset completed!');
     process.exit(0);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Database reset failed:', error);
     process.exit(1);
   }
 }
 
 resetDatabase();
+

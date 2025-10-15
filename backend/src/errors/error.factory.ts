@@ -11,7 +11,7 @@ import { AuthorizationError } from './authorization.error';
 import { DatabaseError } from './database.error';
 import { FileError } from './file.error';
 import { ExternalServiceError } from './external-service.error';
-import { ErrorCode, ErrorType, ErrorSeverity } from './error.constants';
+import { ErrorCode, ErrorType, ErrorSeverity, HttpStatusCode } from './error.constants';
 
 export class ErrorFactory {
   /**
@@ -20,7 +20,7 @@ export class ErrorFactory {
   static createApiError(
     code: ErrorCode,
     message?: string,
-    statusCode?: number,
+    statusCode?: HttpStatusCode,
     details?: Record<string, any>
   ): ApiError {
     return new ApiError({
@@ -150,7 +150,7 @@ export class ErrorFactory {
     if (error instanceof Error) {
       return new BaseError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: error.message,
+        message: (error as Error).message,
         type: 'SYSTEM',
         severity: 'HIGH',
         cause: error,
@@ -171,7 +171,7 @@ export class ErrorFactory {
    * Create error from HTTP status code
    */
   static fromHttpStatus(
-    statusCode: number,
+    statusCode: HttpStatusCode,
     message?: string,
     context?: Record<string, any>
   ): ApiError {
@@ -254,3 +254,4 @@ export class ErrorFactory {
     return ExternalServiceError.fromHttpError(serviceName, statusCode, message, endpoint, method);
   }
 }
+

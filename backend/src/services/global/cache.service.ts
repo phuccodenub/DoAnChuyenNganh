@@ -8,7 +8,7 @@ export class CacheService {
     try {
       const serializedValue = JSON.stringify(value);
       await redisHelpers.set(key, serializedValue, ttl);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache set error:', error);
       throw error;
     }
@@ -19,7 +19,7 @@ export class CacheService {
     try {
       const value = await redisHelpers.get(key);
       return value ? JSON.parse(value) : null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache get error:', error);
       throw error;
     }
@@ -29,7 +29,7 @@ export class CacheService {
   async delete(key: string): Promise<void> {
     try {
       await redisHelpers.del(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache delete error:', error);
       throw error;
     }
@@ -39,7 +39,7 @@ export class CacheService {
   async exists(key: string): Promise<boolean> {
     try {
       return await redisHelpers.exists(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache exists error:', error);
       throw error;
     }
@@ -50,7 +50,7 @@ export class CacheService {
     try {
       const key = this.generateCacheKey(pattern);
       await this.set(key, value, ttl);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache set with pattern error:', error);
       throw error;
     }
@@ -61,7 +61,7 @@ export class CacheService {
     try {
       const key = this.generateCacheKey(pattern);
       return await this.get<T>(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache get with pattern error:', error);
       throw error;
     }
@@ -72,7 +72,7 @@ export class CacheService {
     try {
       const key = this.generateCacheKey(pattern);
       await this.delete(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache delete with pattern error:', error);
       throw error;
     }
@@ -83,7 +83,7 @@ export class CacheService {
     try {
       const key = `user:${userId}`;
       await this.set(key, userData, APP_CONSTANTS.SYSTEM.CACHE_TTL.LONG);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache user error:', error);
       throw error;
     }
@@ -94,7 +94,7 @@ export class CacheService {
     try {
       const key = `user:${userId}`;
       return await this.get(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Get cached user error:', error);
       throw error;
     }
@@ -105,7 +105,7 @@ export class CacheService {
     try {
       const key = `course:${courseId}`;
       await this.set(key, courseData, APP_CONSTANTS.SYSTEM.CACHE_TTL.LONG);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache course error:', error);
       throw error;
     }
@@ -116,7 +116,7 @@ export class CacheService {
     try {
       const key = `course:${courseId}`;
       return await this.get(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Get cached course error:', error);
       throw error;
     }
@@ -127,7 +127,7 @@ export class CacheService {
     try {
       const key = `session:${sessionId}`;
       await this.set(key, sessionData, APP_CONSTANTS.SYSTEM.CACHE_TTL.SHORT);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Cache session error:', error);
       throw error;
     }
@@ -138,7 +138,7 @@ export class CacheService {
     try {
       const key = `session:${sessionId}`;
       return await this.get(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Get cached session error:', error);
       throw error;
     }
@@ -155,9 +155,10 @@ export class CacheService {
       // In a real implementation, you would use Redis FLUSHDB or FLUSHALL
       // For now, we'll just log it
       logger.info('Clearing all cache');
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Clear all cache error:', error);
       throw error;
     }
   }
 }
+

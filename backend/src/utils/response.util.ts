@@ -203,13 +203,13 @@ export const responseUtils = {
     }
 
     if (error instanceof Error) {
-      return { message: error.message };
+      return { message: (error as Error).message };
     }
 
     if (error && typeof error === 'object') {
       return {
-        message: error.message || 'Unknown error',
-        code: error.code,
+        message: (error as Error).message || 'Unknown error',
+        code: (error as any).code,
         field: error.field,
         value: error.value
       };
@@ -253,6 +253,27 @@ export const responseUtils = {
   // Extract data from response
   getResponseData<T>(response: ApiResponse<T>): T {
     return response.data;
+  },
+
+  // Alias for backward compatibility
+  success: function<T>(
+    res: Response,
+    data: T = null as any,
+    message: string = 'Success',
+    statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.OK,
+    meta?: any
+  ): void {
+    return this.sendSuccess(res, message, data, statusCode, meta);
+  },
+
+  // Alias for error
+  error: function(
+    res: Response,
+    message: string = 'Error',
+    statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.INTERNAL_SERVER_ERROR,
+    errors?: any[]
+  ): void {
+    return this.sendError(res, message, statusCode, errors);
   }
 };
 
@@ -268,3 +289,4 @@ export const sendCreatedResponse = responseUtils.sendCreated.bind(responseUtils)
 export const sendNoContentResponse = responseUtils.sendNoContent.bind(responseUtils);
 export const sendTooManyRequestsResponse = responseUtils.sendTooManyRequests.bind(responseUtils);
 export const sendServiceUnavailableResponse = responseUtils.sendServiceUnavailable.bind(responseUtils);
+

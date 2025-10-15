@@ -1,5 +1,6 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model } from 'sequelize';
 import { getSequelize } from '../config/db';
+import { CourseAttributes, CourseCreationAttributes, CourseInstance } from '../types/model.types';
 
 const sequelize = getSequelize();
 
@@ -24,6 +25,16 @@ const Course = sequelize.define('Course', {
       model: 'users',
       key: 'id'
     }
+  },
+  category_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'categories',
+      key: 'id'
+    },
+    onDelete: 'SET NULL',
+    comment: 'Danh mục của khóa học'
   },
   status: {
     type: DataTypes.ENUM('draft', 'published', 'archived'),
@@ -61,4 +72,6 @@ const Course = sequelize.define('Course', {
   underscored: true,
 });
 
-export default Course;
+export default Course as any;
+
+

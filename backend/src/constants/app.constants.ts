@@ -68,3 +68,4 @@ export const APP_CONSTANTS = {
     ALLOWED_HEADERS: ['Content-Type', 'Authorization', 'X-Requested-With'] as string[]
   } as const
 } as const;
+

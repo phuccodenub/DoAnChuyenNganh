@@ -1,7 +1,7 @@
 import User from '../../models/user.model';
-import { UserInstance } from '../../types/user.types';
+import { UserInstance } from '../../types/model.types';
 import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
-import { UserTypes } from './user.types';
+import * as UserTypes from './user.types';
 import logger from '../../utils/logger.util';
 
 export class UserModuleRepository extends BaseUserRepository {
@@ -34,7 +34,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with preferences:', error);
       throw error;
     }
@@ -66,7 +66,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with sessions:', error);
       throw error;
     }
@@ -97,7 +97,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with social accounts:', error);
       throw error;
     }
@@ -128,7 +128,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with analytics:', error);
       throw error;
     }
@@ -150,7 +150,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('User preferences updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user preferences:', error);
       throw error;
     }
@@ -176,7 +176,7 @@ export class UserModuleRepository extends BaseUserRepository {
         logger.debug('User preferences not found', { userId });
         return null;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user preferences:', error);
       throw error;
     }
@@ -185,7 +185,7 @@ export class UserModuleRepository extends BaseUserRepository {
   /**
    * Create user session
    */
-  async createSession(sessionData: UserTypes.UserSession): Promise<any> {
+async createSession(sessionData: any): Promise<any> {
     try {
       logger.debug('Creating user session', { userId: sessionData.user_id });
       
@@ -195,7 +195,7 @@ export class UserModuleRepository extends BaseUserRepository {
       
       logger.debug('User session created', { userId: sessionData.user_id, sessionId: session.id });
       return session;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating user session:', error);
       throw error;
     }
@@ -220,7 +220,7 @@ export class UserModuleRepository extends BaseUserRepository {
       
       logger.debug('Active sessions retrieved', { userId, count: sessions.length });
       return sessions;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting active sessions:', error);
       throw error;
     }
@@ -241,7 +241,7 @@ export class UserModuleRepository extends BaseUserRepository {
       );
       
       logger.debug('Session deactivated', { sessionId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deactivating session:', error);
       throw error;
     }
@@ -262,7 +262,7 @@ export class UserModuleRepository extends BaseUserRepository {
       );
       
       logger.debug('All sessions deactivated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deactivating all sessions:', error);
       throw error;
     }
@@ -283,7 +283,7 @@ export class UserModuleRepository extends BaseUserRepository {
       );
       
       logger.debug('Session activity updated', { sessionId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating session activity:', error);
       throw error;
     }
@@ -306,7 +306,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('Social account linked', { userId, provider, socialId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error linking social account:', error);
       throw error;
     }
@@ -326,7 +326,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('Social account unlinked', { userId, provider });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error unlinking social account:', error);
       throw error;
     }
@@ -347,7 +347,7 @@ export class UserModuleRepository extends BaseUserRepository {
       
       logger.debug('Social accounts retrieved', { userId, count: accounts.length });
       return accounts;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting social accounts:', error);
       throw error;
     }
@@ -369,7 +369,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('User analytics updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user analytics:', error);
       throw error;
     }
@@ -395,7 +395,7 @@ export class UserModuleRepository extends BaseUserRepository {
         logger.debug('User analytics not found', { userId });
         return null;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user analytics:', error);
       throw error;
     }
@@ -417,7 +417,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('Notification settings updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating notification settings:', error);
       throw error;
     }
@@ -439,9 +439,10 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('Privacy settings updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating privacy settings:', error);
       throw error;
     }
   }
 }
+

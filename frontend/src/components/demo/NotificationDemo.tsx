@@ -4,6 +4,7 @@
  */
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bell, MessageSquare, FileText, Play, BookOpen, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { notificationService } from '@/services/notificationService'
@@ -12,6 +13,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 export const NotificationDemo: React.FC = () => {
   const { user } = useAuthStore()
+  const { t } = useTranslation()
 
   const triggerChatNotification = () => {
     notificationService.createNotification({
@@ -103,7 +105,7 @@ export const NotificationDemo: React.FC = () => {
   if (!user) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">Please log in to test notifications.</p>
+        <p className="text-gray-500">{t('demo.notificationDemo.loginRequired')}</p>
       </div>
     )
   }
@@ -113,11 +115,10 @@ export const NotificationDemo: React.FC = () => {
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
           <Bell className="h-6 w-6 mr-2" />
-          Notification System Demo
+          {t('demo.notificationDemo.title')}
         </h2>
         <p className="text-gray-600">
-          Test the real-time notification system by triggering different types of notifications.
-          Check the notification bell in the header to see unread notifications.
+          {t('demo.notificationDemo.subtitle')}
         </p>
       </div>
 
@@ -126,13 +127,13 @@ export const NotificationDemo: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <MessageSquare className="h-5 w-5 text-blue-500 mr-2" />
-            <h3 className="font-semibold text-gray-900">Chat Messages</h3>
+            <h3 className="font-semibold text-gray-900">{t('demo.notificationDemo.chatMessages.title')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Simulate receiving a new chat message in a course.
+            {t('demo.notificationDemo.chatMessages.description')}
           </p>
           <Button onClick={triggerChatNotification} className="w-full">
-            New Chat Message
+            {t('demo.notificationDemo.chatMessages.button')}
           </Button>
         </div>
 
@@ -140,13 +141,13 @@ export const NotificationDemo: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <FileText className="h-5 w-5 text-purple-500 mr-2" />
-            <h3 className="font-semibold text-gray-900">Quiz Started</h3>
+            <h3 className="font-semibold text-gray-900">{t('demo.notificationDemo.quizStarted.title')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Notify students that a new quiz is available.
+            {t('demo.notificationDemo.quizStarted.description')}
           </p>
           <Button onClick={triggerQuizNotification} className="w-full">
-            Start Quiz
+            {t('demo.notificationDemo.quizStarted.button')}
           </Button>
         </div>
 
@@ -154,13 +155,13 @@ export const NotificationDemo: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <Play className="h-5 w-5 text-red-500 mr-2" />
-            <h3 className="font-semibold text-gray-900">Live Stream</h3>
+            <h3 className="font-semibold text-gray-900">{t('demo.notificationDemo.liveStream.title')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Alert students that instructor started live streaming.
+            {t('demo.notificationDemo.liveStream.description')}
           </p>
           <Button onClick={triggerLiveStreamNotification} className="w-full">
-            Start Stream
+            {t('demo.notificationDemo.liveStream.button')}
           </Button>
         </div>
 
@@ -168,13 +169,13 @@ export const NotificationDemo: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <BookOpen className="h-5 w-5 text-indigo-500 mr-2" />
-            <h3 className="font-semibold text-gray-900">New Assignment</h3>
+            <h3 className="font-semibold text-gray-900">{t('demo.notificationDemo.newAssignment.title')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Notify students of a new assignment posting.
+            {t('demo.notificationDemo.newAssignment.description')}
           </p>
           <Button onClick={triggerAssignmentNotification} className="w-full">
-            Post Assignment
+            {t('demo.notificationDemo.newAssignment.button')}
           </Button>
         </div>
 
@@ -182,13 +183,13 @@ export const NotificationDemo: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <Settings className="h-5 w-5 text-yellow-500 mr-2" />
-            <h3 className="font-semibold text-gray-900">System Alert</h3>
+            <h3 className="font-semibold text-gray-900">{t('demo.notificationDemo.systemAlert.title')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Send important system-wide announcements.
+            {t('demo.notificationDemo.systemAlert.description')}
           </p>
           <Button onClick={triggerSystemNotification} variant="outline" className="w-full">
-            System Warning
+            {t('demo.notificationDemo.systemAlert.button')}
           </Button>
         </div>
 
@@ -196,13 +197,13 @@ export const NotificationDemo: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <Bell className="h-5 w-5 text-blue-500 mr-2" />
-            <h3 className="font-semibold text-gray-900">Announcement</h3>
+            <h3 className="font-semibold text-gray-900">{t('demo.notificationDemo.announcement.title')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Make course-specific announcements to students.
+            {t('demo.notificationDemo.announcement.description')}
           </p>
           <Button onClick={triggerCourseAnnouncement} variant="outline" className="w-full">
-            Course Update
+            {t('demo.notificationDemo.announcement.button')}
           </Button>
         </div>
       </div>
@@ -212,40 +213,40 @@ export const NotificationDemo: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <div className="h-5 w-5 bg-green-500 rounded mr-2"></div>
-            <h3 className="font-semibold text-gray-900">Success Message</h3>
+            <h3 className="font-semibold text-gray-900">{t('demo.notificationDemo.successMessage.title')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Show success confirmation for completed actions.
+            {t('demo.notificationDemo.successMessage.description')}
           </p>
           <Button onClick={triggerSuccessNotification} variant="outline" className="w-full text-green-700 border-green-300">
-            Success Alert
+            {t('demo.notificationDemo.successMessage.button')}
           </Button>
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center mb-4">
             <div className="h-5 w-5 bg-red-500 rounded mr-2"></div>
-            <h3 className="font-semibold text-gray-900">Error Message</h3>
+            <h3 className="font-semibold text-gray-900">{t('demo.notificationDemo.errorMessage.title')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Display error messages with action buttons.
+            {t('demo.notificationDemo.errorMessage.description')}
           </p>
           <Button onClick={triggerErrorNotification} variant="outline" className="w-full text-red-700 border-red-300">
-            Error Alert
+            {t('demo.notificationDemo.errorMessage.button')}
           </Button>
         </div>
       </div>
 
       {/* Instructions */}
       <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="font-semibold text-blue-900 mb-2">How to Test:</h4>
+        <h4 className="font-semibold text-blue-900 mb-2">{t('demo.notificationDemo.instructions.title')}</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Click any button above to trigger a notification</li>
-          <li>• Watch for toast notifications to appear on the right side</li>
-          <li>• Check the notification bell icon in the header for unread count</li>
-          <li>• Click the bell to open the notification panel</li>
-          <li>• Use the settings gear in the panel to configure preferences</li>
-          <li>• Browser notifications will appear if permissions are granted</li>
+          <li>• Nhấp vào bất kỳ nút nào ở trên để kích hoạt thông báo</li>
+          <li>• Theo dõi các thông báo toast xuất hiện ở phía bên phải</li>
+          <li>• Kiểm tra biểu tượng chuông thông báo trong tiêu đề để đếm số chưa đọc</li>
+          <li>• Nhấp vào chuông để mở bảng thông báo</li>
+          <li>• Sử dụng biểu tượng cài đặt trong bảng để định cấu hình tùy chọn</li>
+          <li>• Thông báo trình duyệt sẽ xuất hiện nếu được cấp quyền</li>
         </ul>
       </div>
     </div>

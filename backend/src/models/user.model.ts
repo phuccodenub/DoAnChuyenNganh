@@ -1,5 +1,6 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model } from 'sequelize';
 import { getSequelize } from '../config/db';
+import { UserAttributes, UserCreationAttributes, UserInstance } from '../types/model.types';
 
 const sequelize = getSequelize();
 
@@ -155,4 +156,5 @@ User.beforeUpdate(async (user) => {
 });
 */
 
-export default User;
+export default User as any;
+

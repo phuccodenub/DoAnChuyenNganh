@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Shared PostgreSQL Database (chạy trên một máy chung)
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lms_db
+      POSTGRES_USER: lms_user
+      POSTGRES_PASSWORD: 123456
+    volumes:
+      - shared_postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"  # Chỉ một người chạy port này
+    networks:
+      - lms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lms_user -d lms_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Các developer khác chỉ cần backend và frontend kết nối tới postgres chung
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://lms_user:123456@host.docker.internal:5432/lms_db
+      - REDIS_URL=redis://host.docker.internal:6379
+      - JWT_SECRET=your_super_secret_jwt_key_here_make_it_long_and_random
+      - PORT=3000
+      - LOG_LEVEL=info
+      - FRONTEND_URL=http://localhost:3001
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/logs:/app/logs
+    ports:
+      - "3000:3000"
+    networks:
+      - lms-network
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  shared_postgres_data:
+    external: true  # Volume này phải được tạo trước
+
+networks:
+  lms-network:
+    driver: bridge

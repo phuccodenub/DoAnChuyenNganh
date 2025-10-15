@@ -11,7 +11,7 @@ function ChatMessage({ message, isOwn }: ChatMessageProps) {
     try {
       return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
     } catch {
-      return 'now'
+      return 'bây giờ'
     }
   }
 
@@ -79,7 +79,7 @@ function ChatMessage({ message, isOwn }: ChatMessageProps) {
             {message.type === 'announcement' && (
               <div className="flex items-center mb-1">
                 <span className="text-blue-600 text-sm mr-1">📢</span>
-                <span className="text-xs font-medium text-blue-700">Announcement</span>
+                <span className="text-xs font-medium text-blue-700">Thông báo</span>
               </div>
             )}
 

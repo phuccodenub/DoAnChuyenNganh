@@ -29,8 +29,8 @@ export class MetricsMiddleware {
     });
 
     // Override res.end to capture response metrics
-    const originalEnd = res.end;
-    res.end = function(chunk?: any, encoding?: any, cb?: any) {
+    const originalEnd = res.end.bind(res);
+    res.end = ((chunk?: any, encoding?: any, cb?: any) => {
       const duration = Date.now() - startTime;
       const statusCode = res.statusCode.toString();
       
@@ -38,7 +38,7 @@ export class MetricsMiddleware {
       timer();
       
       // Increment status-specific counters
-      metricsService.incrementCounter('http_requests_total', {
+      this.metricsService.incrementCounter('http_requests_total', {
         method: req.method,
         route: req.route?.path || req.path,
         status: statusCode
@@ -46,7 +46,7 @@ export class MetricsMiddleware {
 
       // Increment error counter if status >= 400
       if (res.statusCode >= 400) {
-        metricsService.incrementCounter('http_errors_total', {
+        this.metricsService.incrementCounter('http_errors_total', {
           method: req.method,
           route: req.route?.path || req.path,
           status: statusCode,
@@ -57,7 +57,7 @@ export class MetricsMiddleware {
       // Record response size
       if (chunk) {
         const responseSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk || '', encoding);
-        metricsService.recordHistogram('http_response_size', responseSize, {
+        this.metricsService.recordHistogram('http_response_size', responseSize, {
           method: req.method,
           route: req.route?.path || req.path,
           status: statusCode
@@ -67,15 +67,15 @@ export class MetricsMiddleware {
       // Record request size
       const requestSize = req.get('content-length') ? parseInt(req.get('content-length')!) : 0;
       if (requestSize > 0) {
-        metricsService.recordHistogram('http_request_size', requestSize, {
+        this.metricsService.recordHistogram('http_request_size', requestSize, {
           method: req.method,
           route: req.route?.path || req.path
         });
       }
 
-      // Call original end method
-      originalEnd.call(this, chunk, encoding, cb);
-    };
+      // Call original end method and return Response
+      return originalEnd(chunk as any, encoding as any, cb as any) as any;
+    }) as any;
 
     next();
   };
@@ -146,14 +146,14 @@ export class MetricsMiddleware {
       method: req.method,
       route: req.route?.path || req.path,
       status: res.statusCode?.toString() || '500',
-      error_type: error.name || 'unknown_error',
-      error_message: error.message || 'unknown_error'
+      error_type: (error as Error).name || 'unknown_error',
+      error_message: (error as Error).message || 'unknown_error'
     });
 
     // Record error details
     logger.error('HTTP error occurred', {
-      error: error.message,
-      stack: error.stack,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
       method: req.method,
       url: req.url,
       statusCode: res.statusCode,
@@ -238,3 +238,4 @@ export class MetricsMiddleware {
 
 // Export singleton instance
 export const metricsMiddleware = new MetricsMiddleware(new MetricsService());
+

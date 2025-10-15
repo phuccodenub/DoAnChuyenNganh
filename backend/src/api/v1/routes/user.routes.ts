@@ -12,3 +12,4 @@ const router = Router();
 router.use('/', v1UserRoutes);
 
 export default router;
+

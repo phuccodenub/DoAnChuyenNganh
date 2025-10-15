@@ -1,6 +1,4 @@
-import { CourseInstance } from '../../types/course.types';
-import { UserInstance } from '../../types/user.types';
-import { EnrollmentInstance } from '../../types/enrollment.types';
+import { CourseInstance, UserInstance, EnrollmentInstance } from '../../types/model.types';
 
 /**
  * Course-related TypeScript types and interfaces
@@ -238,3 +236,4 @@ export interface CourseSearchResult {
     instructors: { [key: string]: number };
   };
 }
+

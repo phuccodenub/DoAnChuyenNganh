@@ -25,7 +25,7 @@ export class CourseController {
       const course = await this.courseService.createCourse(courseData);
       
       responseUtils.sendCreated(res, 'Course created successfully', course);
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -47,7 +47,7 @@ export class CourseController {
       });
       
       responseUtils.sendSuccess(res, 'Courses retrieved successfully', courses);
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -63,7 +63,7 @@ export class CourseController {
       }
       
       responseUtils.sendSuccess(res, 'Course retrieved successfully', course);
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -73,7 +73,10 @@ export class CourseController {
     try {
       const { id } = req.params;
       const userId = req.user?.userId;
-      
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
       const course = await this.courseService.updateCourse(id, req.body, userId);
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.OK).json({
@@ -81,7 +84,7 @@ export class CourseController {
         message: 'Course updated successfully',
         data: course
       });
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -91,7 +94,10 @@ export class CourseController {
     try {
       const { id } = req.params;
       const userId = req.user?.userId;
-      
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
       await this.courseService.deleteCourse(id, userId);
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.OK).json({
@@ -99,7 +105,7 @@ export class CourseController {
         message: 'Course deleted successfully',
         data: null
       });
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -108,6 +114,10 @@ export class CourseController {
   getCoursesByInstructor = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const instructorId = req.params.instructorId || req.user?.userId;
+      if (!instructorId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
       const { page = 1, limit = 10, status } = req.query;
       
       const courses = await this.courseService.getCoursesByInstructor(instructorId, {
@@ -121,7 +131,7 @@ export class CourseController {
         message: 'Instructor courses retrieved successfully',
         data: courses
       });
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -130,6 +140,10 @@ export class CourseController {
   getEnrolledCourses = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user?.userId;
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
       const { page = 1, limit = 10, status } = req.query;
       
       const courses = await this.courseService.getEnrolledCourses(userId!, {
@@ -143,7 +157,7 @@ export class CourseController {
         message: 'Enrolled courses retrieved successfully',
         data: courses
       });
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -153,6 +167,10 @@ export class CourseController {
     try {
       const { courseId } = req.params;
       const userId = req.user?.userId;
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
       
       const enrollment = await this.courseService.enrollInCourse(courseId, userId!);
       
@@ -161,7 +179,7 @@ export class CourseController {
         message: 'Enrolled in course successfully',
         data: enrollment
       });
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -171,15 +189,18 @@ export class CourseController {
     try {
       const { courseId } = req.params;
       const userId = req.user?.userId;
-      
-      await this.courseService.unenrollFromCourse(courseId, userId!);
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
+      await this.courseService.unenrollFromCourse(courseId, userId);
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.OK).json({
         success: true,
         message: 'Unenrolled from course successfully',
         data: null
       });
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -201,8 +222,9 @@ export class CourseController {
         message: 'Course students retrieved successfully',
         data: students
       });
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
 }
+

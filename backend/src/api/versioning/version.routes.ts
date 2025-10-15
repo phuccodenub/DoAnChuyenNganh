@@ -124,3 +124,4 @@ router.get('/', versionManager.getAllVersionsEndpoint);
 router.get('/:version', versionManager.getVersionInfoEndpoint);
 
 export default router;
+

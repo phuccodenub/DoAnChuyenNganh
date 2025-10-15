@@ -1,4 +1,4 @@
-import { body, param, query } from 'express-validator';
+const { body, param, query } = require('express-validator');
 import { validatorsUtils } from '../../utils/validators.util';
 
 /**
@@ -14,30 +14,30 @@ export const userValidation = {
       .optional()
       .isLength({ min: 2, max: 50 })
       .withMessage('First name must be between 2 and 50 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('last_name')
       .optional()
       .isLength({ min: 2, max: 50 })
       .withMessage('Last name must be between 2 and 50 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('phone')
       .optional()
-      .custom(validatorsUtils.isPhoneNumber)
+      .custom((value: string) => validatorsUtils.isPhone(value))
       .withMessage('Invalid phone number format'),
     
     body('bio')
       .optional()
       .isLength({ max: 500 })
       .withMessage('Bio must not exceed 500 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('date_of_birth')
       .optional()
       .isISO8601()
       .withMessage('Date of birth must be a valid ISO date')
-      .custom((value) => {
+      .custom((value: string) => {
         if (new Date(value) > new Date()) {
           throw new Error('Date of birth cannot be in the future');
         }
@@ -53,17 +53,17 @@ export const userValidation = {
       .optional()
       .isLength({ max: 200 })
       .withMessage('Address must not exceed 200 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('emergency_contact')
       .optional()
       .isLength({ max: 100 })
       .withMessage('Emergency contact must not exceed 100 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('emergency_phone')
       .optional()
-      .custom(validatorsUtils.isPhoneNumber)
+      .custom((value: string) => validatorsUtils.isPhone(value))
       .withMessage('Invalid emergency phone number format'),
     
     // Student-specific fields
@@ -71,19 +71,19 @@ export const userValidation = {
       .optional()
       .isLength({ min: 3, max: 20 })
       .withMessage('Student ID must be between 3 and 20 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('class')
       .optional()
       .isLength({ min: 2, max: 20 })
       .withMessage('Class must be between 2 and 20 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('major')
       .optional()
       .isLength({ min: 2, max: 50 })
       .withMessage('Major must be between 2 and 50 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('year')
       .optional()
@@ -102,19 +102,19 @@ export const userValidation = {
       .optional()
       .isLength({ min: 3, max: 20 })
       .withMessage('Instructor ID must be between 3 and 20 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('department')
       .optional()
       .isLength({ min: 2, max: 50 })
       .withMessage('Department must be between 2 and 50 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('specialization')
       .optional()
       .isLength({ min: 2, max: 100 })
       .withMessage('Specialization must be between 2 and 100 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('experience_years')
       .optional()
@@ -131,7 +131,7 @@ export const userValidation = {
       .optional()
       .isArray()
       .withMessage('Research interests must be an array')
-      .custom((value) => {
+      .custom((value: any[]) => {
         if (value && value.length > 10) {
           throw new Error('Maximum 10 research interests allowed');
         }
@@ -366,7 +366,7 @@ export const userValidation = {
       .withMessage('Search query is required')
       .isLength({ min: 2, max: 100 })
       .withMessage('Search query must be between 2 and 100 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     query('role')
       .optional()
@@ -416,3 +416,5 @@ export const userValidation = {
       .withMessage('Verification code must be numeric')
   ]
 };
+
+

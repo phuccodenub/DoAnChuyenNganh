@@ -1,4 +1,4 @@
-import { body, param, query } from 'express-validator';
+const { body, param, query } = require('express-validator');
 import { validatorsUtils } from '../../utils/validators.util';
 
 /**
@@ -15,14 +15,14 @@ export const courseValidation = {
       .withMessage('Title is required')
       .isLength({ min: 3, max: 200 })
       .withMessage('Title must be between 3 and 200 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('description')
       .notEmpty()
       .withMessage('Description is required')
       .isLength({ min: 10, max: 2000 })
       .withMessage('Description must be between 10 and 2000 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('instructor_id')
       .notEmpty()
@@ -34,7 +34,7 @@ export const courseValidation = {
       .optional()
       .isLength({ min: 2, max: 50 })
       .withMessage('Category must be between 2 and 50 characters')
-      .customSanitizer(value => value?.trim()),
+.customSanitizer((value: string) => value?.trim()),
     
     body('level')
       .optional()
@@ -65,7 +65,7 @@ export const courseValidation = {
       .optional()
       .isISO8601()
       .withMessage('Start date must be a valid ISO date')
-      .custom((value) => {
+      .custom((value: string) => {
         if (new Date(value) < new Date()) {
           throw new Error('Start date cannot be in the past');
         }
@@ -76,7 +76,7 @@ export const courseValidation = {
       .optional()
       .isISO8601()
       .withMessage('End date must be a valid ISO date')
-      .custom((value, { req }) => {
+      .custom((value: string, { req }: { req: any }) => {
         if (req.body.start_date && new Date(value) <= new Date(req.body.start_date)) {
           throw new Error('End date must be after start date');
         }
@@ -92,7 +92,7 @@ export const courseValidation = {
       .optional()
       .isArray()
       .withMessage('Prerequisites must be an array')
-      .custom((value) => {
+      .custom((value: any[]) => {
         if (value && value.length > 10) {
           throw new Error('Maximum 10 prerequisites allowed');
         }
@@ -103,7 +103,7 @@ export const courseValidation = {
       .optional()
       .isArray()
       .withMessage('Learning objectives must be an array')
-      .custom((value) => {
+      .custom((value: any[]) => {
         if (value && value.length > 20) {
           throw new Error('Maximum 20 learning objectives allowed');
         }
@@ -114,7 +114,7 @@ export const courseValidation = {
       .optional()
       .isArray()
       .withMessage('Course materials must be an array')
-      .custom((value) => {
+.custom((value: any[]) => {
         if (value && value.length > 50) {
           throw new Error('Maximum 50 course materials allowed');
         }
@@ -136,19 +136,19 @@ export const courseValidation = {
       .optional()
       .isLength({ min: 3, max: 200 })
       .withMessage('Title must be between 3 and 200 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('description')
       .optional()
       .isLength({ min: 10, max: 2000 })
       .withMessage('Description must be between 10 and 2000 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('category')
       .optional()
       .isLength({ min: 2, max: 50 })
       .withMessage('Category must be between 2 and 50 characters')
-      .customSanitizer(value => value?.trim()),
+      .customSanitizer((value: string) => value?.trim()),
     
     body('level')
       .optional()
@@ -264,7 +264,8 @@ export const courseValidation = {
       .optional()
       .isLength({ min: 2, max: 100 })
       .withMessage('Search term must be between 2 and 100 characters')
-      .customSanitizer(value => value?.trim())
+      .customSanitizer((value: string) => value?.trim())
+      .customSanitizer((value: string) => value?.trim())
   ],
 
   /**
@@ -361,3 +362,5 @@ export const courseValidation = {
       .toInt()
   ]
 };
+
+

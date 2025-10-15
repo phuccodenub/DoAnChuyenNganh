@@ -1,5 +1,6 @@
 // Shared configuration exports
-export * from '../config/database.config';
+// Avoid exporting JS config without types to prevent TS7016
+// export * from '../config/database.config';
 export * from '../config/jwt.config';
 export * from '../config/mail.config';
 // export * from '../config/redis.config'; // Temporarily disabled
@@ -18,14 +19,22 @@ export * from '../middlewares/validate.middleware';
 
 // Shared utilities
 export * from '../utils/hash.util';
-export * from '../utils/response.util';
+// Re-export response utilities but avoid naming conflicts
+export { responseUtils, ApiResponse, PaginatedResponse, 
+  sendSuccessResponse, sendErrorResponse, sendNotFoundResponse, 
+  sendValidationErrorResponse, sendUnauthorizedResponse, sendForbiddenResponse, 
+  sendConflictResponse, sendCreatedResponse, sendNoContentResponse, 
+  sendTooManyRequestsResponse, sendServiceUnavailableResponse } from '../utils/response.util';
 export { default as logger } from '../utils/logger.util';
 
 // Validation schemas
 export * from '../validates';
 
 // Common types
-export * from '../types/common.types';
+// Export only selected common types to avoid conflicts with Base classes
+export type { ApiResponse as CommonApiResponse, PaginatedResponse as CommonPaginatedResponse, 
+  Pagination, PaginationOptions, SearchOptions, AuthenticatedRequest } from '../types/common.types';
 
 // Base classes
-export * from './base/base.controller';
+export { BaseController } from './base/base.controller';
+

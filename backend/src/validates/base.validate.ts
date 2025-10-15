@@ -42,7 +42,7 @@ export const baseValidation = {
    * Phone number validation
    */
   phone: z.string()
-    .refine((phone) => validatorsUtils.isPhoneNumber(phone), 'Invalid phone number format')
+    .refine((phone) => validatorsUtils.isPhone(phone), 'Invalid phone number format')
     .optional(),
   
   /**
@@ -63,7 +63,7 @@ export const baseValidation = {
    * Date validation
    */
   date: z.string()
-    .refine((date) => validatorsUtils.isDate(date), 'Invalid date format')
+    .refine((date) => validatorsUtils.isISODate(date), 'Invalid date format')
     .optional(),
   
   /**
@@ -109,7 +109,7 @@ export const baseValidation = {
       .min(1, 'Search term cannot be empty')
       .max(100, 'Search term must be less than 100 characters')
       .optional(),
-    filters: z.record(z.any())
+    filters: z.record(z.string(), z.any())
       .optional()
   }),
 
@@ -245,3 +245,4 @@ export const validationHelpers = {
 // Legacy export for backward compatibility
 export const baseSchemas = baseValidation;
 export const validateHelpers = validationHelpers;
+

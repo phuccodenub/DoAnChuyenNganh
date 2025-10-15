@@ -98,7 +98,7 @@ export const fileUtils = {
         lastModified: stats.mtime,
         created: stats.birthtime
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get file info: ${error}`);
     }
   },
@@ -117,7 +117,7 @@ export const fileUtils = {
   async ensureDirectoryExists(dirPath: string): Promise<void> {
     try {
       await fs.mkdir(dirPath, { recursive: true });
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to create directory: ${error}`);
     }
   },
@@ -126,7 +126,7 @@ export const fileUtils = {
   async deleteFile(filePath: string): Promise<void> {
     try {
       await fs.unlink(filePath);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to delete file: ${error}`);
     }
   },
@@ -135,7 +135,7 @@ export const fileUtils = {
   async copyFile(sourcePath: string, destinationPath: string): Promise<void> {
     try {
       await fs.copyFile(sourcePath, destinationPath);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to copy file: ${error}`);
     }
   },
@@ -144,7 +144,7 @@ export const fileUtils = {
   async moveFile(sourcePath: string, destinationPath: string): Promise<void> {
     try {
       await fs.rename(sourcePath, destinationPath);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to move file: ${error}`);
     }
   },
@@ -153,7 +153,7 @@ export const fileUtils = {
   async readFile(filePath: string, encoding: BufferEncoding = 'utf8'): Promise<string> {
     try {
       return await fs.readFile(filePath, encoding);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to read file: ${error}`);
     }
   },
@@ -162,7 +162,7 @@ export const fileUtils = {
   async writeFile(filePath: string, content: string, encoding: BufferEncoding = 'utf8'): Promise<void> {
     try {
       await fs.writeFile(filePath, content, encoding);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to write file: ${error}`);
     }
   },
@@ -178,7 +178,7 @@ export const fileUtils = {
         stream.on('end', () => resolve(hash.digest('hex')));
         stream.on('error', reject);
       });
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get file hash: ${error}`);
     }
   },
@@ -190,7 +190,7 @@ export const fileUtils = {
       const destinationStream = createWriteStream(destinationPath);
       
       await pipeline(sourceStream, destinationStream);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to stream file: ${error}`);
     }
   },
@@ -213,7 +213,7 @@ export const fileUtils = {
       }
 
       return totalSize;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get directory size: ${error}`);
     }
   },
@@ -236,7 +236,7 @@ export const fileUtils = {
       }
 
       return deletedCount;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to clean old files: ${error}`);
     }
   },
@@ -289,3 +289,4 @@ export const fileUtils = {
       .replace(/^_|_$/g, '');
   }
 };
+

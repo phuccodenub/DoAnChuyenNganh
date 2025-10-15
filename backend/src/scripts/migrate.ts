@@ -152,7 +152,7 @@ async function main(): Promise<void> {
         break;
     }
 
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Migration/Seeder operation failed:', error);
     process.exit(1);
   } finally {
@@ -177,3 +177,4 @@ main().catch((error) => {
   logger.error('Fatal error:', error);
   process.exit(1);
 });
+

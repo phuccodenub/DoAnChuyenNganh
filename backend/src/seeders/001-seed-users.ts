@@ -208,3 +208,4 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
     );
   }
 }
+

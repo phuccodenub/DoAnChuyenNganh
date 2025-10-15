@@ -21,9 +21,8 @@ export class MetricsController {
   public getAllMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const metrics = this.metricsService.getAllMetrics();
-      
-      res.status(200).json(responseUtils.success(metrics, 'All metrics retrieved'));
-    } catch (error) {
+      responseUtils.sendSuccess(res, 'All metrics retrieved', metrics);
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -35,9 +34,8 @@ export class MetricsController {
   public getApplicationMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const metrics = this.metricsService.getApplicationMetrics();
-      
-      res.status(200).json(responseUtils.success(metrics, 'Application metrics retrieved'));
-    } catch (error) {
+      responseUtils.sendSuccess(res, 'Application metrics retrieved', metrics);
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -51,10 +49,10 @@ export class MetricsController {
       const counters: Record<string, number> = {};
       
       // Get all counter names from metrics
-      const allMetrics = this.metricsService.getAllMetrics();
+      const allMetrics = this.metricsService.getAllMetrics() as any[];
       const counterNames = new Set(
         allMetrics
-          .filter(metric => metric.type === 'counter')
+          .filter((metric: any) => metric.type === 'counter')
           .map(metric => metric.name)
       );
       
@@ -62,8 +60,8 @@ export class MetricsController {
         counters[name] = this.metricsService.getCounter(name);
       }
       
-      res.status(200).json(responseUtils.success(counters, 'Counter metrics retrieved'));
-    } catch (error) {
+      responseUtils.sendSuccess(res, 'Counter metrics retrieved', counters);
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -77,10 +75,10 @@ export class MetricsController {
       const gauges: Record<string, number> = {};
       
       // Get all gauge names from metrics
-      const allMetrics = this.metricsService.getAllMetrics();
+      const allMetrics = this.metricsService.getAllMetrics() as any[];
       const gaugeNames = new Set(
         allMetrics
-          .filter(metric => metric.type === 'gauge')
+          .filter((metric: any) => metric.type === 'gauge')
           .map(metric => metric.name)
       );
       
@@ -88,8 +86,8 @@ export class MetricsController {
         gauges[name] = this.metricsService.getGauge(name);
       }
       
-      res.status(200).json(responseUtils.success(gauges, 'Gauge metrics retrieved'));
-    } catch (error) {
+      responseUtils.sendSuccess(res, 'Gauge metrics retrieved', gauges);
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -103,10 +101,10 @@ export class MetricsController {
       const histograms: Record<string, any> = {};
       
       // Get all histogram names from metrics
-      const allMetrics = this.metricsService.getAllMetrics();
+      const allMetrics = this.metricsService.getAllMetrics() as any[];
       const histogramNames = new Set(
         allMetrics
-          .filter(metric => metric.type === 'histogram')
+          .filter((metric: any) => metric.type === 'histogram')
           .map(metric => metric.name)
       );
       
@@ -117,8 +115,8 @@ export class MetricsController {
         }
       }
       
-      res.status(200).json(responseUtils.success(histograms, 'Histogram metrics retrieved'));
-    } catch (error) {
+      responseUtils.sendSuccess(res, 'Histogram metrics retrieved', histograms);
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -132,10 +130,10 @@ export class MetricsController {
       const timers: Record<string, any> = {};
       
       // Get all timer names from metrics
-      const allMetrics = this.metricsService.getAllMetrics();
+      const allMetrics = this.metricsService.getAllMetrics() as any[];
       const timerNames = new Set(
         allMetrics
-          .filter(metric => metric.type === 'timer')
+          .filter((metric: any) => metric.type === 'timer')
           .map(metric => metric.name)
       );
       
@@ -146,8 +144,8 @@ export class MetricsController {
         }
       }
       
-      res.status(200).json(responseUtils.success(timers, 'Timer metrics retrieved'));
-    } catch (error) {
+      responseUtils.sendSuccess(res, 'Timer metrics retrieved', timers);
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -162,12 +160,11 @@ export class MetricsController {
       const metrics = this.metricsService.getMetrics(name);
       
       if (metrics.length === 0) {
-        res.status(404).json(responseUtils.error(`Metric '${name}' not found`));
+        responseUtils.sendError(res, `Metric '${name}' not found`, 404);
         return;
       }
-      
-      res.status(200).json(responseUtils.success(metrics, `Metric '${name}' retrieved`));
-    } catch (error) {
+      responseUtils.sendSuccess(res, `Metric '${name}' retrieved`, metrics);
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -180,8 +177,8 @@ export class MetricsController {
     try {
       this.metricsService.reset();
       
-      res.status(200).json(responseUtils.success(null, 'All metrics reset'));
-    } catch (error) {
+      responseUtils.sendSuccess(res, 'All metrics reset', null);
+    } catch (error: unknown) {
       next(error);
     }
   };
@@ -206,19 +203,19 @@ export class MetricsController {
       
       // Convert to Prometheus format
       for (const [name, metrics] of metricsByName) {
-        const latestMetric = metrics[metrics.length - 1];
+        const latestMetric = metrics[metrics.length - 1] as any;
         
         if (latestMetric.type === 'counter') {
           const value = this.metricsService.getCounter(name);
           prometheusOutput += `# HELP ${name} ${name} counter\n`;
           prometheusOutput += `# TYPE ${name} counter\n`;
           prometheusOutput += `${name} ${value}\n\n`;
-        } else if (latestMetric.type === 'gauge') {
+        } else if ((latestMetric as any).type === 'gauge') {
           const value = this.metricsService.getGauge(name);
           prometheusOutput += `# HELP ${name} ${name} gauge\n`;
           prometheusOutput += `# TYPE ${name} gauge\n`;
           prometheusOutput += `${name} ${value}\n\n`;
-        } else if (latestMetric.type === 'histogram') {
+        } else if ((latestMetric as any).type === 'histogram') {
           const stats = this.metricsService.getHistogramStats(name);
           if (stats) {
             prometheusOutput += `# HELP ${name} ${name} histogram\n`;
@@ -232,8 +229,9 @@ export class MetricsController {
       
       res.set('Content-Type', 'text/plain');
       res.status(200).send(prometheusOutput);
-    } catch (error) {
+    } catch (error: unknown) {
       next(error);
     }
   };
 }
+

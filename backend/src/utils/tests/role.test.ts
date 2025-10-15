@@ -2,7 +2,7 @@ import { roleUtils } from '../role.util';
 import { UserInstance } from '../../types/user.types';
 
 // Mock user data for testing
-const mockStudent: UserInstance = {
+const mockStudent: any = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   email: 'student@example.com',
   password_hash: 'hashed_password',
@@ -37,7 +37,7 @@ const mockStudent: UserInstance = {
   emergency_phone: '0987654321'
 };
 
-const mockInstructor: UserInstance = {
+const mockInstructor: any = {
   ...mockStudent,
   id: '456e7890-e89b-12d3-a456-426614174001',
   email: 'instructor@example.com',
@@ -57,7 +57,7 @@ const mockInstructor: UserInstance = {
   research_interests: 'Machine Learning, AI'
 };
 
-const mockAdmin: UserInstance = {
+const mockAdmin: any = {
   ...mockStudent,
   id: '789e0123-e89b-12d3-a456-426614174002',
   email: 'admin@example.com',
@@ -66,7 +66,7 @@ const mockAdmin: UserInstance = {
   role: 'admin'
 };
 
-const mockSuperAdmin: UserInstance = {
+const mockSuperAdmin: any = {
   ...mockStudent,
   id: '012e3456-e89b-12d3-a456-426614174003',
   email: 'superadmin@example.com',
@@ -264,3 +264,4 @@ describe('Role Utils', () => {
     });
   });
 });
+

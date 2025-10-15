@@ -244,7 +244,7 @@ export class VersionManager {
       res.set('X-API-Default-Version', this.config.defaultVersion);
 
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Version middleware error', { error: (error as Error).message });
       res.status(500).json({
         success: false,
@@ -282,7 +282,7 @@ export class VersionManager {
       }
 
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Compatibility middleware error', { error: (error as Error).message });
       next();
     }
@@ -318,7 +318,7 @@ export class VersionManager {
           migrationGuide: versionInfo.migrationGuide
         }
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Version info endpoint error', { error: (error as Error).message });
       res.status(500).json({
         success: false,
@@ -350,7 +350,7 @@ export class VersionManager {
           latestStable: this.getLatestStableVersion()
         }
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('All versions endpoint error', { error: (error as Error).message });
       res.status(500).json({
         success: false,
@@ -393,3 +393,4 @@ export class VersionManager {
     return { ...this.config };
   }
 }
+

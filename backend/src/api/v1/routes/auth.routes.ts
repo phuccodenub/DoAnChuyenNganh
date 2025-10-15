@@ -12,3 +12,4 @@ const router = Router();
 router.use('/', v1AuthRoutes);
 
 export default router;
+

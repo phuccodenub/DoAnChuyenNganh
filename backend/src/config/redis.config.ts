@@ -27,7 +27,7 @@ export async function connectRedis(): Promise<void> {
   try {
     await redisClient.connect();
     logger.info('Redis connection established successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Unable to connect to Redis:', error);
     throw error;
   }
@@ -42,7 +42,7 @@ export const redisHelpers = {
       } else {
         await redisClient.set(key, value);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Redis SET error:', error);
       throw error;
     }
@@ -51,7 +51,7 @@ export const redisHelpers = {
   async get(key: string): Promise<string | null> {
     try {
       return await redisClient.get(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Redis GET error:', error);
       throw error;
     }
@@ -60,7 +60,7 @@ export const redisHelpers = {
   async del(key: string): Promise<void> {
     try {
       await redisClient.del(key);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Redis DEL error:', error);
       throw error;
     }
@@ -70,7 +70,7 @@ export const redisHelpers = {
     try {
       const result = await redisClient.exists(key);
       return result === 1;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Redis EXISTS error:', error);
       throw error;
     }
@@ -78,3 +78,4 @@ export const redisHelpers = {
 };
 
 export { redisClient };
+

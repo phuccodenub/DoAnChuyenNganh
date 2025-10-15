@@ -70,3 +70,4 @@ export async function addIndexesToCoursesTable(queryInterface: QueryInterface): 
     name: 'idx_courses_featured'
   });
 }
+
