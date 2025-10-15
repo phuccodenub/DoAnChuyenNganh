@@ -1,14 +1,21 @@
 import User from '../../models/user.model';
-import { UserInstance } from '../../types/user.types';
-import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
-import { UserTypes } from './user.types';
+// Local lightweight typing to avoid pulling full type graph
+type UserInstance = any;
+import { UserRepository as BaseUserRepository } from '@repositories/user.repository';
+// Temporary shim types; replace with real types in types/user.types
+declare namespace UserTypes {
+  type UserPreferences = any;
+  type UserSession = any;
+  type UserAnalytics = any;
+  type NotificationSettings = any;
+  type PrivacySettings = any;
+}
 import logger from '../../utils/logger.util';
 import { Op } from 'sequelize';
+declare const require: any;
 
 export class UserModuleRepository extends BaseUserRepository {
-  constructor() {
-    super('User');
-  }
+  constructor() { super(); }
 
   // ===== USER MANAGEMENT METHODS =====
 

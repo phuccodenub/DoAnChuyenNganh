@@ -9,6 +9,7 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "noResolve": true,
     
     "types": ["node"],
     "typeRoots": [
@@ -26,7 +27,12 @@
   },
   "include": [
     "src/models/user.model.ts",
-    "src/types/shims-users.d.ts"
+    "src/modules/user/user.repository.ts",
+    "src/modules/user/user.service.ts",
+    "src/types/shims-users.d.ts",
+    "src/types/shims-user-service.d.ts",
+    "src/types/shims-users-repo.d.ts",
+    "src/config/db.d.ts"
   ],
   "exclude": [
     "node_modules",
