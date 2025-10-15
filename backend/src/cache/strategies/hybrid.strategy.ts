@@ -72,7 +72,8 @@ export class HybridCacheStrategy implements CacheStrategy {
       logger.debug('Cache miss', { key });
       return null;
     } catch (error) {
-      logger.error('Hybrid cache get error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache get error', { key, error: err.message });
       return null;
     }
   }
@@ -107,7 +108,8 @@ export class HybridCacheStrategy implements CacheStrategy {
 
       logger.debug('Cache set completed', { key });
     } catch (error) {
-      logger.error('Hybrid cache set error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache set error', { key, error: err.message });
       throw error;
     }
   }
@@ -124,7 +126,8 @@ export class HybridCacheStrategy implements CacheStrategy {
 
       logger.debug('Cache delete completed', { key });
     } catch (error) {
-      logger.error('Hybrid cache delete error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache delete error', { key, error: err.message });
       throw error;
     }
   }
@@ -147,7 +150,8 @@ export class HybridCacheStrategy implements CacheStrategy {
 
       return false;
     } catch (error) {
-      logger.error('Hybrid cache exists error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache exists error', { key, error: err.message });
       return false;
     }
   }
@@ -164,7 +168,8 @@ export class HybridCacheStrategy implements CacheStrategy {
 
       logger.info('Hybrid cache cleared');
     } catch (error) {
-      logger.error('Hybrid cache clear error', { error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache clear error', { error: err.message });
       throw error;
     }
   }
@@ -210,7 +215,8 @@ export class HybridCacheStrategy implements CacheStrategy {
 
       return results;
     } catch (error) {
-      logger.error('Hybrid cache mget error', { keys, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache mget error', { keys, error: err.message });
       return keys.map(() => null);
     }
   }
@@ -244,7 +250,8 @@ export class HybridCacheStrategy implements CacheStrategy {
 
       logger.debug('Hybrid cache mset completed', { count: keyValuePairs.length });
     } catch (error) {
-      logger.error('Hybrid cache mset error', { keyValuePairs, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache mset error', { keyValuePairs, error: err.message });
       throw error;
     }
   }
@@ -261,7 +268,8 @@ export class HybridCacheStrategy implements CacheStrategy {
 
       logger.debug('Hybrid cache mdel completed', { count: keys.length });
     } catch (error) {
-      logger.error('Hybrid cache mdel error', { keys, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache mdel error', { keys, error: err.message });
       throw error;
     }
   }
@@ -286,7 +294,8 @@ export class HybridCacheStrategy implements CacheStrategy {
         lastCleanup: new Date()
       };
     } catch (error) {
-      logger.error('Hybrid cache stats error', { error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache stats error', { error: err.message });
       return {
         hits: 0,
         misses: 0,
@@ -313,7 +322,8 @@ export class HybridCacheStrategy implements CacheStrategy {
       const allKeys = new Set([...memoryKeys, ...redisKeys]);
       return Array.from(allKeys);
     } catch (error) {
-      logger.error('Hybrid cache keys pattern error', { pattern, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache keys pattern error', { pattern, error: err.message });
       return [];
     }
   }
@@ -336,7 +346,8 @@ export class HybridCacheStrategy implements CacheStrategy {
 
       return -1;
     } catch (error) {
-      logger.error('Hybrid cache TTL error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache TTL error', { key, error: err.message });
       return -1;
     }
   }
@@ -353,7 +364,8 @@ export class HybridCacheStrategy implements CacheStrategy {
         this.redisCache.setTTL(key, ttl)
       ]);
     } catch (error) {
-      logger.error('Hybrid cache set TTL error', { key, ttl, error: error.message });
+      const err = error as Error;
+      logger.error('Hybrid cache set TTL error', { key, ttl, error: err.message });
       throw error;
     }
   }
@@ -370,7 +382,8 @@ export class HybridCacheStrategy implements CacheStrategy {
       
       logger.info('Cache warm-up completed', { count: data.length });
     } catch (error) {
-      logger.error('Cache warm-up error', { error: error.message });
+      const err = error as Error;
+      logger.error('Cache warm-up error', { error: err.message });
       throw error;
     }
   }
@@ -397,7 +410,8 @@ export class HybridCacheStrategy implements CacheStrategy {
       
       logger.info('Memory preload completed', { count: preloadPromises.length });
     } catch (error) {
-      logger.error('Memory preload error', { error: error.message });
+      const err = error as Error;
+      logger.error('Memory preload error', { error: err.message });
       throw error;
     }
   }

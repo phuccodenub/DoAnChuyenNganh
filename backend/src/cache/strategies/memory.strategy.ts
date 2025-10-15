@@ -90,7 +90,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       
       return entry.value;
     } catch (error) {
-      logger.error('Memory cache get error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache get error', { key, error: err.message });
       this.stats.misses++;
       this.updateHitRate();
       return null;
@@ -137,7 +138,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       this.stats.size = this.cache.size;
       this.updateMemoryUsage();
     } catch (error) {
-      logger.error('Memory cache set error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache set error', { key, error: err.message });
       throw error;
     }
   }
@@ -157,7 +159,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
         this.updateMemoryUsage();
       }
     } catch (error) {
-      logger.error('Memory cache delete error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache delete error', { key, error: err.message });
       throw error;
     }
   }
@@ -182,7 +185,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       
       return true;
     } catch (error) {
-      logger.error('Memory cache exists error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache exists error', { key, error: err.message });
       return false;
     }
   }
@@ -203,7 +207,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       
       logger.info('Memory cache cleared', { keysCount: size });
     } catch (error) {
-      logger.error('Memory cache clear error', { error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache clear error', { error: err.message });
       throw error;
     }
   }
@@ -222,7 +227,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       
       return results;
     } catch (error) {
-      logger.error('Memory cache mget error', { keys, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache mget error', { keys, error: err.message });
       return keys.map(() => null);
     }
   }
@@ -236,7 +242,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
         await this.set(key, value, ttl);
       }
     } catch (error) {
-      logger.error('Memory cache mset error', { keyValuePairs, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache mset error', { keyValuePairs, error: err.message });
       throw error;
     }
   }
@@ -250,7 +257,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
         await this.delete(key);
       }
     } catch (error) {
-      logger.error('Memory cache mdel error', { keys, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache mdel error', { keys, error: err.message });
       throw error;
     }
   }
@@ -263,7 +271,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       this.updateMemoryUsage();
       return { ...this.stats };
     } catch (error) {
-      logger.error('Memory cache stats error', { error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache stats error', { error: err.message });
       return { ...this.stats };
     }
   }
@@ -308,7 +317,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       const usage = process.memoryUsage();
       this.stats.memoryUsage = usage.heapUsed;
     } catch (error) {
-      logger.error('Memory cache usage update error', { error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache usage update error', { error: err.message });
     }
   }
 
@@ -353,13 +363,13 @@ export class MemoryCacheStrategy implements CacheStrategy {
     if (entry.prev) {
       entry.prev.next = entry.next;
     } else {
-      this.head = entry.next;
+      this.head = entry.next || null;
     }
     
     if (entry.next) {
       entry.next.prev = entry.prev;
     } else {
-      this.tail = entry.prev;
+      this.tail = entry.prev || null;
     }
     
     entry.next = undefined;
@@ -383,7 +393,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       this.stats.size = this.cache.size;
       this.updateMemoryUsage();
     } catch (error) {
-      logger.error('Memory cache eviction error', { error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache eviction error', { error: err.message });
     }
   }
 
@@ -428,7 +439,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
         logger.info('Memory cache cleanup completed', { expiredCount: expiredKeys.length });
       }
     } catch (error) {
-      logger.error('Memory cache cleanup error', { error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache cleanup error', { error: err.message });
     }
   }
 
@@ -452,7 +464,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       
       return Array.from(this.cache.keys()).filter(key => regex.test(key));
     } catch (error) {
-      logger.error('Memory cache keys pattern error', { pattern, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache keys pattern error', { pattern, error: err.message });
       return [];
     }
   }
@@ -475,7 +488,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
       
       return Math.floor((entry.metadata.expiresAt.getTime() - Date.now()) / 1000);
     } catch (error) {
-      logger.error('Memory cache TTL error', { key, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache TTL error', { key, error: err.message });
       return -1;
     }
   }
@@ -492,7 +506,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
         entry.metadata.expiresAt = new Date(Date.now() + ttl * 1000);
       }
     } catch (error) {
-      logger.error('Memory cache set TTL error', { key, ttl, error: error.message });
+      const err = error as Error;
+      logger.error('Memory cache set TTL error', { key, ttl, error: err.message });
       throw error;
     }
   }
