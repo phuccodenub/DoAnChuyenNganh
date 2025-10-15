@@ -18,6 +18,8 @@
   },
   "include": [
     "src/cache/strategies/**/*.ts",
+    "src/cache/cache.manager.ts",
+    "src/cache/cache.middleware.ts",
     "src/utils/logger.util.ts",
     "src/utils/date.util.ts",
     "src/config/redis.config.ts",
