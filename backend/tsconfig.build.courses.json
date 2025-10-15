@@ -9,6 +9,7 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "noResolve": true,
     "types": ["node"],
     "typeRoots": [
       "./src/types",
@@ -25,7 +26,11 @@
   },
   "include": [
     "src/models/course.model.ts",
-    "src/types/shims-users.d.ts",
+    "src/modules/course/course.repository.ts",
+    "src/modules/course/course.service.ts",
+    "src/modules/course/course.types.ts",
+    "src/types/course.types.ts",
+    "src/types/shims-courses.d.ts",
     "src/config/db.d.ts"
   ],
   "exclude": [

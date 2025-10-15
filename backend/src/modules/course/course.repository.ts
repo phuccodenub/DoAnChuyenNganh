@@ -1,9 +1,9 @@
 import { CourseInstance } from '../../types/course.types';
-import { BaseRepository } from '../../repositories/base.repository';
+import { BaseRepository } from '@repositories/base.repository';
 import { CourseTypes } from './course.types';
-import logger from '../../utils/logger.util';
+import logger from '@utils/logger.util';
 import { Op } from 'sequelize';
-import { User, Enrollment, Course } from '../../models';
+declare const require: any;
 
 export class CourseRepository extends BaseRepository {
   constructor() {
@@ -14,6 +14,7 @@ export class CourseRepository extends BaseRepository {
    * Get the Course model instance
    */
   protected getModel(): any {
+    const { Course } = require('../../models');
     return Course;
   }
 
@@ -62,6 +63,7 @@ export class CourseRepository extends BaseRepository {
       const total = await this.count({ where: whereClause });
 
       // Get courses with instructor details
+      const { User } = require('../../models');
       const courses = await this.findAll({
         where: whereClause,
         limit,
@@ -106,6 +108,7 @@ export class CourseRepository extends BaseRepository {
     try {
       logger.debug('Finding course by ID with instructor', { courseId });
       
+      const { User } = require('../../models');
       const course = await this.findOne({
         where: { id: courseId },
         include: [
@@ -144,6 +147,7 @@ export class CourseRepository extends BaseRepository {
       const whereClause: any = { instructor_id: instructorId };
       if (options?.status) whereClause.status = options.status;
 
+      const { User } = require('../../models');
       const courses = await this.findAll({
         where: whereClause,
         limit: options?.limit,
@@ -176,6 +180,7 @@ export class CourseRepository extends BaseRepository {
       // Enrollment model is already imported
       
       // Get enrollment statistics
+      const { Enrollment } = require('../../models');
       const totalEnrollments = await Enrollment.count({
         where: { course_id: courseId }
       });
@@ -273,6 +278,7 @@ export class CourseRepository extends BaseRepository {
       const total = await this.count({ where: whereClause });
       
       // Get courses
+      const { User } = require('../../models');
       const courses = await this.findAll({
         where: whereClause,
         limit,
@@ -321,6 +327,7 @@ export class CourseRepository extends BaseRepository {
       // Enrollment model is already imported
       
       // Get courses ordered by enrollment count
+      const { User, Enrollment } = require('../../models');
       const courses = await this.findAll({
         limit,
         order: [['created_at', 'DESC']], // Fallback ordering
@@ -340,7 +347,7 @@ export class CourseRepository extends BaseRepository {
       });
       
       // Sort by enrollment count
-      const sortedCourses = courses.sort((a, b) => {
+      const sortedCourses = courses.sort((a: any, b: any) => {
         const aCount = a.enrollments?.length || 0;
         const bCount = b.enrollments?.length || 0;
         return bCount - aCount;
@@ -361,6 +368,7 @@ export class CourseRepository extends BaseRepository {
     try {
       logger.debug('Getting courses by tags', { tags, limit });
       
+      const { User } = require('../../models');
       const courses = await this.findAll({
         where: {
           tags: {
