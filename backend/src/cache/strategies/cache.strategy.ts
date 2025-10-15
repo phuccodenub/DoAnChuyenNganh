@@ -48,6 +48,14 @@ export interface CacheStrategy {
    * Get cache statistics
    */
   getStats(): Promise<CacheStats>;
+
+  /**
+   * Optional helpers (used by manager for invalidation/TTL operations)
+   */
+  getKeysByPattern?(pattern: string): Promise<string[]>;
+  getTTL?(key: string): Promise<number>;
+  setTTL?(key: string, ttl: number): Promise<void>;
+  stop?(): void;
 }
 
 export interface CacheStats {
