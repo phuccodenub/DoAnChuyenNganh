@@ -5,13 +5,27 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { MetricsService } from './metrics.service';
+import { DatabaseMetrics } from './database.metrics';
+import { RedisMetrics } from './redis.metrics';
+import { BackgroundTasksMetrics } from './background-tasks.metrics';
 import { responseUtils } from '../../utils/response.util';
 
 export class MetricsController {
   private metricsService: MetricsService;
+  private databaseMetrics?: DatabaseMetrics;
+  private redisMetrics?: RedisMetrics;
+  private backgroundTasksMetrics?: BackgroundTasksMetrics;
 
-  constructor(metricsService: MetricsService) {
+  constructor(
+    metricsService: MetricsService,
+    databaseMetrics?: DatabaseMetrics,
+    redisMetrics?: RedisMetrics,
+    backgroundTasksMetrics?: BackgroundTasksMetrics
+  ) {
     this.metricsService = metricsService;
+    this.databaseMetrics = databaseMetrics;
+    this.redisMetrics = redisMetrics;
+    this.backgroundTasksMetrics = backgroundTasksMetrics;
   }
 
   /**
@@ -173,6 +187,80 @@ export class MetricsController {
     try {
       this.metricsService.reset();
       responseUtils.sendSuccess(res, 'All metrics reset', null);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Get database metrics
+   * GET /metrics/database
+   */
+  public getDatabaseMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.databaseMetrics) {
+        responseUtils.sendNotFound(res, 'Database metrics not initialized');
+        return;
+      }
+      
+      const metrics = this.databaseMetrics.getDatabaseMetrics();
+      responseUtils.sendSuccess(res, 'Database metrics retrieved', metrics);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Get Redis metrics
+   * GET /metrics/redis
+   */
+  public getRedisMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.redisMetrics) {
+        responseUtils.sendNotFound(res, 'Redis metrics not initialized');
+        return;
+      }
+      
+      const metrics = this.redisMetrics.getRedisMetrics();
+      responseUtils.sendSuccess(res, 'Redis metrics retrieved', metrics);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Get background tasks metrics
+   * GET /metrics/background-tasks
+   */
+  public getBackgroundTasksMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.backgroundTasksMetrics) {
+        responseUtils.sendNotFound(res, 'Background tasks metrics not initialized');
+        return;
+      }
+      
+      const metrics = this.backgroundTasksMetrics.getBackgroundTasksMetrics();
+      responseUtils.sendSuccess(res, 'Background tasks metrics retrieved', metrics);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Get comprehensive system metrics
+   * GET /metrics/system
+   */
+  public getSystemMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const systemMetrics = {
+        application: this.metricsService.getApplicationMetrics(),
+        database: this.databaseMetrics?.getDatabaseMetrics(),
+        redis: this.redisMetrics?.getRedisMetrics(),
+        backgroundTasks: this.backgroundTasksMetrics?.getBackgroundTasksMetrics(),
+        timestamp: new Date().toISOString()
+      };
+      
+      responseUtils.sendSuccess(res, 'System metrics retrieved', systemMetrics);
     } catch (error) {
       next(error);
     }

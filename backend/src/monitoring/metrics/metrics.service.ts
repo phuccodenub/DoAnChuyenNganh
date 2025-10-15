@@ -476,6 +476,8 @@ export class MetricsService {
     this.cleanupTimer = setInterval(() => {
       this.cleanup();
     }, this.cleanupInterval);
+    // Do not keep Node.js event loop alive for tests/shutdown
+    (this.cleanupTimer as unknown as { unref?: () => void }).unref?.();
   }
 
   /**

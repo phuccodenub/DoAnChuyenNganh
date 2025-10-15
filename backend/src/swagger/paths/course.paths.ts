@@ -34,6 +34,34 @@ export const coursePaths = {
                     }
                   }
                 }
+              },
+              examples: {
+                default: {
+                  summary: 'Sample list response',
+                  value: {
+                    success: true,
+                    message: 'Course list retrieved',
+                    data: {
+                      items: [
+                        {
+                          id: '00000000-0000-0000-0000-000000000101',
+                          title: 'React for Beginners',
+                          description: 'Learn React basics',
+                          instructor_id: '00000000-0000-0000-0000-000000000006',
+                          status: 'published',
+                          category: 'web',
+                          level: 'beginner',
+                          price: 0,
+                          created_at: '2025-01-01T00:00:00.000Z',
+                          updated_at: '2025-01-10T00:00:00.000Z'
+                        }
+                      ],
+                      page: 1,
+                      limit: 10,
+                      total: 1
+                    }
+                  }
+                }
               }
             }
           }
@@ -54,7 +82,23 @@ export const coursePaths = {
           description: 'Course detail',
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/Course' }
+              schema: { $ref: '#/components/schemas/Course' },
+              examples: {
+                default: {
+                  value: {
+                    id: '00000000-0000-0000-0000-000000000101',
+                    title: 'React for Beginners',
+                    description: 'Learn React basics',
+                    instructor_id: '00000000-0000-0000-0000-000000000006',
+                    status: 'published',
+                    category: 'web',
+                    level: 'beginner',
+                    price: 0,
+                    created_at: '2025-01-01T00:00:00.000Z',
+                    updated_at: '2025-01-10T00:00:00.000Z'
+                  }
+                }
+              }
             }
           }
         },
@@ -75,7 +119,19 @@ export const coursePaths = {
           description: 'Progress detail',
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/Progress' }
+              schema: { $ref: '#/components/schemas/Progress' },
+              examples: {
+                default: {
+                  value: {
+                    course_id: '00000000-0000-0000-0000-000000000101',
+                    user_id: '00000000-0000-0000-0000-000000000006',
+                    lessons_completed: 5,
+                    total_lessons: 20,
+                    percent: 25,
+                    last_activity_at: '2025-01-15T00:00:00.000Z'
+                  }
+                }
+              }
             }
           }
         }

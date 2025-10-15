@@ -394,6 +394,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
     this.cleanupTimer = setInterval(() => {
       this.cleanup();
     }, 60000); // Cleanup every minute
+    // Prevent keeping process alive (useful for tests)
+    (this.cleanupTimer as unknown as { unref?: () => void }).unref?.();
   }
 
   /**

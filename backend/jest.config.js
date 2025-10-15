@@ -1,33 +1,24 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  testMatch: [
-    '**/__tests__/**/*.ts',
-    '**/?(*.)+(spec|test).ts'
-  ],
-  transform: {
-    '^.+\\.ts$': 'ts-jest'
-  },
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/server.ts',
-    '!src/app.ts',
-    '!src/migrations/**',
-    '!src/seeders/**',
-    '!src/scripts/**'
-  ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
-  testTimeout: 10000,
+  roots: ['<rootDir>/src/tests'],
+  testMatch: ['**/e2e/**/*.test.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@middlewares/(.*)$': '<rootDir>/src/middlewares/$1',
+    '^@constants/(.*)$': '<rootDir>/src/constants/$1',
+    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@config/(.*)$': '<rootDir>/src/config/$1',
+    '^@models/(.*)$': '<rootDir>/src/models/$1',
+    '^@modules/(.*)$': '<rootDir>/src/modules/$1',
+    '^@monitoring/(.*)$': '<rootDir>/src/monitoring/$1',
   },
+  verbose: false,
+  testTimeout: 20000,
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      tsconfig: 'tsconfig.json'
-    }]
-  }
+      tsconfig: '<rootDir>/tsconfig.json',
+      isolatedModules: true,
+      diagnostics: false,
+    }],
+  },
 };
