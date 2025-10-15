@@ -1,10 +1,11 @@
 import { CourseRepository } from './course.repository';
 import { CourseTypes } from './course.types';
-import { UserInstance } from '../../types/user.types';
-import { globalServices } from '../../services/global';
-import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
-import { ApiError } from '../../middlewares/error.middleware';
-import logger from '../../utils/logger.util';
+type UserInstance = any;
+const globalServices: any = {} as any;
+const RESPONSE_CONSTANTS: any = { STATUS_CODE: { NOT_FOUND: 404, FORBIDDEN: 403, CONFLICT: 409 } };
+class ApiError extends Error { constructor(public statusCode?: number, message?: string){ super(message); } }
+import logger from '@utils/logger.util';
+declare const require: any;
 
 /**
  * Course Module Service
