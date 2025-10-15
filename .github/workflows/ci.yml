@@ -106,6 +106,52 @@ jobs:
       - name: Type check cache (hard-fail)
         run: npm run lint:cache
 
+  users_hardfail:
+    name: TS hard-fail (users)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check users (hard-fail)
+        run: npm run lint:users
+
+  courses_hardfail:
+    name: TS hard-fail (courses)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check courses (hard-fail)
+        run: npm run lint:courses
+
       - name: Summarize soft-fail result (always)
         if: always()
         run: |

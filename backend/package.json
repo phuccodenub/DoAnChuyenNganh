@@ -19,6 +19,8 @@
     "lint": "tsc -p tsconfig.json --noEmit",
     "lint:monitoring": "tsc -p tsconfig.build.monitoring.json --noEmit",
     "lint:cache": "tsc -p tsconfig.build.cache.json --noEmit",
+    "lint:users": "tsc -p tsconfig.build.users.json --noEmit",
+    "lint:courses": "tsc -p tsconfig.build.courses.json --noEmit",
     "docker:build": "docker build -f docker/Dockerfile -t lms-backend .",
     "docker:run": "docker run -p 3000:3000 lms-backend",
     "docker:up": "docker-compose -f docker/docker-compose.yml up -d",
