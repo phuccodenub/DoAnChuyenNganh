@@ -11,6 +11,7 @@ export interface MetricData {
   value: number;
   timestamp: string;
   labels?: Record<string, string>;
+  type?: 'counter' | 'gauge' | 'histogram' | 'timer';
 }
 
 export interface CounterMetric extends MetricData {

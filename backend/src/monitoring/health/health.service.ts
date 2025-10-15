@@ -252,11 +252,12 @@ export class HealthService {
         queries
       };
     } catch (error) {
-      logger.error('Database health check failed', { error: error.message });
+      const err = error as Error;
+      logger.error('Database health check failed', { error: err.message });
       
       return {
         status: 'unhealthy',
-        error: error.message,
+        error: err.message,
         connectionPool: { total: 0, used: 0, idle: 0 },
         queries: { total: 0, active: 0 }
       };
@@ -287,11 +288,12 @@ export class HealthService {
         keyspace: memoryInfo.keyspace
       };
     } catch (error) {
-      logger.error('Redis health check failed', { error: error.message });
+      const err = error as Error;
+      logger.error('Redis health check failed', { error: err.message });
       
       return {
         status: 'unhealthy',
-        error: error.message,
+        error: err.message,
         memory: { used: 0, peak: 0, fragmentation: 0 },
         clients: { connected: 0, blocked: 0 },
         keyspace: { keys: 0, expires: 0 }
@@ -358,7 +360,8 @@ export class HealthService {
       await db.authenticate();
       return true;
     } catch (error) {
-      logger.error('Database connection check failed', { error: error.message });
+      const err = error as Error;
+      logger.error('Database connection check failed', { error: err.message });
       return false;
     }
   }
@@ -371,7 +374,8 @@ export class HealthService {
       await redisClient.ping();
       return true;
     } catch (error) {
-      logger.error('Redis connection check failed', { error: error.message });
+      const err = error as Error;
+      logger.error('Redis connection check failed', { error: err.message });
       return false;
     }
   }

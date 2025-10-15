@@ -17,6 +17,7 @@
     "test:coverage": "jest --coverage",
     "test:ci": "jest --config jest.config.js --ci --coverage --watchAll=false",
     "lint": "tsc -p tsconfig.json --noEmit",
+    "lint:monitoring": "tsc -p tsconfig.build.monitoring.json --noEmit",
     "docker:build": "docker build -f docker/Dockerfile -t lms-backend .",
     "docker:run": "docker run -p 3000:3000 lms-backend",
     "docker:up": "docker-compose -f docker/docker-compose.yml up -d",

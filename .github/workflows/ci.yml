@@ -40,7 +40,6 @@ jobs:
   typecheck_soft:
     name: Type-check (soft-fail)
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         working-directory: backend
@@ -60,8 +59,32 @@ jobs:
 
       - name: Type check (tsc --noEmit)
         run: npm run lint
+        continue-on-error: true
+  monitoring_hardfail:
+    name: TS hard-fail (monitoring)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Summarize soft-fail result
-        if: failure()
-        run: echo "Type-check found issues but does not block merge. See logs above."
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check monitoring (hard-fail)
+        run: npm run lint:monitoring
+
+      - name: Summarize soft-fail result (always)
+        if: always()
+        run: |
+          echo "Soft type-check completed. Any errors are for visibility only and do not block merge."
 
