@@ -24,8 +24,8 @@ export class RedisMetrics {
   private setupRedisHooks(): void {
     // Track Redis operations
     const originalSendCommand = this.redisClient.sendCommand.bind(this.redisClient);
-    
-    this.redisClient.sendCommand = async (command: any, ...args: any[]) => {
+    // Narrow override only for metrics wrapping; keep signature compatible
+    (this.redisClient as any).sendCommand = async (command: any, ...args: any[]) => {
       const startTime = Date.now();
       const operation = command.name || command[0] || 'unknown';
       
@@ -38,7 +38,7 @@ export class RedisMetrics {
         return result;
       } catch (error) {
         const duration = Date.now() - startTime;
-        this.recordRedisOperation(operation, duration, 'error', error);
+        this.recordRedisOperation(operation, duration, 'error', error as Error);
         throw error;
       }
     };
@@ -203,7 +203,8 @@ export class RedisMetrics {
         }
       }
     } catch (error) {
-      logger.error('Failed to track Redis memory usage', { error: error.message });
+      const err = error as Error;
+      logger.error('Failed to track Redis memory usage', { error: err.message });
     }
   }
 
@@ -215,7 +216,8 @@ export class RedisMetrics {
       const keyCount = await this.redisClient.dbSize();
       this.metricsService.setGauge('redis_keys_total', keyCount);
     } catch (error) {
-      logger.error('Failed to track Redis key count', { error: error.message });
+      const err = error as Error;
+      logger.error('Failed to track Redis key count', { error: err.message });
     }
   }
 

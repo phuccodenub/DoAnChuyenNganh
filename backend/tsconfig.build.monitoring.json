@@ -1,19 +1,43 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "skipLibCheck": true,
     "noEmit": true,
-    "composite": false
+    "types": ["node"],
+    "baseUrl": "./",
+    "paths": {
+      "@utils/*": ["src/utils/*"],
+      "@config/*": ["src/config/*"]
+    }
   },
   "include": [
-    "src/monitoring/**/*",
-    "src/utils/**/*",
-    "src/config/**/*",
-    "src/constants/**/*"
+    "src/monitoring/health/health.service.ts",
+    "src/monitoring/metrics/metrics.service.ts",
+    "src/monitoring/metrics/metrics.middleware.ts",
+    "src/monitoring/metrics/redis.metrics.ts",
+    "src/monitoring/metrics/database.metrics.ts",
+    "src/monitoring/metrics/background-tasks.metrics.ts",
+    "src/utils/logger.util.ts",
+    "src/utils/date.util.ts",
+    "src/config/env.config.ts",
+    "src/config/db.ts",
+    "src/config/redis.config.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/monitoring/metrics/metrics.controller.ts",
+    "src/monitoring/index.ts",
+    "src/monitoring/metrics/index.ts",
+    "src/monitoring/metrics/metrics.routes.ts",
+    "src/monitoring/health/health.controller.ts"
   ]
 }
 
