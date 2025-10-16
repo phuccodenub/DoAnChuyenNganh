@@ -45,9 +45,12 @@ export interface CreateEnrollmentPayload {
 
 export interface UpdateEnrollmentPayload {
   status?: 'enrolled' | 'completed' | 'dropped';
-  progress?: number;
+  progress?: number; // legacy naming in some places
+  progress_percentage?: number; // aligns with model
   grade?: number;
-  completed_at?: Date;
+  completed_at?: Date; // legacy naming in some places
+  completion_date?: Date; // aligns with model
+  rating?: number;
 }
 
 export interface EnrollmentFilterOptions {
