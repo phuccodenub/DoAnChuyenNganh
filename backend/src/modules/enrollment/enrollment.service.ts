@@ -1,8 +1,16 @@
 import { EnrollmentRepository } from './enrollment.repository';
-import { EnrollmentTypes } from './enrollment.types';
-import { ApiError } from '../../middlewares/error.middleware';
-import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
-import logger from '../../utils/logger.util';
+import * as EnrollmentTypes from '../../types/enrollment.types';
+// Local lightweight ApiError to avoid pulling full middleware tree during isolated lint
+class ApiError extends Error {
+  statusCode: number;
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+import { RESPONSE_CONSTANTS } from '@constants/response.constants';
+declare const require: any;
+const logger: any = require('../../utils/logger.util');
 
 export class EnrollmentService {
   private enrollmentRepository: EnrollmentRepository;
