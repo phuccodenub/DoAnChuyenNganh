@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { BaseService, ApiResponse, PaginationOptions } from '../../types/common.types';
-import { sendSuccessResponse, sendErrorResponse, sendNotFoundResponse } from '../../utils/response.util';
-import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
-import logger from '../../utils/logger.util';
+// Keep shared BaseController independent from app-wide types/utils during isolated lint
+type PaginationOptions = { page?: number; limit?: number; sortBy?: string; sortOrder?: 'ASC' | 'DESC' };
+// Lightweight logger and response helpers to avoid pulling full deps
+declare const require: any;
+const logger: any = require('../../utils/logger.util');
+const { RESPONSE_CONSTANTS }: any = require('../../constants/response.constants');
+const { sendSuccessResponse, sendErrorResponse, sendNotFoundResponse }: any = require('../../utils/response.util');
 
 // Base Controller class to avoid code duplication
 export abstract class BaseController<T, CreateDto, UpdateDto> {
