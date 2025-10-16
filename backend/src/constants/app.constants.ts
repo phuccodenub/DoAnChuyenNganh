@@ -65,13 +65,13 @@ export const APP_CONSTANTS = {
   CORS: {
     ALLOWED_ORIGINS: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000')
       .split(',')
-      .map(o => o.trim())
+      .map((o: string) => o.trim())
       .filter(Boolean),
     ALLOWED_METHODS: (process.env.CORS_ALLOWED_METHODS || 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
       .split(',')
-      .map(m => m.trim()) as string[],
+      .map((m: string) => m.trim()) as string[],
     ALLOWED_HEADERS: (process.env.CORS_ALLOWED_HEADERS || 'Content-Type,Authorization,X-Requested-With')
       .split(',')
-      .map(h => h.trim()) as string[]
+      .map((h: string) => h.trim()) as string[]
   } as const
 } as const;
