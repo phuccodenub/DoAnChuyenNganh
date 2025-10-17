@@ -2,18 +2,23 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "noResolve": true,
     "isolatedModules": true,
     "skipLibCheck": true
   },
   "include": [
     "src/modules/auth/**/*.ts",
-    "src/types/shims-auth.d.ts",
-    "src/types/shims-global.d.ts",
+    "src/middlewares/validate.middleware.ts",
+    "src/middlewares/uuid-validation.middleware.ts",
+    "src/errors/**/*.ts",
+    "src/utils/response.util.ts",
+    "src/constants/**/*.ts",
+    "src/types/**/*.d.ts",
     "src/config/db.d.ts"
   ],
   "exclude": [
     "src/modules/auth/**/*.test.ts",
-    "src/modules/auth/**/*.spec.ts"
+    "src/modules/auth/**/*.spec.ts",
+    "node_modules",
+    "dist"
   ]
 }

@@ -1,41 +1,26 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "strict": true,
-    "skipLibCheck": true,
     "noEmit": true,
-    "noResolve": true,
-    "types": ["node"],
-    "typeRoots": [
-      "./src/types",
-      "./node_modules/@types"
-    ],
-    "baseUrl": "./",
-    "paths": {
-      "@utils/*": ["src/utils/*"],
-      "@config/*": ["src/config/*"],
-      "@modules/*": ["src/modules/*"],
-      "@types/*": ["src/types/*"],
-      "@repositories/*": ["src/repositories/*"]
-    }
+    "isolatedModules": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/models/enrollment.model.ts",
-    "src/modules/enrollment/enrollment.repository.ts",
-    "src/modules/enrollment/enrollment.service.ts",
-    "src/types/enrollment.types.ts",
-    "src/types/shims-enrollments.d.ts",
+    "src/modules/enrollment/**/*.ts",
+    "src/middlewares/validate.middleware.ts",
+    "src/middlewares/uuid-validation.middleware.ts",
+    "src/errors/**/*.ts",
+    "src/utils/response.util.ts",
+    "src/constants/**/*.ts",
+    "src/types/**/*.d.ts",
     "src/config/db.d.ts"
   ],
   "exclude": [
+    "src/modules/enrollment/**/*.test.ts",
+    "src/modules/enrollment/**/*.spec.ts",
     "node_modules",
-    "dist",
-    "**/*.test.ts"
+    "dist"
   ]
 }
 

@@ -1,42 +1,26 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "strict": true,
-    "skipLibCheck": true,
     "noEmit": true,
-    "noResolve": true,
-    "types": ["node"],
-    "typeRoots": [
-      "./src/types",
-      "./node_modules/@types"
-    ],
-    "baseUrl": "./",
-    "paths": {
-      "@utils/*": ["src/utils/*"],
-      "@config/*": ["src/config/*"],
-      "@modules/*": ["src/modules/*"],
-      "@types/*": ["src/types/*"],
-      "@repositories/*": ["src/repositories/*"]
-    }
+    "isolatedModules": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/models/course.model.ts",
-    "src/modules/course/course.repository.ts",
-    "src/modules/course/course.service.ts",
-    "src/modules/course/course.types.ts",
-    "src/types/course.types.ts",
-    "src/types/shims-courses.d.ts",
+    "src/modules/course/**/*.ts",
+    "src/middlewares/validate.middleware.ts",
+    "src/middlewares/uuid-validation.middleware.ts",
+    "src/errors/**/*.ts",
+    "src/utils/response.util.ts",
+    "src/constants/**/*.ts",
+    "src/types/**/*.d.ts",
     "src/config/db.d.ts"
   ],
   "exclude": [
+    "src/modules/course/**/*.test.ts",
+    "src/modules/course/**/*.spec.ts",
     "node_modules",
-    "dist",
-    "**/*.test.ts"
+    "dist"
   ]
 }
 
