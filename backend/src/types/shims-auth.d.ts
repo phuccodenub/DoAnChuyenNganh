@@ -200,6 +200,9 @@ declare module '@utils/logger.util' {
 }
 
 declare module '@middlewares/error.middleware' {
+  export const errorHandler: any;
+  export const notFoundHandler: any;
+  export const asyncHandler: any;
   export class ApiError extends Error {
     statusCode: number;
     constructor(statusCode: number, message: string);
