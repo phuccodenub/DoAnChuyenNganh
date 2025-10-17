@@ -23,7 +23,7 @@ export interface CacheMiddlewareOptions {
 }
 
 export class EnhancedCacheMiddleware {
-  private cacheStrategy: CacheStrategy;
+  private cacheStrategy!: CacheStrategy;
   private performanceAnalyzer?: CachePerformanceAnalyzer;
   private configurationManager?: CacheConfigurationManager;
   private invalidationManager?: CacheInvalidationManager;
@@ -239,7 +239,7 @@ export class EnhancedCacheMiddleware {
       // Cache miss - continue to next middleware
       this.handleCacheMiss(cacheKey, context, req, res, next, startTime);
     } catch (error) {
-      logger.error('Cache get error', { cacheKey, error: error.message });
+      logger.error('Cache get error', { cacheKey, error: (error as Error).message });
       next();
     }
   }
@@ -259,7 +259,7 @@ export class EnhancedCacheMiddleware {
     const originalJson = res.json;
     const originalSend = res.send;
     
-    res.json = function(body: any) {
+    res.json = (body: any) => {
       // Store in cache
       this.storeInCache(cacheKey, body, context);
       
@@ -277,10 +277,10 @@ export class EnhancedCacheMiddleware {
       // Set cache headers
       this.setCacheHeaders(res, context, false);
       
-      return originalJson.call(this, body);
-    }.bind(this);
+      return originalJson.call(res, body);
+    };
 
-    res.send = function(body: any) {
+    res.send = (body: any) => {
       // Store in cache
       this.storeInCache(cacheKey, body, context);
       
@@ -298,8 +298,8 @@ export class EnhancedCacheMiddleware {
       // Set cache headers
       this.setCacheHeaders(res, context, false);
       
-      return originalSend.call(this, body);
-    }.bind(this);
+      return originalSend.call(res, body);
+    };
 
     next();
   }
@@ -321,7 +321,7 @@ export class EnhancedCacheMiddleware {
       
       logger.debug('Data stored in cache', { cacheKey, ttl, tags });
     } catch (error) {
-      logger.error('Cache store error', { cacheKey, error: error.message });
+      logger.error('Cache store error', { cacheKey, error: (error as Error).message });
     }
   }
 

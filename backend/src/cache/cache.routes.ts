@@ -3,11 +3,11 @@
  * Provides endpoints for cache management, performance analysis, and configuration
  */
 
-import { Router } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { enhancedCacheMiddleware } from './enhanced-cache.middleware';
 import { responseUtils } from '../utils/response.util';
 
-const router = Router();
+const router = express.Router();
 
 /**
  * @swagger
@@ -46,7 +46,7 @@ const router = Router();
  *                     lastCleanup:
  *                       type: string
  */
-router.get('/stats', async (req, res, next) => {
+router.get('/stats', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await enhancedCacheMiddleware.getCacheStats();
     responseUtils.sendSuccess(res, 'Cache statistics retrieved', stats);
@@ -113,7 +113,7 @@ router.get('/stats', async (req, res, next) => {
  *                     cacheEfficiency:
  *                       type: object
  */
-router.get('/performance', async (req, res, next) => {
+router.get('/performance', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const report = enhancedCacheMiddleware.getPerformanceReport();
     responseUtils.sendSuccess(res, 'Cache performance report retrieved', report);
@@ -157,7 +157,7 @@ router.get('/performance', async (req, res, next) => {
  *                       totalRequests:
  *                         type: number
  */
-router.get('/hot-endpoints', async (req, res, next) => {
+router.get('/hot-endpoints', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const hotEndpoints = enhancedCacheMiddleware.getHotEndpoints();
     responseUtils.sendSuccess(res, 'Hot endpoints retrieved', hotEndpoints);
@@ -208,7 +208,7 @@ router.get('/hot-endpoints', async (req, res, next) => {
  *                       items:
  *                         type: object
  */
-router.get('/configuration', async (req, res, next) => {
+router.get('/configuration', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const config = enhancedCacheMiddleware.getCacheConfiguration();
     responseUtils.sendSuccess(res, 'Cache configuration retrieved', config);
@@ -256,7 +256,7 @@ router.get('/configuration', async (req, res, next) => {
  *                 data:
  *                   type: null
  */
-router.put('/configuration', async (req, res, next) => {
+router.put('/configuration', async (req: Request, res: Response, next: NextFunction) => {
   try {
     enhancedCacheMiddleware.updateCacheConfiguration(req.body);
     responseUtils.sendSuccess(res, 'Cache configuration updated', null);
@@ -300,7 +300,7 @@ router.put('/configuration', async (req, res, next) => {
  *                       items:
  *                         type: object
  */
-router.get('/invalidation/stats', async (req, res, next) => {
+router.get('/invalidation/stats', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = enhancedCacheMiddleware.getInvalidationStats();
     responseUtils.sendSuccess(res, 'Invalidation statistics retrieved', stats);
@@ -346,7 +346,7 @@ router.get('/invalidation/stats', async (req, res, next) => {
  *                 data:
  *                   type: null
  */
-router.post('/invalidate/pattern', async (req, res, next) => {
+router.post('/invalidate/pattern', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { pattern, reason } = req.body;
     await enhancedCacheMiddleware.invalidateByPattern(pattern, reason);
@@ -395,7 +395,7 @@ router.post('/invalidate/pattern', async (req, res, next) => {
  *                 data:
  *                   type: null
  */
-router.post('/invalidate/tags', async (req, res, next) => {
+router.post('/invalidate/tags', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { tags, reason } = req.body;
     await enhancedCacheMiddleware.invalidateByTags(tags, reason);
@@ -448,7 +448,7 @@ router.post('/invalidate/tags', async (req, res, next) => {
  *                 data:
  *                   type: null
  */
-router.post('/invalidate/entity', async (req, res, next) => {
+router.post('/invalidate/entity', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { entity, entityId, operation } = req.body;
     await enhancedCacheMiddleware.invalidateEntity(entity, entityId, operation);
@@ -480,7 +480,7 @@ router.post('/invalidate/entity', async (req, res, next) => {
  *                 data:
  *                   type: null
  */
-router.post('/clear', async (req, res, next) => {
+router.post('/clear', async (req: Request, res: Response, next: NextFunction) => {
   try {
     await enhancedCacheMiddleware.clearAllCache();
     responseUtils.sendSuccess(res, 'All cache cleared', null);

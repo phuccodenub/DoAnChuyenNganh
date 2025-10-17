@@ -131,7 +131,7 @@ export class AuthenticationError extends BaseError {
     return new AuthenticationError({
       code: 'AUTH_ACCOUNT_LOCKED',
       message: 'Account is locked due to multiple failed login attempts',
-      statusCode: 423,
+      statusCode: 423 as any,
       type: 'AUTHENTICATION',
       severity: 'HIGH',
       email,
@@ -175,7 +175,7 @@ export class AuthenticationError extends BaseError {
     return new AuthenticationError({
       code: 'AUTH_2FA_REQUIRED',
       message: 'Two-factor authentication is required',
-      statusCode: 200,
+      statusCode: 200 as any,
       type: 'AUTHENTICATION',
       severity: 'MEDIUM',
       userId

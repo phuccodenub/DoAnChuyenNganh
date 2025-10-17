@@ -18,7 +18,7 @@ export class GlobalAuthService {
   // Verify access token
   async verifyAccessToken(token: string): Promise<any> {
     try {
-      return await tokenUtils.verifyAccessToken(token);
+      return await tokenUtils.jwt.verifyAccessToken(token);
     } catch (error) {
       logger.error('Error verifying access token:', error);
       throw error;
@@ -28,7 +28,7 @@ export class GlobalAuthService {
   // Verify refresh token
   async verifyRefreshToken(token: string): Promise<any> {
     try {
-      return await tokenUtils.verifyRefreshToken(token);
+      return await tokenUtils.jwt.verifyRefreshToken(token);
     } catch (error) {
       logger.error('Error verifying refresh token:', error);
       throw error;
@@ -72,7 +72,7 @@ export class GlobalAuthService {
   // Decode JWT token (without verification)
   decodeToken(token: string): any {
     try {
-      return tokenUtils.isTokenExpired(token) ? null : { valid: true };
+      return (tokenUtils.jwt as any).isTokenExpired(token) ? null : { valid: true };
     } catch (error) {
       logger.error('Error decoding token:', error);
       return null;

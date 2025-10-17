@@ -3,9 +3,9 @@
  * Lightweight liveness endpoint returning plain text
  */
 
-import { Router } from 'express';
+import express, { Request, Response } from 'express';
 
-const router = Router();
+const router = express.Router();
 
 /**
  * @swagger
@@ -24,7 +24,7 @@ const router = Router();
  *               type: string
  *               example: pong
  */
-router.get('/ping', (req, res) => {
+router.get('/ping', (req: Request, res: Response) => {
   res.type('text/plain').status(200).send('pong');
 });
 

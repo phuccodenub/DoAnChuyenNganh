@@ -26,7 +26,7 @@ export class ErrorFactory {
     return new ApiError({
       code,
       message,
-      statusCode,
+      statusCode: statusCode as any,
       details
     });
   }
@@ -148,11 +148,38 @@ export class ErrorFactory {
     }
 
     if (error instanceof Error) {
+      // Check if error has statusCode property (common for API errors)
+      const statusCode = (error as any).statusCode;
+      
+      // Determine error type based on status code
+      let errorCode: ErrorCode = 'INTERNAL_SERVER_ERROR';
+      let severity: ErrorSeverity = 'HIGH';
+      
+      if (statusCode === 404) {
+        // Use generic not found error, preserve statusCode
+        errorCode = 'DATABASE_RECORD_NOT_FOUND';
+        severity = 'LOW';
+      } else if (statusCode === 409) {
+        // Use database duplicate as conflict indicator
+        errorCode = 'DATABASE_DUPLICATE_ENTRY';
+        severity = 'MEDIUM';
+      } else if (statusCode === 400) {
+        errorCode = 'VALIDATION_FAILED';
+        severity = 'LOW';
+      } else if (statusCode === 401) {
+        errorCode = 'AUTH_TOKEN_INVALID';
+        severity = 'MEDIUM';
+      } else if (statusCode === 403) {
+        errorCode = 'AUTH_INSUFFICIENT_PERMISSIONS';
+        severity = 'MEDIUM';
+      }
+      
       return new BaseError({
-        code: 'INTERNAL_SERVER_ERROR',
+        code: errorCode,
         message: error.message,
         type: 'SYSTEM',
-        severity: 'HIGH',
+        severity: severity,
+        statusCode: statusCode || 500, // Preserve statusCode from error
         cause: error,
         context
       });
@@ -220,7 +247,7 @@ export class ErrorFactory {
     return new ApiError({
       code,
       message,
-      statusCode,
+      statusCode: statusCode as any,
       type: 'SYSTEM',
       severity,
       context

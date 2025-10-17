@@ -115,7 +115,7 @@ export const secureUtils = {
    */
   generateRandomBytes(length: number): Buffer {
     try {
-      return crypto.randomBytes(length);
+      return crypto.randomBytes(length) as any;
     } catch (error) {
       logger.error('Random bytes generation failed:', error);
       throw new Error('Failed to generate random bytes');

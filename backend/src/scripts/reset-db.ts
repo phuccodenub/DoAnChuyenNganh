@@ -1,9 +1,10 @@
-import { sequelize } from '../config/database.config';
+import { getSequelize } from '../config/db';
 import logger from '../utils/logger.util';
 
 async function resetDatabase() {
   try {
     logger.info('Starting database reset...');
+    const sequelize = getSequelize();
     
     // Drop all tables
     await sequelize.drop();

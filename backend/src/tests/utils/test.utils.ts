@@ -187,7 +187,7 @@ export function createMockResponse(): any {
 /**
  * Create mock next function
  */
-export function createMockNext(): jest.Mock {
+export function createMockNext(): any {
   return jest.fn();
 }
 

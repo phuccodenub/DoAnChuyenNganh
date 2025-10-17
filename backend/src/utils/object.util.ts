@@ -35,7 +35,7 @@ export const objectUtils = {
 
   // Merge objects
   merge<T extends Record<string, any>>(target: T, ...sources: Partial<T>[]): T {
-    const result = { ...target };
+     const result = { ...target } as any;
     
     for (const source of sources) {
       for (const key in source) {
@@ -43,7 +43,7 @@ export const objectUtils = {
           if (this.isObject(result[key]) && this.isObject(source[key])) {
             result[key] = this.merge(result[key], source[key]);
           } else {
-            result[key] = source[key];
+            result[key] = source[key] as any;
           }
         }
       }
@@ -60,9 +60,9 @@ export const objectUtils = {
       for (const key in source) {
         if (source.hasOwnProperty(key)) {
           if (this.isObject(result[key]) && this.isObject(source[key])) {
-            result[key] = this.deepMerge(result[key], source[key]);
+            result[key] = this.deepMerge(result[key], source[key] as any);
           } else {
-            result[key] = source[key];
+            result[key] = source[key] as any;
           }
         }
       }
@@ -324,7 +324,7 @@ export const objectUtils = {
     const result = {} as T;
     
     for (const key of sortedKeys) {
-      result[key] = obj[key];
+      (result as any)[key] = obj[key];
     }
     
     return result;

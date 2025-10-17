@@ -41,14 +41,14 @@ export class ErrorHandler {
 
       // Log error if necessary
       if (ErrorUtils.shouldLog(baseError)) {
-        logger.logError('Error occurred:', ErrorUtils.formatForLogging(baseError, {
+        logger.logError('Error occurred:', ErrorUtils.formatForLogging(baseError as any, {
           url: req.url,
           method: req.method,
           ip: req.ip,
           userAgent: req.get('User-Agent'),
           userId: (req as any).user?.id,
           requestId: (req as any).requestId
-        }));
+        }) as any);
       }
 
       // Send error response
@@ -56,9 +56,9 @@ export class ErrorHandler {
     } catch (handlerError) {
       // Fallback error handling
       logger.logError('Error handler failed:', {
-        originalError: error.message,
+        originalError: (error as any).message,
         handlerError: handlerError instanceof Error ? handlerError.message : 'Unknown error'
-      });
+      } as any);
 
       responseUtils.sendError(res, 'Internal server error', 500);
     }
@@ -105,7 +105,7 @@ export class ErrorHandler {
       requestId: (req as any).requestId
     });
 
-    logger.logError('Database error:', ErrorUtils.formatForLogging(databaseError));
+    logger.logError('Database error:', ErrorUtils.formatForLogging(databaseError as any) as any);
 
     ErrorHandler.sendErrorResponse(res, databaseError);
   }
@@ -179,7 +179,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     });
 
-    logger.logError('Uncaught exception:', ErrorUtils.formatForLogging(baseError));
+    logger.logError('Uncaught exception:', ErrorUtils.formatForLogging(baseError as any) as any);
 
     // Exit process for critical errors
     if (ErrorUtils.isCritical(baseError)) {
@@ -198,7 +198,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     });
 
-    logger.logError('Unhandled rejection:', ErrorUtils.formatForLogging(baseError));
+    logger.logError('Unhandled rejection:', ErrorUtils.formatForLogging(baseError as any) as any);
 
     // Exit process for critical errors
     if (ErrorUtils.isCritical(baseError)) {

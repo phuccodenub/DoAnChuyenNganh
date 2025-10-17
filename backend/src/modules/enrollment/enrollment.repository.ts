@@ -1,13 +1,11 @@
 import { EnrollmentInstance } from '../../types/enrollment.types';
 import { BaseRepository } from '@repositories/base.repository';
 import * as EnrollmentTypes from '../../types/enrollment.types';
-declare const require: any;
-const logger: any = require('../../utils/logger.util');
+import logger from '../../utils/logger.util';
 import { Op } from 'sequelize';
-// Avoid pulling full models graph during isolated lint; use loose declarations
-declare const User: any;
-declare const Course: any;
-declare const Enrollment: any;
+import User from '../../models/user.model';
+import Course from '../../models/course.model';
+import Enrollment from '../../models/enrollment.model';
 
 export class EnrollmentRepository extends BaseRepository {
   constructor() {
@@ -72,7 +70,13 @@ export class EnrollmentRepository extends BaseRepository {
 
       logger.debug('Enrollments with pagination retrieved', { count: enrollments.length, total, page, limit });
 
-      return { enrollments: enrollments.map((enrollment: any) => enrollment.toJSON()), pagination };
+      // Convert to plain JSON to avoid circular references
+      const plainEnrollments = enrollments.map((enrollment: any) => {
+        const json = enrollment.get({ plain: true });
+        return json;
+      });
+
+      return { enrollments: plainEnrollments, pagination };
     } catch (error) {
       logger.error('Error finding all enrollments with pagination:', error);
       throw error;
@@ -104,11 +108,13 @@ export class EnrollmentRepository extends BaseRepository {
       
       if (enrollment) {
         logger.debug('Enrollment with details found', { enrollmentId });
+        // Convert to plain JSON to avoid circular references
+        return enrollment.get({ plain: true });
       } else {
         logger.debug('Enrollment with details not found', { enrollmentId });
+        return null;
       }
       
-      return enrollment;
     } catch (error) {
       logger.error('Error finding enrollment by ID with details:', error);
       throw error;
@@ -164,7 +170,8 @@ export class EnrollmentRepository extends BaseRepository {
       
       logger.debug('Enrollments by user ID retrieved', { userId, count: enrollments.length });
       
-      return enrollments.map((enrollment: any) => enrollment.toJSON());
+      // Convert to plain JSON to avoid circular references
+      return enrollments.map((enrollment: any) => enrollment.get({ plain: true }));
     } catch (error) {
       logger.error('Error finding enrollments by user ID:', error);
       throw error;
@@ -196,7 +203,8 @@ export class EnrollmentRepository extends BaseRepository {
       
       logger.debug('Enrollments by course ID retrieved', { courseId, count: enrollments.length });
       
-      return enrollments.map((enrollment: any) => enrollment.toJSON());
+      // Convert to plain JSON to avoid circular references
+      return enrollments.map((enrollment: any) => enrollment.get({ plain: true }));
     } catch (error) {
       logger.error('Error finding enrollments by course ID:', error);
       throw error;

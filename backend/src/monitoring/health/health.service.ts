@@ -371,6 +371,12 @@ export class HealthService {
    */
   private async checkRedisConnection(): Promise<boolean> {
     try {
+      // Check if Redis client is open before pinging
+      if (!redisClient.isOpen) {
+        logger.warn('Redis client is not open');
+        return false;
+      }
+      
       await redisClient.ping();
       return true;
     } catch (error) {

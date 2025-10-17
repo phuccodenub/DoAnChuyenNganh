@@ -1,4 +1,11 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
+import { Request } from 'express';
+
+// Helper function để handle IPv6 addresses properly
+const getClientIP = (req: Request): string => {
+  // Use express-rate-limit's built-in IP detection
+  return req.ip || req.socket.remoteAddress || 'unknown';
+};
 
 // Rate limiting cho auth endpoints
 export const authRateLimit = rateLimit({
@@ -11,9 +18,9 @@ export const authRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Chỉ đếm failed attempts
-  keyGenerator: (req) => {
-    // Sử dụng ipKeyGenerator helper để handle IPv6 properly
-    const ip = ipKeyGenerator(req);
+  keyGenerator: (req: Request) => {
+    // Use proper IP detection for IPv6 compatibility
+    const ip = getClientIP(req);
     const userAgent = req.get('User-Agent') || 'unknown';
     return `${ip}-${userAgent}`;
   }

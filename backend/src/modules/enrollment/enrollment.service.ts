@@ -10,7 +10,9 @@ class ApiError extends Error {
 }
 import { RESPONSE_CONSTANTS } from '@constants/response.constants';
 declare const require: any;
-const logger: any = require('../../utils/logger.util');
+import logger from '../../utils/logger.util';
+import Course from '../../models/course.model';
+import User from '../../models/user.model';
 
 export class EnrollmentService {
   private enrollmentRepository: EnrollmentRepository;
@@ -26,12 +28,51 @@ export class EnrollmentService {
    */
   async createEnrollment(payload: EnrollmentTypes.CreateEnrollmentPayload): Promise<EnrollmentTypes.EnrollmentWithDetails> {
     try {
-      logger.info('Creating new enrollment', payload);
+      // Map camelCase keys to snake_case if tests send camelCase
+      const normalizedPayload: any = {
+        user_id: (payload as any).user_id || (payload as any).userId,
+        course_id: (payload as any).course_id || (payload as any).courseId,
+        status: 'enrolled', // Always set to enrolled when creating
+        enrollment_type: (payload as any).enrollment_type || (payload as any).enrollmentType || 'free',
+        payment_status: (payload as any).payment_status || (payload as any).paymentStatus || 'pending',
+        payment_method: (payload as any).payment_method || (payload as any).paymentMethod,
+        payment_id: (payload as any).payment_id || (payload as any).paymentId,
+        amount_paid: (payload as any).amount_paid,
+        currency: (payload as any).currency,
+        total_lessons: (payload as any).total_lessons || 0,
+      };
+      
+      logger.info('Creating new enrollment', {
+        userId: normalizedPayload.user_id,
+        courseId: normalizedPayload.course_id,
+        status: normalizedPayload.status,
+        enrollment_type: normalizedPayload.enrollment_type,
+        payment_status: normalizedPayload.payment_status,
+        total_lessons: normalizedPayload.total_lessons
+      });
+
+      // Validate course exists
+      const course = await Course.findByPk(normalizedPayload.course_id);
+      if (!course) {
+        throw new ApiError(
+          RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND,
+          'Course not found'
+        );
+      }
+
+      // Validate user exists
+      const user = await User.findByPk(normalizedPayload.user_id);
+      if (!user) {
+        throw new ApiError(
+          RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND,
+          'User not found'
+        );
+      }
 
       // Check if enrollment already exists
       const existingEnrollment = await this.enrollmentRepository.findByUserAndCourse(
-        payload.user_id, 
-        payload.course_id
+        normalizedPayload.user_id,
+        normalizedPayload.course_id
       );
 
       if (existingEnrollment) {
@@ -41,7 +82,7 @@ export class EnrollmentService {
         );
       }
 
-      const enrollment = await this.enrollmentRepository.create(payload);
+      const enrollment = await this.enrollmentRepository.create(normalizedPayload);
       const enrollmentWithDetails = await this.enrollmentRepository.findByIdWithDetails(enrollment.id);
 
       if (!enrollmentWithDetails) {
@@ -51,8 +92,11 @@ export class EnrollmentService {
         );
       }
 
+      // Add camelCase aliases for compatibility with tests
+      const enrollmentResponse = this.addCamelCaseAliases(enrollmentWithDetails);
+
       logger.info('Enrollment created successfully', { enrollmentId: enrollment.id });
-      return enrollmentWithDetails;
+      return enrollmentResponse;
     } catch (error) {
       logger.error('Error creating enrollment:', error);
       throw error;
@@ -67,7 +111,10 @@ export class EnrollmentService {
       logger.info('Getting all enrollments', options);
       const result = await this.enrollmentRepository.findAllWithPagination(options);
       logger.info('All enrollments retrieved successfully', { count: result.enrollments.length, total: result.pagination.total });
-      return result;
+      return {
+        enrollments: result.enrollments.map(e => this.addCamelCaseAliases(e)),
+        pagination: result.pagination
+      };
     } catch (error) {
       logger.error('Error getting all enrollments:', error);
       throw error;
@@ -85,7 +132,7 @@ export class EnrollmentService {
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Enrollment not found');
       }
       logger.info('Enrollment retrieved successfully', { enrollmentId });
-      return enrollment;
+      return this.addCamelCaseAliases(enrollment);
     } catch (error) {
       logger.error('Error getting enrollment by ID:', error);
       throw error;
@@ -125,7 +172,7 @@ export class EnrollmentService {
       }
 
       logger.info('Enrollment updated successfully', { enrollmentId: updatedEnrollment.id });
-      return enrollmentWithDetails;
+      return this.addCamelCaseAliases(enrollmentWithDetails);
     } catch (error) {
       logger.error('Error updating enrollment:', error);
       throw error;
@@ -186,7 +233,7 @@ export class EnrollmentService {
       logger.info('Getting enrollments by user ID', { userId, options });
       const enrollments = await this.enrollmentRepository.findByUserId(userId, options);
       logger.info('Enrollments by user ID retrieved successfully', { userId, count: enrollments.length });
-      return enrollments;
+      return enrollments.map(e => this.addCamelCaseAliases(e));
     } catch (error) {
       logger.error('Error getting enrollments by user ID:', error);
       throw error;
@@ -201,7 +248,7 @@ export class EnrollmentService {
       logger.info('Getting enrollments by course ID', { courseId, options });
       const enrollments = await this.enrollmentRepository.findByCourseId(courseId, options);
       logger.info('Enrollments by course ID retrieved successfully', { courseId, count: enrollments.length });
-      return enrollments;
+      return enrollments.map(e => this.addCamelCaseAliases(e));
     } catch (error) {
       logger.error('Error getting enrollments by course ID:', error);
       throw error;
@@ -283,7 +330,7 @@ export class EnrollmentService {
       if (enrollment) {
         const enrollmentWithDetails = await this.enrollmentRepository.findByIdWithDetails(enrollment.id);
         logger.debug('Enrollment by user and course retrieved', { userId, courseId });
-        return enrollmentWithDetails;
+        return enrollmentWithDetails ? this.addCamelCaseAliases(enrollmentWithDetails) : null;
       }
       logger.debug('Enrollment by user and course not found', { userId, courseId });
       return null;
@@ -291,5 +338,34 @@ export class EnrollmentService {
       logger.error('Error getting enrollment by user and course:', error);
       throw error;
     }
+  }
+
+  /**
+   * Add camelCase aliases for snake_case fields (for API compatibility)
+   */
+  private addCamelCaseAliases(enrollment: any): any {
+    if (!enrollment) return enrollment;
+    
+    return {
+      ...enrollment,
+      userId: enrollment.user_id,
+      courseId: enrollment.course_id,
+      enrollmentType: enrollment.enrollment_type,
+      paymentStatus: enrollment.payment_status,
+      paymentMethod: enrollment.payment_method,
+      paymentId: enrollment.payment_id,
+      amountPaid: enrollment.amount_paid ? parseFloat(enrollment.amount_paid) : enrollment.amount_paid,
+      progressPercentage: enrollment.progress_percentage ? parseFloat(enrollment.progress_percentage) : 0,
+      completedLessons: enrollment.completed_lessons,
+      totalLessons: enrollment.total_lessons,
+      lastAccessedAt: enrollment.last_accessed_at,
+      completionDate: enrollment.completion_date,
+      certificateIssued: enrollment.certificate_issued,
+      certificateUrl: enrollment.certificate_url,
+      reviewDate: enrollment.review_date,
+      accessExpiresAt: enrollment.access_expires_at,
+      createdAt: enrollment.created_at,
+      updatedAt: enrollment.updated_at
+    };
   }
 }
