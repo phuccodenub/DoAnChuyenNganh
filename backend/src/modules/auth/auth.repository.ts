@@ -1,8 +1,9 @@
-import User from '../../models/user.model';
-import { UserInstance } from '../../types/user.types';
-import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
+type UserInstance = any;
+import { UserRepository as BaseUserRepository } from '@repositories/user.repository';
+import logger from '@utils/logger.util';
 import { RegisterData } from './auth.types';
-import logger from '../../utils/logger.util';
+// Local require shims to avoid pulling full model graph
+declare const require: any;
 
 export class AuthRepository extends BaseUserRepository {
   constructor() {

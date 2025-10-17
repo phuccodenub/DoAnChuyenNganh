@@ -46,7 +46,7 @@ export function tracingMiddleware(req: Request, res: Response, next: NextFunctio
       span.end();
     });
 
-    res.on('error', (error) => {
+  res.on('error', (error: any) => {
       span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
       span.setAttribute('error', true);
       span.setAttribute('error.message', error.message);

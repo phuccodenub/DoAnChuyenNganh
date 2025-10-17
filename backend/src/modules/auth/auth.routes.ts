@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { AuthController } from './auth.controller';
-import { validateBody } from '../../middlewares/validate.middleware';
-import { authMiddleware } from '../../middlewares/auth.middleware';
-import { authRateLimit, passwordResetRateLimit, registrationRateLimit } from '../../middlewares/auth-rate-limit.middleware';
-import { authSchemas } from '../../validates/auth.validate';
+import { validateBody } from '@middlewares/validate.middleware';
+import { authMiddleware } from '@middlewares/auth.middleware';
+import { authRateLimit, passwordResetRateLimit, registrationRateLimit } from '@middlewares/auth-rate-limit.middleware';
+import { authSchemas } from '@validates/auth.validate';
 
 const router = express.Router();
 const authController = new AuthController();

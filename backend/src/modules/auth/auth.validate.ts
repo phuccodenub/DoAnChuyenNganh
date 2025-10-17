@@ -1,5 +1,5 @@
 import { body, param, query } from 'express-validator';
-import { validatorsUtils } from '../../utils/validators.util';
+import { validatorsUtils } from '@utils/validators.util';
 
 /**
  * Auth module validation schemas

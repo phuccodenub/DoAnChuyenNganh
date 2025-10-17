@@ -1,12 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthModuleService } from './auth.service';
 import { LoginCredentials, RegisterData, ChangePasswordData } from './auth.types';
-import { responseUtils } from '../../utils/response.util';
-import { validateBody } from '../../middlewares/validate.middleware';
-import { authValidation } from '../../validates/auth.validate';
-import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
-import logger from '../../utils/logger.util';
-import { AuthenticationError, ValidationError, ApiError } from '../../errors';
+import { responseUtils } from '@utils/response.util';
+import { RESPONSE_CONSTANTS } from '@constants/response.constants';
+import logger from '@utils/logger.util';
 
 export class AuthController {
   private authService: AuthModuleService;

@@ -1,11 +1,11 @@
 import { AuthRepository } from './auth.repository';
 import * as AuthTypes from './auth.types';
-import { UserInstance } from '../../types/user.types';
-import { globalServices } from '../../services/global';
-import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
-import { ApiError } from '../../middlewares/error.middleware';
-import { userUtils } from '../../utils/user.util';
-import logger from '../../utils/logger.util';
+type UserInstance = any;
+import { globalServices } from '@services/global';
+import { RESPONSE_CONSTANTS } from '@constants/response.constants';
+import { ApiError } from '@middlewares/error.middleware';
+import { userUtils } from '@utils/user.util';
+import logger from '@utils/logger.util';
 
 /**
  * Auth Module Service

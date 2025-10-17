@@ -147,3 +147,86 @@ declare module '../../models' {
   export const User: any;
   export const Session: any;
 }
+
+// ==== Alias-based shims used by tsconfig.build.auth.json ====
+
+declare module '@utils/response.util' {
+  export const responseUtils: {
+    sendSuccess: (res: any, message: string, data?: any) => void;
+    sendCreated: (res: any, message: string, data?: any) => void;
+    sendError: (res: any, error: any, statusCode?: number) => void;
+  };
+}
+
+declare module '@middlewares/validate.middleware' {
+  import { Request, Response, NextFunction } from 'express';
+  import { ValidationChain } from 'express-validator';
+  export const validateBody: (...schemas: ValidationChain[]) => (req: Request, res: Response, next: NextFunction) => void;
+  export const validateQuery: (...schemas: ValidationChain[]) => (req: Request, res: Response, next: NextFunction) => void;
+  export const validateParam: (...schemas: ValidationChain[]) => (req: Request, res: Response, next: NextFunction) => void;
+}
+
+declare module '@validates/auth.validate' {
+  export const authSchemas: any;
+}
+
+declare module '@repositories/user.repository' {
+  import { Model } from 'sequelize';
+  export class BaseRepository<T extends Model = any> {
+    findById(id: string): Promise<T | null>;
+    findOne(options?: any): Promise<T | null>;
+    findAll(options?: any): Promise<T[]>;
+    findAndCountAll(options?: any): Promise<{ rows: T[]; count: number }>;
+    create(values: any, options?: any): Promise<T>;
+    update(id: string, values: any, options?: any): Promise<T>;
+    delete(id: string): Promise<number>;
+    count(options?: any): Promise<number>;
+    paginate(page: number, limit: number, options?: any): Promise<{ data: T[]; pagination: any }>;
+    exists(key: string | number): Promise<boolean>;
+  }
+  export class UserRepository extends BaseRepository<any> {
+    findByUsername(username: string): Promise<any | null>;
+    findByEmail(email: string): Promise<any | null>;
+  }
+}
+
+declare module '@constants/response.constants' {
+  export const RESPONSE_CONSTANTS: any;
+}
+
+declare module '@utils/logger.util' {
+  const logger: any;
+  export default logger;
+}
+
+declare module '@middlewares/error.middleware' {
+  export class ApiError extends Error {
+    statusCode: number;
+    constructor(statusCode: number, message: string);
+  }
+}
+
+declare module '@services/global' {
+  export const globalServices: any;
+}
+
+declare module '@utils/user.util' {
+  export const userUtils: any;
+}
+
+declare module '@middlewares/auth.middleware' {
+  export const authMiddleware: any;
+}
+
+declare module '@middlewares/auth-rate-limit.middleware' {
+  export const authRateLimit: any;
+  export const passwordResetRateLimit: any;
+  export const registrationRateLimit: any;
+}
+
+declare module '@utils/validators.util' {
+  export const validatorsUtils: any;
+}
+
+// Node-style require for dynamic model imports in repository
+declare var require: (path: string) => any;
