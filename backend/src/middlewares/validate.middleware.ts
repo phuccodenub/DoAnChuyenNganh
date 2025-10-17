@@ -50,6 +50,30 @@ export const validateQuery = (schema: ZodSchema) => {
 };
 
 // Params validation middleware
+// Returns 404 for UUID format errors since invalid IDs mean the resource doesn't exist
 export const validateParams = (schema: ZodSchema) => {
-  return validateRequest({ params: schema });
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      req.params = schema.parse(req.params) as any;
+      next();
+    } catch (error: any) {
+      // Check if the error is a UUID format error
+      const isUUIDError = error.issues?.some((issue: any) => 
+        issue.message?.includes('Invalid') && 
+        (issue.message?.includes('ID') || issue.message?.includes('uuid'))
+      );
+      
+      if (isUUIDError) {
+        // Return 404 for invalid UUID formats in params
+        responseUtils.sendNotFound(res, 'Resource not found');
+      } else {
+        // Return 400 for other validation errors
+        responseUtils.sendValidationError(
+          res,
+          RESPONSE_CONSTANTS.ERROR.VALIDATION_ERROR,
+          error.issues || [error.message]
+        );
+      }
+    }
+  };
 };

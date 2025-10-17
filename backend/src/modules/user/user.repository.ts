@@ -541,7 +541,8 @@ export class UserModuleRepository extends BaseUserRepository {
             attributes: ['id', 'title', 'description', 'instructor_id', 'status', 'created_at']
           }
         ],
-        order: [['enrolled_at', 'DESC']]
+        // enrolled_at cột không tồn tại trong model; dùng created_at
+        order: [['created_at', 'DESC']]
       });
       
       logger.debug('User enrollments retrieved', { userId, count: enrollments.length });

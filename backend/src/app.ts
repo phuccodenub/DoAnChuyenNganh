@@ -32,6 +32,7 @@ import { cacheMiddleware } from './cache';
 startTracing().catch(() => {});
 
 const app = express();
+export { app };
 
 // Request ID middleware
 app.use(requestIdMiddleware);

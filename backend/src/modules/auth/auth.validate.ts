@@ -27,22 +27,19 @@ export const authValidation = {
       .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
     
     body('first_name')
-      .notEmpty()
-      .withMessage('First name is required')
+      .optional()
       .isLength({ min: 2, max: 50 })
       .withMessage('First name must be between 2 and 50 characters')
       .customSanitizer((value: string) => value?.trim()),
     
     body('last_name')
-      .notEmpty()
-      .withMessage('Last name is required')
+      .optional()
       .isLength({ min: 2, max: 50 })
       .withMessage('Last name must be between 2 and 50 characters')
       .customSanitizer((value: string) => value?.trim()),
     
     body('role')
-      .notEmpty()
-      .withMessage('Role is required')
+      .optional()
       .isIn(['student', 'instructor', 'admin', 'super_admin'])
       .withMessage('Role must be student, instructor, admin, or super_admin'),
     

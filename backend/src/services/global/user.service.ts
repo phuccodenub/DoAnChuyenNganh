@@ -1,12 +1,14 @@
-import * as userRepository from '../../repositories/user.repository';
+import { UserRepository } from '../../repositories/user.repository';
 import { CacheService } from './cache.service';
 import logger from '../../utils/logger.util';
 
 export class GlobalUserService {
   private cacheService: CacheService;
+  private userRepo: UserRepository;
 
   constructor() {
     this.cacheService = new CacheService();
+    this.userRepo = new UserRepository();
   }
 
   // ===== USER CRUD OPERATIONS (Shared across modules) =====
@@ -21,7 +23,7 @@ export class GlobalUserService {
       }
 
       // Get from database
-      const user = await (userRepository as any).findUserById(userId);
+      const user = await this.userRepo.findById(userId);
       if (user) {
         // Cache for future requests
         await this.cacheUser(userId, user);
@@ -44,7 +46,7 @@ export class GlobalUserService {
       }
 
       // Get from database
-      const user = await (userRepository as any).findUserByEmail(email);
+      const user = await this.userRepo.findByEmail(email);
       if (user) {
         // Cache for future requests
         await this.cacheUser((user as any).id, user);
@@ -113,7 +115,7 @@ export class GlobalUserService {
     try {
       await this.cacheService.delete(`user:${userId}`);
       // Also clear email cache if we have the user data
-      const user = await (userRepository as any).findUserById(userId);
+      const user = await this.userRepo.findById(userId);
       if (user) {
         await this.cacheService.delete(`user:email:${(user as any).email}`);
       }
@@ -128,12 +130,12 @@ export class GlobalUserService {
   // Update user token version (for logout/invalidate all tokens)
   async updateTokenVersion(userId: string): Promise<void> {
     try {
-      const user = await (userRepository as any).findUserById(userId);
+      const user = await this.userRepo.findById(userId);
       if (!user) {
         throw new Error('User not found');
       }
 
-      await (userRepository as any).updateUser(userId, {
+      await this.userRepo.update(userId, {
         token_version: (user as any).token_version + 1
       });
 
@@ -163,7 +165,7 @@ export class GlobalUserService {
   // Update user last login
   async updateLastLogin(userId: string): Promise<void> {
     try {
-      await (userRepository as any).updateUser(userId, {
+      await this.userRepo.update(userId, {
         last_login: new Date()
       });
 

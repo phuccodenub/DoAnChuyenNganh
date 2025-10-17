@@ -12,6 +12,7 @@ import env from '../config/env.config';
 const router = Router();
 
 // Mount version routes
+router.use('/v1', v1Routes); // explicit alias for tests and clients using /v1
 router.use('/v1.0.0', v1Routes);
 router.use('/v1.1.0', v1Routes);
 router.use('/v1.2.0', v1Routes);

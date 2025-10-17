@@ -1,12 +1,12 @@
 import { context, trace, SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import { Request, Response, NextFunction } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export function tracingMiddleware(req: Request, res: Response, next: NextFunction) {
   const tracer = trace.getTracer('lms-backend');
-  
+
   // Generate requestId if not present
-  const requestId = (req as any).requestId || req.headers['x-request-id'] || uuidv4();
+  const requestId = (req as any).requestId || req.headers['x-request-id'] || randomUUID();
   (req as any).requestId = requestId;
   
   const span = tracer.startSpan(`HTTP ${req.method} ${req.path}`, {

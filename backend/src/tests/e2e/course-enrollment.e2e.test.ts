@@ -94,7 +94,7 @@ describe('Course Enrollment E2E', () => {
 
     it('should fail to enroll in non-existent course', async () => {
       const enrollmentData = {
-        courseId: 999999,
+        courseId: '00000000-0000-0000-0000-000000000000', // Valid UUID but non-existent
         userId: userId
       };
 

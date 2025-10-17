@@ -33,6 +33,10 @@ export class EnrollmentController {
   async getAllEnrollments(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const queryData = (req as any).validatedQuery || req.query;
+      
+      // Check if pagination params are explicitly provided in the request
+      const hasPaginationParams = req.query.page !== undefined || req.query.limit !== undefined;
+      
       const options: EnrollmentTypes.EnrollmentFilterOptions = {
         page: parseInt(queryData.page as string) || 1,
         limit: parseInt(queryData.limit as string) || 10,
@@ -44,7 +48,14 @@ export class EnrollmentController {
         sortOrder: (queryData.order as 'ASC' | 'DESC') || 'DESC',
       };
       const result = await this.enrollmentService.getAllEnrollments(options);
-      responseUtils.sendPaginated(res, result.enrollments, result.pagination, 'Enrollments retrieved successfully');
+      
+      // If pagination params were provided, return paginated response
+      // Otherwise, return simple array
+      if (hasPaginationParams) {
+        responseUtils.sendPaginated(res, result.enrollments, result.pagination, 'Enrollments retrieved successfully', undefined, 'enrollments');
+      } else {
+        responseUtils.sendSuccess(res, 'Enrollments retrieved successfully', result.enrollments);
+      }
     } catch (error) {
       logger.error('Error getting all enrollments:', error);
       next(error);
@@ -81,13 +92,29 @@ export class EnrollmentController {
   }
 
   /**
+   * Update enrollment progress
+   */
+  async updateEnrollmentProgress(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const enrollmentId = req.params.id;
+      const progress = Number((req.body as any).progress_percentage ?? (req.body as any).progressPercentage);
+      const payload: any = { progress_percentage: progress };
+      const updatedEnrollment = await this.enrollmentService.updateEnrollment(enrollmentId, payload);
+      responseUtils.sendSuccess(res, 'Enrollment progress updated successfully', updatedEnrollment);
+    } catch (error) {
+      logger.error('Error updating enrollment progress:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Delete enrollment
    */
   async deleteEnrollment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const enrollmentId = req.params.id;
       await this.enrollmentService.deleteEnrollment(enrollmentId);
-      responseUtils.sendNoContent(res);
+      responseUtils.sendSuccess(res, 'Enrollment deleted successfully');
     } catch (error) {
       logger.error('Error deleting enrollment:', error);
       next(error);

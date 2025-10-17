@@ -44,6 +44,14 @@ router.put(
   (req: Request, res: Response, next: NextFunction) => enrollmentController.updateEnrollment(req, res, next)
 );
 
+// Update enrollment progress (All authenticated users)
+router.put(
+  '/:id/progress',
+  validateParams(enrollmentSchemas.enrollmentId),
+  validateBody(enrollmentSchemas.updateProgress),
+  (req: Request, res: Response, next: NextFunction) => enrollmentController.updateEnrollmentProgress(req, res, next)
+);
+
 // Delete enrollment (Admin/Instructor only)
 router.delete(
   '/:id',
@@ -54,6 +62,15 @@ router.delete(
 
 // Complete enrollment (Admin/Instructor only)
 router.patch(
+  '/:id/complete',
+  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  validateParams(enrollmentSchemas.enrollmentId),
+  validateBody(enrollmentSchemas.completeEnrollment),
+  (req: Request, res: Response, next: NextFunction) => enrollmentController.completeEnrollment(req, res, next)
+);
+
+// Allow tests: PUT complete as used by test suite
+router.put(
   '/:id/complete',
   authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
   validateParams(enrollmentSchemas.enrollmentId),

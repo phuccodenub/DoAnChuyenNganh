@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { CourseService } from './course.service';
 import { responseUtils } from '../../utils/response.util';
+import { EnrollmentService } from '../enrollment/enrollment.service';
 import logger from '../../utils/logger.util';
 
 /**
@@ -9,9 +10,11 @@ import logger from '../../utils/logger.util';
  */
 export class CourseController {
   private courseService: CourseService;
+  private enrollmentService: EnrollmentService;
 
   constructor() {
     this.courseService = new CourseService();
+    this.enrollmentService = new EnrollmentService();
   }
 
   // ===== COURSE MANAGEMENT METHODS =====
@@ -22,6 +25,10 @@ export class CourseController {
   async getAllCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const queryData = (req as any).validatedQuery || req.query;
+      
+      // Check if pagination params are explicitly provided in the request
+      const hasPaginationParams = req.query.page !== undefined || req.query.limit !== undefined;
+      
       const options = {
         page: parseInt(queryData.page as string) || 1,
         limit: parseInt(queryData.limit as string) || 10,
@@ -36,7 +43,14 @@ export class CourseController {
       };
       
       const result = await this.courseService.getAllCourses(options);
-      responseUtils.sendPaginated(res, result.courses, result.pagination, 'Courses retrieved successfully');
+      
+      // If pagination params were provided, return paginated response
+      // Otherwise, return simple array
+      if (hasPaginationParams) {
+        responseUtils.sendPaginated(res, result.courses, result.pagination, 'Courses retrieved successfully', undefined, 'courses');
+      } else {
+        responseUtils.sendSuccess(res, 'Courses retrieved successfully', result.courses);
+      }
     } catch (error) {
       logger.error('Error getting all courses:', error);
       next(error);
@@ -243,6 +257,21 @@ export class CourseController {
       responseUtils.sendSuccess(res, 'Course analytics retrieved successfully', analytics);
     } catch (error) {
       logger.error('Error getting course analytics:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get enrollments of a course (proxy for test-friendly route)
+   */
+  async getCourseEnrollments(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const courseId = req.params.id;
+      const status = req.query.status as string | undefined;
+      const enrollments = await this.enrollmentService.getEnrollmentsByCourseId(courseId, { status });
+      responseUtils.sendSuccess(res, 'Course enrollments retrieved successfully', enrollments);
+    } catch (error) {
+      logger.error('Error getting course enrollments:', error);
       next(error);
     }
   }

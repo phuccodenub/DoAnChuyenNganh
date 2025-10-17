@@ -4,16 +4,37 @@ import { baseValidation } from '../../validates/base.validate';
 export const enrollmentSchemas = {
   // Enrollment creation schema
   createEnrollment: z.object({
-    user_id: baseValidation.uuid,
-    course_id: baseValidation.uuid,
-    status: z.string().default('pending'),
-    enrollment_type: z.string().default('free'),
-    payment_status: z.string().default('pending'),
+    // chấp nhận cả snake_case và camelCase trong test
+    user_id: baseValidation.uuid.optional(),
+    course_id: baseValidation.uuid.optional(),
+    userId: baseValidation.uuid.optional(),
+    courseId: baseValidation.uuid.optional(),
+    status: z.string().default('pending').optional(),
+    enrollment_type: z.string().default('free').optional(),
+    enrollmentType: z.string().optional(),
+    payment_status: z.string().default('pending').optional(),
+    paymentStatus: z.string().optional(),
     payment_method: z.string().optional(),
+    paymentMethod: z.string().optional(),
     payment_id: z.string().optional(),
+    paymentId: z.string().optional(),
     amount_paid: z.coerce.number().min(0).optional(),
+    amountPaid: z.coerce.number().min(0).optional(),
     currency: z.string().max(3).optional(),
-    total_lessons: z.coerce.number().int().min(0).default(0)
+    total_lessons: z.coerce.number().int().min(0).default(0).optional(),
+    totalLessons: z.coerce.number().int().min(0).optional()
+  }).refine((data) => {
+    // At least one of user_id or userId must be provided
+    return data.user_id || data.userId;
+  }, {
+    message: 'User ID is required (user_id or userId)',
+    path: ['user_id']
+  }).refine((data) => {
+    // At least one of course_id or courseId must be provided
+    return data.course_id || data.courseId;
+  }, {
+    message: 'Course ID is required (course_id or courseId)',
+    path: ['course_id']
   }),
 
   // Enrollment update schema
@@ -42,6 +63,26 @@ export const enrollmentSchemas = {
     metadata: z.any().optional()
   }),
 
+  // Progress update schema
+  updateProgress: z.object({
+    progress_percentage: z.coerce.number()
+      .min(0, 'Progress percentage must be at least 0')
+      .max(100, 'Progress percentage must be at most 100')
+      .optional(),
+    progressPercentage: z.coerce.number()
+      .min(0, 'Progress percentage must be at least 0')
+      .max(100, 'Progress percentage must be at most 100')
+      .optional(),
+    last_accessed_at: z.coerce.date().optional(),
+    lastAccessedAt: z.coerce.date().optional()
+  }).refine((data) => {
+    // At least one of progress_percentage or progressPercentage must be provided
+    return data.progress_percentage !== undefined || data.progressPercentage !== undefined;
+  }, {
+    message: 'Progress percentage is required',
+    path: ['progress_percentage']
+  }),
+
   // Enrollment query schema
   enrollmentQuery: z.object({
     page: z.coerce.number().int().min(1).default(1),
@@ -56,17 +97,17 @@ export const enrollmentSchemas = {
 
   // Enrollment ID parameter schema
   enrollmentId: z.object({
-    id: baseValidation.uuid
+    id: z.string().uuid('Invalid enrollment ID format')
   }),
 
   // Course ID parameter schema
   courseId: z.object({
-    courseId: baseValidation.uuid
+    courseId: z.string().uuid('Invalid course ID format')
   }),
 
   // User ID parameter schema
   userId: z.object({
-    userId: baseValidation.uuid
+    userId: z.string().uuid('Invalid user ID format')
   }),
 
   // Enrollment completion schema

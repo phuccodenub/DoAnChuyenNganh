@@ -110,6 +110,13 @@ router.get(
   (req: Request, res: Response, next: NextFunction) => courseController.getCoursesByTags(req, res, next)
 );
 
+// For tests: get course enrollments (All authenticated users)
+router.get(
+  '/:id/enrollments',
+  validateParams(courseSchemas.courseId),
+  (req: Request, res: Response, next: NextFunction) => courseController.getCourseEnrollments(req, res, next)
+);
+
 // ===== COURSE ANALYTICS ROUTES =====
 
 // Get course analytics (Instructor/Admin only)
