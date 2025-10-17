@@ -1,6 +1,5 @@
-import { DataTypes, Model } from 'sequelize';
-import { getSequelize } from '../config/db';
-import { UserAttributes, UserCreationAttributes, UserInstance } from '../types/model.types';
+import { DataTypes } from 'sequelize';
+import { getSequelize } from '@config/db';
 
 const sequelize = getSequelize();
 
@@ -10,13 +9,19 @@ const User = sequelize.define('User', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  username: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    unique: true,
+    comment: 'Tên đăng nhập (mã số sinh viên/giảng viên hoặc username admin)',
+  },
   email: {
     type: DataTypes.STRING(255),
     allowNull: false,
     unique: true,
     validate: { isEmail: true },
   },
-  password_hash: {
+  password: {
     type: DataTypes.STRING(255),
     allowNull: false,
   },
@@ -39,7 +44,7 @@ const User = sequelize.define('User', {
     type: DataTypes.ENUM('active', 'inactive', 'suspended', 'pending'),
     defaultValue: 'active',
   },
-  is_email_verified: {
+  email_verified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
@@ -144,17 +149,37 @@ const User = sequelize.define('User', {
 // Hooks for password hashing (DISABLED - password already hashed in AuthService)
 /*
 User.beforeCreate(async (user) => {
-  if (user.password_hash) {
-    user.password_hash = await bcrypt.hash(user.password_hash, 12);
+  if (user.password) {
+    user.password = await bcrypt.hash(user.password, 12);
   }
 });
 
 User.beforeUpdate(async (user) => {
-  if (user.changed('password_hash')) {
-    user.password_hash = await bcrypt.hash(user.password_hash, 12);
+  if (user.changed('password')) {
+    user.password = await bcrypt.hash(user.password, 12);
   }
 });
 */
 
-export default User as any;
+// Define associations
+User.associate = function(models: any) {
+  // User has many Courses (as instructor)
+  User.hasMany(models.Course, {
+    foreignKey: 'instructor_id',
+    as: 'courses'
+  });
 
+  // User has many Enrollments (as student)
+  User.hasMany(models.Enrollment, {
+    foreignKey: 'user_id',
+    as: 'enrollments'
+  });
+
+  // User has many ChatMessages
+  User.hasMany(models.ChatMessage, {
+    foreignKey: 'user_id',
+    as: 'chatMessages'
+  });
+};
+
+export default User;

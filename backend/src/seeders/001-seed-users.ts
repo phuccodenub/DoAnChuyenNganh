@@ -2,7 +2,7 @@
  * Seeder 001: Seed users
  */
 
-import { Sequelize } from 'sequelize';
+import { Sequelize, QueryTypes } from 'sequelize';
 import { hashUtils } from '../utils/hash.util';
 
 export async function seedUsers(sequelize: Sequelize): Promise<void> {
@@ -15,10 +15,22 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       password: await hashUtils.password.hashPassword('SuperAdmin123!'),
       first_name: 'Super',
       last_name: 'Admin',
+      bio: 'System administrator',
       role: 'super_admin',
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: null,
+      class: null,
+      major: null,
+      year: null,
+      gpa: null,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -30,10 +42,22 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       password: await hashUtils.password.hashPassword('Admin123!'),
       first_name: 'System',
       last_name: 'Admin',
+      bio: 'System administrator',
       role: 'admin',
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: null,
+      class: null,
+      major: null,
+      year: null,
+      gpa: null,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -41,7 +65,7 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
     {
       id: '00000000-0000-0000-0000-000000000003',
       email: 'instructor1@example.com',
-      username: 'instructor1',
+      username: 'GV001',
       password: await hashUtils.password.hashPassword('Instructor123!'),
       first_name: 'John',
       last_name: 'Doe',
@@ -50,13 +74,24 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: 'GV001',
+      department: 'Khoa Công nghệ thông tin',
+      specialization: 'Lập trình web',
+      experience_years: 10,
+      education_level: 'master',
+      student_id: null,
+      class: null,
+      major: null,
+      year: null,
+      gpa: null,
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: '00000000-0000-0000-0000-000000000004',
       email: 'instructor2@example.com',
-      username: 'instructor2',
+      username: 'GV002',
       password: await hashUtils.password.hashPassword('Instructor123!'),
       first_name: 'Jane',
       last_name: 'Smith',
@@ -65,13 +100,24 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: 'GV002',
+      department: 'Khoa Công nghệ thông tin',
+      specialization: 'React và Node.js',
+      experience_years: 8,
+      education_level: 'phd',
+      student_id: null,
+      class: null,
+      major: null,
+      year: null,
+      gpa: null,
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: '00000000-0000-0000-0000-000000000005',
       email: 'instructor3@example.com',
-      username: 'instructor3',
+      username: 'GV003',
       password: await hashUtils.password.hashPassword('Instructor123!'),
       first_name: 'Mike',
       last_name: 'Johnson',
@@ -80,6 +126,17 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: 'GV003',
+      department: 'Khoa Công nghệ thông tin',
+      specialization: 'Machine Learning và AI',
+      experience_years: 12,
+      education_level: 'professor',
+      student_id: null,
+      class: null,
+      major: null,
+      year: null,
+      gpa: null,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -87,7 +144,7 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
     {
       id: '00000000-0000-0000-0000-000000000006',
       email: 'student1@example.com',
-      username: 'student1',
+      username: '2021001234',
       password: await hashUtils.password.hashPassword('Student123!'),
       first_name: 'Alice',
       last_name: 'Brown',
@@ -96,13 +153,24 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: '2021001234',
+      class: 'CNTT-K62',
+      major: 'Công nghệ thông tin',
+      year: 2021,
+      gpa: 3.5,
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: '00000000-0000-0000-0000-000000000007',
       email: 'student2@example.com',
-      username: 'student2',
+      username: '2021001235',
       password: await hashUtils.password.hashPassword('Student123!'),
       first_name: 'Bob',
       last_name: 'Wilson',
@@ -111,13 +179,24 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: '2021001235',
+      class: 'CNTT-K62',
+      major: 'Công nghệ thông tin',
+      year: 2021,
+      gpa: 3.8,
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: '00000000-0000-0000-0000-000000000008',
       email: 'student3@example.com',
-      username: 'student3',
+      username: '2022001234',
       password: await hashUtils.password.hashPassword('Student123!'),
       first_name: 'Carol',
       last_name: 'Davis',
@@ -126,13 +205,24 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: '2022001234',
+      class: 'CNTT-K63',
+      major: 'Công nghệ thông tin',
+      year: 2022,
+      gpa: 3.2,
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: '00000000-0000-0000-0000-000000000009',
       email: 'student4@example.com',
-      username: 'student4',
+      username: '2022001235',
       password: await hashUtils.password.hashPassword('Student123!'),
       first_name: 'David',
       last_name: 'Miller',
@@ -141,13 +231,24 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: '2022001235',
+      class: 'CNTT-K63',
+      major: 'Công nghệ thông tin',
+      year: 2022,
+      gpa: 3.6,
       created_at: new Date(),
       updated_at: new Date()
     },
     {
       id: '00000000-0000-0000-0000-000000000010',
       email: 'student5@example.com',
-      username: 'student5',
+      username: '2023001234',
       password: await hashUtils.password.hashPassword('Student123!'),
       first_name: 'Eva',
       last_name: 'Garcia',
@@ -156,6 +257,17 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       status: 'active',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: '2023001234',
+      class: 'CNTT-K64',
+      major: 'Công nghệ thông tin',
+      year: 2023,
+      gpa: 3.4,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -167,10 +279,22 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       password: await hashUtils.password.hashPassword('Pending123!'),
       first_name: 'Pending',
       last_name: 'User',
+      bio: 'Pending user',
       role: 'student',
       status: 'pending',
       email_verified: false,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: null,
+      class: null,
+      major: null,
+      year: null,
+      gpa: null,
       created_at: new Date(),
       updated_at: new Date()
     },
@@ -182,10 +306,22 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
       password: await hashUtils.password.hashPassword('Suspended123!'),
       first_name: 'Suspended',
       last_name: 'User',
+      bio: 'Suspended user',
       role: 'student',
       status: 'suspended',
       email_verified: true,
       two_factor_enabled: false,
+      token_version: 0,
+      instructor_id: null,
+      department: null,
+      specialization: null,
+      experience_years: null,
+      education_level: null,
+      student_id: null,
+      class: null,
+      major: null,
+      year: null,
+      gpa: null,
       created_at: new Date(),
       updated_at: new Date()
     }
@@ -193,16 +329,35 @@ export async function seedUsers(sequelize: Sequelize): Promise<void> {
 
   // Insert users
   for (const user of users) {
+    // Check if user already exists
+    const existingUser = await sequelize.query(
+      'SELECT id FROM users WHERE id = ? OR email = ? OR username = ?',
+      {
+        replacements: [user.id, user.email, user.username],
+        type: QueryTypes.SELECT
+      }
+    );
+
+    if (existingUser.length > 0) {
+      console.log(`User ${user.username} already exists, skipping...`);
+      continue;
+    }
+
     await sequelize.query(
       `INSERT INTO users (
         id, email, username, password, first_name, last_name, bio, role, status,
-        email_verified, two_factor_enabled, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        email_verified, token_version, instructor_id, department, specialization, 
+        experience_years, education_level, student_id, class, major, year, gpa, 
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       {
         replacements: [
           user.id, user.email, user.username, user.password, user.first_name,
           user.last_name, user.bio, user.role, user.status, user.email_verified,
-          user.two_factor_enabled, user.created_at, user.updated_at
+          user.token_version || 0, user.instructor_id, user.department, user.specialization,
+          user.experience_years, user.education_level, user.student_id, 
+          user.class, user.major, user.year, user.gpa,
+          user.created_at, user.updated_at
         ]
       }
     );

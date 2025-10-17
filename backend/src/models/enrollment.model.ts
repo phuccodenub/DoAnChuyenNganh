@@ -1,6 +1,5 @@
-import { DataTypes, Model } from 'sequelize';
-import { getSequelize } from '../config/db';
-import { EnrollmentAttributes, EnrollmentCreationAttributes, EnrollmentInstance } from '../types/model.types';
+import { DataTypes } from 'sequelize';
+import { getSequelize } from '@config/db';
 
 const sequelize = getSequelize();
 
@@ -27,32 +26,84 @@ const Enrollment = sequelize.define('Enrollment', {
     }
   },
   status: {
-    type: DataTypes.ENUM('enrolled', 'completed', 'dropped'),
-    defaultValue: 'enrolled',
+    type: DataTypes.STRING(20),
+    defaultValue: 'pending',
   },
-  enrolled_at: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+  enrollment_type: {
+    type: DataTypes.STRING(20),
+    defaultValue: 'free',
   },
-  completed_at: {
-    type: DataTypes.DATE,
+  payment_status: {
+    type: DataTypes.STRING(20),
+    defaultValue: 'pending',
+  },
+  payment_method: {
+    type: DataTypes.STRING(50),
     allowNull: true,
   },
-  progress: {
+  payment_id: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+  },
+  amount_paid: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
+  currency: {
+    type: DataTypes.STRING(3),
+    allowNull: true,
+  },
+  progress_percentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0.00,
+  },
+  completed_lessons: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    validate: {
-      min: 0,
-      max: 100
-    }
   },
-  grade: {
-    type: DataTypes.DECIMAL(5, 2),
+  total_lessons: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  last_accessed_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  completion_date: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  certificate_issued: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  certificate_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
+  rating: {
+    type: DataTypes.INTEGER,
     allowNull: true,
     validate: {
-      min: 0,
-      max: 100
+      min: 1,
+      max: 5
     }
+  },
+  review: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  review_date: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  access_expires_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  metadata: {
+    type: DataTypes.JSON,
+    allowNull: true,
   },
 }, {
   tableName: 'enrollments',
@@ -66,6 +117,19 @@ const Enrollment = sequelize.define('Enrollment', {
   ]
 });
 
-export default Enrollment as any;
+// Define associations
+Enrollment.associate = function(models: any) {
+  // Enrollment belongs to User (student)
+  Enrollment.belongsTo(models.User, {
+    foreignKey: 'user_id',
+    as: 'student'
+  });
 
+  // Enrollment belongs to Course
+  Enrollment.belongsTo(models.Course, {
+    foreignKey: 'course_id',
+    as: 'course'
+  });
+};
 
+export default Enrollment;

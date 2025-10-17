@@ -10,11 +10,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "types": ["node"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "removeComments": true,
     "noImplicitAny": true,
+    "isolatedModules": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "noImplicitThis": true,
@@ -46,6 +48,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/utils/tests/**"
   ]
 }

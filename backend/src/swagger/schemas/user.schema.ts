@@ -7,6 +7,14 @@ export const userSchemas = {
         format: 'uuid',
         description: 'User unique identifier'
       },
+      username: {
+        type: 'string',
+        minLength: 3,
+        maxLength: 50,
+        pattern: '^[a-zA-Z0-9_-]+$',
+        description: 'Username (student ID, instructor ID, or admin username)',
+        example: '2021001234'
+      },
       email: {
         type: 'string',
         format: 'email',
@@ -43,7 +51,7 @@ export const userSchemas = {
         enum: ['active', 'inactive', 'suspended', 'pending'],
         description: 'User status'
       },
-      is_email_verified: {
+      email_verified: {
         type: 'boolean',
         description: 'Email verification status'
       },
@@ -135,8 +143,16 @@ export const userSchemas = {
 
   RegisterRequest: {
     type: 'object',
-    required: ['email', 'password', 'first_name', 'last_name'],
+    required: ['username', 'email', 'password', 'first_name', 'last_name'],
     properties: {
+      username: {
+        type: 'string',
+        minLength: 3,
+        maxLength: 50,
+        pattern: '^[a-zA-Z0-9_-]+$',
+        description: 'Username (student ID, instructor ID, or admin username)',
+        example: '2021001234'
+      },
       email: {
         type: 'string',
         format: 'email',

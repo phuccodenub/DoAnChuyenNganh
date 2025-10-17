@@ -1,7 +1,9 @@
 import express from 'express';
-import cors from 'cors';
+import { corsMiddleware } from './config/cors.config';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { startTracing } from './tracing/tracing';
+import { tracingMiddleware } from './middlewares/tracing.middleware';
 import 'dotenv-flow/config';
 
 // Import Swagger
@@ -21,18 +23,25 @@ import { APP_CONSTANTS } from '@constants/app.constants';
 import { apiRoutes } from './api';
 
 // Import monitoring
-import { healthRoutes, metricsRoutes, metricsMiddleware } from './monitoring';
+import { healthRoutes, metricsRoutes, metricsMiddleware, pingRoutes } from './monitoring';
 
 // Import caching
 import { cacheMiddleware } from './cache';
 
+// Initialize tracing once at app bootstrap
+startTracing().catch(() => {});
+
 const app = express();
+export { app };
 
 // Request ID middleware
 app.use(requestIdMiddleware);
 
 // Logger middleware
 app.use(loggerMiddleware);
+
+// Tracing middleware (route-level spans)
+app.use(tracingMiddleware);
 
 // Metrics middleware
 app.use(metricsMiddleware.collectHttpMetrics);
@@ -44,19 +53,26 @@ app.use(metricsMiddleware.collectUserMetrics);
 app.use(metricsMiddleware.collectCourseMetrics);
 
 // Cache middleware
-app.use(cacheMiddleware.cacheGet({ ttl: 300 })); // Cache GET requests for 5 minutes
+// Do NOT cache authenticated GET responses here (they will be cached by cacheUserData below)
+app.use(
+  cacheMiddleware.cacheGet({
+    ttl: 300,
+    skipCache: (req) => {
+      // Bypass cache for authenticated requests and for monitoring endpoints
+      const url = req.path || '';
+      if (req.headers.authorization) return true;
+      if (url.startsWith('/metrics') || url.startsWith('/health') || url.startsWith('/ping')) return true;
+      return false;
+    }
+  })
+);
 app.use(cacheMiddleware.cacheUserData({ ttl: 600 })); // Cache user data for 10 minutes
 
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
-app.use(cors({
-  origin: APP_CONSTANTS.CORS.ALLOWED_ORIGINS,
-  methods: APP_CONSTANTS.CORS.ALLOWED_METHODS,
-  allowedHeaders: APP_CONSTANTS.CORS.ALLOWED_HEADERS,
-  credentials: true
-}));
+// CORS configuration (centralized)
+app.use(corsMiddleware);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -76,6 +92,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Monitoring routes
 app.use('/health', healthRoutes);
 app.use('/metrics', metricsRoutes);
+app.use('/', pingRoutes);
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {

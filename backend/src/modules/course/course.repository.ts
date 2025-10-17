@@ -1,70 +1,57 @@
-import Course from '../../models/course.model';
-import User from '../../models/user.model';
-import Enrollment from '../../models/enrollment.model';
-import { CourseInstance } from '../../types/model.types';
-import { UserInstance } from '../../types/model.types';
-import { EnrollmentInstance } from '../../types/model.types';
-import * as CourseTypes from './course.types';
-import { BaseRepository } from '../../repositories/base.repository';
-import logger from '../../utils/logger.util';
+import { CourseInstance } from '../../types/course.types';
+import { BaseRepository } from '@repositories/base.repository';
+import { CourseTypes } from './course.types';
+import logger from '@utils/logger.util';
+import { Op } from 'sequelize';
+declare const require: any;
 
-export class CourseRepository extends BaseRepository<CourseInstance> {
+export class CourseRepository extends BaseRepository {
   constructor() {
     super('Course');
   }
 
   /**
-   * Get the Course model
+   * Get the Course model instance
    */
-  protected getModel() {
+  protected getModel(): any {
+    const { Course } = require('../../models');
     return Course;
   }
 
-  /**
-   * Find instructor by ID
-   */
-  async findInstructorById(instructorId: string): Promise<UserInstance | null> {
-    try {
-      return await User.findByPk(instructorId);
-    } catch (error: unknown) {
-      logger.error('Error finding instructor by ID:', error);
-      throw error;
-    }
-  }
+  // ===== COURSE MANAGEMENT METHODS =====
 
   /**
-   * Find user by ID
+   * Find all courses with pagination and filtering
    */
-  async findUserById(userId: string): Promise<UserInstance | null> {
+  async findAllWithPagination(options: {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: string;
+    instructor_id?: string;
+    category?: string;
+    level?: string;
+    tags?: string[];
+    sortBy: string;
+    sortOrder: string;
+  }): Promise<{ courses: any[]; pagination: any }> {
     try {
-      return await User.findByPk(userId);
-    } catch (error: unknown) {
-      logger.error('Error finding user by ID:', error);
-      throw error;
-    }
-  }
+      logger.debug('Finding all courses with pagination', options);
 
-  /**
-   * Find all courses with pagination and filters
-   */
-  async findAllWithPagination(options: CourseTypes.GetCoursesOptions): Promise<CourseTypes.CoursesResponse> {
-    try {
-      const { Op } = await import('sequelize');
-      
-      const { page, limit, status, instructor_id, search } = options;
+      const { page, limit, search, status, instructor_id, category, level, tags, sortBy, sortOrder } = options;
       const offset = (page - 1) * limit;
 
       // Build where clause
       const whereClause: any = {};
-      
-      if (status) {
-        whereClause.status = status;
+      if (status) whereClause.status = status;
+      if (instructor_id) whereClause.instructor_id = instructor_id;
+      if (category) whereClause.category = category;
+      if (level) whereClause.level = level;
+      if (tags && tags.length > 0) {
+        whereClause.tags = {
+          [Op.contains]: tags
+        };
       }
-      
-      if (instructor_id) {
-        whereClause.instructor_id = instructor_id;
-      }
-      
       if (search) {
         whereClause[Op.or] = [
           { title: { [Op.iLike]: `%${search}%` } },
@@ -72,221 +59,379 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         ];
       }
 
-      const { count, rows } = await Course.findAndCountAll({
+      // Get total count
+      const total = await this.count({ where: whereClause });
+
+      // Get courses with instructor details
+      const { User } = require('../../models');
+      const courses = await this.findAll({
         where: whereClause,
+        limit,
+        offset,
+        order: [[sortBy, sortOrder.toUpperCase()]],
         include: [
           {
             model: User,
             as: 'instructor',
-            attributes: ['id', 'first_name', 'last_name', 'email']
+            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar', 'bio']
           }
-        ],
-        limit,
-        offset,
-        order: [['created_at', 'DESC']]
+        ]
       });
 
-      return {
-        data: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          totalPages: Math.ceil(count / limit)
-        }
+      const pagination = {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
       };
-    } catch (error: unknown) {
-      logger.error('Error finding courses with pagination:', error);
+
+      logger.debug('Courses with pagination retrieved', { 
+        count: courses.length, 
+        total, 
+        page, 
+        limit 
+      });
+
+      return { courses, pagination };
+    } catch (error) {
+      logger.error('Error finding all courses with pagination:', error);
       throw error;
     }
   }
 
   /**
-   * Find courses by instructor
+   * Find course by ID with instructor details
    */
-  async findByInstructor(instructorId: string, options: CourseTypes.GetCoursesByInstructorOptions): Promise<CourseTypes.CoursesResponse> {
+  async findByIdWithInstructor(courseId: string): Promise<CourseInstance | null> {
     try {
+      logger.debug('Finding course by ID with instructor', { courseId });
       
-      const { page, limit, status } = options;
-      const offset = (page - 1) * limit;
-
-      const whereClause: any = { instructor_id: instructorId };
+      const { User } = require('../../models');
+      const course = await this.findOne({
+        where: { id: courseId },
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar', 'bio']
+          }
+        ]
+      });
       
-      if (status) {
-        whereClause.status = status;
+      if (course) {
+        logger.debug('Course with instructor found', { courseId });
+      } else {
+        logger.debug('Course with instructor not found', { courseId });
       }
-
-      const { count, rows } = await Course.findAndCountAll({
-        where: whereClause,
-        include: [
-          {
-            model: User,
-            as: 'instructor',
-            attributes: ['id', 'first_name', 'last_name', 'email']
-          }
-        ],
-        limit,
-        offset,
-        order: [['created_at', 'DESC']]
-      });
-
-      return {
-        data: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          totalPages: Math.ceil(count / limit)
-        }
-      };
-    } catch (error: unknown) {
-      logger.error('Error finding courses by instructor:', error);
+      
+      return course;
+    } catch (error) {
+      logger.error('Error finding course by ID with instructor:', error);
       throw error;
     }
   }
 
   /**
-   * Find enrolled courses by user
+   * Find courses by instructor ID
    */
-  async findEnrolledByUser(userId: string, options: CourseTypes.GetEnrolledCoursesOptions): Promise<CourseTypes.CoursesResponse> {
+  async findByInstructorId(instructorId: string, options?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<any[]> {
     try {
-      const { Course, Enrollment } = await import('../../models');
+      logger.debug('Finding courses by instructor ID', { instructorId, options });
       
-      const { page, limit, status } = options;
-      const offset = (page - 1) * limit;
+      const whereClause: any = { instructor_id: instructorId };
+      if (options?.status) whereClause.status = options.status;
 
+      const { User } = require('../../models');
+      const courses = await this.findAll({
+        where: whereClause,
+        limit: options?.limit,
+        offset: options?.offset,
+        order: [['created_at', 'DESC']],
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar']
+          }
+        ]
+      });
+      
+      logger.debug('Courses by instructor retrieved', { instructorId, count: courses.length });
+      return courses;
+    } catch (error) {
+      logger.error('Error finding courses by instructor ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get course statistics
+   */
+  async getCourseStats(courseId: string): Promise<CourseTypes.CourseStats> {
+    try {
+      logger.debug('Getting course statistics', { courseId });
+      
+      // Enrollment model is already imported
+      
+      // Get enrollment statistics
+      const { Enrollment } = require('../../models');
+      const totalEnrollments = await Enrollment.count({
+        where: { course_id: courseId }
+      });
+      
+      const activeEnrollments = await Enrollment.count({
+        where: { 
+          course_id: courseId,
+          status: 'active'
+        }
+      });
+      
+      const completedEnrollments = await Enrollment.count({
+        where: { 
+          course_id: courseId,
+          status: 'completed'
+        }
+      });
+      
+      // Calculate completion rate
+      const completionRate = totalEnrollments > 0 
+        ? Math.round((completedEnrollments / totalEnrollments) * 100) 
+        : 0;
+      
+      // Get last activity (simplified - using course updated_at)
+      const course = await this.findById(courseId);
+      const lastActivity = course?.updated_at || new Date();
+      
+      const stats: CourseTypes.CourseStats = {
+        total_enrollments: totalEnrollments,
+        active_enrollments: activeEnrollments,
+        completed_enrollments: completedEnrollments,
+        average_rating: 0, // TODO: Implement rating system
+        total_ratings: 0, // TODO: Implement rating system
+        completion_rate: completionRate,
+        last_activity: lastActivity
+      };
+      
+      logger.debug('Course statistics retrieved', { courseId, stats });
+      return stats;
+    } catch (error) {
+      logger.error('Error getting course statistics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search courses with advanced filters
+   */
+  async searchCourses(filters: CourseTypes.CourseSearchFilters, options?: {
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: string;
+  }): Promise<{ courses: any[]; pagination: any }> {
+    try {
+      logger.debug('Searching courses with filters', { filters, options });
+      
+      const page = options?.page || 1;
+      const limit = options?.limit || 10;
+      const offset = (page - 1) * limit;
+      
+      // Build where clause from filters
       const whereClause: any = {};
       
-      if (status) {
-        whereClause.status = status;
+      if (filters.query) {
+        whereClause[Op.or] = [
+          { title: { [Op.iLike]: `%${filters.query}%` } },
+          { description: { [Op.iLike]: `%${filters.query}%` } }
+        ];
       }
-
-      const { count, rows } = await Course.findAndCountAll({
+      
+      if (filters.status && filters.status.length > 0) {
+        whereClause.status = { [Op.in]: filters.status };
+      }
+      
+      if (filters.instructor_id && filters.instructor_id.length > 0) {
+        whereClause.instructor_id = { [Op.in]: filters.instructor_id };
+      }
+      
+      if (filters.category && filters.category.length > 0) {
+        whereClause.category = { [Op.in]: filters.category };
+      }
+      
+      if (filters.level && filters.level.length > 0) {
+        whereClause.level = { [Op.in]: filters.level };
+      }
+      
+      if (filters.tags && filters.tags.length > 0) {
+        whereClause.tags = {
+          [Op.contains]: filters.tags
+        };
+      }
+      
+      // Get total count
+      const total = await this.count({ where: whereClause });
+      
+      // Get courses
+      const { User } = require('../../models');
+      const courses = await this.findAll({
         where: whereClause,
+        limit,
+        offset,
+        order: [[options?.sortBy || 'created_at', (options?.sortOrder || 'DESC').toUpperCase()]],
         include: [
-          {
-            model: Enrollment,
-            as: 'enrollments',
-            where: { user_id: userId },
-            required: true,
-            attributes: ['id', 'enrolled_at', 'status']
-          },
           {
             model: User,
             as: 'instructor',
-            attributes: ['id', 'first_name', 'last_name', 'email']
+            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar']
           }
-        ],
+        ]
+      });
+      
+      const pagination = {
+        page,
         limit,
-        offset,
-        order: [['created_at', 'DESC']]
-      });
-
-      return {
-        data: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          totalPages: Math.ceil(count / limit)
-        }
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
       };
-    } catch (error: unknown) {
-      logger.error('Error finding enrolled courses by user:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Find enrollment by course and user
-   */
-  async findEnrollment(courseId: string, userId: string): Promise<EnrollmentInstance | null> {
-    try {
       
-      return await Enrollment.findOne({
-        where: {
-          course_id: courseId,
-          user_id: userId
-        }
+      logger.debug('Course search completed', { 
+        filters, 
+        count: courses.length, 
+        total, 
+        page, 
+        limit 
       });
-    } catch (error: unknown) {
-      logger.error('Error finding enrollment:', error);
+      
+      return { courses, pagination };
+    } catch (error) {
+      logger.error('Error searching courses:', error);
       throw error;
     }
   }
 
   /**
-   * Create enrollment
+   * Get popular courses
    */
-  async createEnrollment(courseId: string, userId: string): Promise<EnrollmentInstance> {
+  async getPopularCourses(limit: number = 10): Promise<any[]> {
     try {
+      logger.debug('Getting popular courses', { limit });
       
-      return await Enrollment.create({
-        course_id: courseId,
-        user_id: userId,
-        status: 'active',
-        enrolled_at: new Date()
-      });
-    } catch (error: unknown) {
-      logger.error('Error creating enrollment:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete enrollment
-   */
-  async deleteEnrollment(enrollmentId: string): Promise<void> {
-    try {
+      // Enrollment model is already imported
       
-      await Enrollment.destroy({
-        where: { id: enrollmentId }
-      });
-    } catch (error: unknown) {
-      logger.error('Error deleting enrollment:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Find students by course
-   */
-  async findStudentsByCourse(courseId: string, options: CourseTypes.GetCourseStudentsOptions): Promise<CourseTypes.StudentsResponse> {
-    try {
-      const { User, Enrollment } = await import('../../models');
-      
-      const { page, limit } = options;
-      const offset = (page - 1) * limit;
-
-      const { count, rows } = await User.findAndCountAll({
+      // Get courses ordered by enrollment count
+      const { User, Enrollment } = require('../../models');
+      const courses = await this.findAll({
+        limit,
+        order: [['created_at', 'DESC']], // Fallback ordering
         include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar']
+          },
           {
             model: Enrollment,
             as: 'enrollments',
-            where: { course_id: courseId },
-            required: true,
-            attributes: ['id', 'enrolled_at', 'status']
+            attributes: ['id'],
+            required: false
           }
-        ],
-        attributes: ['id', 'first_name', 'last_name', 'email', 'student_id', 'created_at'],
-        limit,
-        offset,
-        order: [['created_at', 'DESC']]
+        ]
       });
+      
+      // Sort by enrollment count
+      const sortedCourses = courses.sort((a: any, b: any) => {
+        const aCount = a.enrollments?.length || 0;
+        const bCount = b.enrollments?.length || 0;
+        return bCount - aCount;
+      });
+      
+      logger.debug('Popular courses retrieved', { count: sortedCourses.length });
+      return sortedCourses;
+    } catch (error) {
+      logger.error('Error getting popular courses:', error);
+      throw error;
+    }
+  }
 
-      return {
-        data: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          totalPages: Math.ceil(count / limit)
-        }
+  /**
+   * Get courses by tags
+   */
+  async getCoursesByTags(tags: string[], limit: number = 10): Promise<any[]> {
+    try {
+      logger.debug('Getting courses by tags', { tags, limit });
+      
+      const { User } = require('../../models');
+      const courses = await this.findAll({
+        where: {
+          tags: {
+            [Op.overlap]: tags
+          }
+        },
+        limit,
+        order: [['created_at', 'DESC']],
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar']
+          }
+        ]
+      });
+      
+      logger.debug('Courses by tags retrieved', { tags, count: courses.length });
+      return courses;
+    } catch (error) {
+      logger.error('Error getting courses by tags:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update course status
+   */
+  async updateStatus(courseId: string, status: CourseTypes.CourseStatus): Promise<any> {
+    try {
+      logger.debug('Updating course status', { courseId, status });
+      
+      const course = await this.update(courseId, { status });
+      
+      logger.debug('Course status updated', { courseId, status });
+      return course;
+    } catch (error) {
+      logger.error('Error updating course status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get course analytics
+   */
+  async getCourseAnalytics(courseId: string): Promise<CourseTypes.CourseAnalytics> {
+    try {
+      logger.debug('Getting course analytics', { courseId });
+      
+      // TODO: Implement detailed analytics
+      // For now, return basic structure
+      const analytics: CourseTypes.CourseAnalytics = {
+        enrollment_trends: [],
+        completion_rates: [],
+        student_engagement: [],
+        popular_content: []
       };
-    } catch (error: unknown) {
-      logger.error('Error finding students by course:', error);
+      
+      logger.debug('Course analytics retrieved', { courseId });
+      return analytics;
+    } catch (error) {
+      logger.error('Error getting course analytics:', error);
       throw error;
     }
   }
 }
-

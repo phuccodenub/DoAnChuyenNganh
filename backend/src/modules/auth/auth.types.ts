@@ -1,10 +1,11 @@
 // Auth module types
 export interface LoginCredentials {
-  email: string;
+  username: string;
   password: string;
 }
 
 export interface RegisterData {
+  username: string;
   email: string;
   password: string;
   first_name: string;
@@ -25,6 +26,7 @@ export interface ChangePasswordData {
 
 export interface UserProfile {
   id: string;
+  username: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -33,7 +35,7 @@ export interface UserProfile {
   avatar?: string;
   role: 'student' | 'instructor' | 'admin' | 'super_admin';
   status: 'active' | 'inactive' | 'suspended' | 'pending';
-  is_email_verified: boolean;
+  email_verified: boolean;
   email_verified_at?: Date;
   token_version: number;
   last_login?: Date;

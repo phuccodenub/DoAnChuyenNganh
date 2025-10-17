@@ -7,7 +7,7 @@ async function resetDatabase() {
     'postgresql://lms_user:123456@localhost:5432/lms_db',
     {
       dialect: 'postgres',
-      logging: (msg) => logger.debug(msg),
+      logging: (msg: any) => logger.debug(msg),
       pool: { max: 5, min: 0, acquire: 30000, idle: 10000 },
       retry: { max: 3 },
       define: { underscored: true, freezeTableName: true, timestamps: true, paranoid: false },

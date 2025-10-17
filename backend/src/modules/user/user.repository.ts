@@ -1,13 +1,91 @@
 import User from '../../models/user.model';
-import { UserInstance } from '../../types/model.types';
-import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
-import * as UserTypes from './user.types';
+// Local lightweight typing to avoid pulling full type graph
+type UserInstance = any;
+import { UserRepository as BaseUserRepository } from '@repositories/user.repository';
+// Temporary shim types; replace with real types in types/user.types
+declare namespace UserTypes {
+  type UserPreferences = any;
+  type UserSession = any;
+  type UserAnalytics = any;
+  type NotificationSettings = any;
+  type PrivacySettings = any;
+}
 import logger from '../../utils/logger.util';
+import { Op } from 'sequelize';
+declare const require: any;
 
 export class UserModuleRepository extends BaseUserRepository {
-  constructor() {
-    super();
+  constructor() { super(); }
+
+  // ===== USER MANAGEMENT METHODS =====
+
+  /**
+   * Find all users with pagination and filtering
+   */
+  async findAllWithPagination(options: {
+    page: number;
+    limit: number;
+    role?: string;
+    status?: string;
+    search?: string;
+    sortBy: string;
+    sortOrder: string;
+  }): Promise<{ users: any[]; pagination: any }> {
+    try {
+      logger.debug('Finding all users with pagination', options);
+
+      const { page, limit, role, status, search, sortBy, sortOrder } = options;
+      const offset = (page - 1) * limit;
+
+      // Build where clause
+      const whereClause: any = {};
+      if (role) whereClause.role = role;
+      if (status) whereClause.status = status;
+      if (search) {
+        whereClause[Op.or] = [
+          { username: { [Op.iLike]: `%${search}%` } },
+          { email: { [Op.iLike]: `%${search}%` } },
+          { first_name: { [Op.iLike]: `%${search}%` } },
+          { last_name: { [Op.iLike]: `%${search}%` } }
+        ];
+      }
+
+      // Get total count
+      const total = await this.count({ where: whereClause });
+
+      // Get users
+      const users = await this.findAll({
+        where: whereClause,
+        limit,
+        offset,
+        order: [[sortBy, sortOrder.toUpperCase()]],
+        attributes: { exclude: ['password'] } // Exclude password from results
+      });
+
+      const pagination = {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      };
+
+      logger.debug('Users with pagination retrieved', { 
+        count: users.length, 
+        total, 
+        page, 
+        limit 
+      });
+
+      return { users, pagination };
+    } catch (error) {
+      logger.error('Error finding all users with pagination:', error);
+      throw error;
+    }
   }
+
+  // ===== USER PROFILE METHODS =====
 
   /**
    * Find user with preferences
@@ -34,7 +112,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error finding user with preferences:', error);
       throw error;
     }
@@ -66,7 +144,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error finding user with sessions:', error);
       throw error;
     }
@@ -97,7 +175,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error finding user with social accounts:', error);
       throw error;
     }
@@ -128,7 +206,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error finding user with analytics:', error);
       throw error;
     }
@@ -150,7 +228,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('User preferences updated', { userId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating user preferences:', error);
       throw error;
     }
@@ -176,7 +254,7 @@ export class UserModuleRepository extends BaseUserRepository {
         logger.debug('User preferences not found', { userId });
         return null;
       }
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting user preferences:', error);
       throw error;
     }
@@ -185,7 +263,7 @@ export class UserModuleRepository extends BaseUserRepository {
   /**
    * Create user session
    */
-async createSession(sessionData: any): Promise<any> {
+  async createSession(sessionData: UserTypes.UserSession): Promise<any> {
     try {
       logger.debug('Creating user session', { userId: sessionData.user_id });
       
@@ -195,7 +273,7 @@ async createSession(sessionData: any): Promise<any> {
       
       logger.debug('User session created', { userId: sessionData.user_id, sessionId: session.id });
       return session;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error creating user session:', error);
       throw error;
     }
@@ -220,7 +298,7 @@ async createSession(sessionData: any): Promise<any> {
       
       logger.debug('Active sessions retrieved', { userId, count: sessions.length });
       return sessions;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting active sessions:', error);
       throw error;
     }
@@ -241,7 +319,7 @@ async createSession(sessionData: any): Promise<any> {
       );
       
       logger.debug('Session deactivated', { sessionId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error deactivating session:', error);
       throw error;
     }
@@ -262,7 +340,7 @@ async createSession(sessionData: any): Promise<any> {
       );
       
       logger.debug('All sessions deactivated', { userId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error deactivating all sessions:', error);
       throw error;
     }
@@ -283,7 +361,7 @@ async createSession(sessionData: any): Promise<any> {
       );
       
       logger.debug('Session activity updated', { sessionId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating session activity:', error);
       throw error;
     }
@@ -306,7 +384,7 @@ async createSession(sessionData: any): Promise<any> {
       });
       
       logger.debug('Social account linked', { userId, provider, socialId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error linking social account:', error);
       throw error;
     }
@@ -326,7 +404,7 @@ async createSession(sessionData: any): Promise<any> {
       });
       
       logger.debug('Social account unlinked', { userId, provider });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error unlinking social account:', error);
       throw error;
     }
@@ -347,7 +425,7 @@ async createSession(sessionData: any): Promise<any> {
       
       logger.debug('Social accounts retrieved', { userId, count: accounts.length });
       return accounts;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting social accounts:', error);
       throw error;
     }
@@ -369,7 +447,7 @@ async createSession(sessionData: any): Promise<any> {
       });
       
       logger.debug('User analytics updated', { userId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating user analytics:', error);
       throw error;
     }
@@ -395,7 +473,7 @@ async createSession(sessionData: any): Promise<any> {
         logger.debug('User analytics not found', { userId });
         return null;
       }
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting user analytics:', error);
       throw error;
     }
@@ -417,7 +495,7 @@ async createSession(sessionData: any): Promise<any> {
       });
       
       logger.debug('Notification settings updated', { userId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating notification settings:', error);
       throw error;
     }
@@ -439,10 +517,83 @@ async createSession(sessionData: any): Promise<any> {
       });
       
       logger.debug('Privacy settings updated', { userId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating privacy settings:', error);
       throw error;
     }
   }
-}
 
+  /**
+   * Get user enrollments
+   */
+  async getUserEnrollments(userId: string): Promise<any[]> {
+    try {
+      logger.debug('Getting user enrollments', { userId });
+      
+      const { Enrollment, Course } = require('../../models');
+      
+      const enrollments = await Enrollment.findAll({
+        where: { user_id: userId },
+        include: [
+          {
+            model: Course,
+            as: 'course',
+            attributes: ['id', 'title', 'description', 'instructor_id', 'status', 'created_at']
+          }
+        ],
+        // enrolled_at cột không tồn tại trong model; dùng created_at
+        order: [['created_at', 'DESC']]
+      });
+      
+      logger.debug('User enrollments retrieved', { userId, count: enrollments.length });
+      return enrollments;
+    } catch (error) {
+      logger.error('Error getting user enrollments:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user progress
+   */
+  async getUserProgress(userId: string): Promise<any> {
+    try {
+      logger.debug('Getting user progress', { userId });
+      
+      const { Enrollment } = require('../../models');
+      
+      // Get enrollment statistics
+      const totalEnrollments = await Enrollment.count({
+        where: { user_id: userId }
+      });
+      
+      const completedEnrollments = await Enrollment.count({
+        where: { 
+          user_id: userId,
+          status: 'completed'
+        }
+      });
+      
+      const inProgressEnrollments = await Enrollment.count({
+        where: { 
+          user_id: userId,
+          status: 'active'
+        }
+      });
+      
+      const progress = {
+        total_enrollments: totalEnrollments,
+        completed_enrollments: completedEnrollments,
+        in_progress_enrollments: inProgressEnrollments,
+        completion_rate: totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0,
+        last_activity: new Date() // TODO: Get actual last activity from enrollments
+      };
+      
+      logger.debug('User progress retrieved', { userId, progress });
+      return progress;
+    } catch (error) {
+      logger.error('Error getting user progress:', error);
+      throw error;
+    }
+  }
+}

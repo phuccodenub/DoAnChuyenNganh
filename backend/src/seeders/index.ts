@@ -28,7 +28,7 @@ export const seeders: Seeder[] = [
     description: 'Seed users',
     up: seedUsers,
     down: async (sequelize: Sequelize) => {
-      await sequelize.query('DELETE FROM users WHERE email LIKE "%@example.com"');
+      await sequelize.query('DELETE FROM users WHERE email LIKE \'%@example.com\'');
     }
   },
   {
@@ -36,7 +36,7 @@ export const seeders: Seeder[] = [
     description: 'Seed courses',
     up: seedCourses,
     down: async (sequelize: Sequelize) => {
-      await sequelize.query('DELETE FROM courses WHERE title LIKE "Sample Course%"');
+      await sequelize.query('DELETE FROM courses WHERE title LIKE \'Sample Course%\'');
     }
   },
   {
@@ -52,7 +52,7 @@ export const seeders: Seeder[] = [
     description: 'Seed chat messages',
     up: seedChatMessages,
     down: async (sequelize: Sequelize) => {
-      await sequelize.query('DELETE FROM chat_messages WHERE content LIKE "Sample message%"');
+      await sequelize.query('DELETE FROM chat_messages WHERE content LIKE \'Sample message%\'');
     }
   }
 ];

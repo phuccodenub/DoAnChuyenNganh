@@ -6,6 +6,7 @@ export class CacheService {
   // Set cache with TTL
   async set(key: string, value: any, ttl: number = APP_CONSTANTS.SYSTEM.CACHE_TTL.MEDIUM): Promise<void> {
     try {
+      if (process.env.NODE_ENV === 'test') return; // disable redis in tests
       const serializedValue = JSON.stringify(value);
       await redisHelpers.set(key, serializedValue, ttl);
     } catch (error: unknown) {
@@ -17,6 +18,7 @@ export class CacheService {
   // Get cache
   async get<T>(key: string): Promise<T | null> {
     try {
+      if (process.env.NODE_ENV === 'test') return null; // disable redis in tests
       const value = await redisHelpers.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error: unknown) {
@@ -28,6 +30,7 @@ export class CacheService {
   // Delete cache
   async delete(key: string): Promise<void> {
     try {
+      if (process.env.NODE_ENV === 'test') return; // disable redis in tests
       await redisHelpers.del(key);
     } catch (error: unknown) {
       logger.error('Cache delete error:', error);
@@ -38,6 +41,7 @@ export class CacheService {
   // Check if key exists
   async exists(key: string): Promise<boolean> {
     try {
+      if (process.env.NODE_ENV === 'test') return false; // disable redis in tests
       return await redisHelpers.exists(key);
     } catch (error: unknown) {
       logger.error('Cache exists error:', error);

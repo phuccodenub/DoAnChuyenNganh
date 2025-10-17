@@ -4,13 +4,13 @@
  */
 
 import { BaseError, BaseErrorOptions } from './base.error';
-import { ErrorCode, ErrorSeverity } from './error.constants';
+import { ErrorCode, HttpStatusCode, ErrorType, ErrorSeverity } from './error.constants';
 
 export interface ExternalServiceErrorOptions extends BaseErrorOptions {
   serviceName?: string;
   endpoint?: string;
   method?: string;
-  serviceStatusCode?: number; // HTTP status code returned by the external service
+  httpStatusCode?: number;
   responseTime?: number;
   retryCount?: number;
   maxRetries?: number;
@@ -22,7 +22,7 @@ export class ExternalServiceError extends BaseError {
   public readonly serviceName?: string;
   public readonly endpoint?: string;
   public readonly method?: string;
-  public readonly serviceStatusCode?: number;
+  public readonly httpStatusCode?: number;
   public readonly responseTime?: number;
   public readonly retryCount?: number;
   public readonly maxRetries?: number;
@@ -38,7 +38,6 @@ export class ExternalServiceError extends BaseError {
       serviceName,
       endpoint,
       method,
-      serviceStatusCode,
       responseTime,
       retryCount,
       maxRetries,
@@ -58,7 +57,7 @@ export class ExternalServiceError extends BaseError {
     this.serviceName = serviceName;
     this.endpoint = endpoint;
     this.method = method;
-    this.serviceStatusCode = serviceStatusCode;
+    (this as any).statusCode = statusCode;
     this.responseTime = responseTime;
     this.retryCount = retryCount;
     this.maxRetries = maxRetries;
@@ -69,7 +68,7 @@ export class ExternalServiceError extends BaseError {
     if (serviceName) this.addContext('serviceName', serviceName);
     if (endpoint) this.addContext('endpoint', endpoint);
     if (method) this.addContext('method', method);
-    if (serviceStatusCode) this.addContext('serviceStatusCode', serviceStatusCode);
+    if (statusCode) this.addContext('httpStatusCode', statusCode);
     if (responseTime) this.addContext('responseTime', responseTime);
     if (retryCount) this.addContext('retryCount', retryCount);
     if (maxRetries) this.addContext('maxRetries', maxRetries);
@@ -88,7 +87,7 @@ export class ExternalServiceError extends BaseError {
     return new ExternalServiceError({
       code: 'EXTERNAL_SERVICE_UNAVAILABLE',
       message: `External service '${serviceName}' is unavailable`,
-      statusCode: 503,
+      statusCode: 503 as any,
       type: 'EXTERNAL_SERVICE',
       severity: 'HIGH',
       serviceName,
@@ -108,7 +107,7 @@ export class ExternalServiceError extends BaseError {
     return new ExternalServiceError({
       code: 'EXTERNAL_SERVICE_TIMEOUT',
       message: `External service '${serviceName}' timeout after ${timeout}ms`,
-      statusCode: 504,
+      statusCode: 504 as any,
       type: 'EXTERNAL_SERVICE',
       severity: 'HIGH',
       serviceName,
@@ -122,17 +121,16 @@ export class ExternalServiceError extends BaseError {
    */
   static invalidResponse(
     serviceName: string,
-    serviceStatusCode: number,
+    statusCode: number,
     endpoint?: string
   ): ExternalServiceError {
     return new ExternalServiceError({
       code: 'EXTERNAL_SERVICE_INVALID_RESPONSE',
       message: `Invalid response from external service '${serviceName}'`,
-      statusCode: 502,
+      statusCode: 502 as any,
       type: 'EXTERNAL_SERVICE',
       severity: 'HIGH',
       serviceName,
-      serviceStatusCode,
       endpoint
     });
   }
@@ -142,18 +140,17 @@ export class ExternalServiceError extends BaseError {
    */
   static emailServiceFailed(
     endpoint?: string,
-    serviceStatusCode?: number,
+    statusCode?: number,
     details?: Record<string, any>
   ): ExternalServiceError {
     return new ExternalServiceError({
       code: 'EMAIL_SERVICE_FAILED',
       message: 'Email service failed',
-      statusCode: 503,
+      statusCode: 503 as any,
       type: 'EXTERNAL_SERVICE',
       severity: 'HIGH',
       serviceName: 'email',
       endpoint,
-      serviceStatusCode,
       details
     });
   }
@@ -163,18 +160,17 @@ export class ExternalServiceError extends BaseError {
    */
   static smsServiceFailed(
     endpoint?: string,
-    serviceStatusCode?: number,
+    statusCode?: number,
     details?: Record<string, any>
   ): ExternalServiceError {
     return new ExternalServiceError({
       code: 'SMS_SERVICE_FAILED',
       message: 'SMS service failed',
-      statusCode: 503,
+      statusCode: 503 as any,
       type: 'EXTERNAL_SERVICE',
       severity: 'HIGH',
       serviceName: 'sms',
       endpoint,
-      serviceStatusCode,
       details
     });
   }
@@ -184,18 +180,17 @@ export class ExternalServiceError extends BaseError {
    */
   static paymentServiceFailed(
     endpoint?: string,
-    serviceStatusCode?: number,
+    statusCode?: number,
     details?: Record<string, any>
   ): ExternalServiceError {
     return new ExternalServiceError({
       code: 'PAYMENT_FAILED',
       message: 'Payment service failed',
-      statusCode: 503,
+      statusCode: 503 as any,
       type: 'EXTERNAL_SERVICE',
       severity: 'HIGH',
       serviceName: 'payment',
       endpoint,
-      serviceStatusCode,
       details
     });
   }
@@ -205,7 +200,7 @@ export class ExternalServiceError extends BaseError {
    */
   static fromHttpError(
     serviceName: string,
-    serviceStatusCode: number,
+    statusCode: number,
     message: string,
     endpoint?: string,
     method?: string
@@ -213,13 +208,13 @@ export class ExternalServiceError extends BaseError {
     let errorCode: ErrorCode = 'EXTERNAL_SERVICE_UNAVAILABLE';
     let severity: ErrorSeverity = 'HIGH';
 
-    if (serviceStatusCode >= 500) {
+    if (statusCode >= 500) {
       errorCode = 'EXTERNAL_SERVICE_UNAVAILABLE';
       severity = 'HIGH';
-    } else if (serviceStatusCode === 408 || serviceStatusCode === 504) {
+    } else if (statusCode === 408 || statusCode === 504) {
       errorCode = 'EXTERNAL_SERVICE_TIMEOUT';
       severity = 'HIGH';
-    } else if (serviceStatusCode >= 400) {
+    } else if (statusCode >= 400) {
       errorCode = 'EXTERNAL_SERVICE_INVALID_RESPONSE';
       severity = 'MEDIUM';
     }
@@ -227,13 +222,12 @@ export class ExternalServiceError extends BaseError {
     return new ExternalServiceError({
       code: errorCode,
       message: `External service '${serviceName}' error: ${message}`,
-      statusCode: 502,
+      statusCode: 502 as any,
       type: 'EXTERNAL_SERVICE',
       severity,
       serviceName,
       endpoint,
-      method,
-      serviceStatusCode
+      method
     });
   }
 
@@ -246,7 +240,7 @@ export class ExternalServiceError extends BaseError {
       serviceName: this.serviceName,
       endpoint: this.endpoint,
       method: this.method,
-      serviceStatusCode: this.serviceStatusCode,
+      statusCode: this.httpStatusCode,
       responseTime: this.responseTime,
       retryCount: this.retryCount,
       maxRetries: this.maxRetries,
@@ -255,4 +249,3 @@ export class ExternalServiceError extends BaseError {
     };
   }
 }
-

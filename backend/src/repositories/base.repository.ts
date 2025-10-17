@@ -5,9 +5,9 @@ import logger from '../utils/logger.util';
  * Base repository class providing common CRUD operations
  * All repositories should extend this class
  */
-export abstract class BaseRepository<T extends Model> {
+export abstract class BaseRepository<T = any> {
   protected modelName: string;
-  protected model: ModelCtor<T> | null = null;
+  protected model: any | null = null;
 
   constructor(modelName: string) {
     this.modelName = modelName;
@@ -17,12 +17,12 @@ export abstract class BaseRepository<T extends Model> {
    * Get the model instance
    * This method should be implemented by subclasses
    */
-  protected abstract getModel(): ModelCtor<T>;
+  protected abstract getModel(): any;
 
   /**
    * Get model instance with lazy loading
    */
-  private getModelInstance(): ModelCtor<T> {
+  private getModelInstance(): any {
     if (!this.model) {
       this.model = this.getModel();
     }
@@ -32,7 +32,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Create a new record
    */
-  async create(data: any, options?: CreateOptions): Promise<T> {
+  async create(data: any, options?: any): Promise<T> {
     try {
       logger.debug(`Creating ${this.modelName}`, { data });
       
@@ -50,7 +50,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find a record by primary key
    */
-  async findById(id: string | number, options?: FindOptions): Promise<T | null> {
+  async findById(id: string | number, options?: any): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName} by ID`, { id });
       
@@ -73,7 +73,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find a single record by conditions
    */
-  async findOne(options: FindOptions): Promise<T | null> {
+  async findOne(options: any): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName}`, { options });
       
@@ -96,7 +96,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find all records
    */
-  async findAll(options?: FindOptions): Promise<T[]> {
+  async findAll(options?: any): Promise<T[]> {
     try {
       logger.debug(`Finding all ${this.modelName}`, { options });
       
@@ -114,7 +114,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find and count records with pagination
    */
-  async findAndCountAll(options?: FindOptions): Promise<{ count: number; rows: T[] }> {
+  async findAndCountAll(options?: any): Promise<{ count: number; rows: T[] }> {
     try {
       logger.debug(`Finding and counting ${this.modelName}`, { options });
       
@@ -132,7 +132,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Update a record by primary key
    */
-  async update(id: string | number, data: any, options?: UpdateOptions): Promise<T> {
+  async update(id: string | number, data: any, options?: any): Promise<T> {
     try {
       logger.debug(`Updating ${this.modelName}`, { id, data });
       
@@ -162,7 +162,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Delete a record by primary key
    */
-  async delete(id: string | number, options?: DestroyOptions): Promise<void> {
+  async delete(id: string | number, options?: any): Promise<void> {
     try {
       logger.debug(`Deleting ${this.modelName}`, { id });
       
@@ -186,7 +186,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Count records
    */
-  async count(options?: FindOptions): Promise<number> {
+  async count(options?: any): Promise<number> {
     try {
       logger.debug(`Counting ${this.modelName}`, { options });
       
@@ -223,7 +223,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find records by field
    */
-  async findByField(field: string, value: any, options?: FindOptions): Promise<T[]> {
+  async findByField(field: string, value: any, options?: any): Promise<T[]> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
@@ -244,7 +244,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find a single record by field
    */
-  async findOneByField(field: string, value: any, options?: FindOptions): Promise<T | null> {
+  async findOneByField(field: string, value: any, options?: any): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
@@ -337,7 +337,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Get paginated results
    */
-  async paginate(page: number, limit: number, options?: FindOptions): Promise<{
+  async paginate(page: number, limit: number, options?: any): Promise<{
     data: T[];
     pagination: {
       page: number;

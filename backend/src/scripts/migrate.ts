@@ -162,7 +162,7 @@ async function main(): Promise<void> {
 
 // Handle unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
   process.exit(1);
 });
 
