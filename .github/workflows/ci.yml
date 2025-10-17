@@ -48,6 +48,17 @@ jobs:
       - name: Build (hard-fail)
         run: npm run build
 
+      - name: Setup database
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: lms_test
+          DB_DIALECT: postgres
+        run: npm run setup-db-simple
+
       - name: Run e2e tests (hard-fail)
         env:
           NODE_ENV: test
