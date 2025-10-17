@@ -157,20 +157,20 @@ export class ErrorFactory {
       
       if (statusCode === 404) {
         // Use generic not found error, preserve statusCode
-        errorCode = 'USER_NOT_FOUND' as any; // Use as any to allow flexibility
+        errorCode = 'DATABASE_RECORD_NOT_FOUND';
         severity = 'LOW';
       } else if (statusCode === 409) {
         // Use database duplicate as conflict indicator
         errorCode = 'DATABASE_DUPLICATE_ENTRY';
         severity = 'MEDIUM';
       } else if (statusCode === 400) {
-        errorCode = 'VALIDATION_ERROR';
+        errorCode = 'VALIDATION_FAILED';
         severity = 'LOW';
       } else if (statusCode === 401) {
-        errorCode = 'UNAUTHORIZED';
+        errorCode = 'AUTH_TOKEN_INVALID';
         severity = 'MEDIUM';
       } else if (statusCode === 403) {
-        errorCode = 'FORBIDDEN';
+        errorCode = 'AUTH_INSUFFICIENT_PERMISSIONS';
         severity = 'MEDIUM';
       }
       
