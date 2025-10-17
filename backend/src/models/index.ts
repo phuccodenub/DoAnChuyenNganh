@@ -11,7 +11,7 @@ import Enrollment from './enrollment.model';
 import ChatMessage from './chat-message.model';
 
 // Define associations
-const models = {
+const models: { [key: string]: any } = {
   User,
   Course,
   Enrollment,
@@ -19,7 +19,7 @@ const models = {
 };
 
 // Call associate methods
-Object.keys(models).forEach(modelName => {
+Object.keys(models).forEach((modelName: string) => {
   if (models[modelName].associate) {
     models[modelName].associate(models);
   }

@@ -192,7 +192,7 @@ export class CacheInvalidationManager {
    */
   public async invalidateByPattern(pattern: string, reason?: string): Promise<void> {
     try {
-      const keys = await this.cacheStrategy.getKeysByPattern(pattern);
+      const keys = this.cacheStrategy ? await (this.cacheStrategy as any).getKeysByPattern(pattern) : [];
       
       if (keys.length > 0) {
         await this.cacheStrategy.mdel(keys);
@@ -213,7 +213,7 @@ export class CacheInvalidationManager {
     } catch (error) {
       logger.error('Cache invalidation by pattern failed', {
         pattern,
-        error: error.message,
+        error: (error as Error).message,
         reason
       });
       throw error;
@@ -230,7 +230,7 @@ export class CacheInvalidationManager {
       for (const tagName of tags) {
         const tag = this.cacheTags.get(tagName);
         if (tag) {
-          const keys = await this.cacheStrategy.getKeysByPattern(tag.pattern);
+          const keys = this.cacheStrategy ? await (this.cacheStrategy as any).getKeysByPattern(tag.pattern) : [];
           keysToDelete.push(...keys);
         }
       }
@@ -256,7 +256,7 @@ export class CacheInvalidationManager {
     } catch (error) {
       logger.error('Cache invalidation by tags failed', {
         tags,
-        error: error.message,
+        error: (error as Error).message,
         reason
       });
       throw error;
@@ -272,7 +272,7 @@ export class CacheInvalidationManager {
       const keysToDelete: string[] = [];
 
       for (const pattern of patterns) {
-        const keys = await this.cacheStrategy.getKeysByPattern(pattern);
+        const keys = this.cacheStrategy ? await (this.cacheStrategy as any).getKeysByPattern(pattern) : [];
         keysToDelete.push(...keys);
       }
 
@@ -314,7 +314,7 @@ export class CacheInvalidationManager {
         entity,
         entityId,
         operation,
-        error: error.message
+        error: (error as Error).message
       });
       throw error;
     }
@@ -342,7 +342,7 @@ export class CacheInvalidationManager {
         entity,
         entityId,
         operation,
-        error: error.message
+        error: (error as Error).message
       });
       throw error;
     }
@@ -376,7 +376,7 @@ export class CacheInvalidationManager {
         }
       }
     } catch (error) {
-      logger.error('Invalidation queue processing failed', { error: error.message });
+      logger.error('Invalidation queue processing failed', { error: (error as Error).message });
     } finally {
       this.processingQueue = false;
     }
@@ -408,7 +408,7 @@ export class CacheInvalidationManager {
     } catch (error) {
       logger.error('Invalidation event processing failed', {
         event,
-        error: error.message
+        error: (error as Error).message
       });
     }
   }
@@ -484,7 +484,7 @@ export class CacheInvalidationManager {
 
       logger.info('All cache cleared');
     } catch (error) {
-      logger.error('Clear all cache failed', { error: error.message });
+      logger.error('Clear all cache failed', { error: (error as Error).message });
       throw error;
     }
   }
@@ -546,7 +546,7 @@ export class CacheInvalidationManager {
   public async warmUpCache(patterns: string[]): Promise<void> {
     try {
       for (const pattern of patterns) {
-        const keys = await this.cacheStrategy.getKeysByPattern(pattern);
+        const keys = this.cacheStrategy ? await (this.cacheStrategy as any).getKeysByPattern(pattern) : [];
         
         this.metricsService.incrementCounter('cache_warmup_total', {
           pattern,
@@ -556,7 +556,7 @@ export class CacheInvalidationManager {
         logger.info('Cache warmed up for pattern', { pattern, keysCount: keys.length });
       }
     } catch (error) {
-      logger.error('Cache warm up failed', { patterns, error: error.message });
+      logger.error('Cache warm up failed', { patterns, error: (error as Error).message });
       throw error;
     }
   }

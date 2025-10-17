@@ -101,7 +101,7 @@ export class ErrorUtils {
       };
 
       if (includeStack) {
-        formatted.stack = error.stack;
+        (formatted as any).stack = (error as any).stack;
       }
 
       return formatted;
@@ -116,7 +116,7 @@ export class ErrorUtils {
     };
 
     if (includeStack) {
-      formatted.stack = error.stack;
+      (formatted as any).stack = (error as any).stack;
     }
 
     return formatted;

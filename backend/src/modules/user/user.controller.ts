@@ -209,7 +209,12 @@ export class UserModuleController {
   async disableTwoFactor(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-      await this.userModuleService.disableTwoFactor(userId);
+      const code = (req.body && (req.body.code as string)) || '';
+      if (!code) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST).json({ success: false, message: 'Verification code is required' });
+        return;
+      }
+      await this.userModuleService.disableTwoFactor(userId, code);
       
       responseUtils.sendSuccess(res, 'Two-factor authentication disabled', null);
     } catch (error) {

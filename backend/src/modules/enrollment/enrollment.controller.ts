@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { EnrollmentService } from './enrollment.service';
 import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
-import { EnrollmentTypes } from './enrollment.types';
+import * as EnrollmentTypes from '../../types/enrollment.types';
 
 export class EnrollmentController {
   private enrollmentService: EnrollmentService;
@@ -38,7 +38,7 @@ export class EnrollmentController {
         limit: parseInt(queryData.limit as string) || 10,
         user_id: queryData.user_id as string,
         course_id: queryData.course_id as string,
-        status: queryData.status as EnrollmentTypes.EnrollmentInstance['status'],
+        status: queryData.status as any,
         search: queryData.search as string,
         sortBy: (queryData.sort as string) || 'created_at',
         sortOrder: (queryData.order as 'ASC' | 'DESC') || 'DESC',

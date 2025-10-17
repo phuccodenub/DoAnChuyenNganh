@@ -26,7 +26,7 @@ export class ErrorFactory {
     return new ApiError({
       code,
       message,
-      statusCode,
+      statusCode: statusCode as any,
       details
     });
   }
@@ -220,7 +220,7 @@ export class ErrorFactory {
     return new ApiError({
       code,
       message,
-      statusCode,
+      statusCode: statusCode as any,
       type: 'SYSTEM',
       severity,
       context

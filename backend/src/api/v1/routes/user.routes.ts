@@ -3,10 +3,10 @@
  * Version 1.0.0 - 1.2.0 compatible
  */
 
-import { Router } from 'express';
+import express from 'express';
 import { userModuleRoutes as v1UserRoutes } from '../../../modules/user';
 
-const router = Router();
+const router = express.Router();
 
 // Mount v1 user routes
 router.use('/', v1UserRoutes);

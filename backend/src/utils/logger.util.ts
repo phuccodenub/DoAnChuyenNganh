@@ -1,8 +1,13 @@
 import winston from 'winston';
 import path from 'path';
+import { context, trace } from '@opentelemetry/api';
 
 // Extend Winston Logger interface
-interface CustomLogger extends winston.Logger {
+interface CustomLogger {
+  info: (message: string, meta?: any) => void;
+  warn: (message: string, meta?: any) => void;
+  error: (message: string, meta?: any) => void;
+  debug: (message: string, meta?: any) => void;
   logError: (message: string, error?: Error) => void;
   logInfo: (message: string, meta?: any) => void;
   logWarning: (message: string, meta?: any) => void;
@@ -12,8 +17,9 @@ interface CustomLogger extends winston.Logger {
 // Logger utility functions
 export interface LoggerOptions {
   level?: string;
-  format?: winston.Logform.Format;
-  transports?: winston.transport[];
+  // Loosen types to avoid coupling to winston type namespace
+  format?: any;
+  transports?: any[];
   silent?: boolean;
 }
 
@@ -24,6 +30,28 @@ export interface LogEntry {
   metadata?: any;
 }
 
+// Get tracing context for correlation
+function getTracingContext() {
+  try {
+    const span = trace.getActiveSpan();
+    if (span) {
+      const spanContext = span.spanContext();
+      return {
+        traceId: spanContext.traceId,
+        spanId: spanContext.spanId,
+        traceFlags: spanContext.traceFlags
+      };
+    }
+  } catch (error) {
+    // Ignore tracing errors
+  }
+  return {
+    traceId: undefined,
+    spanId: undefined,
+    traceFlags: undefined
+  };
+}
+
 // Log format configuration
 const logFormat = winston.format.combine(
   winston.format.timestamp({
@@ -31,7 +59,14 @@ const logFormat = winston.format.combine(
   }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
-  winston.format.prettyPrint()
+  winston.format.printf((info: any) => {
+    const tracingContext = getTracingContext();
+    return JSON.stringify({
+      ...info,
+      traceId: tracingContext.traceId,
+      spanId: tracingContext.spanId
+    });
+  })
 );
 
 // Console format for development
@@ -40,10 +75,12 @@ const consoleFormat = winston.format.combine(
   winston.format.timestamp({
     format: 'YYYY-MM-DD HH:mm:ss'
   }),
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+  winston.format.printf(({ timestamp, level, message, ...meta }: any) => {
+    const tracingContext = getTracingContext();
+    const traceInfo = tracingContext.traceId ? ` traceId=${tracingContext.traceId} spanId=${tracingContext.spanId}` : '';
     return `${timestamp} [${level}]: ${message} ${
       Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
-    }`;
+    }${traceInfo}`;
   })
 );
 
@@ -83,7 +120,23 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Helper functions for different log levels
-const customLogger = logger as CustomLogger;
+const customLogger: CustomLogger = logger as unknown as CustomLogger;
+
+function attachCorrelation(meta: any = {}): any {
+  try {
+    const span = trace.getSpan(context.active());
+    const spanContext = span?.spanContext();
+    const traceId = spanContext?.traceId;
+    const spanId = spanContext?.spanId;
+    const enriched = { ...meta } as any;
+    if (traceId) enriched.traceId = traceId;
+    if (spanId) enriched.spanId = spanId;
+    // requestId may be injected by upstream middleware into meta
+    return enriched;
+  } catch {
+    return meta;
+  }
+}
 
 customLogger.logError = (message: string, error?: Error) => {
   if (error) {
@@ -94,21 +147,21 @@ customLogger.logError = (message: string, error?: Error) => {
 };
 
 customLogger.logInfo = (message: string, meta: any = {}) => {
-  logger.info(message, meta);
+  logger.info(message, attachCorrelation(meta));
 };
 
 customLogger.logWarning = (message: string, meta: any = {}) => {
-  logger.warn(message, meta);
+  logger.warn(message, attachCorrelation(meta));
 };
 
 customLogger.logDebug = (message: string, meta: any = {}) => {
-  logger.debug(message, meta);
+  logger.debug(message, attachCorrelation(meta));
 };
 
 // Export logger utilities
 export const loggerUtils = {
   // Create logger instance
-  createLogger(options: LoggerOptions = {}): winston.Logger {
+  createLogger(options: LoggerOptions = {}): any {
     const {
       level = 'info',
       format = winston.format.combine(
@@ -138,7 +191,7 @@ export const loggerUtils = {
   // Format log message
   formatMessage(level: string, message: string, metadata?: any): string {
     const timestamp = new Date().toISOString();
-    const metaStr = metadata ? ` ${JSON.stringify(metadata)}` : '';
+    const metaStr = metadata ? ` ${JSON.stringify(attachCorrelation(metadata))}` : '';
     return `[${timestamp}] [${level.toUpperCase()}]: ${message}${metaStr}`;
   },
 

@@ -147,7 +147,7 @@ export class CourseController {
       const userId = (req as any).user.userId;
       
       // Update course status to draft
-      const course = await this.courseService.updateCourse(courseId, { status: 'draft' }, userId);
+      const course = await this.courseService.updateCourse(courseId, { status: 'draft' } as any, userId);
       responseUtils.sendSuccess(res, 'Course unpublished successfully', course);
     } catch (error) {
       logger.error('Error unpublishing course:', error);

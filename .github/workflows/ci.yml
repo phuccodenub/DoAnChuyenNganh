@@ -9,7 +9,6 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    continue-on-error: true
     defaults:
       run:
         working-directory: backend
@@ -27,42 +26,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check (lint) - skip for now
-        run: echo "Skipping type check due to existing TS errors"
+      - name: Type check (hard-fail)
+        run: npm run lint
 
-      - name: Build - skip for now  
-        run: echo "Skipping build due to existing TS errors"
+      - name: Build (hard-fail)
+        run: npm run build
 
-      - name: Run e2e tests (soft)
+      - name: Run e2e tests (hard-fail)
         env:
           NODE_ENV: test
-        run: npm run test:e2e || true
-      - name: Note backend job is soft (non-blocking)
-        run: echo "Backend job is soft for now; failing tests won't block merge."
+        run: npm run test:e2e
 
-  typecheck_soft:
-    name: Type-check (soft-fail)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Type check (tsc --noEmit)
-        run: npm run lint
-        continue-on-error: true
   monitoring_hardfail:
     name: TS hard-fail (monitoring)
     runs-on: ubuntu-latest
@@ -177,6 +151,29 @@ jobs:
 
       - name: Type check shared (hard-fail)
         run: npm run lint:shared
+
+  auth_hardfail:
+    name: TS hard-fail (auth)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check auth (hard-fail)
+        run: npm run lint:auth
 
   enrollments_hardfail:
     name: TS hard-fail (enrollments)

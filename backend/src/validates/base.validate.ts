@@ -72,9 +72,7 @@ export const baseValidation = {
   /**
    * Date validation
    */
-  date: z.string()
-    .refine((date) => validatorsUtils.isDate(date), 'Invalid date format')
-    .optional(),
+  date: z.coerce.date().optional(),
   
   /**
    * Gender validation
@@ -119,7 +117,7 @@ export const baseValidation = {
       .min(1, 'Search term cannot be empty')
       .max(100, 'Search term must be less than 100 characters')
       .optional(),
-    filters: z.record(z.any())
+    filters: z.record(z.string(), z.any())
       .optional()
   }),
 
@@ -136,7 +134,7 @@ export const baseValidation = {
     size: z.number()
       .min(1, 'File size must be at least 1 byte')
       .max(10 * 1024 * 1024, 'File size must be less than 10MB'),
-    buffer: z.instanceof(Buffer)
+    buffer: z.instanceof(Buffer as any)
   }),
 
   // ===== COMMON RESPONSE VALIDATION =====

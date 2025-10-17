@@ -1,5 +1,5 @@
 import { AuthRepository } from './auth.repository';
-import { AuthTypes } from './auth.types';
+import * as AuthTypes from './auth.types';
 import { UserInstance } from '../../types/user.types';
 import { globalServices } from '../../services/global';
 import { RESPONSE_CONSTANTS } from '../../constants/response.constants';

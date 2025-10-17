@@ -185,7 +185,7 @@ export class CachePerformanceAnalyzer {
         const accessPatterns: Record<string, number> = {};
 
         // Get all keys (this is expensive, so we'll sample)
-        const sampleKeys = await cacheStrategy.getKeysByPattern('*');
+        const sampleKeys = cacheStrategy ? await (cacheStrategy as any).getKeysByPattern('*') : [];
         const sampleSize = Math.min(sampleKeys.length, 1000);
 
         for (let i = 0; i < sampleSize; i++) {
@@ -201,7 +201,7 @@ export class CachePerformanceAnalyzer {
           keyLengths[`${lengthRange}-${lengthRange + 9}`] = (keyLengths[`${lengthRange}-${lengthRange + 9}`] || 0) + 1;
 
           // Analyze TTL distribution
-          const ttl = await cacheStrategy.getTTL(key);
+          const ttl = cacheStrategy ? await (cacheStrategy as any).getTTL(key) : 0;
           if (ttl > 0) {
             const ttlRange = Math.floor(ttl / 300) * 300; // 5-minute buckets
             ttlDistribution[`${ttlRange}-${ttlRange + 299}`] = (ttlDistribution[`${ttlRange}-${ttlRange + 299}`] || 0) + 1;
@@ -215,7 +215,7 @@ export class CachePerformanceAnalyzer {
           accessPatterns
         });
       } catch (error) {
-        logger.error('Cache key pattern analysis error', { error: error.message });
+        logger.error('Cache key pattern analysis error', { error: (error as Error).message });
         resolve({
           keyDistribution: {},
           keyLengths: {},

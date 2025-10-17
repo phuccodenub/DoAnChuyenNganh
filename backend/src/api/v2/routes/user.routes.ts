@@ -3,16 +3,16 @@
  * Version 2.0.0+ with enhanced features
  */
 
-import { Router } from 'express';
+import express, { Request, Response } from 'express';
 import { userModuleRoutes as v1UserRoutes } from '../../../modules/user';
 
-const router = Router();
+const router = express.Router();
 
 // Enhanced v2 user routes with new features
 router.use('/', v1UserRoutes);
 
 // Add v2-specific endpoints
-router.get('/profile/v2', (req, res) => {
+router.get('/profile/v2', (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Enhanced v2 user profile endpoint',
@@ -23,7 +23,7 @@ router.get('/profile/v2', (req, res) => {
   });
 });
 
-router.patch('/profile/v2', (req, res) => {
+router.patch('/profile/v2', (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Enhanced v2 profile update endpoint',

@@ -3,7 +3,7 @@
  * Handles versioned API routing
  */
 
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { versionManager, versionRoutes } from './versioning';
 import { v1Routes } from './v1';
 import { v2Routes } from './v2';
@@ -22,21 +22,21 @@ router.use('/v2.0.0', v2Routes);
 router.use('/versions', versionManager.versionMiddleware, versionRoutes);
 
 // Default route (dispatch based on resolved version)
-router.use('/', versionManager.versionMiddleware, (req, res, next) => {
+router.use('/', versionManager.versionMiddleware, (req: Request, res: Response, next: NextFunction) => {
   const version = (req as any).apiVersion || env.api.defaultVersion;
 
   // Route to major version router
   if (version.startsWith('v1.')) {
-    req.url = `/${version}${req.url}`;
+    (req as any).url = `/${version}${req.url}`;
     return v1Routes(req, res, next);
   }
   if (version.startsWith('v2.')) {
-    req.url = `/${version}${req.url}`;
+    (req as any).url = `/${version}${req.url}`;
     return v2Routes(req, res, next);
   }
 
   // Fallback to default
-  req.url = `/${env.api.defaultVersion}${req.url}`;
+  (req as any).url = `/${env.api.defaultVersion}${req.url}`;
   return v1Routes(req, res, next);
 });
 

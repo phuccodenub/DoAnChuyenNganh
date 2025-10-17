@@ -44,7 +44,7 @@ export class BaseError extends Error {
     } = options;
 
     // Use provided message or default from ERROR_MESSAGES
-    const errorMessage = message || ERROR_MESSAGES[code] || 'An error occurred';
+    const errorMessage = message || 'An error occurred';
 
     super(errorMessage);
 

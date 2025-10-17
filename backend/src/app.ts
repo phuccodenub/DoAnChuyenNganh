@@ -2,6 +2,8 @@ import express from 'express';
 import { corsMiddleware } from './config/cors.config';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { startTracing } from './tracing/tracing';
+import { tracingMiddleware } from './middlewares/tracing.middleware';
 import 'dotenv-flow/config';
 
 // Import Swagger
@@ -26,6 +28,9 @@ import { healthRoutes, metricsRoutes, metricsMiddleware, pingRoutes } from './mo
 // Import caching
 import { cacheMiddleware } from './cache';
 
+// Initialize tracing once at app bootstrap
+startTracing().catch(() => {});
+
 const app = express();
 
 // Request ID middleware
@@ -33,6 +38,9 @@ app.use(requestIdMiddleware);
 
 // Logger middleware
 app.use(loggerMiddleware);
+
+// Tracing middleware (route-level spans)
+app.use(tracingMiddleware);
 
 // Metrics middleware
 app.use(metricsMiddleware.collectHttpMetrics);

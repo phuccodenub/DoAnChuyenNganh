@@ -67,9 +67,9 @@ export async function down(queryInterface: QueryInterface): Promise<void> {
 
   // Enrollments
   try { await queryInterface.removeConstraint('enrollments', 'ux_enrollments_course_user'); } catch {}
-  try { await queryInterface.removeIndex('enrollments', ['user_id']); } catch {}
-  try { await queryInterface.removeIndex('enrollments', ['course_id']); } catch {}
-  try { await queryInterface.removeIndex('enrollments', ['status']); } catch {}
+  try { await queryInterface.removeIndex('enrollments', 'user_id'); } catch {}
+  try { await queryInterface.removeIndex('enrollments', 'course_id'); } catch {}
+  try { await queryInterface.removeIndex('enrollments', 'status'); } catch {}
 
   // Chat messages
   try { await queryInterface.removeIndex('chat_messages', 'ix_chat_messages_course_id'); } catch {}
