@@ -15,9 +15,7 @@ export class EnrollmentRepository extends BaseRepository {
   /**
    * Get the Enrollment model instance
    */
-  protected getModel(): any {
-    return Enrollment;
-  }
+  protected getModel(): any { return Enrollment as any; }
 
   // ===== ENROLLMENT MANAGEMENT METHODS =====
 
@@ -268,7 +266,7 @@ export class EnrollmentRepository extends BaseRepository {
     try {
       logger.debug('Getting course enrollment statistics', { courseId });
       
-      const course = await Course.findByPk(courseId);
+      const course = await (Course as any).findByPk(courseId);
       if (!course) {
         throw new Error('Course not found');
       }
@@ -321,7 +319,7 @@ export class EnrollmentRepository extends BaseRepository {
     try {
       logger.debug('Getting user enrollment statistics', { userId });
       
-      const user = await User.findByPk(userId);
+      const user = await (User as any).findByPk(userId);
       if (!user) {
         throw new Error('User not found');
       }

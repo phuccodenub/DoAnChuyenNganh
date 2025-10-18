@@ -7,7 +7,6 @@ async function resetDatabase() {
     const sequelize = getSequelize();
     
     // Drop all tables
-    const sequelize = getSequelize();
     await sequelize.drop();
     logger.info('All tables dropped');
     

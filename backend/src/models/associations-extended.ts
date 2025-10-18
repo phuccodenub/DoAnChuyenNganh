@@ -28,46 +28,46 @@ export const setupExtendedAssociations = () => {
   // ===================================
   
   // Course 1 ---< Quiz
-  Course.hasMany(Quiz, {
+  (Course as any).hasMany(Quiz, {
     foreignKey: 'course_id',
     as: 'quizzes',
     onDelete: 'CASCADE'
   });
-  Quiz.belongsTo(Course, {
+  (Quiz as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
   });
 
   // Quiz 1 ---< QuizQuestion
-  Quiz.hasMany(QuizQuestion, {
+  (Quiz as any).hasMany(QuizQuestion, {
     foreignKey: 'quiz_id',
     as: 'questions',
     onDelete: 'CASCADE'
   });
-  QuizQuestion.belongsTo(Quiz, {
+  (QuizQuestion as any).belongsTo(Quiz, {
     foreignKey: 'quiz_id',
     as: 'quiz'
   });
 
   // QuizQuestion 1 ---< QuizOption
-  QuizQuestion.hasMany(QuizOption, {
+  (QuizQuestion as any).hasMany(QuizOption, {
     foreignKey: 'question_id',
     as: 'options',
     onDelete: 'CASCADE'
   });
-  QuizOption.belongsTo(QuizQuestion, {
+  (QuizOption as any).belongsTo(QuizQuestion, {
     foreignKey: 'question_id',
     as: 'question'
   });
 
   // User >---< Quiz (through QuizAttempt)
-  User.belongsToMany(Quiz, {
+  (User as any).belongsToMany(Quiz, {
     through: QuizAttempt,
     foreignKey: 'user_id',
     otherKey: 'quiz_id',
     as: 'attemptedQuizzes'
   });
-  Quiz.belongsToMany(User, {
+  (Quiz as any).belongsToMany(User, {
     through: QuizAttempt,
     foreignKey: 'quiz_id',
     otherKey: 'user_id',
@@ -75,51 +75,51 @@ export const setupExtendedAssociations = () => {
   });
 
   // Direct associations for QuizAttempt
-  User.hasMany(QuizAttempt, {
+  (User as any).hasMany(QuizAttempt, {
     foreignKey: 'user_id',
     as: 'quizAttempts'
   });
-  QuizAttempt.belongsTo(User, {
+  (QuizAttempt as any).belongsTo(User, {
     foreignKey: 'user_id',
     as: 'user'
   });
 
-  Quiz.hasMany(QuizAttempt, {
+  (Quiz as any).hasMany(QuizAttempt, {
     foreignKey: 'quiz_id',
     as: 'attempts'
   });
-  QuizAttempt.belongsTo(Quiz, {
+  (QuizAttempt as any).belongsTo(Quiz, {
     foreignKey: 'quiz_id',
     as: 'quiz'
   });
 
   // QuizAttempt 1 ---< QuizAnswer
-  QuizAttempt.hasMany(QuizAnswer, {
+  (QuizAttempt as any).hasMany(QuizAnswer, {
     foreignKey: 'attempt_id',
     as: 'answers',
     onDelete: 'CASCADE'
   });
-  QuizAnswer.belongsTo(QuizAttempt, {
+  (QuizAnswer as any).belongsTo(QuizAttempt, {
     foreignKey: 'attempt_id',
     as: 'attempt'
   });
 
   // QuizQuestion 1 ---< QuizAnswer
-  QuizQuestion.hasMany(QuizAnswer, {
+  (QuizQuestion as any).hasMany(QuizAnswer, {
     foreignKey: 'question_id',
     as: 'answers'
   });
-  QuizAnswer.belongsTo(QuizQuestion, {
+  (QuizAnswer as any).belongsTo(QuizQuestion, {
     foreignKey: 'question_id',
     as: 'question'
   });
 
   // QuizOption 1 ---< QuizAnswer (selected option)
-  QuizOption.hasMany(QuizAnswer, {
+  (QuizOption as any).hasMany(QuizAnswer, {
     foreignKey: 'selected_option_id',
     as: 'selectedInAnswers'
   });
-  QuizAnswer.belongsTo(QuizOption, {
+  (QuizAnswer as any).belongsTo(QuizOption, {
     foreignKey: 'selected_option_id',
     as: 'selectedOption'
   });
@@ -129,24 +129,24 @@ export const setupExtendedAssociations = () => {
   // ===================================
   
   // Course 1 ---< Assignment
-  Course.hasMany(Assignment, {
+  (Course as any).hasMany(Assignment, {
     foreignKey: 'course_id',
     as: 'assignments',
     onDelete: 'CASCADE'
   });
-  Assignment.belongsTo(Course, {
+  (Assignment as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
   });
 
   // User >---< Assignment (through AssignmentSubmission)
-  User.belongsToMany(Assignment, {
+  (User as any).belongsToMany(Assignment, {
     through: AssignmentSubmission,
     foreignKey: 'user_id',
     otherKey: 'assignment_id',
     as: 'submittedAssignments'
   });
-  Assignment.belongsToMany(User, {
+  (Assignment as any).belongsToMany(User, {
     through: AssignmentSubmission,
     foreignKey: 'assignment_id',
     otherKey: 'user_id',
@@ -154,30 +154,30 @@ export const setupExtendedAssociations = () => {
   });
 
   // Direct associations for AssignmentSubmission
-  User.hasMany(AssignmentSubmission, {
+  (User as any).hasMany(AssignmentSubmission, {
     foreignKey: 'user_id',
     as: 'assignmentSubmissions'
   });
-  AssignmentSubmission.belongsTo(User, {
+  (AssignmentSubmission as any).belongsTo(User, {
     foreignKey: 'user_id',
     as: 'student'
   });
 
-  Assignment.hasMany(AssignmentSubmission, {
+  (Assignment as any).hasMany(AssignmentSubmission, {
     foreignKey: 'assignment_id',
     as: 'submissions'
   });
-  AssignmentSubmission.belongsTo(Assignment, {
+  (AssignmentSubmission as any).belongsTo(Assignment, {
     foreignKey: 'assignment_id',
     as: 'assignment'
   });
 
   // User (grader) 1 ---< AssignmentSubmission
-  User.hasMany(AssignmentSubmission, {
+  (User as any).hasMany(AssignmentSubmission, {
     foreignKey: 'graded_by',
     as: 'gradedSubmissions'
   });
-  AssignmentSubmission.belongsTo(User, {
+  (AssignmentSubmission as any).belongsTo(User, {
     foreignKey: 'graded_by',
     as: 'grader'
   });
@@ -187,69 +187,69 @@ export const setupExtendedAssociations = () => {
   // ===================================
   
   // Course 1 ---< GradeComponent
-  Course.hasMany(GradeComponent, {
+  (Course as any).hasMany(GradeComponent, {
     foreignKey: 'course_id',
     as: 'gradeComponents',
     onDelete: 'CASCADE'
   });
-  GradeComponent.belongsTo(Course, {
+  (GradeComponent as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
   });
 
   // User, Course, GradeComponent -> Grade
-  User.hasMany(Grade, {
+  (User as any).hasMany(Grade, {
     foreignKey: 'user_id',
     as: 'grades'
   });
-  Grade.belongsTo(User, {
+  (Grade as any).belongsTo(User, {
     foreignKey: 'user_id',
     as: 'student'
   });
 
-  Course.hasMany(Grade, {
+  (Course as any).hasMany(Grade, {
     foreignKey: 'course_id',
     as: 'grades'
   });
-  Grade.belongsTo(Course, {
+  (Grade as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
   });
 
-  GradeComponent.hasMany(Grade, {
+  (GradeComponent as any).hasMany(Grade, {
     foreignKey: 'component_id',
     as: 'grades'
   });
-  Grade.belongsTo(GradeComponent, {
+  (Grade as any).belongsTo(GradeComponent, {
     foreignKey: 'component_id',
     as: 'component'
   });
 
   // User (grader) 1 ---< Grade
-  User.hasMany(Grade, {
+  (User as any).hasMany(Grade, {
     foreignKey: 'graded_by',
     as: 'gradedGrades'
   });
-  Grade.belongsTo(User, {
+  (Grade as any).belongsTo(User, {
     foreignKey: 'graded_by',
     as: 'grader'
   });
 
   // User, Course -> FinalGrade
-  User.hasMany(FinalGrade, {
+  (User as any).hasMany(FinalGrade, {
     foreignKey: 'user_id',
     as: 'finalGrades'
   });
-  FinalGrade.belongsTo(User, {
+  (FinalGrade as any).belongsTo(User, {
     foreignKey: 'user_id',
     as: 'student'
   });
 
-  Course.hasMany(FinalGrade, {
+  (Course as any).hasMany(FinalGrade, {
     foreignKey: 'course_id',
     as: 'finalGrades'
   });
-  FinalGrade.belongsTo(Course, {
+  (FinalGrade as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
   });
@@ -259,34 +259,34 @@ export const setupExtendedAssociations = () => {
   // ===================================
   
   // Course 1 ---< LiveSession
-  Course.hasMany(LiveSession, {
+  (Course as any).hasMany(LiveSession, {
     foreignKey: 'course_id',
     as: 'liveSessions',
     onDelete: 'CASCADE'
   });
-  LiveSession.belongsTo(Course, {
+  (LiveSession as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
   });
 
   // User (instructor) 1 ---< LiveSession
-  User.hasMany(LiveSession, {
+  (User as any).hasMany(LiveSession, {
     foreignKey: 'instructor_id',
     as: 'hostedSessions'
   });
-  LiveSession.belongsTo(User, {
+  (LiveSession as any).belongsTo(User, {
     foreignKey: 'instructor_id',
     as: 'instructor'
   });
 
   // User >---< LiveSession (through LiveSessionAttendance)
-  User.belongsToMany(LiveSession, {
+  (User as any).belongsToMany(LiveSession, {
     through: LiveSessionAttendance,
     foreignKey: 'user_id',
     otherKey: 'session_id',
     as: 'attendedSessions'
   });
-  LiveSession.belongsToMany(User, {
+  (LiveSession as any).belongsToMany(User, {
     through: LiveSessionAttendance,
     foreignKey: 'session_id',
     otherKey: 'user_id',
@@ -294,20 +294,20 @@ export const setupExtendedAssociations = () => {
   });
 
   // Direct associations for LiveSessionAttendance
-  User.hasMany(LiveSessionAttendance, {
+  (User as any).hasMany(LiveSessionAttendance, {
     foreignKey: 'user_id',
     as: 'sessionAttendances'
   });
-  LiveSessionAttendance.belongsTo(User, {
+  (LiveSessionAttendance as any).belongsTo(User, {
     foreignKey: 'user_id',
     as: 'attendee'
   });
 
-  LiveSession.hasMany(LiveSessionAttendance, {
+  (LiveSession as any).hasMany(LiveSessionAttendance, {
     foreignKey: 'session_id',
     as: 'attendances'
   });
-  LiveSessionAttendance.belongsTo(LiveSession, {
+  (LiveSessionAttendance as any).belongsTo(LiveSession, {
     foreignKey: 'session_id',
     as: 'session'
   });
@@ -317,22 +317,22 @@ export const setupExtendedAssociations = () => {
   // ===================================
   
   // User 1 ---< UserActivityLog
-  User.hasMany(UserActivityLog, {
+  (User as any).hasMany(UserActivityLog, {
     foreignKey: 'user_id',
     as: 'activityLogs'
   });
-  UserActivityLog.belongsTo(User, {
+  (UserActivityLog as any).belongsTo(User, {
     foreignKey: 'user_id',
     as: 'user'
   });
 
   // Course 1 --- 1 CourseStatistics
-  Course.hasOne(CourseStatistics, {
+  (Course as any).hasOne(CourseStatistics, {
     foreignKey: 'course_id',
     as: 'statistics',
     onDelete: 'CASCADE'
   });
-  CourseStatistics.belongsTo(Course, {
+  (CourseStatistics as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
   });

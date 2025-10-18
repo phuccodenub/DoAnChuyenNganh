@@ -30,7 +30,7 @@ router.get(
 // Create new course (Instructor/Admin only)
 router.post(
   '/',
-  authorizeRoles(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateBody(courseSchemas.createCourse),
   (req: Request, res: Response, next: NextFunction) => courseController.createCourse(req, res, next)
 );
@@ -38,7 +38,7 @@ router.post(
 // Update course (Instructor/Admin only)
 router.put(
   '/:id',
-  authorizeRoles(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(courseSchemas.courseId),
   validateBody(courseSchemas.updateCourse),
   (req: Request, res: Response, next: NextFunction) => courseController.updateCourse(req, res, next)
@@ -47,7 +47,7 @@ router.put(
 // Delete course (Instructor/Admin only)
 router.delete(
   '/:id',
-  authorizeRoles(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(courseSchemas.courseId),
   (req: Request, res: Response, next: NextFunction) => courseController.deleteCourse(req, res, next)
 );
@@ -57,7 +57,7 @@ router.delete(
 // Publish course (Instructor/Admin only)
 router.patch(
   '/:id/publish',
-  authorizeRoles(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(courseSchemas.courseId),
   (req: Request, res: Response, next: NextFunction) => courseController.publishCourse(req, res, next)
 );
@@ -65,7 +65,7 @@ router.patch(
 // Archive course (Instructor/Admin only)
 router.patch(
   '/:id/archive',
-  authorizeRoles(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(courseSchemas.courseId),
   (req: Request, res: Response, next: NextFunction) => courseController.archiveCourse(req, res, next)
 );
@@ -73,7 +73,7 @@ router.patch(
 // Unpublish course (Instructor/Admin only)
 router.patch(
   '/:id/unpublish',
-  authorizeRoles(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(courseSchemas.courseId),
   (req: Request, res: Response, next: NextFunction) => courseController.unpublishCourse(req, res, next)
 );
@@ -122,7 +122,7 @@ router.get(
 // Get course analytics (Instructor/Admin only)
 router.get(
   '/:id/analytics',
-  authorizeRoles(UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(courseSchemas.courseId),
   validateQuery(courseSchemas.courseAnalyticsQuery),
   (req: Request, res: Response, next: NextFunction) => courseController.getCourseAnalytics(req, res, next)

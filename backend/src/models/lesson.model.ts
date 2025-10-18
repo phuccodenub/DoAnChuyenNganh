@@ -1,178 +1,118 @@
 import { DataTypes, Model } from 'sequelize';
-import { getSequelize } from '../config/db';
-import { LessonAttributes, LessonCreationAttributes, LessonInstance } from '../types/model.types';
+import { getSequelize } from '@config/db';
 
 const sequelize = getSequelize();
 
-/**
- * Lesson Model
- * Các bài học nhỏ trong mỗi chương mục
- * 
- * Nghiệp vụ:
- * - Một chương mục bao gồm nhiều bài học (1:N)
- * - Bài học có các loại nội dung khác nhau: video, document, text, link
- * - Mỗi bài học có thứ tự hiển thị trong chương
- */
-const Lesson = sequelize.define('Lesson', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  section_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'sections',
-      key: 'id'
-    },
-    onDelete: 'CASCADE',
-    comment: 'ID chương mục mà bài học này thuộc về'
-  },
-  title: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    comment: 'Tiêu đề bài học'
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'Mô tả nội dung bài học'
-  },
-  content_type: {
-    type: DataTypes.ENUM('video', 'document', 'text', 'link', 'quiz', 'assignment'),
-    allowNull: false,
-    defaultValue: 'text',
-    comment: 'Loại nội dung bài học'
-  },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'Nội dung chi tiết của bài học (HTML, Markdown, hoặc text)'
-  },
-  video_url: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'URL video bài học (YouTube, Vimeo, hoặc server riêng)'
-  },
-  video_duration: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    comment: 'Thời lượng video (giây)'
-  },
-  order_index: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-    comment: 'Thứ tự hiển thị của bài học trong chương mục'
-  },
-  duration_minutes: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    comment: 'Thời lượng ước tính để hoàn thành bài học (phút)'
-  },
-  is_published: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    comment: 'Bài học đã được công bố chưa'
-  },
-  is_free_preview: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    comment: 'Bài học có thể xem trước miễn phí không (trước khi đăng ký)'
-  },
-  completion_criteria: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: {},
-    comment: 'Tiêu chí để đánh dấu bài học hoàn thành (VD: xem hết video, đọc hết nội dung)'
-  },
-  metadata: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: {},
-    comment: 'Metadata bổ sung (keywords, tags, thumbnail...)'
+class Lesson extends Model {
+  declare id: string;
+  declare section_id: string;
+  declare title: string;
+  declare description: string | null;
+  declare content_type: 'video' | 'document' | 'text' | 'link' | 'quiz' | 'assignment';
+  declare content: string | null;
+  declare video_url: string | null;
+  declare video_duration: number | null;
+  declare order_index: number;
+  declare duration_minutes: number | null;
+  declare is_published: boolean;
+  declare is_free_preview: boolean;
+  declare completion_criteria: any | null;
+  declare metadata: any | null;
+  declare created_at: Date | null;
+  declare updated_at: Date | null;
+
+  static associate(models: any) {
+    (Lesson as any).belongsTo(models.Section, { foreignKey: 'section_id', as: 'section' });
+    (Lesson as any).hasMany(models.LessonMaterial, { foreignKey: 'lesson_id', as: 'materials' });
+    (Lesson as any).hasMany(models.LessonProgress, { foreignKey: 'lesson_id', as: 'progress' });
   }
-}, {
-  tableName: 'lessons',
-  timestamps: true,
-  underscored: true,
-  indexes: [
-    {
-      fields: ['section_id']
+}
+
+(Lesson as any).init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
     },
-    {
-      fields: ['section_id', 'order_index']
+    section_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'sections', key: 'id' }
     },
-    {
-      unique: true,
-      fields: ['section_id', 'order_index'],
-      name: 'unique_lesson_order_per_section'
+    title: {
+      type: DataTypes.STRING(255),
+      allowNull: false
     },
-    {
-      fields: ['content_type']
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    content_type: {
+      type: DataTypes.ENUM('video', 'document', 'text', 'link', 'quiz', 'assignment'),
+      allowNull: false,
+      defaultValue: 'text'
+    },
+    content: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    video_url: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    video_duration: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    order_index: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
+    duration_minutes: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    is_published: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    is_free_preview: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    completion_criteria: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {}
+    },
+    metadata: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {}
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
     }
-  ]
-});
-
-// Instance Methods
-;(Lesson as any).prototype.getMaterialCount = async function(): Promise<number> {
-  return await sequelize.models.LessonMaterial.count({
-    where: { lesson_id: this.id }
-  });
-};
-
-;(Lesson as any).prototype.getCompletionRate = async function(): Promise<number> {
-  const total = await sequelize.models.LessonProgress.count({
-    where: { lesson_id: this.id }
-  });
-  const completed = await sequelize.models.LessonProgress.count({
-    where: { lesson_id: this.id, completed: true }
-  });
-  return total > 0 ? (completed / total) * 100 : 0;
-};
-
-// Class Methods
-;(Lesson as any).findBySection = async function(sectionId: string, includeUnpublished: boolean = false) {
-  const where: any = { section_id: sectionId };
-  if (!includeUnpublished) {
-    where.is_published = true;
+  },
+  {
+    sequelize,
+    tableName: 'lessons',
+    underscored: true,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   }
-  
-  return await this.findAll({
-    where,
-    order: [['order_index', 'ASC']],
-    include: [
-      {
-        model: sequelize.models.LessonMaterial,
-        as: 'materials'
-      }
-    ]
-  });
-};
+);
 
-;(Lesson as any).reorderLessons = async function(sectionId: string, lessonOrders: { id: string, order_index: number }[]) {
-  const transaction = await sequelize.transaction();
-  try {
-    for (const { id, order_index } of lessonOrders) {
-      await this.update(
-        { order_index },
-        { where: { id, section_id: sectionId }, transaction }
-      );
-    }
-    await transaction.commit();
-    return true;
-  } catch (error: unknown) {
-    await transaction.rollback();
-    throw error;
-  }
-};
-
-export default Lesson as any;
-
-
-
-
-
-
-
+export default Lesson;

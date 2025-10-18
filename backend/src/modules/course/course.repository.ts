@@ -15,7 +15,7 @@ export class CourseRepository extends BaseRepository {
    */
   protected getModel(): any {
     const { Course } = require('../../models');
-    return Course;
+    return Course as any;
   }
 
   // ===== COURSE MANAGEMENT METHODS =====

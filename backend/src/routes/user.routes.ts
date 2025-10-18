@@ -24,60 +24,60 @@ router.use(authMiddleware);
 // Admin only routes
 router.post(
   '/',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateBody(userSchemas.createUser),
   createUser
 );
 
 router.patch(
   '/:id',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateBody(userSchemas.updateUser),
   updateUser
 );
 
 router.delete(
   '/:id',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   deleteUser
 );
 
 router.get(
   '/stats',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   getUserStats
 );
 
 // Admin/Instructor routes
 router.get(
   '/',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateQuery(userSchemas.userQuery),
   getAllUsersInfo
 );
 
 router.get(
   '/role/:role',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   getUsersByRoleInfo
 );
 
 // All authenticated users
 router.get(
   '/:id',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]),
   getUserInfo
 );
 
 router.get(
   '/email/search',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   getUserByEmailInfo
 );
 
 router.patch(
   '/:id/status',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   changeUserStatusInfo
 );
 

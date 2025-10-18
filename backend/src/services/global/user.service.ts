@@ -182,7 +182,7 @@ export class GlobalUserService {
   // Add user
   async addUser(userData: any): Promise<any> {
     try {
-      const user = await userRepository.createUser(userData);
+      const user = await this.userRepo.create(userData);
       if (user) {
         await this.cacheUser((user as any).id, user);
       }
@@ -196,7 +196,7 @@ export class GlobalUserService {
   // Update user info
   async updateUserInfo(userId: string, updateData: any): Promise<any> {
     try {
-      const user = await userRepository.updateUser(userId, updateData);
+      const user = await this.userRepo.update(userId, updateData);
       if (user) {
         await this.cacheUser(userId, user);
       }
@@ -210,7 +210,7 @@ export class GlobalUserService {
   // Remove user
   async removeUser(userId: string): Promise<void> {
     try {
-      await userRepository.deleteUser(userId);
+      await this.userRepo.delete(userId);
       await this.clearUserCache(userId);
     } catch (error: unknown) {
       logger.error('Error removing user:', error);
@@ -221,7 +221,7 @@ export class GlobalUserService {
   // Get all users with pagination
   async getAllUsers(options: any): Promise<any> {
     try {
-      return await userRepository.findAllUsers(options);
+      return await this.userRepo.paginate(options.page || 1, options.limit || 10, options);
     } catch (error: unknown) {
       logger.error('Error getting all users:', error);
       throw error;
@@ -231,7 +231,7 @@ export class GlobalUserService {
   // Get users by role
   async getUsersByRole(role: string): Promise<any> {
     try {
-      return await userRepository.findUsersByRole(role);
+      return await this.userRepo.findByRole(role);
     } catch (error: unknown) {
       logger.error('Error getting users by role:', error);
       throw error;
@@ -241,7 +241,7 @@ export class GlobalUserService {
   // Get user statistics
   async getUserStatistics(): Promise<any> {
     try {
-      return await userRepository.getUserStatistics();
+      return await this.userRepo.getUserStats();
     } catch (error: unknown) {
       logger.error('Error getting user statistics:', error);
       throw error;
@@ -251,7 +251,7 @@ export class GlobalUserService {
   // Change user status
   async changeUserStatus(userId: string, status: string): Promise<any> {
     try {
-      const user = await userRepository.updateUser(userId, { status });
+      const user = await this.userRepo.update(userId, { status });
       if (user) {
         await this.cacheUser(userId, user);
       }

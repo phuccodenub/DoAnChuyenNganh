@@ -1,49 +1,73 @@
 import { DataTypes, Model } from 'sequelize';
-import { getSequelize } from '../config/db';
-import { LiveSessionAttendanceAttributes, LiveSessionAttendanceCreationAttributes, LiveSessionAttendanceInstance } from '../types/model.types';
+import { getSequelize } from '@config/db';
 
 const sequelize = getSequelize();
 
-const LiveSessionAttendance = sequelize.define('LiveSessionAttendance', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
+class LiveSessionAttendance extends Model {
+  declare id: string;
+  declare session_id: string;
+  declare user_id: string;
+  declare joined_at: Date;
+  declare left_at: Date | null;
+  declare duration_minutes: number | null;
+  declare created_at: Date | null;
+  declare updated_at: Date | null;
+
+  static associate(models: any) {
+    (LiveSessionAttendance as any).belongsTo(models.LiveSession, { foreignKey: 'session_id', as: 'session' });
+    (LiveSessionAttendance as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
+  }
+}
+
+(LiveSessionAttendance as any).init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
+    session_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'live_sessions', key: 'id' }
+    },
+    user_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'users', key: 'id' }
+    },
+    joined_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    left_at: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    duration_minutes: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   },
-  session_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'live_sessions', key: 'id' },
-    onDelete: 'CASCADE'
-  },
-  user_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'users', key: 'id' },
-    onDelete: 'CASCADE'
-  },
-  joined_at: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
-  },
-  left_at: DataTypes.DATE,
-  duration_minutes: DataTypes.INTEGER
-}, {
-  tableName: 'live_session_attendance',
-  timestamps: true,
-  underscored: true,
-  indexes: [
-    { fields: ['session_id'] },
-    { fields: ['user_id'] },
-    { unique: true, fields: ['session_id', 'user_id'] }
-  ]
-});
+  {
+    sequelize,
+    tableName: 'live_session_attendance',
+    underscored: true,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  }
+);
 
-export default LiveSessionAttendance as any;
-
-
-
-
-
-
-
+export default LiveSessionAttendance;
