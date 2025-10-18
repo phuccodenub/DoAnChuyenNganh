@@ -21,12 +21,6 @@ class ChatMessage extends Model {
   declare created_at: Date | null;
   declare updated_at: Date | null;
 
-  static associate(models: any) {
-    (ChatMessage as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-    (ChatMessage as any).belongsTo(models.User, { foreignKey: 'sender_id', as: 'sender' });
-    (ChatMessage as any).belongsTo(ChatMessage, { foreignKey: 'reply_to', as: 'replyToMessage' });
-  }
-
   static async searchInCourse(courseId: string, searchTerm: string) {
     return await (this as any).findAll({
       where: {

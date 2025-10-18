@@ -21,12 +21,6 @@ class LiveSession extends Model {
   declare ended_at: Date | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (LiveSession as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-    (LiveSession as any).belongsTo(models.User, { foreignKey: 'instructor_id', as: 'instructor' });
-    (LiveSession as any).hasMany(models.LiveSessionAttendance, { foreignKey: 'session_id', as: 'attendances' });
-  }
 }
 
 (LiveSession as any).init(

@@ -13,11 +13,6 @@ class LiveSessionAttendance extends Model {
   declare duration_minutes: number | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (LiveSessionAttendance as any).belongsTo(models.LiveSession, { foreignKey: 'session_id', as: 'session' });
-    (LiveSessionAttendance as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
-  }
 }
 
 (LiveSessionAttendance as any).init(

@@ -17,12 +17,6 @@ class QuizAttempt extends Model {
   declare is_passed: boolean | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (QuizAttempt as any).belongsTo(models.Quiz, { foreignKey: 'quiz_id', as: 'quiz' });
-    (QuizAttempt as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
-    (QuizAttempt as any).hasMany(models.QuizAnswer, { foreignKey: 'attempt_id', as: 'answers' });
-  }
 }
 
 (QuizAttempt as any).init(

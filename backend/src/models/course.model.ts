@@ -36,12 +36,6 @@ class Course extends Model {
   declare published_at: Date | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (Course as any).belongsTo(models.User, { foreignKey: 'instructor_id', as: 'instructor' });
-    (Course as any).hasMany(models.Enrollment, { foreignKey: 'course_id', as: 'enrollments' });
-    (Course as any).hasMany(models.ChatMessage, { foreignKey: 'course_id', as: 'chatMessages' });
-  }
 }
 
 (Course as any).init(

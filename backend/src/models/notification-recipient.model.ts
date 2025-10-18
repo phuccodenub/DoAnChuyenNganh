@@ -18,11 +18,6 @@ class NotificationRecipient extends Model {
   declare interaction_data: any | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (NotificationRecipient as any).belongsTo(models.Notification, { foreignKey: 'notification_id', as: 'notification' });
-    (NotificationRecipient as any).belongsTo(models.User, { foreignKey: 'recipient_id', as: 'recipient' });
-  }
 }
 
 (NotificationRecipient as any).init(

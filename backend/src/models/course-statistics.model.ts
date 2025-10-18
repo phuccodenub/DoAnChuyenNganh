@@ -13,10 +13,6 @@ class CourseStatistics extends Model {
   declare average_score: number | null;
   declare updated_at: Date | null;
   declare created_at: Date | null;
-
-  static associate(models: any) {
-    (CourseStatistics as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-  }
 }
 
 (CourseStatistics as any).init(

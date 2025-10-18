@@ -56,7 +56,7 @@ export const setupAssociations = () => {
   });
   C.belongsTo(CAT, {
     foreignKey: 'category_id',
-    as: 'category'
+    as: 'categoryData'
   });
 
   // Category (self-referencing) - Parent/Child hierarchy

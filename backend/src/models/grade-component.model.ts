@@ -13,11 +13,6 @@ class GradeComponent extends Model {
   declare name: string;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (GradeComponent as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-    (GradeComponent as any).hasMany(models.Grade, { foreignKey: 'component_id', as: 'grades' });
-  }
 }
 
 (GradeComponent as any).init(

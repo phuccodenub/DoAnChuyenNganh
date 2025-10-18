@@ -19,11 +19,6 @@ class LessonMaterial extends Model {
   declare order_index: number;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (LessonMaterial as any).belongsTo(models.Lesson, { foreignKey: 'lesson_id', as: 'lesson' });
-    (LessonMaterial as any).belongsTo(models.User, { foreignKey: 'uploaded_by', as: 'uploader' });
-  }
 }
 
 (LessonMaterial as any).init(

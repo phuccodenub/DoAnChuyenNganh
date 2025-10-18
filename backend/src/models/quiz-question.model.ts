@@ -14,12 +14,6 @@ class QuizQuestion extends Model {
   declare explanation: string | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (QuizQuestion as any).belongsTo(models.Quiz, { foreignKey: 'quiz_id', as: 'quiz' });
-    (QuizQuestion as any).hasMany(models.QuizOption, { foreignKey: 'question_id', as: 'options' });
-    (QuizQuestion as any).hasMany(models.QuizAnswer, { foreignKey: 'question_id', as: 'answers' });
-  }
 }
 
 (QuizQuestion as any).init(

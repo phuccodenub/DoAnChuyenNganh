@@ -16,13 +16,6 @@ class Grade extends Model {
   declare notes: string | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (Grade as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'student' });
-    (Grade as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-    (Grade as any).belongsTo(models.GradeComponent, { foreignKey: 'component_id', as: 'component' });
-    (Grade as any).belongsTo(models.User, { foreignKey: 'graded_by', as: 'grader' });
-  }
 }
 
 (Grade as any).init(

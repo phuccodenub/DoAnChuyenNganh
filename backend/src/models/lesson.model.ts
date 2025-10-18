@@ -21,12 +21,6 @@ class Lesson extends Model {
   declare metadata: any | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (Lesson as any).belongsTo(models.Section, { foreignKey: 'section_id', as: 'section' });
-    (Lesson as any).hasMany(models.LessonMaterial, { foreignKey: 'lesson_id', as: 'materials' });
-    (Lesson as any).hasMany(models.LessonProgress, { foreignKey: 'lesson_id', as: 'progress' });
-  }
 }
 
 (Lesson as any).init(

@@ -19,12 +19,6 @@ class AssignmentSubmission extends Model {
   declare status: 'submitted' | 'graded' | 'returned';
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (AssignmentSubmission as any).belongsTo(models.Assignment, { foreignKey: 'assignment_id', as: 'assignment' });
-    (AssignmentSubmission as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'student' });
-    (AssignmentSubmission as any).belongsTo(models.User, { foreignKey: 'graded_by', as: 'grader' });
-  }
 }
 
 (AssignmentSubmission as any).init(

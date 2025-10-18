@@ -42,12 +42,6 @@ class User extends SequelizeModel {
   // timestamps
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (User as any).hasMany(models.Course, { foreignKey: 'instructor_id', as: 'courses' });
-    (User as any).hasMany(models.Enrollment, { foreignKey: 'user_id', as: 'enrollments' });
-    (User as any).hasMany(models.ChatMessage, { foreignKey: 'user_id', as: 'chatMessages' });
-  }
 }
 
 (User as any).init(

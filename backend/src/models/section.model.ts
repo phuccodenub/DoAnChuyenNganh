@@ -15,11 +15,6 @@ class Section extends Model {
   declare objectives: any[] | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (Section as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-    (Section as any).hasMany(models.Lesson, { foreignKey: 'section_id', as: 'lessons' });
-  }
 }
 
 (Section as any).init(

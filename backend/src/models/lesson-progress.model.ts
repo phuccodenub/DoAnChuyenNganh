@@ -20,11 +20,6 @@ class LessonProgress extends Model {
   declare quiz_score: number | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (LessonProgress as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
-    (LessonProgress as any).belongsTo(models.Lesson, { foreignKey: 'lesson_id', as: 'lesson' });
-  }
 }
 
 (LessonProgress as any).init(

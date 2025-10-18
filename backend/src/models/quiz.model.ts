@@ -19,12 +19,6 @@ class Quiz extends Model {
   declare is_published: boolean;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (Quiz as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-    (Quiz as any).hasMany(models.QuizQuestion, { foreignKey: 'quiz_id', as: 'questions' });
-    (Quiz as any).hasMany(models.QuizAttempt, { foreignKey: 'quiz_id', as: 'attempts' });
-  }
 }
 
 (Quiz as any).init(

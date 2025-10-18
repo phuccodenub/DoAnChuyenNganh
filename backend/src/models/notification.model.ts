@@ -24,11 +24,6 @@ class Notification extends Model {
   declare read_count: number;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (Notification as any).belongsTo(models.User, { foreignKey: 'sender_id', as: 'sender' });
-    (Notification as any).hasMany(models.NotificationRecipient, { foreignKey: 'notification_id', as: 'recipients' });
-  }
 }
 
 (Notification as any).init(

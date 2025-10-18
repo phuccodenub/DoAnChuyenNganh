@@ -29,11 +29,6 @@ class Enrollment extends Model {
   declare metadata: any | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (Enrollment as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'student' });
-    (Enrollment as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-  }
 }
 
 (Enrollment as any).init(

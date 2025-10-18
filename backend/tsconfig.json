@@ -36,7 +36,8 @@
       "@routes/*": ["src/routes/*"],
       "@services/*": ["src/services/*"],
       "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
+      "@types/*": ["src/types/*"],
+      "@validates/*": ["src/validates/*"]
     },
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,

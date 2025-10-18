@@ -12,10 +12,6 @@ class QuizOption extends Model {
   declare order_index: number;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (QuizOption as any).belongsTo(models.QuizQuestion, { foreignKey: 'question_id', as: 'question' });
-  }
 }
 
 (QuizOption as any).init(

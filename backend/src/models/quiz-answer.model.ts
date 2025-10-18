@@ -14,12 +14,6 @@ class QuizAnswer extends Model {
   declare points_earned: number | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (QuizAnswer as any).belongsTo(models.QuizAttempt, { foreignKey: 'attempt_id', as: 'attempt' });
-    (QuizAnswer as any).belongsTo(models.QuizQuestion, { foreignKey: 'question_id', as: 'question' });
-    (QuizAnswer as any).belongsTo(models.QuizOption, { foreignKey: 'selected_option_id', as: 'selectedOption' });
-  }
 }
 
 (QuizAnswer as any).init(

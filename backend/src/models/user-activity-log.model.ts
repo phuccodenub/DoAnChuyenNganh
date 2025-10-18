@@ -14,10 +14,6 @@ class UserActivityLog extends Model {
   declare metadata: any | null;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (UserActivityLog as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
-  }
 }
 
 (UserActivityLog as any).init(

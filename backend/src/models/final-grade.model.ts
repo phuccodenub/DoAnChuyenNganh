@@ -13,11 +13,6 @@ class FinalGrade extends Model {
   declare calculated_at: Date;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (FinalGrade as any).belongsTo(models.User, { foreignKey: 'user_id', as: 'student' });
-    (FinalGrade as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-  }
 }
 
 (FinalGrade as any).init(

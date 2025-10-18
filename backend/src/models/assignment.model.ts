@@ -16,11 +16,6 @@ class Assignment extends Model {
   declare is_published: boolean;
   declare created_at: Date | null;
   declare updated_at: Date | null;
-
-  static associate(models: any) {
-    (Assignment as any).belongsTo(models.Course, { foreignKey: 'course_id', as: 'course' });
-    (Assignment as any).hasMany(models.AssignmentSubmission, { foreignKey: 'assignment_id', as: 'submissions' });
-  }
 }
 
 (Assignment as any).init(
