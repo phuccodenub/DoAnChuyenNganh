@@ -1,9 +1,10 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes } from 'sequelize';
 import { getSequelize } from '@config/db';
 
+const { Model: SequelizeModel } = require('sequelize');
 const sequelize = getSequelize();
 
-class User extends Model {
+class User extends SequelizeModel {
   declare id: string;
   declare username: string;
   declare email: string;

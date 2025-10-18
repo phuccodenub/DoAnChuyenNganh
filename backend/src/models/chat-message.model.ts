@@ -1,6 +1,7 @@
-import { DataTypes, Model, Op } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import { getSequelize } from '@config/db';
 
+const { Model } = require('sequelize');
 const sequelize = getSequelize();
 
 class ChatMessage extends Model {

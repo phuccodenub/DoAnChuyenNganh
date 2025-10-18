@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes } from 'sequelize';
 import { getSequelize } from '@config/db';
 
+const { Model } = require('sequelize');
 const sequelize = getSequelize();
 
 class Notification extends Model {
