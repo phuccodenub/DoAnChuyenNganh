@@ -27,37 +27,59 @@ const Enrollment = sequelize.define('Enrollment', {
     }
   },
   status: {
-    type: DataTypes.ENUM('enrolled', 'completed', 'dropped'),
-    defaultValue: 'enrolled',
+    type: DataTypes.ENUM('pending', 'active', 'completed', 'cancelled', 'suspended'),
+    defaultValue: 'pending',
   },
-  enrolled_at: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW,
+  enrollment_type: {
+    type: DataTypes.ENUM('free', 'paid', 'trial'),
+    defaultValue: 'free',
+    allowNull: false
   },
-  completed_at: {
-    type: DataTypes.DATE,
-    allowNull: true,
+  progress_percentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0,
+    allowNull: false,
+    validate: {
+      min: 0,
+      max: 100
+    }
   },
-  progress: {
+  completed_lessons: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    validate: {
-      min: 0,
-      max: 100
-    }
+    allowNull: false
   },
-  grade: {
-    type: DataTypes.DECIMAL(5, 2),
+  total_lessons: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
+  },
+  last_accessed_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  completion_date: {
+    type: DataTypes.DATE,
     allowNull: true,
-    validate: {
-      min: 0,
-      max: 100
-    }
+  },
+  
+  // Timestamps (automatically managed by Sequelize)
+  created_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
   },
 }, {
   tableName: 'enrollments',
   timestamps: true,
   underscored: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     {
       unique: true,

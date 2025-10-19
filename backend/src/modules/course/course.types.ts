@@ -97,12 +97,12 @@ export interface CourseWithInstructor extends CourseInstance {
 }
 
 export interface CourseWithEnrollments extends CourseInstance {
-  enrollments: Pick<EnrollmentInstance, 'id' | 'enrolled_at' | 'status'>[];
+  enrollments: Pick<EnrollmentInstance, 'id' | 'created_at' | 'status'>[];
   instructor: Pick<UserInstance, 'id' | 'first_name' | 'last_name' | 'email'>;
 }
 
 export interface UserWithEnrollments extends UserInstance {
-  enrollments: Pick<EnrollmentInstance, 'id' | 'enrolled_at' | 'status'>[];
+  enrollments: Pick<EnrollmentInstance, 'id' | 'created_at' | 'status'>[];
 }
 
 // ===== COURSE STATISTICS =====

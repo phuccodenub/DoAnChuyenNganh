@@ -40,36 +40,61 @@ const Course = sequelize.define('Course', {
     type: DataTypes.ENUM('draft', 'published', 'archived'),
     defaultValue: 'draft',
   },
-  start_date: {
-    type: DataTypes.DATE,
+  short_description: {
+    type: DataTypes.STRING(500),
     allowNull: true,
   },
-  end_date: {
-    type: DataTypes.DATE,
+  level: {
+    type: DataTypes.ENUM('beginner', 'intermediate', 'advanced', 'expert'),
+    defaultValue: 'beginner',
+    allowNull: false
+  },
+  language: {
+    type: DataTypes.STRING(10),
+    defaultValue: 'en',
+    allowNull: false
+  },
+  thumbnail: {
+    type: DataTypes.STRING(500),
     allowNull: true,
   },
-  max_students: {
+  duration_hours: {
     type: DataTypes.INTEGER,
-    defaultValue: 50,
+    allowNull: true
   },
-  thumbnail_url: {
-    type: DataTypes.TEXT,
-    allowNull: true,
+  total_lessons: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
   },
   tags: {
     type: DataTypes.JSON,
     allowNull: true,
     defaultValue: [],
   },
-  settings: {
+  metadata: {
     type: DataTypes.JSON,
     allowNull: true,
     defaultValue: {},
+  },
+  
+  // Timestamps (automatically managed by Sequelize)
+  created_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
   },
 }, {
   tableName: 'courses',
   timestamps: true,
   underscored: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
 });
 
 export default Course as any;
