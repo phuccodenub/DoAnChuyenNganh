@@ -1,12 +1,15 @@
 export const authSchemas = {
   LoginRequest: {
     type: 'object',
-    required: ['email', 'password'],
+    required: ['username', 'password'],
     properties: {
-      email: {
+      username: {
         type: 'string',
-        format: 'email',
-        description: 'User email'
+        minLength: 3,
+        maxLength: 50,
+        pattern: '^[a-zA-Z0-9_-]+$',
+        description: 'Username (student ID, instructor ID, or admin username)',
+        example: '2021001234'
       },
       password: {
         type: 'string',

@@ -2,9 +2,26 @@
  * Seeder 004: Seed chat messages
  */
 
-import { Sequelize } from 'sequelize';
+import { Sequelize, QueryTypes } from 'sequelize';
 
 export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
+  // Helper function to ensure all required fields are present
+  const ensureChatMessageFields = (message: any) => {
+    return {
+      id: message.id,
+      course_id: message.course_id,
+      user_id: message.user_id,
+      message_type: message.message_type,
+      content: message.content,
+      reply_to_message_id: message.reply_to_message_id || null,
+      is_pinned: message.is_pinned || false,
+      pinned_at: message.pinned_at || null,
+      pinned_by: message.pinned_by || null,
+      created_at: message.created_at,
+      updated_at: message.updated_at
+    };
+  };
+
   const chatMessages = [
     // Course 1 (React Development) messages
     {
@@ -13,6 +30,10 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
       user_id: '00000000-0000-0000-0000-000000000003',
       message_type: 'system',
       content: 'Welcome to the Complete React Development Course! Feel free to ask questions and interact with other students.',
+      reply_to_message_id: null,
+      is_pinned: false,
+      pinned_at: null,
+      pinned_by: null,
       created_at: new Date('2024-01-15T10:00:00'),
       updated_at: new Date('2024-01-15T10:00:00')
     },
@@ -22,6 +43,10 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
       user_id: '00000000-0000-0000-0000-000000000006',
       message_type: 'text',
       content: 'Hello everyone! I\'m excited to start learning React. Any tips for beginners?',
+      reply_to_message_id: null,
+      is_pinned: false,
+      pinned_at: null,
+      pinned_by: null,
       created_at: new Date('2024-01-15T10:05:00'),
       updated_at: new Date('2024-01-15T10:05:00')
     },
@@ -32,6 +57,9 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
       message_type: 'text',
       content: 'Welcome Alice! My best tip is to practice with small projects and don\'t rush through the concepts. Take your time to understand each topic.',
       reply_to_message_id: '00000000-0000-0000-0000-000000000302',
+      is_pinned: false,
+      pinned_at: null,
+      pinned_by: null,
       created_at: new Date('2024-01-15T10:07:00'),
       updated_at: new Date('2024-01-15T10:07:00')
     },
@@ -42,6 +70,9 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
       message_type: 'text',
       content: 'I agree with John! Also, make sure to build projects alongside the course. It really helps solidify the concepts.',
       reply_to_message_id: '00000000-0000-0000-0000-000000000302',
+      is_pinned: false,
+      pinned_at: null,
+      pinned_by: null,
       created_at: new Date('2024-01-15T10:10:00'),
       updated_at: new Date('2024-01-15T10:10:00')
     },
@@ -64,6 +95,10 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
       user_id: '00000000-0000-0000-0000-000000000004',
       message_type: 'system',
       content: 'Welcome to the Node.js Backend Development Course! Let\'s build amazing backend applications together.',
+      reply_to_message_id: null,
+      is_pinned: false,
+      pinned_at: null,
+      pinned_by: null,
       created_at: new Date('2024-02-01T09:00:00'),
       updated_at: new Date('2024-02-01T09:00:00')
     },
@@ -73,6 +108,10 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
       user_id: '00000000-0000-0000-0000-000000000008',
       message_type: 'text',
       content: 'Hi Jane! I have some experience with frontend development. Will this course be suitable for me?',
+      reply_to_message_id: null,
+      is_pinned: false,
+      pinned_at: null,
+      pinned_by: null,
       created_at: new Date('2024-02-01T09:15:00'),
       updated_at: new Date('2024-02-01T09:15:00')
     },
@@ -227,6 +266,21 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
 
   // Insert chat messages
   for (const message of chatMessages) {
+    const completeMessage = ensureChatMessageFields(message);
+    // Check if message already exists
+    const existingMessage = await sequelize.query(
+      'SELECT id FROM chat_messages WHERE id = ?',
+      {
+        replacements: [message.id],
+        type: QueryTypes.SELECT
+      }
+    );
+
+    if (existingMessage.length > 0) {
+      console.log(`Chat message ${message.id} already exists, skipping...`);
+      continue;
+    }
+
     await sequelize.query(
       `INSERT INTO chat_messages (
         id, course_id, user_id, message_type, content, reply_to_message_id,
@@ -234,9 +288,9 @@ export async function seedChatMessages(sequelize: Sequelize): Promise<void> {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       {
         replacements: [
-          message.id, message.course_id, message.user_id, message.message_type,
-          message.content, message.reply_to_message_id, message.is_pinned,
-          message.pinned_at, message.pinned_by, message.created_at, message.updated_at
+          completeMessage.id, completeMessage.course_id, completeMessage.user_id, completeMessage.message_type,
+          completeMessage.content, completeMessage.reply_to_message_id, completeMessage.is_pinned,
+          completeMessage.pinned_at, completeMessage.pinned_by, completeMessage.created_at, completeMessage.updated_at
         ]
       }
     );

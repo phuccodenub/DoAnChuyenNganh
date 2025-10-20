@@ -203,7 +203,7 @@ export const cryptoUtils = {
    * @returns Random bytes as Buffer
    */
   generateRandomBytes(length: number): Buffer {
-    return crypto.randomBytes(length);
+    return crypto.randomBytes(length) as any;
   },
 
   /**

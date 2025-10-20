@@ -1,32 +1,37 @@
-const { body, param } = require('express-validator');
+import { z } from 'zod';
 
-export const assignmentValidation = {
-  create: [
-    body('course_id').isUUID(),
-    body('title').isLength({ min: 3, max: 255 }),
-    body('max_score').optional().isFloat({ min: 0 }),
-    body('due_date').optional().isISO8601(),
-    body('allow_late_submission').optional().isBoolean().toBoolean(),
-    body('submission_type').isIn(['file', 'text', 'both']),
-    body('is_published').optional().isBoolean().toBoolean()
-  ],
+export const assignmentSchemas = {
+  // Assignment query schema
+  assignmentQuery: z.object({
+    page: z.string().optional().transform(val => val ? parseInt(val) : 1),
+    limit: z.string().optional().transform(val => val ? parseInt(val) : 20),
+    course_id: z.string().optional(),
+    lesson_id: z.string().optional(),
+    status: z.enum(['draft', 'published', 'archived']).optional()
+  }),
 
-  submit: [
-    param('assignmentId').isUUID(),
-    body('submission_text').optional().isString(),
-    body('file_url').optional().isURL(),
-    body('file_name').optional().isLength({ max: 255 })
-  ],
+  // Assignment ID parameter schema
+  assignmentId: z.object({
+    id: z.string().min(1, 'Assignment ID is required')
+  }),
 
-  grade: [
-    param('submissionId').isUUID(),
-    body('score').optional().isFloat({ min: 0 }),
-    body('feedback').optional().isString()
-  ],
+  // Create assignment schema
+  createAssignment: z.object({
+    title: z.string().min(1, 'Title is required').max(255, 'Title too long'),
+    description: z.string().optional(),
+    course_id: z.string().min(1, 'Course ID is required'),
+    due_date: z.string().datetime().optional(),
+    max_points: z.number().int().min(0).optional(),
+    allow_late_submission: z.boolean().default(false)
+  }),
 
-  assignmentId: [param('assignmentId').isUUID()]
+  // Update assignment schema
+  updateAssignment: z.object({
+    title: z.string().min(1, 'Title is required').max(255, 'Title too long').optional(),
+    description: z.string().optional(),
+    course_id: z.string().min(1, 'Course ID is required').optional(),
+    due_date: z.string().datetime().optional(),
+    max_points: z.number().int().min(0).optional(),
+    allow_late_submission: z.boolean().optional()
+  })
 };
-
-
-
-

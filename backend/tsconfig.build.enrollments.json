@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/models/enrollment.model.ts",
+    "src/modules/enrollment/**/*.ts",
+    "src/middlewares/validate.middleware.ts",
+    "src/middlewares/uuid-validation.middleware.ts",
+    "src/errors/**/*.ts",
+    "src/utils/response.util.ts",
+    "src/constants/**/*.ts",
+    "src/types/**/*.d.ts",
+    "src/config/db.d.ts"
+  ],
+  "exclude": [
+    "src/modules/enrollment/**/*.test.ts",
+    "src/modules/enrollment/**/*.spec.ts",
+    "node_modules",
+    "dist"
+  ]
+}
+
+

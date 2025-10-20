@@ -1,45 +1,55 @@
-import { Router } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { AssignmentController } from './assignment.controller';
-import { assignmentValidation } from './assignment.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
-import { validate } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
+import { validateBody, validateQuery, validateParams } from '../../middlewares/validate.middleware';
+import { assignmentSchemas } from './assignment.validate';
 
-const router = Router();
-const controller = new AssignmentController();
+const router = express.Router();
+const assignmentController = new AssignmentController();
 
+// All routes require authentication
 router.use(authMiddleware);
 
-// Create assignment (instructor/admin)
+// ===== ASSIGNMENT MANAGEMENT ROUTES =====
+
+// Get all assignments (All authenticated users)
+router.get(
+  '/',
+  validateQuery(assignmentSchemas.assignmentQuery),
+  (req: Request, res: Response, next: NextFunction) => assignmentController.getAllAssignments(req, res, next)
+);
+
+// Get assignment by ID (All authenticated users)
+router.get(
+  '/:id',
+  validateParams(assignmentSchemas.assignmentId),
+  (req: Request, res: Response, next: NextFunction) => assignmentController.getAssignmentById(req, res, next)
+);
+
+// Create new assignment (Instructor/Admin only)
 router.post(
   '/',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(assignmentValidation.create),
-  controller.create
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateBody(assignmentSchemas.createAssignment),
+  (req: Request, res: Response, next: NextFunction) => assignmentController.createAssignment(req, res, next)
 );
 
-// Get assignment
-router.get('/:assignmentId', validate(assignmentValidation.assignmentId), controller.getOne);
-
-// Submit assignment (student)
-router.post(
-  '/:assignmentId/submissions',
-  validate(assignmentValidation.submit),
-  controller.submit
+// Update assignment (Instructor/Admin only)
+router.put(
+  '/:id',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(assignmentSchemas.assignmentId),
+  validateBody(assignmentSchemas.updateAssignment),
+  (req: Request, res: Response, next: NextFunction) => assignmentController.updateAssignment(req, res, next)
 );
 
-// Grade submission (instructor/admin)
-router.post(
-  '/submissions/:submissionId/grade',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(assignmentValidation.grade),
-  controller.grade
+// Delete assignment (Instructor/Admin only)
+router.delete(
+  '/:id',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(assignmentSchemas.assignmentId),
+  (req: Request, res: Response, next: NextFunction) => assignmentController.deleteAssignment(req, res, next)
 );
 
 export default router;
-
-
-
-
-
-

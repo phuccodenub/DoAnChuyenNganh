@@ -5,14 +5,31 @@ import logger from '../utils/logger.util';
 
 export class UserRepository extends BaseRepository<UserInstance> {
   constructor() {
-    super('User');
+    super(User);
   }
 
   /**
-   * Get the User model
+   * Find user by username (for LMS login)
    */
-  protected getModel() {
-    return User;
+  async findByUsername(username: string): Promise<UserInstance | null> {
+    try {
+      logger.debug('Finding user by username', { username });
+      
+      const user = await this.findOne({
+        where: { username: username.toLowerCase() }
+      });
+      
+      if (user) {
+        logger.debug('User found by username', { username });
+      } else {
+        logger.debug('User not found by username', { username });
+      }
+      
+      return user;
+    } catch (error) {
+      logger.error('Error finding user by username:', error);
+      throw error;
+    }
   }
 
   /**
@@ -219,6 +236,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       const users = await this.findAll({
         where: {
           [Op.or]: [
+            { username: { [Op.iLike]: `%${searchTerm}%` } },
             { first_name: { [Op.iLike]: `%${searchTerm}%` } },
             { last_name: { [Op.iLike]: `%${searchTerm}%` } },
             { email: { [Op.iLike]: `%${searchTerm}%` } },
@@ -272,8 +290,8 @@ export class UserRepository extends BaseRepository<UserInstance> {
         this.count({ where: { role: 'instructor' } }),
         this.count({ where: { role: 'admin' } }),
         this.count({ where: { role: 'super_admin' } }),
-        this.count({ where: { is_email_verified: true } }),
-        this.count({ where: { is_email_verified: false } })
+        this.count({ where: { email_verified: true } }),
+        this.count({ where: { email_verified: false } })
       ]);
       
       const stats = {
@@ -349,7 +367,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       logger.debug('Updating user email verification', { userId, isVerified });
       
       const user = await this.update(userId, { 
-        is_email_verified: isVerified,
+        email_verified: isVerified,
         email_verified_at: isVerified ? new Date() : null
       });
       

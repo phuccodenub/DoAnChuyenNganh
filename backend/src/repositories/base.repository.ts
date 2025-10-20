@@ -5,39 +5,23 @@ import logger from '../utils/logger.util';
  * Base repository class providing common CRUD operations
  * All repositories should extend this class
  */
-export abstract class BaseRepository<T extends Model> {
+export abstract class BaseRepository<T = any> {
   protected modelName: string;
-  protected model: ModelCtor<T> | null = null;
+  protected model: any | null = null;
 
-  constructor(modelName: string) {
-    this.modelName = modelName;
-  }
-
-  /**
-   * Get the model instance
-   * This method should be implemented by subclasses
-   */
-  protected abstract getModel(): ModelCtor<T>;
-
-  /**
-   * Get model instance with lazy loading
-   */
-  private getModelInstance(): ModelCtor<T> {
-    if (!this.model) {
-      this.model = this.getModel();
-    }
-    return this.model;
+  constructor(model: any) {
+    this.model = model;
+    this.modelName = model.name;
   }
 
   /**
    * Create a new record
    */
-  async create(data: any, options?: CreateOptions): Promise<T> {
+  async create(data: any, options?: any): Promise<T> {
     try {
       logger.debug(`Creating ${this.modelName}`, { data });
       
-      const model = this.getModelInstance();
-      const instance = await model.create(data, options);
+      const instance = await this.model.create(data, options);
       
       logger.debug(`${this.modelName} created successfully`, { id: instance.get('id') });
       return instance;
@@ -50,12 +34,11 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find a record by primary key
    */
-  async findById(id: string | number, options?: FindOptions): Promise<T | null> {
+  async findById(id: string | number, options?: any): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName} by ID`, { id });
       
-      const model = this.getModelInstance();
-      const instance = await model.findByPk(id, options);
+      const instance = await this.model.findByPk(id, options);
       
       if (instance) {
         logger.debug(`${this.modelName} found`, { id });
@@ -73,12 +56,11 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find a single record by conditions
    */
-  async findOne(options: FindOptions): Promise<T | null> {
+  async findOne(options: any): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const instance = await model.findOne(options);
+      const instance = await this.model.findOne(options);
       
       if (instance) {
         logger.debug(`${this.modelName} found`);
@@ -96,12 +78,11 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find all records
    */
-  async findAll(options?: FindOptions): Promise<T[]> {
+  async findAll(options?: any): Promise<T[]> {
     try {
       logger.debug(`Finding all ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const instances = await model.findAll(options);
+      const instances = await this.model.findAll(options);
       
       logger.debug(`${this.modelName} found`, { count: instances.length });
       return instances;
@@ -114,12 +95,11 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find and count records with pagination
    */
-  async findAndCountAll(options?: FindOptions): Promise<{ count: number; rows: T[] }> {
+  async findAndCountAll(options?: any): Promise<{ count: number; rows: T[] }> {
     try {
       logger.debug(`Finding and counting ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const result = await model.findAndCountAll(options);
+      const result = await this.model.findAndCountAll(options);
       
       logger.debug(`${this.modelName} found and counted`, { count: result.count, rows: result.rows.length });
       return result;
@@ -132,12 +112,11 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Update a record by primary key
    */
-  async update(id: string | number, data: any, options?: UpdateOptions): Promise<T> {
+  async update(id: string | number, data: any, options?: any): Promise<T> {
     try {
       logger.debug(`Updating ${this.modelName}`, { id, data });
       
-      const model = this.getModelInstance();
-      const [affectedCount] = await model.update(data, {
+      const [affectedCount] = await this.model.update(data, {
         where: { id },
         ...options
       });
@@ -146,7 +125,7 @@ export abstract class BaseRepository<T extends Model> {
         throw new Error(`${this.modelName} not found`);
       }
       
-      const updatedInstance = await model.findByPk(id);
+      const updatedInstance = await this.model.findByPk(id);
       if (!updatedInstance) {
         throw new Error(`${this.modelName} not found after update`);
       }
@@ -162,21 +141,22 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Delete a record by primary key
    */
-  async delete(id: string | number, options?: DestroyOptions): Promise<void> {
+  async delete(id: string | number, options?: any): Promise<boolean> {
     try {
       logger.debug(`Deleting ${this.modelName}`, { id });
       
-      const model = this.getModelInstance();
-      const deletedCount = await model.destroy({
+      const deletedCount = await this.model.destroy({
         where: { id },
         ...options
       });
       
       if (deletedCount === 0) {
-        throw new Error(`${this.modelName} not found`);
+        logger.debug(`${this.modelName} not found for deletion`, { id });
+        return false;
       }
       
       logger.debug(`${this.modelName} deleted successfully`, { id });
+      return true;
     } catch (error: unknown) {
       logger.error(`Error deleting ${this.modelName}:`, error);
       throw error;
@@ -186,12 +166,11 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Count records
    */
-  async count(options?: FindOptions): Promise<number> {
+  async count(options?: any): Promise<number> {
     try {
       logger.debug(`Counting ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const count = await model.count(options);
+      const count = await this.model.count(options);
       
       logger.debug(`${this.modelName} counted`, { count });
       return count;
@@ -208,8 +187,7 @@ export abstract class BaseRepository<T extends Model> {
     try {
       logger.debug(`Checking if ${this.modelName} exists`, { id });
       
-      const model = this.getModelInstance();
-      const count = await model.count({ where: { id: id as any } as any });
+      const count = await this.model.count({ where: { id: id as any } as any });
       
       const exists = (count as any as number) > 0;
       logger.debug(`${this.modelName} exists check`, { id, exists });
@@ -223,12 +201,11 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find records by field
    */
-  async findByField(field: string, value: any, options?: FindOptions): Promise<T[]> {
+  async findByField(field: string, value: any, options?: any): Promise<T[]> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
-      const model = this.getModelInstance();
-      const instances = await model.findAll({
+      const instances = await this.model.findAll({
         where: { [field]: value },
         ...options
       });
@@ -244,12 +221,11 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Find a single record by field
    */
-  async findOneByField(field: string, value: any, options?: FindOptions): Promise<T | null> {
+  async findOneByField(field: string, value: any, options?: any): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
-      const model = this.getModelInstance();
-      const instance = await model.findOne({
+      const instance = await this.model.findOne({
         where: { [field]: value },
         ...options
       });
@@ -274,8 +250,7 @@ export abstract class BaseRepository<T extends Model> {
     try {
       logger.debug(`Bulk creating ${this.modelName}`, { count: data.length });
       
-      const model = this.getModelInstance();
-      const instances = await model.bulkCreate(data, options);
+      const instances = await this.model.bulkCreate(data, options);
       
       logger.debug(`${this.modelName} bulk created`, { count: instances.length });
       return instances;
@@ -292,8 +267,7 @@ export abstract class BaseRepository<T extends Model> {
     try {
       logger.debug(`Bulk updating ${this.modelName}`, { count: data.length });
       
-      const model = this.getModelInstance();
-      await model.bulkCreate(data, { updateOnDuplicate: Object.keys(data[0] || {}), ...options });
+      await this.model.bulkCreate(data, { updateOnDuplicate: Object.keys(data[0] || {}), ...options });
       
       logger.debug(`${this.modelName} bulk updated`, { count: data.length });
     } catch (error: unknown) {
@@ -337,7 +311,7 @@ export abstract class BaseRepository<T extends Model> {
   /**
    * Get paginated results
    */
-  async paginate(page: number, limit: number, options?: FindOptions): Promise<{
+  async paginate(page: number, limit: number, options?: any): Promise<{
     data: T[];
     pagination: {
       page: number;

@@ -1,8 +1,9 @@
 // User type definitions for type safety
 export interface UserAttributes {
   id: string;
+  username: string;
   email: string;
-  password_hash: string;
+  password: string;
   first_name: string;
   last_name: string;
   phone?: string;
@@ -10,7 +11,7 @@ export interface UserAttributes {
   avatar?: string;
   role: 'student' | 'instructor' | 'admin' | 'super_admin';
   status: 'active' | 'inactive' | 'suspended' | 'pending';
-  is_email_verified: boolean;
+  email_verified: boolean;
   email_verified_at?: Date;
   token_version: number;
   last_login?: Date;
@@ -42,8 +43,9 @@ export interface UserAttributes {
 
 export interface UserCreationAttributes {
   id?: string;
+  username: string;
   email: string;
-  password_hash: string;
+  password: string;
   first_name: string;
   last_name: string;
   phone?: string;
@@ -51,7 +53,7 @@ export interface UserCreationAttributes {
   avatar?: string;
   role?: 'student' | 'instructor' | 'admin' | 'super_admin';
   status?: 'active' | 'inactive' | 'suspended' | 'pending';
-  is_email_verified?: boolean;
+  email_verified?: boolean;
   email_verified_at?: Date;
   token_version?: number;
   last_login?: Date;
@@ -83,6 +85,7 @@ export interface UserCreationAttributes {
 
 export interface UserPublicProfile {
   id: string;
+  username: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -91,7 +94,7 @@ export interface UserPublicProfile {
   avatar?: string;
   role: 'student' | 'instructor' | 'admin' | 'super_admin';
   status: 'active' | 'inactive' | 'suspended' | 'pending';
-  is_email_verified: boolean;
+  email_verified: boolean;
   created_at: Date;
 
   // ===== STUDENT FIELDS =====

@@ -1,4 +1,4 @@
-const { body, param, query } = require('express-validator');
+import { body, param, query } from 'express-validator';
 import { validatorsUtils } from '../../utils/validators.util';
 
 /**
@@ -24,7 +24,7 @@ export const userValidation = {
     
     body('phone')
       .optional()
-      .custom((value: string) => validatorsUtils.isPhone(value))
+      .custom(validatorsUtils.isPhone)
       .withMessage('Invalid phone number format'),
     
     body('bio')
@@ -37,7 +37,7 @@ export const userValidation = {
       .optional()
       .isISO8601()
       .withMessage('Date of birth must be a valid ISO date')
-      .custom((value: string) => {
+      .custom((value: any) => {
         if (new Date(value) > new Date()) {
           throw new Error('Date of birth cannot be in the future');
         }
@@ -63,7 +63,7 @@ export const userValidation = {
     
     body('emergency_phone')
       .optional()
-      .custom((value: string) => validatorsUtils.isPhone(value))
+      .custom(validatorsUtils.isPhone)
       .withMessage('Invalid emergency phone number format'),
     
     // Student-specific fields
@@ -131,7 +131,7 @@ export const userValidation = {
       .optional()
       .isArray()
       .withMessage('Research interests must be an array')
-      .custom((value: any[]) => {
+      .custom((value: any) => {
         if (value && value.length > 10) {
           throw new Error('Maximum 10 research interests allowed');
         }
@@ -416,5 +416,3 @@ export const userValidation = {
       .withMessage('Verification code must be numeric')
   ]
 };
-
-

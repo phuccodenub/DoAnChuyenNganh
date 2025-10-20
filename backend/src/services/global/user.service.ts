@@ -1,12 +1,14 @@
-import * as userRepository from '../../repositories/user.repository';
+import { UserRepository } from '../../repositories/user.repository';
 import { CacheService } from './cache.service';
 import logger from '../../utils/logger.util';
 
 export class GlobalUserService {
   private cacheService: CacheService;
+  private userRepo: UserRepository;
 
   constructor() {
     this.cacheService = new CacheService();
+    this.userRepo = new UserRepository();
   }
 
   // ===== USER CRUD OPERATIONS (Shared across modules) =====
@@ -21,7 +23,7 @@ export class GlobalUserService {
       }
 
       // Get from database
-      const user = await userRepository.findUserById(userId);
+      const user = await this.userRepo.findById(userId);
       if (user) {
         // Cache for future requests
         await this.cacheUser(userId, user);
@@ -44,7 +46,7 @@ export class GlobalUserService {
       }
 
       // Get from database
-      const user = await userRepository.findUserByEmail(email);
+      const user = await this.userRepo.findByEmail(email);
       if (user) {
         // Cache for future requests
         await this.cacheUser((user as any).id, user);
@@ -113,7 +115,7 @@ export class GlobalUserService {
     try {
       await this.cacheService.delete(`user:${userId}`);
       // Also clear email cache if we have the user data
-      const user = await userRepository.findUserById(userId);
+      const user = await this.userRepo.findById(userId);
       if (user) {
         await this.cacheService.delete(`user:email:${(user as any).email}`);
       }
@@ -128,12 +130,12 @@ export class GlobalUserService {
   // Update user token version (for logout/invalidate all tokens)
   async updateTokenVersion(userId: string): Promise<void> {
     try {
-      const user = await userRepository.findUserById(userId);
+      const user = await this.userRepo.findById(userId);
       if (!user) {
         throw new Error('User not found');
       }
 
-      await userRepository.updateUser(userId, {
+      await this.userRepo.update(userId, {
         token_version: (user as any).token_version + 1
       });
 
@@ -163,7 +165,7 @@ export class GlobalUserService {
   // Update user last login
   async updateLastLogin(userId: string): Promise<void> {
     try {
-      await userRepository.updateUser(userId, {
+      await this.userRepo.update(userId, {
         last_login: new Date()
       });
 
@@ -180,7 +182,7 @@ export class GlobalUserService {
   // Add user
   async addUser(userData: any): Promise<any> {
     try {
-      const user = await userRepository.createUser(userData);
+      const user = await this.userRepo.create(userData);
       if (user) {
         await this.cacheUser((user as any).id, user);
       }
@@ -194,7 +196,7 @@ export class GlobalUserService {
   // Update user info
   async updateUserInfo(userId: string, updateData: any): Promise<any> {
     try {
-      const user = await userRepository.updateUser(userId, updateData);
+      const user = await this.userRepo.update(userId, updateData);
       if (user) {
         await this.cacheUser(userId, user);
       }
@@ -208,7 +210,7 @@ export class GlobalUserService {
   // Remove user
   async removeUser(userId: string): Promise<void> {
     try {
-      await userRepository.deleteUser(userId);
+      await this.userRepo.delete(userId);
       await this.clearUserCache(userId);
     } catch (error: unknown) {
       logger.error('Error removing user:', error);
@@ -219,7 +221,7 @@ export class GlobalUserService {
   // Get all users with pagination
   async getAllUsers(options: any): Promise<any> {
     try {
-      return await userRepository.findAllUsers(options);
+      return await this.userRepo.paginate(options.page || 1, options.limit || 10, options);
     } catch (error: unknown) {
       logger.error('Error getting all users:', error);
       throw error;
@@ -229,7 +231,7 @@ export class GlobalUserService {
   // Get users by role
   async getUsersByRole(role: string): Promise<any> {
     try {
-      return await userRepository.findUsersByRole(role);
+      return await this.userRepo.findByRole(role);
     } catch (error: unknown) {
       logger.error('Error getting users by role:', error);
       throw error;
@@ -239,7 +241,7 @@ export class GlobalUserService {
   // Get user statistics
   async getUserStatistics(): Promise<any> {
     try {
-      return await userRepository.getUserStatistics();
+      return await this.userRepo.getUserStats();
     } catch (error: unknown) {
       logger.error('Error getting user statistics:', error);
       throw error;
@@ -249,7 +251,7 @@ export class GlobalUserService {
   // Change user status
   async changeUserStatus(userId: string, status: string): Promise<any> {
     try {
-      const user = await userRepository.updateUser(userId, { status });
+      const user = await this.userRepo.update(userId, { status });
       if (user) {
         await this.cacheUser(userId, user);
       }

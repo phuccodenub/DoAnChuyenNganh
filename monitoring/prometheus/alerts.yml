@@ -1,0 +1,37 @@
+groups:
+  - name: lms-backend.rules
+    interval: 15s
+    rules:
+      - alert: LMSHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{service="lms-backend",status!~"^2..$",status!="redirect",status!="not_modified"}[5m]))
+          /
+          sum(rate(http_requests_total{service="lms-backend"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Error rate cao >5% (5m)"
+          description: "Error rate hiện tại: {{ $value | humanizePercentage }}"
+
+      - alert: LMSHighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{service="lms-backend"}[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 latency cao >500ms (5m)"
+          description: "p95 latency: {{ $value }}s"
+
+      - alert: LMSDown
+        expr: up{job="lms-backend"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Không scrape được lms-backend"
+          description: "Target không phản hồi trong >=5 phút"
+

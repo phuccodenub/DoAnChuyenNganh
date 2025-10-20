@@ -19,7 +19,7 @@ export async function createUsersTable(queryInterface: QueryInterface): Promise<
     },
     username: {
       type: DataTypes.STRING(50),
-      allowNull: true,
+      allowNull: false,
       unique: true
     },
     password: {
@@ -61,6 +61,10 @@ export async function createUsersTable(queryInterface: QueryInterface): Promise<
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false
+    },
+    email_verified_at: {
+      type: DataTypes.DATE,
+      allowNull: true
     },
     email_verification_token: {
       type: DataTypes.STRING(255),
@@ -124,6 +128,26 @@ export async function createUsersTable(queryInterface: QueryInterface): Promise<
     },
     metadata: {
       type: DataTypes.JSON,
+      allowNull: true
+    },
+    date_of_birth: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
+    },
+    gender: {
+      type: DataTypes.ENUM('male', 'female', 'other'),
+      allowNull: true
+    },
+    address: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    emergency_contact: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    emergency_phone: {
+      type: DataTypes.STRING(20),
       allowNull: true
     },
     created_at: {

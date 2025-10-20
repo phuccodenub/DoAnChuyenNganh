@@ -1,144 +1,128 @@
-import { Router } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { QuizController } from './quiz.controller';
-import { quizValidation } from './quiz.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
-import { validate } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
+import { validateBody, validateQuery, validateParams } from '../../middlewares/validate.middleware';
+import { quizSchemas } from './quiz.validate';
 
-const router = Router();
-const controller = new QuizController();
+const router = express.Router();
+const quizController = new QuizController();
 
+// All routes require authentication
 router.use(authMiddleware);
 
-// ===================================
-// QUIZ MANAGEMENT (INSTRUCTOR)
-// ===================================
+// ===== QUIZ MANAGEMENT ROUTES =====
 
-// Create quiz (instructor/admin)
+// Get all quizzes (All authenticated users)
+router.get(
+  '/',
+  validateQuery(quizSchemas.quizQuery),
+  (req: Request, res: Response, next: NextFunction) => quizController.getAllQuizzes(req, res, next)
+);
+
+// Get quiz by ID (All authenticated users)
+router.get(
+  '/:id',
+  validateParams(quizSchemas.quizId),
+  (req: Request, res: Response, next: NextFunction) => quizController.getQuizById(req, res, next)
+);
+
+// Create new quiz (Instructor/Admin only)
 router.post(
   '/',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.createQuiz),
-  controller.createQuiz
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateBody(quizSchemas.createQuiz),
+  (req: Request, res: Response, next: NextFunction) => quizController.createQuiz(req, res, next)
 );
 
-// Get quiz
-router.get('/:quizId', validate(quizValidation.quizId), controller.getQuiz);
-
-// Update quiz (instructor/admin)
+// Update quiz (Instructor/Admin only)
 router.put(
-  '/:quizId',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.updateQuiz),
-  controller.updateQuiz
+  '/:id',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(quizSchemas.quizId),
+  validateBody(quizSchemas.updateQuiz),
+  (req: Request, res: Response, next: NextFunction) => quizController.updateQuiz(req, res, next)
 );
 
-// Delete quiz (instructor/admin)
+// Delete quiz (Instructor/Admin only)
 router.delete(
-  '/:quizId',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.quizId),
-  controller.deleteQuiz
+  '/:id',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(quizSchemas.quizId),
+  (req: Request, res: Response, next: NextFunction) => quizController.deleteQuiz(req, res, next)
 );
 
-// ===================================
-// QUESTION MANAGEMENT (INSTRUCTOR)
-// ===================================
+// ===== QUIZ QUESTIONS MANAGEMENT ROUTES =====
 
-// Add question (instructor/admin)
+// Get all questions for a quiz (All authenticated users)
+router.get(
+  '/:id/questions',
+  validateParams(quizSchemas.quizId),
+  (req: Request, res: Response, next: NextFunction) => quizController.getQuizQuestions(req, res, next)
+);
+
+// Get question by ID (All authenticated users)
+router.get(
+  '/:quizId/questions/:questionId',
+  validateParams(quizSchemas.quizQuestionParams),
+  (req: Request, res: Response, next: NextFunction) => quizController.getQuizQuestionById(req, res, next)
+);
+
+// Create new question for quiz (Instructor/Admin only)
 router.post(
-  '/:quizId/questions',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.addQuestion),
-  controller.addQuestion
+  '/:id/questions',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(quizSchemas.quizId),
+  validateBody(quizSchemas.createQuestion),
+  (req: Request, res: Response, next: NextFunction) => quizController.createQuizQuestion(req, res, next)
 );
 
-// Update question (instructor/admin)
+// Update question (Instructor/Admin only)
 router.put(
-  '/questions/:questionId',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.updateQuestion),
-  controller.updateQuestion
+  '/:quizId/questions/:questionId',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(quizSchemas.quizQuestionParams),
+  validateBody(quizSchemas.updateQuestion),
+  (req: Request, res: Response, next: NextFunction) => quizController.updateQuizQuestion(req, res, next)
 );
 
-// Delete question (instructor/admin)
+// Delete question (Instructor/Admin only)
 router.delete(
-  '/questions/:questionId',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.questionId),
-  controller.deleteQuestion
+  '/:quizId/questions/:questionId',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(quizSchemas.quizQuestionParams),
+  (req: Request, res: Response, next: NextFunction) => quizController.deleteQuizQuestion(req, res, next)
 );
 
-// List questions
-router.get('/:quizId/questions', validate(quizValidation.quizId), controller.getQuizQuestions);
+// ===== QUIZ ATTEMPT MANAGEMENT ROUTES =====
 
-// Add option (instructor/admin)
+// Start quiz attempt (All authenticated users)
 router.post(
-  '/questions/:questionId/options',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.addOption),
-  controller.addOption
+  '/:id/start',
+  validateParams(quizSchemas.quizId),
+  (req: Request, res: Response, next: NextFunction) => quizController.startQuizAttempt(req, res, next)
 );
 
-// ===================================
-// QUIZ ATTEMPTS (STUDENT)
-// ===================================
-
-// Start quiz attempt
-router.post(
-  '/:quizId/attempts',
-  authorizeRoles([UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.quizId),
-  controller.startAttempt
-);
-
-// Submit quiz attempt
+// Submit quiz attempt (All authenticated users)
 router.post(
   '/attempts/:attemptId/submit',
-  authorizeRoles([UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.submitQuiz),
-  controller.submitAttempt
+  validateParams(quizSchemas.quizAttemptParams),
+  validateBody(quizSchemas.submitQuizAttempt),
+  (req: Request, res: Response, next: NextFunction) => quizController.submitQuizAttempt(req, res, next)
 );
 
-// Get my attempts for a quiz
-router.get(
-  '/:quizId/my-attempts',
-  authorizeRoles([UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.quizId),
-  controller.getMyAttempts
-);
-
-// Get attempt details
+// Get quiz attempt by ID (All authenticated users)
 router.get(
   '/attempts/:attemptId',
-  authorizeRoles([UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.attemptId),
-  controller.getAttemptDetails
+  validateParams(quizSchemas.quizAttemptParams),
+  (req: Request, res: Response, next: NextFunction) => quizController.getQuizAttemptById(req, res, next)
 );
 
-// ===================================
-// INSTRUCTOR ANALYTICS
-// ===================================
-
-// Get quiz statistics (instructor/admin)
+// Get user's quiz attempts (All authenticated users)
 router.get(
-  '/:quizId/statistics',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.quizId),
-  controller.getQuizStatistics
-);
-
-// Get all quiz attempts (instructor/admin)
-router.get(
-  '/:quizId/attempts',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(quizValidation.quizId),
-  controller.getQuizAttempts
+  '/:id/attempts',
+  validateParams(quizSchemas.quizId),
+  (req: Request, res: Response, next: NextFunction) => quizController.getUserQuizAttempts(req, res, next)
 );
 
 export default router;
-
-
-
-
-

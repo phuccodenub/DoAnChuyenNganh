@@ -11,7 +11,7 @@ import { AuthorizationError } from './authorization.error';
 import { DatabaseError } from './database.error';
 import { FileError } from './file.error';
 import { ExternalServiceError } from './external-service.error';
-import { ErrorCode, ErrorType, ErrorSeverity, HttpStatusCode } from './error.constants';
+import { ErrorCode, ErrorType, ErrorSeverity } from './error.constants';
 
 export class ErrorFactory {
   /**
@@ -20,13 +20,13 @@ export class ErrorFactory {
   static createApiError(
     code: ErrorCode,
     message?: string,
-    statusCode?: HttpStatusCode,
+    statusCode?: number,
     details?: Record<string, any>
   ): ApiError {
     return new ApiError({
       code,
       message,
-      statusCode,
+      statusCode: statusCode as any,
       details
     });
   }
@@ -148,11 +148,38 @@ export class ErrorFactory {
     }
 
     if (error instanceof Error) {
+      // Check if error has statusCode property (common for API errors)
+      const statusCode = (error as any).statusCode;
+      
+      // Determine error type based on status code
+      let errorCode: ErrorCode = 'INTERNAL_SERVER_ERROR';
+      let severity: ErrorSeverity = 'HIGH';
+      
+      if (statusCode === 404) {
+        // Use generic not found error, preserve statusCode
+        errorCode = 'DATABASE_RECORD_NOT_FOUND';
+        severity = 'LOW';
+      } else if (statusCode === 409) {
+        // Use database duplicate as conflict indicator
+        errorCode = 'DATABASE_DUPLICATE_ENTRY';
+        severity = 'MEDIUM';
+      } else if (statusCode === 400) {
+        errorCode = 'VALIDATION_FAILED';
+        severity = 'LOW';
+      } else if (statusCode === 401) {
+        errorCode = 'AUTH_TOKEN_INVALID';
+        severity = 'MEDIUM';
+      } else if (statusCode === 403) {
+        errorCode = 'AUTH_INSUFFICIENT_PERMISSIONS';
+        severity = 'MEDIUM';
+      }
+      
       return new BaseError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: (error as Error).message,
+        code: errorCode,
+        message: error.message,
         type: 'SYSTEM',
-        severity: 'HIGH',
+        severity: severity,
+        statusCode: statusCode || 500, // Preserve statusCode from error
         cause: error,
         context
       });
@@ -171,7 +198,7 @@ export class ErrorFactory {
    * Create error from HTTP status code
    */
   static fromHttpStatus(
-    statusCode: HttpStatusCode,
+    statusCode: number,
     message?: string,
     context?: Record<string, any>
   ): ApiError {
@@ -220,7 +247,7 @@ export class ErrorFactory {
     return new ApiError({
       code,
       message,
-      statusCode,
+      statusCode: statusCode as any,
       type: 'SYSTEM',
       severity,
       context
@@ -254,4 +281,3 @@ export class ErrorFactory {
     return ExternalServiceError.fromHttpError(serviceName, statusCode, message, endpoint, method);
   }
 }
-

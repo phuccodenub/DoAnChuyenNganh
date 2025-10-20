@@ -1,12 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthModuleService } from './auth.service';
 import { LoginCredentials, RegisterData, ChangePasswordData } from './auth.types';
-import { responseUtils } from '../../utils/response.util';
-import { validateBody } from '../../middlewares/validate.middleware';
-import { authValidation } from '../../validates/auth.validate';
-import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
-import logger from '../../utils/logger.util';
-import { AuthenticationError, ValidationError, ApiError } from '../../errors';
+import { responseUtils } from '@utils/response.util';
+import { RESPONSE_CONSTANTS } from '@constants/response.constants';
+import logger from '@utils/logger.util';
 
 export class AuthController {
   private authService: AuthModuleService;
@@ -47,12 +44,12 @@ export class AuthController {
   // Login with 2FA
   async loginWith2FA(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, password, code } = req.body;
+      const { username, password, code } = req.body;
       const device = req.headers['user-agent'] || 'Unknown Device';
       const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown IP';
       const userAgent = req.headers['user-agent'] || 'Unknown User Agent';
 
-      const credentials: LoginCredentials = { email, password };
+      const credentials: LoginCredentials = { username, password };
       const result = await this.authService.loginWith2FA(credentials, code, device, ipAddress, userAgent);
       responseUtils.sendSuccess(res, 'Login with 2FA successful', result);
     } catch (error: unknown) {

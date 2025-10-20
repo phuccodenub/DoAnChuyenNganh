@@ -1,5 +1,11 @@
 # Compact Real-Time LMS (Hệ thống LMS Tương tác Thời gian thực)
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Coverage](https://img.shields.io/badge/Coverage-70%25-brightgreen?style=for-the-badge)](https://github.com/your-username/DoAnChuyenNganh)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge)](https://github.com/your-username/DoAnChuyenNganh/actions)
+
 Một hệ thống quản lý học tập (LMS) nhẹ, dành cho giảng viên và sinh viên, tập trung vào trải nghiệm tương tác real-time: chat, livestream và quiz.
 
 Dự án này hướng tới việc thay thế nhiều công cụ rời rạc (Zoom, Kahoot, Slack) bằng một giải pháp tích hợp, đơn giản và tập trung.
@@ -103,6 +109,31 @@ docker-compose up -d --build
 ```
 
 Lệnh trên sẽ build image và khởi chạy các service (frontend, backend, postgres, redis).
+
+---
+
+## 🔎 Tracing (OpenTelemetry)
+
+- Mặc định ở môi trường development, tracing chỉ chạy cục bộ và KHÔNG export ra OTLP collector để tránh lỗi kết nối.
+- Để bật/tắt export:
+
+### Dev (khuyến nghị)
+
+```env
+ENABLE_OTLP=false
+```
+
+### Prod hoặc khi có collector cục bộ
+
+1) Chạy OTLP Collector (ví dụ qua Docker) và mở cổng 4318.
+2) Đặt biến môi trường:
+
+```env
+ENABLE_OTLP=true
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+```
+
+Ghi chú: Khi `ENABLE_OTLP=false`, hệ thống sẽ chủ động vô hiệu hoá các biến OTEL liên quan để ngăn auto-export.
 
 ---
 

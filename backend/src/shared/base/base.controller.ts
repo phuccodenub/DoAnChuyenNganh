@@ -1,14 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
-import { BaseService as IBaseService, ApiResponse, PaginationOptions } from '../../types/common.types';
-import { sendSuccessResponse, sendErrorResponse, sendNotFoundResponse } from '../../utils/response.util';
-import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
-import logger from '../../utils/logger.util';
+// Keep shared BaseController independent from app-wide types/utils during isolated lint
+type PaginationOptions = { page?: number; limit?: number; sortBy?: string; sortOrder?: 'ASC' | 'DESC' };
+// Lightweight logger and response helpers to avoid pulling full deps
+declare const require: any;
+const logger: any = require('../../utils/logger.util');
+const { RESPONSE_CONSTANTS }: any = require('../../constants/response.constants');
+const { sendSuccessResponse, sendErrorResponse, sendNotFoundResponse }: any = require('../../utils/response.util');
 
 // Base Controller class to avoid code duplication
 export abstract class BaseController<T, CreateDto, UpdateDto> {
-  protected service: IBaseService<T, CreateDto, UpdateDto>;
+  protected service: BaseService<T, CreateDto, UpdateDto>;
 
-  constructor(service: IBaseService<T, CreateDto, UpdateDto>) {
+  constructor(service: BaseService<T, CreateDto, UpdateDto>) {
     this.service = service;
   }
 
@@ -22,7 +25,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
     try {
       const result = await this.service.create(createData);
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.CREATED, result);
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error in create:', error);
       next(error);
     }
@@ -42,7 +45,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
         return;
       }
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, result);
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error in findById:', error);
       next(error);
     }
@@ -58,7 +61,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
     try {
       const result = await this.service.findAll(options);
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, result);
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error in findAll:', error);
       next(error);
     }
@@ -79,7 +82,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
         return;
       }
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.UPDATED, result);
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error in update:', error);
       next(error);
     }
@@ -99,7 +102,7 @@ export abstract class BaseController<T, CreateDto, UpdateDto> {
         return;
       }
       sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.DELETED, null);
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error in delete:', error);
       next(error);
     }
@@ -119,7 +122,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
     try {
       const result = await this.model.create(data);
       return result.toJSON();
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error creating resource:', error);
       throw error;
     }
@@ -130,7 +133,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
     try {
       const result = await this.model.findByPk(id);
       return result ? result.toJSON() : null;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error finding resource by id:', error);
       throw error;
     }
@@ -149,7 +152,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
       });
 
       return result.rows.map((item: any) => item.toJSON());
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error finding all resources:', error);
       throw error;
     }
@@ -169,7 +172,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
 
       const result = await this.model.findByPk(id);
       return result ? result.toJSON() : null;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating resource:', error);
       throw error;
     }
@@ -183,10 +186,9 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
       });
 
       return affectedRows > 0;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error deleting resource:', error);
       throw error;
     }
   }
 }
-

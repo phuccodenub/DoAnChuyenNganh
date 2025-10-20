@@ -17,17 +17,30 @@ import Notification from './notification.model';
 import NotificationRecipient from './notification-recipient.model';
 
 export const setupAssociations = () => {
+  // Cast to any to ease mixed model typing during migration to class-based models
+  const U: any = User as any;
+  const C: any = Course as any;
+  const E: any = Enrollment as any;
+  const CM: any = ChatMessage as any;
+  const PRT: any = PasswordResetToken as any;
+  const CAT: any = Category as any;
+  const SEC: any = Section as any;
+  const LES: any = Lesson as any;
+  const LMT: any = LessonMaterial as any;
+  const LPR: any = LessonProgress as any;
+  const NOTI: any = Notification as any;
+  const NR: any = NotificationRecipient as any;
   // ===================================
   // 1. USER & AUTHENTICATION RELATIONSHIPS
   // ===================================
   
   // User 1 ---< PasswordResetToken
-  User.hasMany(PasswordResetToken, {
+  U.hasMany(PRT, {
     foreignKey: 'user_id',
     as: 'passwordResetTokens',
     onDelete: 'CASCADE'
   });
-  PasswordResetToken.belongsTo(User, {
+  PRT.belongsTo(U, {
     foreignKey: 'user_id',
     as: 'user'
   });
@@ -37,64 +50,66 @@ export const setupAssociations = () => {
   // ===================================
   
   // Category 1 ---< Course
-  Category.hasMany(Course, {
-    foreignKey: 'category_id',
-    as: 'courses'
-  });
-  Course.belongsTo(Category, {
-    foreignKey: 'category_id',
-    as: 'category'
-  });
+  // NOTE: Disabled temporarily - Course model uses 'category' string field, not category_id FK
+  // TODO: Create migration to add category_id UUID field to courses table if needed
+  // CAT.hasMany(C, {
+  //   foreignKey: 'category_id',
+  //   as: 'courses'
+  // });
+  // C.belongsTo(CAT, {
+  //   foreignKey: 'category_id',
+  //   as: 'categoryData'
+  // });
 
   // Category (self-referencing) - Parent/Child hierarchy
-  Category.hasMany(Category, {
+  CAT.hasMany(CAT, {
     foreignKey: 'parent_id',
     as: 'subcategories'
   });
-  Category.belongsTo(Category, {
+  CAT.belongsTo(CAT, {
     foreignKey: 'parent_id',
     as: 'parent'
   });
 
   // User (Instructor) 1 ---< Course
-  User.hasMany(Course, {
+  U.hasMany(C, {
     foreignKey: 'instructor_id',
     as: 'taughtCourses' // Courses taught by instructor
   });
-  Course.belongsTo(User, {
+  C.belongsTo(U, {
     foreignKey: 'instructor_id',
     as: 'instructor'
   });
 
   // User >---< Course (through Enrollments)
-  User.belongsToMany(Course, {
-    through: Enrollment,
+  U.belongsToMany(C, {
+    through: E,
     foreignKey: 'user_id',
     otherKey: 'course_id',
     as: 'enrolledCourses' // Courses enrolled by student
   });
-  Course.belongsToMany(User, {
-    through: Enrollment,
+  C.belongsToMany(U, {
+    through: E,
     foreignKey: 'course_id',
     otherKey: 'user_id',
     as: 'enrolledStudents' // Students enrolled in course
   });
 
   // Direct associations for Enrollment
-  User.hasMany(Enrollment, {
+  U.hasMany(E, {
     foreignKey: 'user_id',
     as: 'enrollments'
   });
-  Enrollment.belongsTo(User, {
+  E.belongsTo(U, {
     foreignKey: 'user_id',
     as: 'student'
   });
 
-  Course.hasMany(Enrollment, {
+  C.hasMany(E, {
     foreignKey: 'course_id',
     as: 'enrollments'
   });
-  Enrollment.belongsTo(Course, {
+  E.belongsTo(C, {
     foreignKey: 'course_id',
     as: 'course'
   });
@@ -104,31 +119,31 @@ export const setupAssociations = () => {
   // ===================================
   
   // User 1 ---< ChatMessage
-  User.hasMany(ChatMessage, {
+  U.hasMany(CM, {
     foreignKey: 'sender_id',
     as: 'sentMessages'
   });
-  ChatMessage.belongsTo(User, {
+  CM.belongsTo(U, {
     foreignKey: 'sender_id',
     as: 'sender'
   });
 
   // Course 1 ---< ChatMessage
-  Course.hasMany(ChatMessage, {
+  C.hasMany(CM, {
     foreignKey: 'course_id',
     as: 'chatMessages'
   });
-  ChatMessage.belongsTo(Course, {
+  CM.belongsTo(C, {
     foreignKey: 'course_id',
     as: 'course'
   });
 
   // ChatMessage (self-referencing) - Reply functionality
-  ChatMessage.hasMany(ChatMessage, {
+  CM.hasMany(CM, {
     foreignKey: 'reply_to',
     as: 'replies'
   });
-  ChatMessage.belongsTo(ChatMessage, {
+  CM.belongsTo(CM, {
     foreignKey: 'reply_to',
     as: 'replyToMessage'
   });
@@ -138,77 +153,77 @@ export const setupAssociations = () => {
   // ===================================
   
   // Course 1 ---< Section
-  Course.hasMany(Section, {
+  C.hasMany(SEC, {
     foreignKey: 'course_id',
     as: 'sections',
     onDelete: 'CASCADE'
   });
-  Section.belongsTo(Course, {
+  SEC.belongsTo(C, {
     foreignKey: 'course_id',
     as: 'course'
   });
 
   // Section 1 ---< Lesson
-  Section.hasMany(Lesson, {
+  SEC.hasMany(LES, {
     foreignKey: 'section_id',
     as: 'lessons',
     onDelete: 'CASCADE'
   });
-  Lesson.belongsTo(Section, {
+  LES.belongsTo(SEC, {
     foreignKey: 'section_id',
     as: 'section'
   });
 
   // Lesson 1 ---< LessonMaterial
-  Lesson.hasMany(LessonMaterial, {
+  LES.hasMany(LMT, {
     foreignKey: 'lesson_id',
     as: 'materials',
     onDelete: 'CASCADE'
   });
-  LessonMaterial.belongsTo(Lesson, {
+  LMT.belongsTo(LES, {
     foreignKey: 'lesson_id',
     as: 'lesson'
   });
 
   // User (uploader) 1 ---< LessonMaterial
-  User.hasMany(LessonMaterial, {
+  U.hasMany(LMT, {
     foreignKey: 'uploaded_by',
     as: 'uploadedMaterials'
   });
-  LessonMaterial.belongsTo(User, {
+  LMT.belongsTo(U, {
     foreignKey: 'uploaded_by',
     as: 'uploader'
   });
 
   // User >---< Lesson (through LessonProgress)
-  User.belongsToMany(Lesson, {
-    through: LessonProgress,
+  U.belongsToMany(LES, {
+    through: LPR,
     foreignKey: 'user_id',
     otherKey: 'lesson_id',
     as: 'learnedLessons'
   });
-  Lesson.belongsToMany(User, {
-    through: LessonProgress,
+  LES.belongsToMany(U, {
+    through: LPR,
     foreignKey: 'lesson_id',
     otherKey: 'user_id',
     as: 'learners'
   });
 
   // Direct associations for LessonProgress
-  User.hasMany(LessonProgress, {
+  U.hasMany(LPR, {
     foreignKey: 'user_id',
     as: 'lessonProgress'
   });
-  LessonProgress.belongsTo(User, {
+  LPR.belongsTo(U, {
     foreignKey: 'user_id',
     as: 'user'
   });
 
-  Lesson.hasMany(LessonProgress, {
+  LES.hasMany(LPR, {
     foreignKey: 'lesson_id',
     as: 'progress'
   });
-  LessonProgress.belongsTo(Lesson, {
+  LPR.belongsTo(LES, {
     foreignKey: 'lesson_id',
     as: 'lesson'
   });
@@ -218,44 +233,44 @@ export const setupAssociations = () => {
   // ===================================
   
   // User (sender) 1 ---< Notification
-  User.hasMany(Notification, {
+  U.hasMany(NOTI, {
     foreignKey: 'sender_id',
     as: 'sentNotifications'
   });
-  Notification.belongsTo(User, {
+  NOTI.belongsTo(U, {
     foreignKey: 'sender_id',
     as: 'sender'
   });
 
   // User >---< Notification (through NotificationRecipient)
-  User.belongsToMany(Notification, {
-    through: NotificationRecipient,
+  U.belongsToMany(NOTI, {
+    through: NR,
     foreignKey: 'recipient_id',
     otherKey: 'notification_id',
     as: 'receivedNotifications'
   });
-  Notification.belongsToMany(User, {
-    through: NotificationRecipient,
+  NOTI.belongsToMany(U, {
+    through: NR,
     foreignKey: 'notification_id',
     otherKey: 'recipient_id',
     as: 'recipients'
   });
 
   // Direct associations for NotificationRecipient
-  User.hasMany(NotificationRecipient, {
+  U.hasMany(NR, {
     foreignKey: 'recipient_id',
     as: 'notificationRecipients'
   });
-  NotificationRecipient.belongsTo(User, {
+  NR.belongsTo(U, {
     foreignKey: 'recipient_id',
     as: 'recipient'
   });
 
-  Notification.hasMany(NotificationRecipient, {
+  NOTI.hasMany(NR, {
     foreignKey: 'notification_id',
     as: 'notificationRecipients'
   });
-  NotificationRecipient.belongsTo(Notification, {
+  NR.belongsTo(NOTI, {
     foreignKey: 'notification_id',
     as: 'notification'
   });

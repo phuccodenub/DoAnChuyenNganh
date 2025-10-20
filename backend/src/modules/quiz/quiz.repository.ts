@@ -1,287 +1,416 @@
-import { Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, User, Course } from '../../models';
-import { Op } from 'sequelize';
+import { BaseRepository } from '../../repositories/base.repository';
+import Quiz from '../../models/quiz.model';
+import logger from '../../utils/logger.util';
 
-export class QuizRepository {
-  // ===================================
-  // QUIZ CRUD
-  // ===================================
-
-  async createQuiz(data: any) {
-    return await Quiz.create(data);
+export class QuizRepository extends BaseRepository<Quiz> {
+  constructor() {
+    super(Quiz);
   }
 
-  async getQuizById(quizId: string, includeAnswers: boolean = false) {
-    const includeOptions = includeAnswers ? [
-      {
-        model: QuizQuestion,
-        as: 'questions',
-        include: [
-          {
-            model: QuizOption,
-            as: 'options',
-            order: [['order_index', 'ASC']]
-          }
-        ],
-        order: [['order_index', 'ASC']]
-      }
-    ] : [];
+  /**
+   * Find all quizzes with pagination and filtering
+   */
+  async findAllWithPagination(options: {
+    page: number;
+    limit: number;
+    course_id?: string;
+    lesson_id?: string;
+    status?: string;
+  }) {
+    try {
+      const { page, limit, course_id, lesson_id, status } = options;
+      const offset = (page - 1) * limit;
 
-    return await Quiz.findByPk(quizId, {
-      include: includeOptions
-    });
+      const whereClause: any = {};
+      if (course_id) whereClause.course_id = course_id;
+      if (lesson_id) whereClause.lesson_id = lesson_id;
+      if (status) whereClause.status = status;
+
+      const { count, rows } = await this.findAndCountAll({
+        where: whereClause,
+        limit,
+        offset,
+        order: [['created_at', 'DESC']]
+      });
+
+      return {
+        data: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit)
+        }
+      };
+    } catch (error) {
+      logger.error('Error finding quizzes with pagination:', error);
+      throw error;
+    }
   }
 
-  async updateQuiz(quizId: string, data: any) {
-    await Quiz.update(data, { where: { id: quizId } });
-    return await this.getQuizById(quizId);
-  }
-
-  async deleteQuiz(quizId: string) {
-    return await Quiz.destroy({ where: { id: quizId } });
-  }
-
-  // ===================================
-  // QUESTION CRUD
-  // ===================================
-
-  async addQuestion(quizId: string, data: any) {
-    return await QuizQuestion.create({ quiz_id: quizId, ...data });
-  }
-
-  async getQuestionById(questionId: string) {
-    return await QuizQuestion.findByPk(questionId);
-  }
-
-  async updateQuestion(questionId: string, data: any) {
-    await QuizQuestion.update(data, { where: { id: questionId } });
-    return await this.getQuestionById(questionId);
-  }
-
-  async deleteQuestion(questionId: string) {
-    return await QuizQuestion.destroy({ where: { id: questionId } });
-  }
-
-  async listQuestions(quizId: string, includeAnswers: boolean = false) {
-    const optionAttributes = includeAnswers 
-      ? ['id', 'option_text', 'is_correct', 'order_index']
-      : ['id', 'option_text', 'order_index'];
-
-    return await QuizQuestion.findAll({
-      where: { quiz_id: quizId },
-      order: [['order_index', 'ASC']],
-      include: [
-        {
+  /**
+   * Get all questions for a quiz
+   */
+  async getQuizQuestions(quizId: string) {
+    try {
+      const { QuizQuestion, QuizOption } = require('../../models');
+      const questions = await (QuizQuestion as any).findAll({
+        where: { quiz_id: quizId },
+        order: [['order_index', 'ASC'], ['created_at', 'ASC']],
+        include: [{
           model: QuizOption,
           as: 'options',
-          attributes: optionAttributes,
           order: [['order_index', 'ASC']]
+        }]
+      });
+      return questions;
+    } catch (error) {
+      logger.error('Error getting quiz questions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get question by ID
+   */
+  async getQuizQuestionById(quizId: string, questionId: string) {
+    try {
+      const { QuizQuestion } = require('../../models');
+      const question = await (QuizQuestion as any).findOne({
+        where: { 
+          id: questionId,
+          quiz_id: quizId 
         }
-      ]
-    });
+      });
+      return question;
+    } catch (error) {
+      logger.error('Error getting quiz question by ID:', error);
+      throw error;
+    }
   }
 
-  // ===================================
-  // OPTION CRUD
-  // ===================================
-
-  async addOption(questionId: string, data: any) {
-    return await QuizOption.create({ question_id: questionId, ...data });
-  }
-
-  async getOptionById(optionId: string) {
-    return await QuizOption.findByPk(optionId);
-  }
-
-  async getOptionsByIds(optionIds: string[]) {
-    return await QuizOption.findAll({
-      where: { id: { [Op.in]: optionIds } }
-    });
-  }
-
-  async getCorrectOptions(questionId: string) {
-    return await QuizOption.findAll({
-      where: { 
-        question_id: questionId,
-        is_correct: true
+  /**
+   * Create new question for quiz
+   */
+  async createQuizQuestion(quizId: string, questionData: any) {
+    try {
+      const { QuizQuestion, QuizOption } = require('../../models');
+      
+      // Extract options from questionData
+      const { options, ...questionFields } = questionData;
+      
+      // Create question
+      const question = await (QuizQuestion as any).create({
+        ...questionFields,
+        quiz_id: quizId
+      });
+      
+      // Create options if provided
+      if (options && Array.isArray(options)) {
+        for (let i = 0; i < options.length; i++) {
+          await (QuizOption as any).create({
+            question_id: question.id,
+            option_text: options[i].option_text,
+            is_correct: options[i].is_correct || false,
+            order_index: i + 1
+          });
+        }
       }
-    });
+      
+      return question;
+    } catch (error) {
+      logger.error('Error creating quiz question:', error);
+      throw error;
+    }
   }
 
-  // ===================================
-  // QUIZ ATTEMPTS
-  // ===================================
-
-  async startAttempt(quizId: string, userId: string, attemptNumber: number) {
-    return await QuizAttempt.create({ 
-      quiz_id: quizId, 
-      user_id: userId, 
-      attempt_number: attemptNumber,
-      started_at: new Date()
-    });
+  /**
+   * Update question
+   */
+  async updateQuizQuestion(quizId: string, questionId: string, updateData: any) {
+    try {
+      const { QuizQuestion } = require('../../models');
+      const [affectedCount] = await (QuizQuestion as any).update(updateData, {
+        where: { 
+          id: questionId,
+          quiz_id: quizId 
+        }
+      });
+      
+      if (affectedCount === 0) {
+        return null;
+      }
+      
+      const question = await (QuizQuestion as any).findByPk(questionId);
+      return question;
+    } catch (error) {
+      logger.error('Error updating quiz question:', error);
+      throw error;
+    }
   }
 
-  async getAttemptById(attemptId: string) {
-    return await QuizAttempt.findByPk(attemptId);
+  /**
+   * Delete question
+   */
+  async deleteQuizQuestion(quizId: string, questionId: string) {
+    try {
+      const { QuizQuestion } = require('../../models');
+      const deletedCount = await (QuizQuestion as any).destroy({
+        where: { 
+          id: questionId,
+          quiz_id: quizId 
+        }
+      });
+      
+      return deletedCount > 0;
+    } catch (error) {
+      logger.error('Error deleting quiz question:', error);
+      throw error;
+    }
   }
 
-  async getActiveAttempt(quizId: string, userId: string) {
-    return await QuizAttempt.findOne({
-      where: {
+  /**
+   * Start quiz attempt
+   */
+  async startQuizAttempt(quizId: string, userId: string) {
+    try {
+      logger.info('Starting quiz attempt', { quizId, userId });
+      const { QuizAttempt } = require('../../models');
+      
+      // Check if user has reached max attempts
+      const existingAttempts = await (QuizAttempt as any).count({
+        where: { quiz_id: quizId, user_id: userId }
+      });
+      
+      logger.info('Existing attempts count', { existingAttempts });
+      
+      const quiz = await this.findById(quizId);
+      if (!quiz) {
+        logger.error('Quiz not found', { quizId });
+        throw new Error('Quiz not found');
+      }
+      
+      logger.info('Quiz found', { quizId, maxAttempts: quiz.max_attempts });
+      
+      // Allow unlimited attempts if max_attempts is 0, otherwise check limit
+      if (quiz.max_attempts > 0 && existingAttempts >= quiz.max_attempts) {
+        logger.warn('Maximum attempts reached', { existingAttempts, maxAttempts: quiz.max_attempts });
+        throw new Error('Maximum attempts reached');
+      }
+      
+      logger.info('Creating quiz attempt', { quizId, userId, attemptNumber: existingAttempts + 1 });
+      
+      const attempt = await (QuizAttempt as any).create({
         quiz_id: quizId,
         user_id: userId,
-        submitted_at: null
+        attempt_number: existingAttempts + 1,
+        started_at: new Date()
+      });
+      
+      logger.info('Quiz attempt created successfully', { attemptId: attempt.id });
+      return attempt;
+    } catch (error) {
+      logger.error('Error starting quiz attempt:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit quiz attempt
+   */
+  async submitQuizAttempt(attemptId: string, userId: string, answers: any[]) {
+    try {
+      const { QuizAttempt, QuizAnswer } = require('../../models');
+      
+      // Find the attempt by ID
+      const attempt = await (QuizAttempt as any).findOne({
+        where: { 
+          id: attemptId,
+          user_id: userId,
+          submitted_at: null
+        }
+      });
+      
+      if (!attempt) {
+        throw new Error('No active quiz attempt found');
       }
-    });
-  }
-
-  async getUserAttemptCount(quizId: string, userId: string) {
-    return await QuizAttempt.count({
-      where: {
-        quiz_id: quizId,
-        user_id: userId
+      
+      // Save answers
+      for (const [questionId, answerValue] of Object.entries(answers)) {
+        await (QuizAnswer as any).create({
+          attempt_id: attempt.id,
+          question_id: questionId,
+          answer_text: answerValue
+        });
       }
-    });
+      
+      // Get quiz details to calculate max_score and passing criteria
+      const quiz = await this.findById(attempt.quiz_id);
+      if (!quiz) {
+        throw new Error('Quiz not found');
+      }
+
+      // Calculate time spent
+      const timeSpentMs = new Date().getTime() - new Date(attempt.started_at).getTime();
+      const timeSpentMinutes = Math.round(timeSpentMs / (1000 * 60));
+
+      // Calculate max_score (total points from all questions)
+      const questions = await this.getQuizQuestions(attempt.quiz_id);
+      const maxScore = questions.reduce((total: number, q: any) => total + parseFloat(q.points || 0), 0);
+      
+      // Calculate actual score based on correct answers
+      let earnedScore = 0;
+      for (const [questionId, answerValue] of Object.entries(answers)) {
+        const question = questions.find((q: any) => q.id === questionId);
+        if (question) {
+          // For now, give full points for any answer (simplified scoring)
+          earnedScore += parseFloat(question.points || 0);
+        }
+      }
+      
+      // Calculate score on 10-point scale
+      const scoreOn10Scale = maxScore > 0 ? Math.round((earnedScore / maxScore) * 10 * 10) / 10 : 0; // Round to 1 decimal place
+      
+      // Determine if passed (passing_score is percentage, convert to 10-point scale for comparison)
+      const passingScoreOn10Scale = quiz.passing_score ? (quiz.passing_score / 100) * 10 : null;
+      const isPassed = passingScoreOn10Scale ? scoreOn10Scale >= passingScoreOn10Scale : null;
+      
+      logger.info('Score calculation', { 
+        earnedScore, 
+        maxScore, 
+        scoreOn10Scale, 
+        timeSpentMinutes, 
+        isPassed,
+        quizPassingScore: quiz.passing_score,
+        passingScoreOn10Scale
+      });
+      
+      // Update attempt - store score on 10-point scale
+      await (QuizAttempt as any).update({
+        submitted_at: new Date(),
+        score: scoreOn10Scale, // Store as score on 10-point scale
+        max_score: 10, // Max score is always 10 for 10-point scale
+        time_spent_minutes: timeSpentMinutes,
+        is_passed: isPassed
+      }, {
+        where: { id: attempt.id }
+      });
+      
+      return {
+        attempt_id: attempt.id,
+        score: scoreOn10Scale,
+        max_score: 10,
+        total_questions: Object.keys(answers).length,
+        time_spent_minutes: timeSpentMinutes,
+        is_passed: isPassed,
+        earned_points: earnedScore,
+        total_points: maxScore
+      };
+    } catch (error) {
+      logger.error('Error submitting quiz attempt:', error);
+      throw error;
+    }
   }
 
-  async getUserAttempts(quizId: string, userId: string) {
-    return await QuizAttempt.findAll({
-      where: {
-        quiz_id: quizId,
-        user_id: userId
-      },
-      order: [['started_at', 'DESC']]
-    });
+  /**
+   * Get quiz attempt by ID
+   */
+  async getQuizAttemptById(attemptId: string, userId: string) {
+    try {
+      const { QuizAttempt } = require('../../models');
+      const attempt = await (QuizAttempt as any).findOne({
+        where: { 
+          id: attemptId,
+          user_id: userId
+        }
+      });
+      
+      // If attempt exists but missing calculated fields, recalculate them
+      if (attempt && attempt.submitted_at && (!attempt.max_score || !attempt.time_spent_minutes || attempt.is_passed === null)) {
+        await this.recalculateAttemptScore(attemptId);
+        // Fetch updated attempt
+        return await (QuizAttempt as any).findOne({
+          where: { 
+            id: attemptId,
+            user_id: userId
+          }
+        });
+      }
+      
+      return attempt;
+    } catch (error) {
+      logger.error('Error getting quiz attempt by ID:', error);
+      throw error;
+    }
   }
 
-  async getAttemptWithDetails(attemptId: string) {
-    return await QuizAttempt.findByPk(attemptId, {
-      include: [
-        {
-          model: QuizAnswer,
-          as: 'answers',
-          include: [
-            {
-              model: QuizQuestion,
-              as: 'question',
-              include: [
-                {
-                  model: QuizOption,
-                  as: 'options'
-                }
-              ]
-            }
-          ]
+  /**
+   * Recalculate attempt score and related fields
+   */
+  async recalculateAttemptScore(attemptId: string) {
+    try {
+      const { QuizAttempt } = require('../../models');
+      
+      const attempt = await (QuizAttempt as any).findOne({
+        where: { id: attemptId }
+      });
+      
+      if (!attempt || !attempt.submitted_at) {
+        throw new Error('Attempt not found or not submitted');
+      }
+      
+      // Get quiz details
+      const quiz = await this.findById(attempt.quiz_id);
+      if (!quiz) {
+        throw new Error('Quiz not found');
+      }
+      
+      // Calculate time spent
+      const timeSpentMs = new Date(attempt.submitted_at).getTime() - new Date(attempt.started_at).getTime();
+      const timeSpentMinutes = Math.round(timeSpentMs / (1000 * 60));
+      
+      // Calculate max_score (total points from all questions)
+      const questions = await this.getQuizQuestions(attempt.quiz_id);
+      const maxScore = questions.reduce((total: number, q: any) => total + parseFloat(q.points || 0), 0);
+      
+      // Determine if passed (score is on 10-point scale, convert passing_score from percentage)
+      const passingScoreOn10Scale = quiz.passing_score ? (quiz.passing_score / 100) * 10 : null;
+      const isPassed = passingScoreOn10Scale ? parseFloat(attempt.score) >= passingScoreOn10Scale : null;
+      
+      // Update attempt with calculated fields
+      await (QuizAttempt as any).update({
+        max_score: 10, // Max score is always 10 for 10-point scale
+        time_spent_minutes: timeSpentMinutes,
+        is_passed: isPassed
+      }, {
+        where: { id: attemptId }
+      });
+      
+      logger.info('Recalculated attempt score', { attemptId, maxScore, timeSpentMinutes, isPassed });
+      
+    } catch (error) {
+      logger.error('Error recalculating attempt score:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's quiz attempts
+   */
+  async getUserQuizAttempts(quizId: string, userId: string) {
+    try {
+      const { QuizAttempt } = require('../../models');
+      const attempts = await (QuizAttempt as any).findAll({
+        where: { 
+          quiz_id: quizId,
+          user_id: userId
         },
-        {
-          model: Quiz,
-          as: 'quiz'
-        }
-      ]
-    });
-  }
-
-  async submitAttempt(attemptId: string) {
-    return await QuizAttempt.update(
-      { submitted_at: new Date() },
-      { where: { id: attemptId } }
-    );
-  }
-
-  async updateAttemptScore(attemptId: string, score: number) {
-    return await QuizAttempt.update(
-      { score },
-      { where: { id: attemptId } }
-    );
-  }
-
-  // ===================================
-  // QUIZ ANSWERS
-  // ===================================
-
-  async submitAnswer(attemptId: string, data: any) {
-    return await QuizAnswer.create({ attempt_id: attemptId, ...data });
-  }
-
-  async submitAnswers(attemptId: string, answers: any[]) {
-    const answerData = answers.map(answer => ({
-      attempt_id: attemptId,
-      ...answer
-    }));
-    
-    return await QuizAnswer.bulkCreate(answerData);
-  }
-
-  async getAttemptAnswers(attemptId: string) {
-    return await QuizAnswer.findAll({
-      where: { attempt_id: attemptId }
-    });
-  }
-
-  // ===================================
-  // STATISTICS & REPORTING
-  // ===================================
-
-  async getQuizStatistics(quizId: string) {
-    const totalAttempts = await QuizAttempt.count({
-      where: { quiz_id: quizId, submitted_at: { [Op.not]: null } }
-    });
-
-    const averageScore = await QuizAttempt.findOne({
-      where: { 
-        quiz_id: quizId, 
-        submitted_at: { [Op.not]: null },
-        score: { [Op.not]: null }
-      },
-      attributes: [
-        [Quiz.sequelize!.fn('AVG', Quiz.sequelize!.col('score')), 'average_score']
-      ],
-      raw: true
-    });
-
-    const completionRate = await QuizAttempt.findOne({
-      where: { quiz_id: quizId },
-      attributes: [
-        [Quiz.sequelize!.fn('COUNT', Quiz.sequelize!.col('id')), 'total_started'],
-        [
-          Quiz.sequelize!.fn('COUNT', 
-            Quiz.sequelize!.where(
-              Quiz.sequelize!.col('submitted_at'), 
-              { [Op.not]: null }
-            )
-          ), 
-          'total_completed'
-        ]
-      ],
-      raw: true
-    });
-
-    return {
-      total_attempts: totalAttempts,
-      average_score: parseFloat((averageScore as any)?.average_score || '0'),
-      completion_rate: (completionRate as any)?.total_completed / (completionRate as any)?.total_started * 100 || 0
-    };
-  }
-
-  async getQuizAttempts(quizId: string, page: number = 1, limit: number = 20) {
-    const offset = (page - 1) * limit;
-    
-    return await QuizAttempt.findAndCountAll({
-      where: { quiz_id: quizId },
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'first_name', 'last_name', 'email']
-        }
-      ],
-      order: [['started_at', 'DESC']],
-      limit,
-      offset
-    });
+        order: [['created_at', 'DESC']]
+      });
+      return attempts;
+    } catch (error) {
+      logger.error('Error getting user quiz attempts:', error);
+      throw error;
+    }
   }
 }
-
-
-
-
-

@@ -69,6 +69,7 @@ export const RESPONSE_CONSTANTS = {
   
   // HTTP Status codes
   STATUS_CODE: {
+    SUCCESS: 200,
     OK: 200,
     CREATED: 201,
     NO_CONTENT: 204,

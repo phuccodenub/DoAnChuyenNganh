@@ -16,16 +16,16 @@ export { CourseRepository } from './course.repository';
 export * from './course.types';
 
 // ===== ROUTES =====
-export { courseRoutes } from './course.routes';
+export { default as courseRoutes } from './course.routes';
 
 // ===== VALIDATION =====
-export { courseValidation } from './course.validate';
+export * from './course.validate';
 
 // ===== MODULE INSTANCES =====
 import { CourseController } from './course.controller';
 import { CourseService } from './course.service';
 import { CourseRepository } from './course.repository';
-import { courseRoutes } from './course.routes';
+import courseRoutes from './course.routes';
 
 /**
  * Course module instances

@@ -1,8 +1,9 @@
-import User from '../../models/user.model';
-import { UserInstance } from '../../types/model.types';
-import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
+type UserInstance = any;
+import { UserRepository as BaseUserRepository } from '@repositories/user.repository';
+import logger from '@utils/logger.util';
 import { RegisterData } from './auth.types';
-import logger from '../../utils/logger.util';
+// Local require shims to avoid pulling full model graph
+declare const require: any;
 
 export class AuthRepository extends BaseUserRepository {
   constructor() {
@@ -10,23 +11,45 @@ export class AuthRepository extends BaseUserRepository {
   }
 
   /**
-   * Find user by email for authentication
+   * Find user by username for authentication (LMS login)
    */
-  async findUserForAuth(email: string): Promise<UserInstance | null> {
+  async findUserForAuth(username: string): Promise<UserInstance | null> {
     try {
-      logger.debug('Finding user for authentication', { email });
+      logger.debug('Finding user for authentication', { username });
+      
+      const user = await this.findByUsername(username);
+      
+      if (user) {
+        logger.debug('User found for authentication', { username });
+      } else {
+        logger.debug('User not found for authentication', { username });
+      }
+      
+      return user;
+    } catch (error) {
+      logger.error('Error finding user for authentication:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by email for authentication (legacy support)
+   */
+  async findUserByEmailForAuth(email: string): Promise<UserInstance | null> {
+    try {
+      logger.debug('Finding user by email for authentication', { email });
       
       const user = await this.findByEmail(email);
       
       if (user) {
-        logger.debug('User found for authentication', { email });
+        logger.debug('User found by email for authentication', { email });
       } else {
-        logger.debug('User not found for authentication', { email });
+        logger.debug('User not found by email for authentication', { email });
       }
       
       return user;
-    } catch (error: unknown) {
-      logger.error('Error finding user for authentication:', error);
+    } catch (error) {
+      logger.error('Error finding user by email for authentication:', error);
       throw error;
     }
   }
@@ -42,7 +65,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User created for authentication', { email: userData.email, userId: user.id });
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error creating user for authentication:', error);
       throw error;
     }
@@ -56,13 +79,13 @@ export class AuthRepository extends BaseUserRepository {
       logger.debug('Updating user password', { userId });
       
       const user = await this.update(userId, {
-        password_hash: passwordHash,
+        password: passwordHash,
         token_version: tokenVersion
       });
       
       logger.debug('User password updated', { userId });
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating user password:', error);
       throw error;
     }
@@ -76,13 +99,13 @@ export class AuthRepository extends BaseUserRepository {
       logger.debug('Updating email verification', { userId, isVerified });
       
       const user = await this.update(userId, {
-        is_email_verified: isVerified,
+        email_verified: isVerified,
         email_verified_at: isVerified ? new Date() : null
       });
       
       logger.debug('Email verification updated', { userId, isVerified });
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating email verification:', error);
       throw error;
     }
@@ -106,7 +129,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('Token version updated', { userId });
       return updatedUser;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating token version:', error);
       throw error;
     }
@@ -125,7 +148,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('Last login updated', { userId });
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating last login:', error);
       throw error;
     }
@@ -142,7 +165,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User existence check completed', { email, exists });
       return exists;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error checking user existence by email:', error);
       throw error;
     }
@@ -164,7 +187,7 @@ export class AuthRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting user for authentication:', error);
       throw error;
     }
@@ -186,7 +209,7 @@ export class AuthRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting user profile:', error);
       throw error;
     }
@@ -203,7 +226,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User status updated', { userId, status });
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating user status:', error);
       throw error;
     }
@@ -234,7 +257,7 @@ export class AuthRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting user with 2FA settings:', error);
       throw error;
     }
@@ -256,7 +279,7 @@ export class AuthRepository extends BaseUserRepository {
       });
       
       logger.debug('2FA settings updated', { userId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating 2FA settings:', error);
       throw error;
     }
@@ -279,7 +302,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User login attempts retrieved', { userId, count: attempts.length });
       return attempts;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting user login attempts:', error);
       throw error;
     }
@@ -297,7 +320,7 @@ export class AuthRepository extends BaseUserRepository {
       await LoginAttempt.create(attemptData);
       
       logger.debug('Login attempt record created', { userId: attemptData.user_id });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error creating login attempt record:', error);
       throw error;
     }
@@ -319,7 +342,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User sessions retrieved', { userId, count: sessions.length });
       return sessions;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error getting user sessions:', error);
       throw error;
     }
@@ -338,7 +361,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User session created', { userId: sessionData.user_id, sessionId: session.id });
       return session;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error creating user session:', error);
       throw error;
     }
@@ -358,7 +381,7 @@ export class AuthRepository extends BaseUserRepository {
       });
       
       logger.debug('User session updated', { sessionId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error updating user session:', error);
       throw error;
     }
@@ -378,7 +401,7 @@ export class AuthRepository extends BaseUserRepository {
       });
       
       logger.debug('User session deleted', { sessionId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error deleting user session:', error);
       throw error;
     }
@@ -398,10 +421,9 @@ export class AuthRepository extends BaseUserRepository {
       });
       
       logger.debug('All user sessions deleted', { userId });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Error deleting all user sessions:', error);
       throw error;
     }
   }
 }
-

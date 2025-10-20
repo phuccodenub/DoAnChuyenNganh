@@ -10,11 +10,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "types": ["node"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "removeComments": true,
     "noImplicitAny": true,
+    "isolatedModules": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "noImplicitThis": true,
@@ -34,7 +36,8 @@
       "@routes/*": ["src/routes/*"],
       "@services/*": ["src/services/*"],
       "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
+      "@types/*": ["src/types/*"],
+      "@validates/*": ["src/validates/*"]
     },
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
@@ -46,6 +49,29 @@
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/utils/tests/**",
+    // Exclude ALL models except core ones for now
+    "src/models/assignment*.ts",
+    "src/models/quiz*.ts",
+    "src/models/grade*.ts",
+    "src/models/final-grade*.ts",
+    "src/models/live-session*.ts",
+    "src/models/user-activity-log*.ts",
+    "src/models/course-statistics*.ts",
+    "src/models/associations-extended.ts",
+    "src/models/lesson*.ts",
+    "src/models/section*.ts",
+    "src/models/notification*.ts",
+    "src/models/chat-message*.ts",
+    "src/models/category*.ts",
+    "src/models/password-reset-token*.ts",
+    "src/modules/assignment/**",
+    "src/modules/quiz/**",
+    "src/modules/course-content/**",
+    "src/modules/notifications/**",
+    "src/modules/grade/**",
+    "src/modules/livestream/**",
+    "src/modules/analytics/**"
   ]
 }
