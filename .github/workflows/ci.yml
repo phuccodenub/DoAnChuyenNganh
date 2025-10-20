@@ -15,17 +15,17 @@ jobs:
     
     services:
       postgres:
-        image: postgres:15
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: lms_test
           POSTGRES_HOST_AUTH_METHOD: trust
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="pg_isready -U postgres -d lms_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
         ports:
           - 5432:5432
     
