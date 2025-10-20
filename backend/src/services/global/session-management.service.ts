@@ -49,7 +49,7 @@ export class SessionManagementService {
 
       logger.info(`Session ${sessionId} created for user ${userId}`);
       return sessionData;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating session:', error);
       throw new Error('Failed to create session');
     }
@@ -60,7 +60,7 @@ export class SessionManagementService {
     try {
       const sessionKey = `session:${sessionId}`;
       return await this.cacheService.get<SessionData>(sessionKey);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting session:', error);
       return null;
     }
@@ -75,7 +75,7 @@ export class SessionManagementService {
       session.lastActivity = new Date();
       const sessionKey = `session:${sessionId}`;
       await this.cacheService.set(sessionKey, session, this.SESSION_TTL);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating session activity:', error);
     }
   }
@@ -96,7 +96,7 @@ export class SessionManagementService {
       }
       
       return sessions;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user active sessions:', error);
       return [];
     }
@@ -117,7 +117,7 @@ export class SessionManagementService {
       await this.removeFromUserSessions(session.userId, sessionId);
 
       logger.info(`Session ${sessionId} invalidated`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error invalidating session:', error);
     }
   }
@@ -136,7 +136,7 @@ export class SessionManagementService {
       await this.cacheService.delete(userSessionsKey);
       
       logger.info(`All sessions invalidated for user ${userId}`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error invalidating all user sessions:', error);
     }
   }
@@ -181,7 +181,7 @@ export class SessionManagementService {
       }
       
       return { isSuspicious: false };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error checking suspicious activity:', error);
       return { isSuspicious: false };
     }
@@ -193,7 +193,7 @@ export class SessionManagementService {
       // This would typically be run as a cron job
       // For now, we rely on Redis TTL to handle expiration
       logger.info('Session cleanup completed');
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error cleaning up expired sessions:', error);
     }
   }
@@ -212,7 +212,7 @@ export class SessionManagementService {
         sessionIds.push(sessionId);
         await this.cacheService.set(userSessionsKey, sessionIds, this.SESSION_TTL);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error adding to user sessions:', error);
     }
   }
@@ -227,8 +227,9 @@ export class SessionManagementService {
         sessionIds.splice(index, 1);
         await this.cacheService.set(userSessionsKey, sessionIds, this.SESSION_TTL);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error removing from user sessions:', error);
     }
   }
 }
+

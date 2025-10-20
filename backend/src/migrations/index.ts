@@ -21,6 +21,7 @@ import { up as createAssignmentsTable, down as dropAssignmentsTable } from './01
 import { up as createSubmissionsTable, down as dropSubmissionsTable } from './013-create-submissions-table';
 import { up as createGradeTables, down as dropGradeTables } from './014-create-grade-components-and-final-grades';
 import { up as createRubricTables, down as dropRubricTables } from './015-create-rubric-tables';
+import { up as fixQuizConstraint, down as restoreQuizConstraint } from './016-fix-quiz-attempts-constraint';
 
 // Migration interface
 export interface Migration {
@@ -146,6 +147,12 @@ export const migrations: Migration[] = [
     description: 'Create rubric templates and items tables',
     up: createRubricTables,
     down: dropRubricTables
+  },
+  {
+    version: '016',
+    description: 'Fix quiz attempts unique constraint',
+    up: fixQuizConstraint,
+    down: restoreQuizConstraint
   }
 ];
 

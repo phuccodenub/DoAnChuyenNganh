@@ -35,3 +35,4 @@ router.post('/register/v2', (req: Request, res: Response) => {
 });
 
 export default router;
+

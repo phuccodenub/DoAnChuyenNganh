@@ -1,5 +1,5 @@
 import Enrollment from '../models/enrollment.model';
-import { EnrollmentInstance } from '../types/enrollment.types';
+import { EnrollmentInstance } from '../types/model.types';
 import { BaseRepository } from './base.repository';
 import logger from '../utils/logger.util';
 
@@ -36,7 +36,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       }
       
       return enrollment;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding enrollment by course and user:', error);
       throw error;
     }
@@ -56,7 +56,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('Enrollments found by course', { courseId, count: enrollments.length });
       return enrollments;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding enrollments by course:', error);
       throw error;
     }
@@ -76,7 +76,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('Enrollments found by user', { userId, count: enrollments.length });
       return enrollments;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding enrollments by user:', error);
       throw error;
     }
@@ -95,7 +95,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('Course enrollment count retrieved', { courseId, count });
       return count;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting course enrollment count:', error);
       throw error;
     }
@@ -114,7 +114,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('User enrollment count retrieved', { userId, count });
       return count;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user enrollment count:', error);
       throw error;
     }
@@ -132,7 +132,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('User enrollment check', { courseId, userId, isEnrolled });
       return isEnrolled;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error checking user enrollment:', error);
       throw error;
     }
@@ -159,7 +159,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('Enrollments with course details found', { userId, count: enrollments.length });
       return enrollments;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding enrollments with course details:', error);
       throw error;
     }
@@ -186,7 +186,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('Enrollments with user details found', { courseId, count: enrollments.length });
       return enrollments;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding enrollments with user details:', error);
       throw error;
     }
@@ -203,7 +203,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('Enrollment status updated', { enrollmentId, status });
       return enrollment;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating enrollment status:', error);
       throw error;
     }
@@ -239,9 +239,10 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
       
       logger.debug('Enrollment statistics retrieved', { courseId, stats });
       return stats;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting enrollment statistics:', error);
       throw error;
     }
   }
 }
+

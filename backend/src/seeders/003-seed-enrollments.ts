@@ -341,3 +341,4 @@ export async function seedEnrollments(sequelize: Sequelize): Promise<void> {
     );
   }
 }
+

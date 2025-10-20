@@ -32,7 +32,7 @@ export class PasswordSecurityService {
           feedback.push(...result.feedback.suggestions);
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('zxcvbn validation failed, using basic validation only:', error);
     }
     */
@@ -66,7 +66,7 @@ export class PasswordSecurityService {
     try {
       const saltRounds = 14; // Tăng từ 12 lên 14
       return await hashPassword(password);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error hashing password:', error);
       throw new Error('Password hashing failed');
     }
@@ -76,7 +76,7 @@ export class PasswordSecurityService {
   async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
     try {
       return await comparePassword(plainPassword, hashedPassword);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error comparing password:', error);
       return false;
     }
@@ -108,7 +108,7 @@ export class PasswordSecurityService {
       ];
       
       return compromisedPasswords.includes(password.toLowerCase());
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error checking password compromise:', error);
       return false;
     }
@@ -124,9 +124,10 @@ export class PasswordSecurityService {
         }
       }
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error validating password history:', error);
       return false;
     }
   }
 }
+

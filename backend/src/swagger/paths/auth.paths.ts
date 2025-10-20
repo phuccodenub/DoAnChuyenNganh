@@ -465,3 +465,4 @@ export const authPaths = {
     }
   }
 };
+

@@ -2,7 +2,7 @@ import { userUtils } from '../user.util';
 import { UserInstance } from '../../types/user.types';
 
 // Mock user data for testing
-const mockUser: UserInstance = {
+const mockUser: any = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   email: 'test@example.com',
   password: 'hashed_password',
@@ -37,7 +37,7 @@ const mockUser: UserInstance = {
   emergency_phone: '0987654321'
 };
 
-const mockInstructor: UserInstance = {
+const mockInstructor: any = {
   ...mockUser,
   id: '456e7890-e89b-12d3-a456-426614174001',
   email: 'instructor@example.com',
@@ -305,3 +305,4 @@ describe('User Utils', () => {
     });
   });
 });
+

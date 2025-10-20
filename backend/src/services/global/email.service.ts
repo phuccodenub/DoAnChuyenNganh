@@ -33,7 +33,7 @@ export class EmailService {
         to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject: options.subject 
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error sending email:', error);
       throw error;
     }
@@ -60,7 +60,7 @@ export class EmailService {
       });
 
       logger.info('Verification email sent successfully', { email });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error sending verification email:', error);
       throw error;
     }
@@ -88,7 +88,7 @@ export class EmailService {
       });
 
       logger.info('Password reset email sent successfully', { email });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error sending password reset email:', error);
       throw error;
     }
@@ -112,7 +112,7 @@ export class EmailService {
       });
 
       logger.info('Welcome email sent successfully', { email });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error sending welcome email:', error);
       throw error;
     }
@@ -135,9 +135,10 @@ export class EmailService {
       });
 
       logger.info('Notification email sent successfully', { email, subject });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error sending notification email:', error);
       throw error;
     }
   }
 }
+

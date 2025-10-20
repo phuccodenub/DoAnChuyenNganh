@@ -35,7 +35,7 @@ async function resetDatabase() {
     
     logger.info('Database reset completed!');
     process.exit(0);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Database reset failed:', error);
     process.exit(1);
   } finally {
@@ -44,3 +44,4 @@ async function resetDatabase() {
 }
 
 resetDatabase();
+

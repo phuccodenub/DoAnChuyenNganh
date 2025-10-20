@@ -30,7 +30,7 @@ export class GlobalUserService {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user by ID:', error);
       throw error;
     }
@@ -54,7 +54,7 @@ export class GlobalUserService {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user by email:', error);
       throw error;
     }
@@ -79,7 +79,7 @@ export class GlobalUserService {
 
       const userPermissions = rolePermissions[(user as any).role] || [];
       return userPermissions.includes('*') || userPermissions.includes(permission);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error checking user permission:', error);
       return false;
     }
@@ -92,7 +92,7 @@ export class GlobalUserService {
       if (!user) return false;
 
       return (user as any).role === role;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error checking user role:', error);
       return false;
     }
@@ -104,7 +104,7 @@ export class GlobalUserService {
   async cacheUser(userId: string, userData: any): Promise<void> {
     try {
       await this.cacheService.set(`user:${userId}`, userData, 600); // 10 minutes
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error caching user:', error);
       // Don't throw error for cache failures
     }
@@ -119,7 +119,7 @@ export class GlobalUserService {
       if (user) {
         await this.cacheService.delete(`user:email:${(user as any).email}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error clearing user cache:', error);
       // Don't throw error for cache failures
     }
@@ -141,7 +141,7 @@ export class GlobalUserService {
 
       // Clear cache after updating token version
       await this.clearUserCache(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating token version:', error);
       throw error;
     }
@@ -156,7 +156,7 @@ export class GlobalUserService {
       if (!user) return false;
 
       return (user as any).status === 'active';
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error checking user status:', error);
       return false;
     }
@@ -171,9 +171,94 @@ export class GlobalUserService {
 
       // Clear cache to force refresh
       await this.clearUserCache(userId);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating last login:', error);
       // Don't throw error for this operation
+    }
+  }
+
+  // ===== MISSING METHODS FOR CONTROLLER =====
+
+  // Add user
+  async addUser(userData: any): Promise<any> {
+    try {
+      const user = await this.userRepo.create(userData);
+      if (user) {
+        await this.cacheUser((user as any).id, user);
+      }
+      return user;
+    } catch (error: unknown) {
+      logger.error('Error adding user:', error);
+      throw error;
+    }
+  }
+
+  // Update user info
+  async updateUserInfo(userId: string, updateData: any): Promise<any> {
+    try {
+      const user = await this.userRepo.update(userId, updateData);
+      if (user) {
+        await this.cacheUser(userId, user);
+      }
+      return user;
+    } catch (error: unknown) {
+      logger.error('Error updating user info:', error);
+      throw error;
+    }
+  }
+
+  // Remove user
+  async removeUser(userId: string): Promise<void> {
+    try {
+      await this.userRepo.delete(userId);
+      await this.clearUserCache(userId);
+    } catch (error: unknown) {
+      logger.error('Error removing user:', error);
+      throw error;
+    }
+  }
+
+  // Get all users with pagination
+  async getAllUsers(options: any): Promise<any> {
+    try {
+      return await this.userRepo.paginate(options.page || 1, options.limit || 10, options);
+    } catch (error: unknown) {
+      logger.error('Error getting all users:', error);
+      throw error;
+    }
+  }
+
+  // Get users by role
+  async getUsersByRole(role: string): Promise<any> {
+    try {
+      return await this.userRepo.findByRole(role);
+    } catch (error: unknown) {
+      logger.error('Error getting users by role:', error);
+      throw error;
+    }
+  }
+
+  // Get user statistics
+  async getUserStatistics(): Promise<any> {
+    try {
+      return await this.userRepo.getUserStats();
+    } catch (error: unknown) {
+      logger.error('Error getting user statistics:', error);
+      throw error;
+    }
+  }
+
+  // Change user status
+  async changeUserStatus(userId: string, status: string): Promise<any> {
+    try {
+      const user = await this.userRepo.update(userId, { status });
+      if (user) {
+        await this.cacheUser(userId, user);
+      }
+      return user;
+    } catch (error: unknown) {
+      logger.error('Error changing user status:', error);
+      throw error;
     }
   }
 }

@@ -1,17 +1,10 @@
 import { Request } from 'express';
 import { UserRole } from '../constants/roles.enum';
+import { JWTPayload } from '../config/jwt.config';
 
 // Extended Request interface with user
 export interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    role: UserRole;
-    iat?: number;
-    exp?: number;
-    iss?: string;
-    aud?: string;
-  };
+  user?: JWTPayload;
 }
 
 // Common API response types
@@ -158,3 +151,4 @@ export interface CacheOptions {
   ttl?: number;
   key?: string;
 }
+

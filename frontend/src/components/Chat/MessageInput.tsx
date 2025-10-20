@@ -1,4 +1,5 @@
 import { useState, FormEvent, KeyboardEvent, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { EmojiPicker } from '@/components/ui/EmojiPicker'
 import { Send, Paperclip } from 'lucide-react'
@@ -10,12 +11,13 @@ interface MessageInputProps {
   placeholder?: string
 }
 
-function MessageInput({ 
-  onSendMessage, 
-  isConnected, 
-  disabled = false, 
-  placeholder = "Type your message..." 
+function MessageInput({
+  onSendMessage,
+  isConnected,
+  disabled = false,
+  placeholder = "Nhập tin nhắn của bạn..."
 }: MessageInputProps) {
+  const { t } = useTranslation()
   const [message, setMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -124,11 +126,11 @@ function MessageInput({
                   : 'bg-yellow-400'
               }`} />
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {isConnected ? 'Connected' : 'Demo Mode'}
+                {isConnected ? t('demo.connected') : t('demo.demoMode')}
               </span>
             </div>
             <span className="text-xs text-gray-400 dark:text-gray-500">
-              Enter to send • Shift+Enter for new line
+              Enter để gửi • Shift+Enter để xuống dòng mới
             </span>
           </div>
           <span className={`text-xs ${
@@ -149,10 +151,10 @@ function MessageInput({
             <span className="text-amber-500 text-sm">⚡</span>
             <div>
               <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                Demo Mode Active
+                {t('demo.demoModeActive')}
               </p>
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                Messages are simulated locally. Real-time functionality requires backend server connection.
+                Tin nhắn được mô phỏng cục bộ. Chức năng thời gian thực yêu cầu kết nối máy chủ backend.
               </p>
             </div>
           </div>

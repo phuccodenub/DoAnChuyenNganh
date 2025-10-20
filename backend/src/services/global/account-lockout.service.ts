@@ -25,7 +25,7 @@ export class AccountLockoutService {
       // Lock đã hết hạn, xóa lock data
       await this.cacheService.delete(lockKey);
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error checking account lock:', error);
       return false; // Fail safe
     }
@@ -58,7 +58,7 @@ export class AccountLockoutService {
         isLocked: false, 
         remainingAttempts: this.MAX_ATTEMPTS - lockData.attempts 
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error incrementing failed attempts:', error);
       return { isLocked: false, remainingAttempts: this.MAX_ATTEMPTS };
     }
@@ -70,7 +70,7 @@ export class AccountLockoutService {
       const lockKey = `lockout:${email}`;
       await this.cacheService.delete(lockKey);
       logger.info(`Failed attempts reset for ${email}`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error resetting failed attempts:', error);
     }
   }
@@ -89,9 +89,10 @@ export class AccountLockoutService {
         attempts: lockData.attempts,
         lockedUntil: new Date(lockData.lockedUntil)
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting lockout info:', error);
       return { attempts: 0 };
     }
   }
 }
+

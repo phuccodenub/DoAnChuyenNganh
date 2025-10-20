@@ -121,3 +121,5 @@ export const courseValidateHelpers = {
 
 // Legacy export for backward compatibility
 export const courseSchemas = courseValidation;
+
+

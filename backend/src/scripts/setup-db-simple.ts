@@ -38,7 +38,7 @@ async function setupDatabase() {
 
     logger.info('Database setup completed successfully!');
     process.exit(0);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Database setup failed:', error);
     process.exit(1);
   } finally {
@@ -47,3 +47,4 @@ async function setupDatabase() {
 }
 
 setupDatabase();
+

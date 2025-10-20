@@ -27,7 +27,11 @@ export class AuthorizationError extends BaseError {
   public readonly ipAddress?: string;
   public readonly userAgent?: string;
 
-  constructor(options: AuthorizationErrorOptions = {}) {
+  constructor(messageOrOptions: string | AuthorizationErrorOptions = {}) {
+    // Handle both string message and options object
+    const options: AuthorizationErrorOptions = typeof messageOrOptions === 'string' 
+      ? { message: messageOrOptions } 
+      : messageOrOptions;
     const {
       code = 'AUTH_INSUFFICIENT_PERMISSIONS',
       statusCode = 403,
@@ -194,3 +198,4 @@ export class AuthorizationError extends BaseError {
     };
   }
 }
+

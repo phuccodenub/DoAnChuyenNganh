@@ -58,21 +58,42 @@ export class CourseService {
     try {
       logger.info('Getting course by ID', { courseId });
 
-      const course = await this.courseRepository.findByIdWithInstructor(courseId);
+      // Try simple findById first
+      const course = await this.courseRepository.findById(courseId);
       if (!course) {
+        logger.error('Course not found with findById', { courseId });
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Course not found');
       }
 
+      logger.info('Course found with findById', { courseId });
+
+      // Try to get instructor separately
+      let instructor = null;
+      try {
+        const { User } = require('../../models');
+        instructor = await (User as any).findByPk(course.instructor_id, {
+          attributes: ['id', 'username', 'first_name', 'last_name', 'avatar', 'bio']
+        });
+      } catch (err) {
+        logger.warn('Could not load instructor', { error: err });
+      }
+
       // Get course statistics
-      const stats = await this.courseRepository.getCourseStats(courseId);
+      let stats = null;
+      try {
+        stats = await this.courseRepository.getCourseStats(courseId);
+      } catch (err) {
+        logger.warn('Could not load course stats', { error: err });
+      }
       
-      const courseWithStats = {
+      const courseData = {
         ...course.toJSON(),
+        instructor: instructor ? instructor.toJSON() : null,
         stats
       };
       
       logger.info('Course retrieved successfully', { courseId });
-      return courseWithStats;
+      return courseData;
     } catch (error) {
       logger.error('Error getting course by ID:', error);
       throw error;

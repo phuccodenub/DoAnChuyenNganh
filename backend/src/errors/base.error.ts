@@ -3,7 +3,7 @@
  * Foundation for all custom error classes
  */
 
-import { ErrorCode, ErrorMessage, ErrorType, HttpStatusCode, ErrorSeverity } from './error.constants';
+import { ErrorCode, ErrorMessage, ErrorType, HttpStatusCode, ErrorSeverity, ERROR_MESSAGES } from './error.constants';
 
 export interface BaseErrorOptions {
   code?: ErrorCode;
@@ -162,3 +162,4 @@ export class BaseError extends Error {
     return this;
   }
 }
+

@@ -20,8 +20,8 @@ function LiveStreamPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="text-4xl mb-4">🔒</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Authentication Required</h3>
-          <p className="text-gray-600">Please log in to access the live stream.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Yêu cầu xác thực</h3>
+          <p className="text-gray-600">Vui lòng đăng nhập để truy cập phát trực tiếp.</p>
         </div>
       </div>
     )
@@ -32,9 +32,9 @@ function LiveStreamPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="text-4xl mb-4">❌</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Course Not Found</h3>
-          <p className="text-gray-600 mb-4">The course you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy khóa học</h3>
+          <p className="text-gray-600 mb-4">Khóa học bạn đang tìm kiếm không tồn tại.</p>
+          <Button onClick={() => navigate('/dashboard')}>Về trang chủ</Button>
         </div>
       </div>
     )
@@ -50,10 +50,10 @@ function LiveStreamPage() {
             onClick={() => navigate(`/courses/${course.id}`)}
             className="text-gray-600 hover:text-gray-900"
           >
-            ← Back to Course
+            ← Về khóa học
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Live Stream</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Phát trực tiếp</h1>
             <p className="text-gray-600">{course.title} • {course.code}</p>
           </div>
         </div>

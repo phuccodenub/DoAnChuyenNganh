@@ -95,7 +95,7 @@ export class SeederManager {
       });
 
       logger.info('Seeder tracking table created');
-    } catch (error) {
+    } catch (error: unknown) {
       // Table might already exist
       logger.info('Seeder tracking table already exists');
     }
@@ -110,7 +110,7 @@ export class SeederManager {
         'SELECT version FROM seeders ORDER BY version'
       );
       return (results as any[]).map(row => row.version);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting executed seeders:', error);
       return [];
     }
@@ -166,7 +166,7 @@ export class SeederManager {
         await this.markSeederExecuted(seeder.version, seeder.description);
         
         logger.info(`Seeder ${seeder.version} completed successfully`);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Seeder ${seeder.version} failed:`, error);
         throw error;
       }
@@ -201,7 +201,7 @@ export class SeederManager {
       await this.unmarkSeederExecuted(seeder.version);
       
       logger.info(`Seeder ${seeder.version} rolled back successfully`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Rollback of seeder ${seeder.version} failed:`, error);
       throw error;
     }
@@ -237,7 +237,7 @@ export class SeederManager {
         await this.unmarkSeederExecuted(seeder.version);
         
         logger.info(`Seeder ${seeder.version} rolled back successfully`);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Rollback of seeder ${seeder.version} failed:`, error);
         throw error;
       }
@@ -270,3 +270,4 @@ export class SeederManager {
     };
   }
 }
+

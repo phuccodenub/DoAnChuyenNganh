@@ -35,7 +35,7 @@ export class TwoFactorService {
       });
       
       return qrCodeDataURL;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error generating QR code:', error);
       throw new Error('Failed to generate QR code');
     }
@@ -44,7 +44,20 @@ export class TwoFactorService {
   // Generate TOTP code
   generateTOTPCode(secret: string): string {
     try {
-      const key = Buffer.from(secret, 'base32');
+      // Decode base32 secret manually (RFC4648, no padding)
+      const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      const clean = secret.replace(/=+$/g, '').toUpperCase();
+      let bits = '';
+      for (const ch of clean) {
+        const val = base32Alphabet.indexOf(ch);
+        if (val < 0) continue;
+        bits += val.toString(2).padStart(5, '0');
+      }
+      const bytes: number[] = [];
+      for (let i = 0; i + 8 <= bits.length; i += 8) {
+        bytes.push(parseInt(bits.substring(i, i + 8), 2));
+      }
+      const key = Buffer.from(bytes);
       const epoch = Math.round(dateUtils.timestamp() / 1000.0);
       const time = Math.floor(epoch / 30);
       
@@ -59,7 +72,7 @@ export class TwoFactorService {
                   (hash[offset + 3] & 0xff);
       
       return (code % 1000000).toString().padStart(6, '0');
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error generating TOTP code:', error);
       throw new Error('Failed to generate TOTP code');
     }
@@ -83,7 +96,19 @@ export class TwoFactorService {
         const offsetEpoch = Math.round((new Date().getTime() + timeOffset * 1000) / 1000.0);
         const offsetTime = Math.floor(offsetEpoch / 30);
         
-        const key = Buffer.from(secret, 'base32');
+        const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        const clean = secret.replace(/=+$/g, '').toUpperCase();
+        let bits = '';
+        for (const ch of clean) {
+          const val = base32Alphabet.indexOf(ch);
+          if (val < 0) continue;
+          bits += val.toString(2).padStart(5, '0');
+        }
+        const bytes: number[] = [];
+        for (let j = 0; j + 8 <= bits.length; j += 8) {
+          bytes.push(parseInt(bits.substring(j, j + 8), 2));
+        }
+        const key = Buffer.from(bytes);
         const hash = crypto.createHmac('sha1', key)
           .update(Buffer.from(offsetTime.toString(16).padStart(16, '0'), 'hex'))
           .digest();
@@ -102,7 +127,7 @@ export class TwoFactorService {
       }
       
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error verifying TOTP code:', error);
       return false;
     }
@@ -140,7 +165,7 @@ export class TwoFactorService {
       await this.cacheService.set(backupCodesKey, backupCodes, 86400 * 30); // 30 days
       
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error verifying backup code:', error);
       return false;
     }
@@ -156,7 +181,7 @@ export class TwoFactorService {
       await this.cacheService.set(backupCodesKey, backupCodes, 86400 * 30); // 30 days
       
       logger.info(`2FA enabled for user ${userId}`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error enabling 2FA:', error);
       throw new Error('Failed to enable 2FA');
     }
@@ -172,7 +197,7 @@ export class TwoFactorService {
       await this.cacheService.delete(backupCodesKey);
       
       logger.info(`2FA disabled for user ${userId}`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error disabling 2FA:', error);
       throw new Error('Failed to disable 2FA');
     }
@@ -184,7 +209,7 @@ export class TwoFactorService {
       const secretKey = `2fa_secret:${userId}`;
       const secret = await this.cacheService.get<string>(secretKey);
       return !!secret;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error checking 2FA status:', error);
       return false;
     }
@@ -195,9 +220,10 @@ export class TwoFactorService {
     try {
       const secretKey = `2fa_secret:${userId}`;
       return await this.cacheService.get<string>(secretKey);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting 2FA secret:', error);
       return null;
     }
   }
 }
+

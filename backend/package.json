@@ -34,12 +34,15 @@
     "setup-db": "ts-node -r tsconfig-paths/register src/scripts/setup-db.ts",
     "setup-db-simple": "ts-node -r tsconfig-paths/register src/scripts/setup-db-simple.ts",
     "reset-db-simple": "ts-node -r tsconfig-paths/register src/scripts/reset-db-simple.ts",
-    "migrate": "ts-node -r tsconfig-paths/register src/scripts/migrate.ts"
+    "migrate": "ts-node -r tsconfig-paths/register src/scripts/migrate.ts",
+    "seed": "ts-node -r tsconfig-paths/register src/scripts/seed-db.ts",
+    "check-courses": "ts-node -r tsconfig-paths/register src/scripts/check-courses.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/express-validator": "^2.20.33",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.2",
     "@types/qrcode": "^1.5.5",
@@ -51,6 +54,7 @@
     "dotenv-flow": "^4.1.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
@@ -75,7 +79,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.7.1",
     "@types/pg": "^8.15.5",
-    "@types/sequelize": "^4.28.20",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
     "@types/zxcvbn": "^4.4.5",
@@ -91,8 +94,8 @@
   },
   "optionalDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/sdk-node": "^0.54.0",
     "@opentelemetry/auto-instrumentations-node": "^0.54.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.54.0"
+    "@opentelemetry/exporter-trace-otlp-http": "^0.54.0",
+    "@opentelemetry/sdk-node": "^0.54.0"
   }
 }

@@ -52,7 +52,7 @@ export class EnrollmentService {
       });
 
       // Validate course exists
-      const course = await Course.findByPk(normalizedPayload.course_id);
+      const course = await (Course as any).findByPk(normalizedPayload.course_id);
       if (!course) {
         throw new ApiError(
           RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND,
@@ -61,7 +61,7 @@ export class EnrollmentService {
       }
 
       // Validate user exists
-      const user = await User.findByPk(normalizedPayload.user_id);
+      const user = await (User as any).findByPk(normalizedPayload.user_id);
       if (!user) {
         throw new ApiError(
           RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND,

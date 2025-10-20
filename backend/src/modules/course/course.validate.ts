@@ -87,7 +87,7 @@ export const courseSchemas = {
 
   // Course ID parameter schema
   courseId: z.object({
-    id: z.string().uuid('Invalid course ID format')
+    id: z.string().min(1, 'Course ID is required')
   }),
 
   // Instructor ID parameter schema

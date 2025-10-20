@@ -9,24 +9,9 @@ export abstract class BaseRepository<T = any> {
   protected modelName: string;
   protected model: any | null = null;
 
-  constructor(modelName: string) {
-    this.modelName = modelName;
-  }
-
-  /**
-   * Get the model instance
-   * This method should be implemented by subclasses
-   */
-  protected abstract getModel(): any;
-
-  /**
-   * Get model instance with lazy loading
-   */
-  private getModelInstance(): any {
-    if (!this.model) {
-      this.model = this.getModel();
-    }
-    return this.model;
+  constructor(model: any) {
+    this.model = model;
+    this.modelName = model.name;
   }
 
   /**
@@ -36,12 +21,11 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Creating ${this.modelName}`, { data });
       
-      const model = this.getModelInstance();
-      const instance = await model.create(data, options);
+      const instance = await this.model.create(data, options);
       
       logger.debug(`${this.modelName} created successfully`, { id: instance.get('id') });
       return instance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error creating ${this.modelName}:`, error);
       throw error;
     }
@@ -54,8 +38,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding ${this.modelName} by ID`, { id });
       
-      const model = this.getModelInstance();
-      const instance = await model.findByPk(id, options);
+      const instance = await this.model.findByPk(id, options);
       
       if (instance) {
         logger.debug(`${this.modelName} found`, { id });
@@ -64,7 +47,7 @@ export abstract class BaseRepository<T = any> {
       }
       
       return instance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding ${this.modelName} by ID:`, error);
       throw error;
     }
@@ -77,8 +60,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const instance = await model.findOne(options);
+      const instance = await this.model.findOne(options);
       
       if (instance) {
         logger.debug(`${this.modelName} found`);
@@ -87,7 +69,7 @@ export abstract class BaseRepository<T = any> {
       }
       
       return instance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding ${this.modelName}:`, error);
       throw error;
     }
@@ -100,12 +82,11 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding all ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const instances = await model.findAll(options);
+      const instances = await this.model.findAll(options);
       
       logger.debug(`${this.modelName} found`, { count: instances.length });
       return instances;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding all ${this.modelName}:`, error);
       throw error;
     }
@@ -118,12 +99,11 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding and counting ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const result = await model.findAndCountAll(options);
+      const result = await this.model.findAndCountAll(options);
       
       logger.debug(`${this.modelName} found and counted`, { count: result.count, rows: result.rows.length });
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding and counting ${this.modelName}:`, error);
       throw error;
     }
@@ -136,8 +116,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Updating ${this.modelName}`, { id, data });
       
-      const model = this.getModelInstance();
-      const [affectedCount] = await model.update(data, {
+      const [affectedCount] = await this.model.update(data, {
         where: { id },
         ...options
       });
@@ -146,14 +125,14 @@ export abstract class BaseRepository<T = any> {
         throw new Error(`${this.modelName} not found`);
       }
       
-      const updatedInstance = await model.findByPk(id);
+      const updatedInstance = await this.model.findByPk(id);
       if (!updatedInstance) {
         throw new Error(`${this.modelName} not found after update`);
       }
       
       logger.debug(`${this.modelName} updated successfully`, { id });
       return updatedInstance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error updating ${this.modelName}:`, error);
       throw error;
     }
@@ -162,22 +141,23 @@ export abstract class BaseRepository<T = any> {
   /**
    * Delete a record by primary key
    */
-  async delete(id: string | number, options?: any): Promise<void> {
+  async delete(id: string | number, options?: any): Promise<boolean> {
     try {
       logger.debug(`Deleting ${this.modelName}`, { id });
       
-      const model = this.getModelInstance();
-      const deletedCount = await model.destroy({
+      const deletedCount = await this.model.destroy({
         where: { id },
         ...options
       });
       
       if (deletedCount === 0) {
-        throw new Error(`${this.modelName} not found`);
+        logger.debug(`${this.modelName} not found for deletion`, { id });
+        return false;
       }
       
       logger.debug(`${this.modelName} deleted successfully`, { id });
-    } catch (error) {
+      return true;
+    } catch (error: unknown) {
       logger.error(`Error deleting ${this.modelName}:`, error);
       throw error;
     }
@@ -190,12 +170,11 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Counting ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const count = await model.count(options);
+      const count = await this.model.count(options);
       
       logger.debug(`${this.modelName} counted`, { count });
       return count;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error counting ${this.modelName}:`, error);
       throw error;
     }
@@ -208,13 +187,12 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Checking if ${this.modelName} exists`, { id });
       
-      const model = this.getModelInstance();
-      const count = await model.count({ where: { id } });
+      const count = await this.model.count({ where: { id: id as any } as any });
       
-      const exists = count > 0;
+      const exists = (count as any as number) > 0;
       logger.debug(`${this.modelName} exists check`, { id, exists });
       return exists;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error checking if ${this.modelName} exists:`, error);
       throw error;
     }
@@ -227,15 +205,14 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
-      const model = this.getModelInstance();
-      const instances = await model.findAll({
+      const instances = await this.model.findAll({
         where: { [field]: value },
         ...options
       });
       
       logger.debug(`${this.modelName} found by field`, { field, value, count: instances.length });
       return instances;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding ${this.modelName} by field:`, error);
       throw error;
     }
@@ -248,8 +225,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
-      const model = this.getModelInstance();
-      const instance = await model.findOne({
+      const instance = await this.model.findOne({
         where: { [field]: value },
         ...options
       });
@@ -261,7 +237,7 @@ export abstract class BaseRepository<T = any> {
       }
       
       return instance;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error finding ${this.modelName} by field:`, error);
       throw error;
     }
@@ -274,12 +250,11 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Bulk creating ${this.modelName}`, { count: data.length });
       
-      const model = this.getModelInstance();
-      const instances = await model.bulkCreate(data, options);
+      const instances = await this.model.bulkCreate(data, options);
       
       logger.debug(`${this.modelName} bulk created`, { count: instances.length });
       return instances;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error bulk creating ${this.modelName}:`, error);
       throw error;
     }
@@ -292,11 +267,10 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Bulk updating ${this.modelName}`, { count: data.length });
       
-      const model = this.getModelInstance();
-      await model.bulkCreate(data, { updateOnDuplicate: Object.keys(data[0] || {}), ...options });
+      await this.model.bulkCreate(data, { updateOnDuplicate: Object.keys(data[0] || {}), ...options });
       
       logger.debug(`${this.modelName} bulk updated`, { count: data.length });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error bulk updating ${this.modelName}:`, error);
       throw error;
     }
@@ -312,7 +286,7 @@ export abstract class BaseRepository<T = any> {
       await this.update(id, { deleted_at: new Date() });
       
       logger.debug(`${this.modelName} soft deleted`, { id });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error soft deleting ${this.modelName}:`, error);
       throw error;
     }
@@ -328,7 +302,7 @@ export abstract class BaseRepository<T = any> {
       await this.update(id, { deleted_at: null });
       
       logger.debug(`${this.modelName} restored`, { id });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error restoring ${this.modelName}:`, error);
       throw error;
     }
@@ -368,9 +342,10 @@ export abstract class BaseRepository<T = any> {
         data: result.rows,
         pagination
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error paginating ${this.modelName}:`, error);
       throw error;
     }
   }
 }
+

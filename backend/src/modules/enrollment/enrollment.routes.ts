@@ -16,7 +16,7 @@ router.use(authMiddleware);
 // Get all enrollments (Admin/Instructor only)
 router.get(
   '/',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateQuery(enrollmentSchemas.enrollmentQuery),
   (req: Request, res: Response, next: NextFunction) => enrollmentController.getAllEnrollments(req, res, next)
 );
@@ -38,7 +38,7 @@ router.post(
 // Update enrollment (Admin/Instructor only)
 router.put(
   '/:id',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateParams(enrollmentSchemas.enrollmentId),
   validateBody(enrollmentSchemas.updateEnrollment),
   (req: Request, res: Response, next: NextFunction) => enrollmentController.updateEnrollment(req, res, next)
@@ -55,7 +55,7 @@ router.put(
 // Delete enrollment (Admin/Instructor only)
 router.delete(
   '/:id',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateParams(enrollmentSchemas.enrollmentId),
   (req: Request, res: Response, next: NextFunction) => enrollmentController.deleteEnrollment(req, res, next)
 );
@@ -63,7 +63,7 @@ router.delete(
 // Complete enrollment (Admin/Instructor only)
 router.patch(
   '/:id/complete',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateParams(enrollmentSchemas.enrollmentId),
   validateBody(enrollmentSchemas.completeEnrollment),
   (req: Request, res: Response, next: NextFunction) => enrollmentController.completeEnrollment(req, res, next)
@@ -72,7 +72,7 @@ router.patch(
 // Allow tests: PUT complete as used by test suite
 router.put(
   '/:id/complete',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateParams(enrollmentSchemas.enrollmentId),
   validateBody(enrollmentSchemas.completeEnrollment),
   (req: Request, res: Response, next: NextFunction) => enrollmentController.completeEnrollment(req, res, next)
@@ -115,14 +115,14 @@ router.get(
 // Get enrollment statistics (Admin/Instructor only)
 router.get(
   '/stats/overview',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   (req: Request, res: Response, next: NextFunction) => enrollmentController.getEnrollmentStats(req, res, next)
 );
 
 // Get course enrollment statistics (Admin/Instructor only)
 router.get(
   '/stats/course/:courseId',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateParams(enrollmentSchemas.courseId),
   (req: Request, res: Response, next: NextFunction) => enrollmentController.getCourseEnrollmentStats(req, res, next)
 );

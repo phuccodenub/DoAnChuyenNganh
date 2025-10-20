@@ -139,9 +139,12 @@ export const HTTP_STATUS_CODES = {
   NOT_FOUND: 404,
   CONFLICT: 409,
   UNPROCESSABLE_ENTITY: 422,
+  LOCKED: 423,
+  BAD_GATEWAY: 502,
   TOO_MANY_REQUESTS: 429,
   INTERNAL_SERVER_ERROR: 500,
-  SERVICE_UNAVAILABLE: 503
+  SERVICE_UNAVAILABLE: 503,
+  GATEWAY_TIMEOUT: 504
 } as const;
 
 // ===== ERROR SEVERITY LEVELS =====
@@ -158,3 +161,4 @@ export type ErrorMessage = typeof ERROR_MESSAGES[keyof typeof ERROR_MESSAGES];
 export type ErrorType = typeof ERROR_TYPES[keyof typeof ERROR_TYPES];
 export type HttpStatusCode = typeof HTTP_STATUS_CODES[keyof typeof HTTP_STATUS_CODES];
 export type ErrorSeverity = typeof ERROR_SEVERITY[keyof typeof ERROR_SEVERITY];
+

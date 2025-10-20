@@ -89,6 +89,7 @@
     "liveStream": "Live Stream",
     "chat": "Chat",
     "notifications": "Notifications",
+    "notificationsDemo": "Notifications Demo",
     "profile": "Profile",
     "settings": "Settings",
     "logout": "Logout",
@@ -116,6 +117,69 @@
     "enroll": "Enroll",
     "unenroll": "Unenroll",
     "viewDetails": "View Details"
+  },
+  "demo": {
+    "mode": "Demo Mode",
+    "demoMode": "Demo Mode",
+    "demoModeActive": "Demo Mode Active",
+    "demoNotice": "Demo Mode",
+    "connected": "Connected",
+    "demoModeShort": "Demo",
+    "demoModeFiles": "Demo Mode: Files are stored in browser storage (IndexedDB).",
+    "demoModeQuiz": "Demo Mode: This quiz system works with real-time responses.",
+    "demoModeWebRTC": "Demo Mode: This WebRTC implementation works with real camera/microphone access.",
+    "demoModeChat": "Demo Mode: Real-time chat requires backend connection",
+    "demoModeLocal": "Demo mode: Messages will be simulated locally",
+    "demoModeRegistration": "Demo Mode: This registration creates a temporary account for testing.",
+    "demoModeBanner": "Demo Mode",
+    "notificationDemo": {
+      "title": "Notification System Demo",
+      "subtitle": "Test the real-time notification system by triggering different types of notifications. Check the notification bell in the header to see unread notifications.",
+      "loginRequired": "Please log in to test notifications.",
+      "chatMessages": {
+        "title": "Chat Messages",
+        "description": "Simulate receiving a new chat message in a course.",
+        "button": "New Chat Message"
+      },
+      "quizStarted": {
+        "title": "Quiz Started",
+        "description": "Notify students that a new quiz is available.",
+        "button": "Start Quiz"
+      },
+      "liveStream": {
+        "title": "Live Stream",
+        "description": "Alert students that instructor started live streaming.",
+        "button": "Start Stream"
+      },
+      "newAssignment": {
+        "title": "New Assignment",
+        "description": "Notify students of a new assignment posting.",
+        "button": "Post Assignment"
+      },
+      "systemAlert": {
+        "title": "System Alert",
+        "description": "Send important system-wide announcements.",
+        "button": "System Warning"
+      },
+      "announcement": {
+        "title": "Announcement",
+        "description": "Make course-specific announcements to students.",
+        "button": "Course Update"
+      },
+      "successMessage": {
+        "title": "Success Message",
+        "description": "Show success confirmation for completed actions.",
+        "button": "Success Alert"
+      },
+      "errorMessage": {
+        "title": "Error Message",
+        "description": "Display error messages with action buttons.",
+        "button": "Error Alert"
+      },
+      "instructions": {
+        "title": "How to Test:"
+      }
+    }
   }
 }
 

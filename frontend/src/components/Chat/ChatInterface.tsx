@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
+import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/stores/chatStore'
 import ChatMessage from './ChatMessage'
 import MessageInput from './MessageInput'
@@ -22,6 +23,7 @@ function ChatInterface({ courseId }: ChatInterfaceProps) {
     leaveCourse,
     sendMessage
   } = useChatStore()
+  const { t } = useTranslation()
 
   const [showOnlineUsers, setShowOnlineUsers] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -127,11 +129,11 @@ function ChatInterface({ courseId }: ChatInterfaceProps) {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="text-6xl mb-4">💬</div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Start the conversation</h3>
-                  <p className="text-gray-600 mb-4">Be the first to send a message in this course!</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Bắt đầu cuộc trò chuyện</h3>
+                  <p className="text-gray-600 mb-4">Hãy là người đầu tiên gửi tin nhắn trong khóa học này!</p>
                   {!isConnected && (
                     <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                      Demo mode: Messages will be simulated locally
+                      {t('demo.demoModeLocal')}
                     </div>
                   )}
                 </div>
@@ -154,7 +156,7 @@ function ChatInterface({ courseId }: ChatInterfaceProps) {
           <MessageInput
             onSendMessage={handleSendMessage}
             isConnected={isConnected}
-            placeholder="Type your message..."
+            placeholder="Nhập tin nhắn của bạn..."
           />
         </div>
 
@@ -174,7 +176,7 @@ function ChatInterface({ courseId }: ChatInterfaceProps) {
       {!isConnected && (
         <div className="p-2 bg-amber-50 border-t border-amber-200 text-center">
           <span className="text-xs text-amber-700">
-            <span className="font-medium">Demo Mode:</span> Real-time chat requires backend connection
+            <span className="font-medium">{t('demo.demoNotice')}:</span> {t('demo.demoModeChat')}
           </span>
         </div>
       )}

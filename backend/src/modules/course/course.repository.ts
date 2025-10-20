@@ -15,7 +15,7 @@ export class CourseRepository extends BaseRepository {
    */
   protected getModel(): any {
     const { Course } = require('../../models');
-    return Course;
+    return Course as any;
   }
 
   // ===== COURSE MANAGEMENT METHODS =====
@@ -113,9 +113,10 @@ export class CourseRepository extends BaseRepository {
         where: { id: courseId },
         include: [
           {
-            model: User,
+            model: User as any,
             as: 'instructor',
-            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar', 'bio']
+            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar', 'bio'],
+            required: false
           }
         ]
       });

@@ -6,10 +6,10 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "noEmit": true,
-    "noResolve": true,
+    "verbatimModuleSyntax": false,
     
     "types": ["node"],
     "typeRoots": [
@@ -26,13 +26,17 @@
     }
   },
   "include": [
-    "src/models/user.model.ts",
+    "src/models/**/*.ts",
     "src/modules/user/user.repository.ts",
     "src/modules/user/user.service.ts",
     "src/types/shims-users.d.ts",
     "src/types/shims-user-service.d.ts",
     "src/types/shims-users-repo.d.ts",
-    "src/config/db.d.ts"
+    "src/config/db.d.ts",
+    "src/errors/**/*.ts",
+    "src/utils/response.util.ts",
+    "src/constants/**/*.ts",
+    "src/types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",

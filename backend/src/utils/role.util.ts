@@ -1,4 +1,4 @@
-import { UserInstance } from '../types/user.types';
+type SimpleUser = { role: string } & Record<string, any>;
 
 /**
  * User role utility functions
@@ -11,7 +11,7 @@ export const roleUtils = {
    * @param roles - Role or array of roles to check
    * @returns True if user has any of the specified roles
    */
-  hasRole(user: UserInstance, roles: string | string[]): boolean {
+  hasRole(user: SimpleUser, roles: string | string[]): boolean {
     const userRole = user.role;
     return Array.isArray(roles) ? roles.includes(userRole) : userRole === roles;
   },
@@ -21,7 +21,7 @@ export const roleUtils = {
    * @param user - User instance
    * @returns True if user is admin
    */
-  isAdmin(user: UserInstance): boolean {
+  isAdmin(user: SimpleUser): boolean {
     return this.hasRole(user, ['admin', 'super_admin']);
   },
 
@@ -30,7 +30,7 @@ export const roleUtils = {
    * @param user - User instance
    * @returns True if user is instructor
    */
-  isInstructor(user: UserInstance): boolean {
+  isInstructor(user: SimpleUser): boolean {
     return this.hasRole(user, ['instructor', 'admin', 'super_admin']);
   },
 
@@ -39,7 +39,7 @@ export const roleUtils = {
    * @param user - User instance
    * @returns True if user is student
    */
-  isStudent(user: UserInstance): boolean {
+  isStudent(user: SimpleUser): boolean {
     return this.hasRole(user, 'student');
   },
 
@@ -48,7 +48,7 @@ export const roleUtils = {
    * @param user - User instance
    * @returns True if user is super admin
    */
-  isSuperAdmin(user: UserInstance): boolean {
+  isSuperAdmin(user: SimpleUser): boolean {
     return this.hasRole(user, 'super_admin');
   },
 
@@ -57,7 +57,7 @@ export const roleUtils = {
    * @param user - User instance
    * @returns Role hierarchy level (higher number = more permissions)
    */
-  getRoleLevel(user: UserInstance): number {
+  getRoleLevel(user: SimpleUser): number {
     const roleLevels: Record<string, number> = {
       'student': 1,
       'instructor': 2,
@@ -74,9 +74,9 @@ export const roleUtils = {
    * @param requiredRole - Required role to compare against
    * @returns True if user has higher or equal role level
    */
-  hasRoleLevel(user: UserInstance, requiredRole: string): boolean {
+  hasRoleLevel(user: SimpleUser, requiredRole: string): boolean {
     const userLevel = this.getRoleLevel(user);
-    const requiredLevel = this.getRoleLevel({ role: requiredRole } as UserInstance);
+    const requiredLevel = this.getRoleLevel({ role: requiredRole });
     return userLevel >= requiredLevel;
   },
 
@@ -85,7 +85,7 @@ export const roleUtils = {
    * @param user - User instance
    * @returns Array of roles that user can manage
    */
-  getManageableRoles(user: UserInstance): string[] {
+  getManageableRoles(user: SimpleUser): string[] {
     const userLevel = this.getRoleLevel(user);
     
     if (userLevel >= 4) return ['student', 'instructor', 'admin', 'super_admin'];
@@ -100,7 +100,7 @@ export const roleUtils = {
    * @param target - User to be managed
    * @returns True if manager can manage target user
    */
-  canManageUser(manager: UserInstance, target: UserInstance): boolean {
+  canManageUser(manager: SimpleUser, target: SimpleUser): boolean {
     const managerLevel = this.getRoleLevel(manager);
     const targetLevel = this.getRoleLevel(target);
     
@@ -173,8 +173,9 @@ export const roleUtils = {
    * @param permission - Permission to check
    * @returns True if user has the permission
    */
-  hasPermission(user: UserInstance, permission: string): boolean {
+  hasPermission(user: SimpleUser, permission: string): boolean {
     const userPermissions = this.getRolePermissions(user.role);
     return userPermissions.includes('all_permissions') || userPermissions.includes(permission);
   }
 };
+

@@ -32,7 +32,7 @@ router.use(authMiddleware);
 // Get all users (Admin/Instructor only)
 router.get(
   '/',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateQuery(userSchemas.userQuery),
   (req: Request, res: Response, next: NextFunction) => userModuleController.getAllUsers(req, res, next)
 );
@@ -48,14 +48,14 @@ router.get(
 // Get user by ID (All authenticated users) - MUST be after specific routes
 router.get(
   '/:id',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]),
   (req: Request, res: Response, next: NextFunction) => userModuleController.getUserById(req, res, next)
 );
 
 // Update user status (Admin/Super Admin only)
 router.patch(
   '/:id/status',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateBody(userSchemas.updateUserStatus),
   (req: Request, res: Response, next: NextFunction) => userModuleController.updateUserStatus(req, res, next)
 );
@@ -63,14 +63,14 @@ router.patch(
 // Get user enrollments (All authenticated users)
 router.get(
   '/:id/enrollments',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]),
   (req: Request, res: Response, next: NextFunction) => userModuleController.getUserEnrollments(req, res, next)
 );
 
 // Get user progress (All authenticated users)
 router.get(
   '/:id/progress',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]),
   (req: Request, res: Response, next: NextFunction) => userModuleController.getUserProgress(req, res, next)
 );
 

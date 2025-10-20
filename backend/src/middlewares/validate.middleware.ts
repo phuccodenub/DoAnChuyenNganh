@@ -29,7 +29,7 @@ export const validateRequest = (schema: {
       }
 
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       responseUtils.sendValidationError(
         res,
         RESPONSE_CONSTANTS.ERROR.VALIDATION_ERROR,
@@ -77,3 +77,26 @@ export const validateParams = (schema: ZodSchema) => {
     }
   };
 };
+
+// Legacy validate function for express-validator compatibility
+export const validate = (validations: any[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // Run all validations
+    await Promise.all(validations.map(validation => validation.run(req)));
+
+    // Check for validation errors
+    const { validationResult } = require('express-validator');
+    const errors = validationResult(req);
+    if (errors.isEmpty()) {
+      return next();
+    }
+
+    responseUtils.sendValidationError(
+      res,
+      RESPONSE_CONSTANTS.ERROR.VALIDATION_ERROR,
+      errors.array()
+    );
+  };
+};
+
+

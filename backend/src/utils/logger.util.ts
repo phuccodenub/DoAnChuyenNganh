@@ -140,7 +140,7 @@ function attachCorrelation(meta: any = {}): any {
 
 customLogger.logError = (message: string, error?: Error) => {
   if (error) {
-    logger.error(message, { error: error.message, stack: error.stack });
+    logger.error(message, { error: (error as Error).message, stack: (error as Error).stack });
   } else {
     logger.error(message);
   }
@@ -267,3 +267,4 @@ export const loggerUtils = {
 };
 
 export default customLogger;
+

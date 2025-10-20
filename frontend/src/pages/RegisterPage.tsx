@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -15,6 +16,7 @@ function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   
   const { register, isLoading, isAuthenticated } = useAuthStore()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   
   // Redirect if already authenticated
@@ -182,8 +184,8 @@ function RegisterPage() {
         
         <div className="mt-6 p-4 bg-blue-50 rounded-md">
           <p className="text-xs text-blue-800">
-            <strong>Demo Mode:</strong> This registration creates a temporary account for testing.
-            Data will not persist after browser refresh.
+            <strong>{t('demo.demoMode')}:</strong> {t('demo.demoModeRegistration')}
+            Dữ liệu sẽ không được lưu trữ sau khi làm mới trình duyệt.
           </p>
         </div>
       </div>

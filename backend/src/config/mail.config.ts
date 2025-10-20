@@ -21,7 +21,7 @@ export async function verifyMailConnection(): Promise<void> {
   try {
     await transporter.verify();
     logger.info('Mail service connection verified successfully');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Mail service connection failed:', error);
     throw error;
   }
@@ -46,7 +46,7 @@ export const mailHelpers = {
 
       await transporter.sendMail(mailOptions);
       logger.info(`Welcome email sent to ${to}`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Welcome email sending error:', error);
       throw error;
     }
@@ -74,7 +74,7 @@ export const mailHelpers = {
 
       await transporter.sendMail(mailOptions);
       logger.info(`Password reset email sent to ${to}`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Password reset email sending error:', error);
       throw error;
     }
@@ -96,7 +96,7 @@ export const mailHelpers = {
 
       await transporter.sendMail(mailOptions);
       logger.info(`Notification email sent to ${to}`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Notification email sending error:', error);
       throw error;
     }
@@ -104,3 +104,4 @@ export const mailHelpers = {
 };
 
 export { transporter };
+

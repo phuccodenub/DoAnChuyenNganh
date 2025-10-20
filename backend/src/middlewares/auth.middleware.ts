@@ -55,7 +55,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 };
 
 // Role-based authorization middleware
-export const authorizeRoles = (...roles: string[]) => {
+export const authorizeRoles = (roles: string | string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     // In test environment, bypass role checks to allow full E2E coverage
     if (process.env.NODE_ENV === 'test') {
@@ -72,7 +72,8 @@ export const authorizeRoles = (...roles: string[]) => {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    if (!allowedRoles.includes(req.user.role)) {
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN).json({
         success: false,
         message: RESPONSE_CONSTANTS.ERROR.ACCESS_DENIED,

@@ -234,3 +234,4 @@ export async function seedCourses(sequelize: Sequelize): Promise<void> {
     );
   }
 }
+

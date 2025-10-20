@@ -19,7 +19,7 @@ export class AuthController {
       const newUser = await this.authService.register(userData);
       
       responseUtils.sendCreated(res, RESPONSE_CONSTANTS.MESSAGE.CREATED, newUser);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error during registration:', error);
       next(error);
     }
@@ -35,7 +35,7 @@ export class AuthController {
 
       const result = await this.authService.login(credentials, device, ipAddress, userAgent);
       responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.LOGIN_SUCCESS, result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error during login:', error);
       next(error);
     }
@@ -52,7 +52,7 @@ export class AuthController {
       const credentials: LoginCredentials = { username, password };
       const result = await this.authService.loginWith2FA(credentials, code, device, ipAddress, userAgent);
       responseUtils.sendSuccess(res, 'Login with 2FA successful', result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error logging in with 2FA:', error);
       next(error);
     }
@@ -69,7 +69,7 @@ export class AuthController {
 
       const result = await this.authService.enable2FA(userId);
       responseUtils.sendSuccess(res, '2FA enabled successfully', result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error enabling 2FA:', error);
       next(error);
     }
@@ -87,7 +87,7 @@ export class AuthController {
       const { code } = req.body;
       const isValid = await this.authService.verify2FASetup(userId, code);
       responseUtils.sendSuccess(res, '2FA setup verified', { verified: isValid });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error verifying 2FA setup:', error);
       next(error);
     }
@@ -105,7 +105,7 @@ export class AuthController {
       const { code } = req.body;
       await this.authService.disable2FA(userId, code);
       responseUtils.sendSuccess(res, '2FA disabled successfully', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error disabling 2FA:', error);
       next(error);
     }
@@ -118,7 +118,7 @@ export class AuthController {
       const tokens = await this.authService.refreshToken(refreshToken);
       
       responseUtils.sendSuccess(res, 'Token refreshed successfully', tokens);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error refreshing token:', error);
       next(error);
     }
@@ -135,7 +135,7 @@ export class AuthController {
       
       await this.authService.logout(userId);
       responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.LOGOUT_SUCCESS, null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error during logout:', error);
       next(error);
     }
@@ -154,7 +154,7 @@ export class AuthController {
       await this.authService.changePassword(userId, data);
       
       responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.PASSWORD_CHANGED, null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error changing password:', error);
       next(error);
     }
@@ -171,7 +171,7 @@ export class AuthController {
         userRole,
         valid: true
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error verifying token:', error);
       next(error);
     }
@@ -183,9 +183,10 @@ export class AuthController {
       const { token } = req.params;
       // TODO: Implement email verification logic
       responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.EMAIL_VERIFIED, null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error verifying email:', error);
       next(error);
     }
   }
 }
+

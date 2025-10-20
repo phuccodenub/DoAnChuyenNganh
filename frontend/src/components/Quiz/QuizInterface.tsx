@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/stores/authStore'
+import { useTranslation } from 'react-i18next'
 import socketService from '@/services/socketService'
 import quizService, { type Quiz, type QuizQuestion, type LiveQuizSession, type QuizAttempt } from '@/services/quizService'
 import { Button } from '@/components/ui/Button'
@@ -13,6 +14,7 @@ interface QuizInterfaceProps {
 
 function QuizInterface({ courseId, courseName }: QuizInterfaceProps) {
   const { user } = useAuthStore()
+  const { t } = useTranslation()
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
   const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null)
   const [currentSession, setCurrentSession] = useState<LiveQuizSession | null>(null)
@@ -523,8 +525,8 @@ function QuizInterface({ courseId, courseName }: QuizInterfaceProps) {
       {/* Demo Notice */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
         <p className="text-sm text-amber-700">
-          <span className="font-medium">🧪 Demo Mode:</span> This quiz system works with real-time responses. 
-          Start the Socket.IO demo server to enable live quiz sessions between multiple users.
+          <span className="font-medium">🧪 {t('demo.demoNotice')}:</span> {t('demo.demoModeQuiz')}
+          Khởi động máy chủ demo Socket.IO để kích hoạt phiên bài kiểm tra trực tiếp giữa nhiều người dùng.
         </p>
       </div>
     </div>

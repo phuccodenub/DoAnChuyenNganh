@@ -29,7 +29,7 @@ async function startServer() {
       logger.info(`Environment: ${env.nodeEnv}`);
     });
     
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to start server:', error);
     process.exit(1);
   }
@@ -47,3 +47,4 @@ process.on('SIGINT', () => {
 });
 
 startServer();
+
