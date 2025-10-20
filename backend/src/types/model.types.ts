@@ -59,24 +59,29 @@ export type UserInstance = UserAttributes;
 // COURSE MODEL INTERFACES
 // ===================================
 
+export type CourseStatus = 'draft' | 'published' | 'archived';
+export type CourseLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+
 export interface CourseAttributes {
   id: string;
   title: string;
   description?: string;
+  short_description?: string;
   instructor_id: string;
   category_id?: string;
-  status: 'draft' | 'published' | 'archived';
-  start_date?: Date;
-  end_date?: Date;
-  max_students: number;
-  thumbnail_url?: string;
-  tags?: string[];
-  settings?: Record<string, any>;
+  status: CourseStatus;
+  level: CourseLevel;
+  language: string;
+  thumbnail?: string;
+  duration_hours?: number;
+  total_lessons: number;
+  tags?: any;
+  metadata?: any;
   created_at: Date;
   updated_at: Date;
 }
 
-export interface CourseCreationAttributes extends Optional<CourseAttributes, 'id' | 'created_at' | 'updated_at' | 'max_students' | 'status'> {}
+export interface CourseCreationAttributes extends Optional<CourseAttributes, 'id' | 'created_at' | 'updated_at' | 'status' | 'level' | 'language' | 'total_lessons'> {}
 
 export type CourseInstance = CourseAttributes;
 
@@ -236,19 +241,25 @@ export type AssignmentSubmissionInstance = AssignmentSubmissionAttributes;
 // ENROLLMENT MODEL INTERFACES
 // ===================================
 
+export type EnrollmentStatus = 'pending' | 'active' | 'completed' | 'cancelled' | 'suspended';
+export type EnrollmentType = 'free' | 'paid' | 'trial';
+
 export interface EnrollmentAttributes {
   id: string;
   user_id: string;
   course_id: string;
-  enrolled_at: Date;
-  status: 'active' | 'completed' | 'dropped' | 'suspended';
-  progress: number;
+  status: EnrollmentStatus;
+  enrollment_type: EnrollmentType;
+  progress_percentage: number;
+  completed_lessons: number;
+  total_lessons: number;
+  last_accessed_at?: Date;
   completion_date?: Date;
   created_at: Date;
   updated_at: Date;
 }
 
-export interface EnrollmentCreationAttributes extends Optional<EnrollmentAttributes, 'id' | 'created_at' | 'updated_at' | 'status' | 'progress'> {}
+export interface EnrollmentCreationAttributes extends Optional<EnrollmentAttributes, 'id' | 'created_at' | 'updated_at' | 'status' | 'enrollment_type' | 'progress_percentage' | 'completed_lessons' | 'total_lessons'> {}
 
 export type EnrollmentInstance = EnrollmentAttributes;
 
