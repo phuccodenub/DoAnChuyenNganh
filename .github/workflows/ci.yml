@@ -15,12 +15,12 @@ jobs:
     
     services:
       postgres:
-        image: postgres:15-alpine
+        image: ghcr.io/bitnami/postgresql:15
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: lms_test
-          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRESQL_USERNAME: postgres
+          POSTGRESQL_PASSWORD: postgres
+          POSTGRESQL_DATABASE: lms_test
+          POSTGRESQL_HOST_AUTH_METHOD: trust
         options: >-
           --health-cmd="pg_isready -U postgres -d lms_test"
           --health-interval=10s
