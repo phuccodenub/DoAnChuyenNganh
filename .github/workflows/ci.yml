@@ -13,22 +13,6 @@ jobs:
       run:
         working-directory: backend
     
-    services:
-      postgres:
-        image: ghcr.io/bitnami/postgresql:15
-        env:
-          POSTGRESQL_USERNAME: postgres
-          POSTGRESQL_PASSWORD: postgres
-          POSTGRESQL_DATABASE: lms_test
-          POSTGRESQL_HOST_AUTH_METHOD: trust
-        options: >-
-          --health-cmd="pg_isready -U postgres -d lms_test"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-        ports:
-          - 5432:5432
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,26 +33,11 @@ jobs:
       - name: Build (hard-fail)
         run: npm run build
 
-      - name: Setup database
+      - name: Run e2e tests with SQLite (hard-fail)
         env:
           NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_NAME: lms_test
-          DB_DIALECT: postgres
-        run: npm run setup-db-simple
-
-      - name: Run e2e tests (hard-fail)
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_NAME: lms_test
-          DB_DIALECT: postgres
+          DB_DIALECT: sqlite
+          DB_STORAGE: ':memory:'
           JWT_SECRET: test-secret-key-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
         run: npm run test:e2e
