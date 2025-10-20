@@ -9,24 +9,9 @@ export abstract class BaseRepository<T = any> {
   protected modelName: string;
   protected model: any | null = null;
 
-  constructor(modelName: string) {
-    this.modelName = modelName;
-  }
-
-  /**
-   * Get the model instance
-   * This method should be implemented by subclasses
-   */
-  protected abstract getModel(): any;
-
-  /**
-   * Get model instance with lazy loading
-   */
-  private getModelInstance(): any {
-    if (!this.model) {
-      this.model = this.getModel();
-    }
-    return this.model;
+  constructor(model: any) {
+    this.model = model;
+    this.modelName = model.name;
   }
 
   /**
@@ -36,8 +21,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Creating ${this.modelName}`, { data });
       
-      const model = this.getModelInstance();
-      const instance = await model.create(data, options);
+      const instance = await this.model.create(data, options);
       
       logger.debug(`${this.modelName} created successfully`, { id: instance.get('id') });
       return instance;
@@ -54,8 +38,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding ${this.modelName} by ID`, { id });
       
-      const model = this.getModelInstance();
-      const instance = await model.findByPk(id, options);
+      const instance = await this.model.findByPk(id, options);
       
       if (instance) {
         logger.debug(`${this.modelName} found`, { id });
@@ -77,8 +60,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const instance = await model.findOne(options);
+      const instance = await this.model.findOne(options);
       
       if (instance) {
         logger.debug(`${this.modelName} found`);
@@ -100,8 +82,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding all ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const instances = await model.findAll(options);
+      const instances = await this.model.findAll(options);
       
       logger.debug(`${this.modelName} found`, { count: instances.length });
       return instances;
@@ -118,8 +99,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding and counting ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const result = await model.findAndCountAll(options);
+      const result = await this.model.findAndCountAll(options);
       
       logger.debug(`${this.modelName} found and counted`, { count: result.count, rows: result.rows.length });
       return result;
@@ -136,8 +116,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Updating ${this.modelName}`, { id, data });
       
-      const model = this.getModelInstance();
-      const [affectedCount] = await model.update(data, {
+      const [affectedCount] = await this.model.update(data, {
         where: { id },
         ...options
       });
@@ -146,7 +125,7 @@ export abstract class BaseRepository<T = any> {
         throw new Error(`${this.modelName} not found`);
       }
       
-      const updatedInstance = await model.findByPk(id);
+      const updatedInstance = await this.model.findByPk(id);
       if (!updatedInstance) {
         throw new Error(`${this.modelName} not found after update`);
       }
@@ -162,21 +141,22 @@ export abstract class BaseRepository<T = any> {
   /**
    * Delete a record by primary key
    */
-  async delete(id: string | number, options?: any): Promise<void> {
+  async delete(id: string | number, options?: any): Promise<boolean> {
     try {
       logger.debug(`Deleting ${this.modelName}`, { id });
       
-      const model = this.getModelInstance();
-      const deletedCount = await model.destroy({
+      const deletedCount = await this.model.destroy({
         where: { id },
         ...options
       });
       
       if (deletedCount === 0) {
-        throw new Error(`${this.modelName} not found`);
+        logger.debug(`${this.modelName} not found for deletion`, { id });
+        return false;
       }
       
       logger.debug(`${this.modelName} deleted successfully`, { id });
+      return true;
     } catch (error: unknown) {
       logger.error(`Error deleting ${this.modelName}:`, error);
       throw error;
@@ -190,8 +170,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Counting ${this.modelName}`, { options });
       
-      const model = this.getModelInstance();
-      const count = await model.count(options);
+      const count = await this.model.count(options);
       
       logger.debug(`${this.modelName} counted`, { count });
       return count;

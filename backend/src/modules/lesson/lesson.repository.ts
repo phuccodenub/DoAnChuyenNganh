@@ -1,29 +1,29 @@
 import { BaseRepository } from '../../repositories/base.repository';
-import Assignment from '../../models/assignment.model';
+import Lesson from '../../models/lesson.model';
 import logger from '../../utils/logger.util';
 
-export class AssignmentRepository extends BaseRepository<Assignment> {
+export class LessonRepository extends BaseRepository<Lesson> {
   constructor() {
-    super(Assignment);
+    super(Lesson);
   }
 
   /**
-   * Find all assignments with pagination and filtering
+   * Find all lessons with pagination and filtering
    */
   async findAllWithPagination(options: {
     page: number;
     limit: number;
     course_id?: string;
-    lesson_id?: string;
+    section_id?: string;
     status?: string;
   }) {
     try {
-      const { page, limit, course_id, lesson_id, status } = options;
+      const { page, limit, course_id, section_id, status } = options;
       const offset = (page - 1) * limit;
 
       const whereClause: any = {};
       if (course_id) whereClause.course_id = course_id;
-      if (lesson_id) whereClause.lesson_id = lesson_id;
+      if (section_id) whereClause.section_id = section_id;
       if (status) whereClause.status = status;
 
       const { count, rows } = await this.findAndCountAll({
@@ -43,7 +43,7 @@ export class AssignmentRepository extends BaseRepository<Assignment> {
         }
       };
     } catch (error) {
-      logger.error('Error finding assignments with pagination:', error);
+      logger.error('Error finding lessons with pagination:', error);
       throw error;
     }
   }

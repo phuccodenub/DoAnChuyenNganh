@@ -113,9 +113,10 @@ export class CourseRepository extends BaseRepository {
         where: { id: courseId },
         include: [
           {
-            model: User,
+            model: User as any,
             as: 'instructor',
-            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar', 'bio']
+            attributes: ['id', 'username', 'first_name', 'last_name', 'avatar', 'bio'],
+            required: false
           }
         ]
       });

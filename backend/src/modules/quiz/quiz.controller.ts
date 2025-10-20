@@ -1,214 +1,359 @@
 import { Request, Response, NextFunction } from 'express';
 import { QuizService } from './quiz.service';
-import { responseUtils } from '../../utils/response.util';
+import { ApiError } from '../../errors/api.error';
+import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
+import logger from '../../utils/logger.util';
 
 export class QuizController {
-  private service: QuizService;
+  private quizService: QuizService;
 
   constructor() {
-    this.service = new QuizService();
+    this.quizService = new QuizService();
   }
 
-  // ===================================
-  // QUIZ MANAGEMENT
-  // ===================================
-
-  createQuiz = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get all quizzes with pagination and filtering
+   */
+  async getAllQuizzes(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user!.userId;
-      const quiz = await this.service.createQuiz(userId, req.body);
-      return responseUtils.success(res, quiz, 'Quiz created', 201);
-    } catch (error: unknown) {
-      next(error);
-    }
-  };
-
-  getQuiz = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { quizId } = req.params;
-      const userId = req.user?.userId;
-      const includeAnswers = req.query.include_answers === 'true';
+      const { page = 1, limit = 20, course_id, lesson_id, status } = req.query;
       
-      const quiz = await this.service.getQuiz(quizId, userId, includeAnswers);
-      return responseUtils.success(res, quiz, 'Quiz retrieved');
-    } catch (error: unknown) {
+      const result = await this.quizService.getAllQuizzes({
+        page: Number(page),
+        limit: Number(limit),
+        course_id: course_id as string,
+        lesson_id: lesson_id as string,
+        status: status as string
+      });
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quizzes retrieved successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error in getAllQuizzes controller:', error);
       next(error);
     }
-  };
+  }
 
-  updateQuiz = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get quiz by ID
+   */
+  async getQuizById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { quizId } = req.params;
-      const userId = req.user!.userId;
+      const { id } = req.params;
       
-      const quiz = await this.service.updateQuiz(quizId, userId, req.body);
-      return responseUtils.success(res, quiz, 'Quiz updated');
-    } catch (error: unknown) {
+      const quiz = await this.quizService.getQuizById(id);
+      
+      if (!quiz) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Quiz not found');
+      }
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz retrieved successfully',
+        data: quiz
+      });
+    } catch (error) {
+      logger.error('Error in getQuizById controller:', error);
       next(error);
     }
-  };
+  }
 
-  deleteQuiz = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Create new quiz
+   */
+  async createQuiz(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { quizId } = req.params;
-      const userId = req.user!.userId;
+      const quizData = req.body;
       
-      await this.service.deleteQuiz(quizId, userId);
-      return responseUtils.success(res, null, 'Quiz deleted');
-    } catch (error: unknown) {
+      const quiz = await this.quizService.createQuiz(quizData);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.CREATED).json({
+        success: true,
+        message: 'Quiz created successfully',
+        data: quiz
+      });
+    } catch (error) {
+      logger.error('Error in createQuiz controller:', error);
       next(error);
     }
-  };
+  }
 
-  // ===================================
-  // QUESTION MANAGEMENT
-  // ===================================
-
-  addQuestion = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Update quiz
+   */
+  async updateQuiz(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { quizId } = req.params;
-      const userId = req.user!.userId;
+      const { id } = req.params;
+      const updateData = req.body;
       
-      const question = await this.service.addQuestion(quizId, userId, req.body);
-      return responseUtils.success(res, question, 'Question added', 201);
-    } catch (error: unknown) {
+      const quiz = await this.quizService.updateQuiz(id, updateData);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz updated successfully',
+        data: quiz
+      });
+    } catch (error) {
+      logger.error('Error in updateQuiz controller:', error);
       next(error);
     }
-  };
+  }
 
-  updateQuestion = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Delete quiz
+   */
+  async deleteQuiz(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { questionId } = req.params;
-      const userId = req.user!.userId;
+      const { id } = req.params;
       
-      const question = await this.service.updateQuestion(questionId, userId, req.body);
-      return responseUtils.success(res, question, 'Question updated');
-    } catch (error: unknown) {
+      logger.info('Deleting quiz', { quizId: id });
+      const deleted = await this.quizService.deleteQuiz(id);
+
+      if (!deleted) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND).json({
+          success: false,
+          message: 'Quiz not found',
+          data: null
+        });
+        return;
+      }
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz deleted successfully',
+        data: null
+      });
+    } catch (error) {
+      logger.error('Error in deleteQuiz controller:', error);
+      logger.error('Error details:', { 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        quizId: req.params.id 
+      });
       next(error);
     }
-  };
+  }
 
-  deleteQuestion = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get all questions for a quiz
+   */
+  async getQuizQuestions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { questionId } = req.params;
-      const userId = req.user!.userId;
+      const { id } = req.params;
       
-      await this.service.deleteQuestion(questionId, userId);
-      return responseUtils.success(res, null, 'Question deleted');
-    } catch (error: unknown) {
+      const questions = await this.quizService.getQuizQuestions(id);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz questions retrieved successfully',
+        data: questions
+      });
+    } catch (error) {
+      logger.error('Error in getQuizQuestions controller:', error);
       next(error);
     }
-  };
+  }
 
-  addOption = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get question by ID
+   */
+  async getQuizQuestionById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { questionId } = req.params;
-      const userId = req.user!.userId;
+      const { quizId, questionId } = req.params;
       
-      const option = await this.service.addOption(questionId, userId, req.body);
-      return responseUtils.success(res, option, 'Option added', 201);
-    } catch (error: unknown) {
+      const question = await this.quizService.getQuizQuestionById(quizId, questionId);
+      
+      if (!question) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Question not found');
+      }
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Question retrieved successfully',
+        data: question
+      });
+    } catch (error) {
+      logger.error('Error in getQuizQuestionById controller:', error);
       next(error);
     }
-  };
+  }
 
-  getQuizQuestions = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Create new question for quiz
+   */
+  async createQuizQuestion(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { quizId } = req.params;
-      const userId = req.user?.userId;
-      const includeAnswers = req.query.include_answers === 'true';
+      const { id } = req.params;
+      const questionData = req.body;
       
-      const questions = await this.service.getQuizQuestions(quizId, userId, includeAnswers);
-      return responseUtils.success(res, questions, 'Questions retrieved');
-    } catch (error: unknown) {
+      const question = await this.quizService.createQuizQuestion(id, questionData);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.CREATED).json({
+        success: true,
+        message: 'Question created successfully',
+        data: question
+      });
+    } catch (error) {
+      logger.error('Error in createQuizQuestion controller:', error);
       next(error);
     }
-  };
+  }
 
-  // ===================================
-  // QUIZ ATTEMPTS (STUDENT)
-  // ===================================
-
-  startAttempt = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Update question
+   */
+  async updateQuizQuestion(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { quizId } = req.params;
-      const userId = req.user!.userId;
+      const { quizId, questionId } = req.params;
+      const updateData = req.body;
       
-      const attempt = await this.service.startQuizAttempt(quizId, userId);
-      return responseUtils.success(res, attempt, 'Quiz attempt started', 201);
-    } catch (error: unknown) {
+      const question = await this.quizService.updateQuizQuestion(quizId, questionId, updateData);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Question updated successfully',
+        data: question
+      });
+    } catch (error) {
+      logger.error('Error in updateQuizQuestion controller:', error);
       next(error);
     }
-  };
+  }
 
-  submitAttempt = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Delete question
+   */
+  async deleteQuizQuestion(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { quizId, questionId } = req.params;
+      
+      const deleted = await this.quizService.deleteQuizQuestion(quizId, questionId);
+
+      if (!deleted) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND).json({
+          success: false,
+          message: 'Question not found',
+          data: null
+        });
+        return;
+      }
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Question deleted successfully',
+        data: null
+      });
+    } catch (error) {
+      logger.error('Error in deleteQuizQuestion controller:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Start quiz attempt
+   */
+  async startQuizAttempt(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+      
+      if (!userId) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'User not authenticated');
+      }
+
+      const attempt = await this.quizService.startQuizAttempt(id, userId);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.CREATED).json({
+        success: true,
+        message: 'Quiz attempt started successfully',
+        data: attempt
+      });
+    } catch (error) {
+      logger.error('Error in startQuizAttempt controller:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Submit quiz attempt
+   */
+  async submitQuizAttempt(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { attemptId } = req.params;
-      const userId = req.user!.userId;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+      const { answers } = req.body;
       
-      const result = await this.service.submitQuizAnswer(attemptId, userId, req.body);
-      return responseUtils.success(res, result, 'Quiz attempt submitted');
-    } catch (error: unknown) {
+      if (!userId) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'User not authenticated');
+      }
+
+      const result = await this.quizService.submitQuizAttempt(attemptId, userId, answers);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz attempt submitted successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error in submitQuizAttempt controller:', error);
       next(error);
     }
-  };
+  }
 
-  getMyAttempts = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { quizId } = req.params;
-      const userId = req.user!.userId;
-      
-      const attempts = await this.service.getUserAttempts(quizId, userId);
-      return responseUtils.success(res, attempts, 'User attempts retrieved');
-    } catch (error: unknown) {
-      next(error);
-    }
-  };
-
-  getAttemptDetails = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get quiz attempt by ID
+   */
+  async getQuizAttemptById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { attemptId } = req.params;
-      const userId = req.user!.userId;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       
-      const attempt = await this.service.getAttemptDetails(attemptId, userId);
-      return responseUtils.success(res, attempt, 'Attempt details retrieved');
-    } catch (error: unknown) {
+      if (!userId) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'User not authenticated');
+      }
+
+      const attempt = await this.quizService.getQuizAttemptById(attemptId, userId);
+      
+      if (!attempt) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Quiz attempt not found');
+      }
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz attempt retrieved successfully',
+        data: attempt
+      });
+    } catch (error) {
+      logger.error('Error in getQuizAttemptById controller:', error);
       next(error);
     }
-  };
+  }
 
-  // ===================================
-  // INSTRUCTOR FEATURES
-  // ===================================
-
-  getQuizStatistics = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get user's quiz attempts
+   */
+  async getUserQuizAttempts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { quizId } = req.params;
-      const userId = req.user!.userId;
+      const { id } = req.params;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       
-      const stats = await this.service.getQuizStatistics(quizId, userId);
-      return responseUtils.success(res, stats, 'Quiz statistics retrieved');
-    } catch (error: unknown) {
-      next(error);
-    }
-  };
+      if (!userId) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'User not authenticated');
+      }
 
-  getQuizAttempts = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { quizId } = req.params;
-      const userId = req.user!.userId;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-      
-      const attempts = await this.service.getQuizAttempts(quizId, userId, page, limit);
-      return responseUtils.success(res, attempts, 'Quiz attempts retrieved');
-    } catch (error: unknown) {
+      const attempts = await this.quizService.getUserQuizAttempts(id, userId);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz attempts retrieved successfully',
+        data: attempts
+      });
+    } catch (error) {
+      logger.error('Error in getUserQuizAttempts controller:', error);
       next(error);
     }
-  };
+  }
 }
-
-
-
-
-

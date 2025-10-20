@@ -5,13 +5,8 @@ import logger from '../utils/logger.util';
 
 export class UserRepository extends BaseRepository<UserInstance> {
   constructor() {
-    super('User');
+    super(User);
   }
-
-  /**
-   * Get the User model
-   */
-  protected getModel() { return User as any; }
 
   /**
    * Find user by username (for LMS login)

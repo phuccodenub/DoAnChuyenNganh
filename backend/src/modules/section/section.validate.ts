@@ -1,37 +1,36 @@
 import { z } from 'zod';
 
-export const assignmentSchemas = {
-  // Assignment query schema
-  assignmentQuery: z.object({
+export const sectionSchemas = {
+  // Section query schema
+  sectionQuery: z.object({
     page: z.string().optional().transform(val => val ? parseInt(val) : 1),
     limit: z.string().optional().transform(val => val ? parseInt(val) : 20),
     course_id: z.string().optional(),
-    lesson_id: z.string().optional(),
     status: z.enum(['draft', 'published', 'archived']).optional()
   }),
 
-  // Assignment ID parameter schema
-  assignmentId: z.object({
-    id: z.string().min(1, 'Assignment ID is required')
+  // Section ID parameter schema
+  sectionId: z.object({
+    id: z.string().min(1, 'Section ID is required')
   }),
 
-  // Create assignment schema
-  createAssignment: z.object({
+  // Create section schema
+  createSection: z.object({
     title: z.string().min(1, 'Title is required').max(255, 'Title too long'),
     description: z.string().optional(),
     course_id: z.string().min(1, 'Course ID is required'),
-    due_date: z.string().datetime().optional(),
-    max_points: z.number().int().min(0).optional(),
-    allow_late_submission: z.boolean().default(false)
+    order_index: z.number().int().min(0).optional(),
+    status: z.enum(['draft', 'published', 'archived']).default('draft'),
+    is_free: z.boolean().default(false)
   }),
 
-  // Update assignment schema
-  updateAssignment: z.object({
+  // Update section schema
+  updateSection: z.object({
     title: z.string().min(1, 'Title is required').max(255, 'Title too long').optional(),
     description: z.string().optional(),
     course_id: z.string().min(1, 'Course ID is required').optional(),
-    due_date: z.string().datetime().optional(),
-    max_points: z.number().int().min(0).optional(),
-    allow_late_submission: z.boolean().optional()
+    order_index: z.number().int().min(0).optional(),
+    status: z.enum(['draft', 'published', 'archived']).optional(),
+    is_free: z.boolean().optional()
   })
 };

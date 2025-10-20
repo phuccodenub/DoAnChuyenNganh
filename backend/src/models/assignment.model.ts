@@ -9,11 +9,9 @@ class Assignment extends Model {
   declare course_id: string;
   declare title: string;
   declare description: string | null;
-  declare max_score: number;
+  declare max_points: number;
   declare due_date: Date | null;
   declare allow_late_submission: boolean;
-  declare submission_type: 'file' | 'text' | 'both';
-  declare is_published: boolean;
   declare created_at: Date | null;
   declare updated_at: Date | null;
 }
@@ -38,25 +36,16 @@ class Assignment extends Model {
       type: DataTypes.TEXT,
       allowNull: true
     },
-    max_score: {
-      type: DataTypes.DECIMAL(5, 2),
+    max_points: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 100.0
+      defaultValue: 100
     },
     due_date: {
       type: DataTypes.DATE,
       allowNull: true
     },
     allow_late_submission: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false
-    },
-    submission_type: {
-      type: DataTypes.ENUM('file', 'text', 'both'),
-      allowNull: false
-    },
-    is_published: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false

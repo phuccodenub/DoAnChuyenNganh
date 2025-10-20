@@ -34,7 +34,9 @@
     "setup-db": "ts-node -r tsconfig-paths/register src/scripts/setup-db.ts",
     "setup-db-simple": "ts-node -r tsconfig-paths/register src/scripts/setup-db-simple.ts",
     "reset-db-simple": "ts-node -r tsconfig-paths/register src/scripts/reset-db-simple.ts",
-    "migrate": "ts-node -r tsconfig-paths/register src/scripts/migrate.ts"
+    "migrate": "ts-node -r tsconfig-paths/register src/scripts/migrate.ts",
+    "seed": "ts-node -r tsconfig-paths/register src/scripts/seed-db.ts",
+    "check-courses": "ts-node -r tsconfig-paths/register src/scripts/check-courses.ts"
   },
   "keywords": [],
   "author": "",

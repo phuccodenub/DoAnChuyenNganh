@@ -50,14 +50,16 @@ export const setupAssociations = () => {
   // ===================================
   
   // Category 1 ---< Course
-  CAT.hasMany(C, {
-    foreignKey: 'category_id',
-    as: 'courses'
-  });
-  C.belongsTo(CAT, {
-    foreignKey: 'category_id',
-    as: 'categoryData'
-  });
+  // NOTE: Disabled temporarily - Course model uses 'category' string field, not category_id FK
+  // TODO: Create migration to add category_id UUID field to courses table if needed
+  // CAT.hasMany(C, {
+  //   foreignKey: 'category_id',
+  //   as: 'courses'
+  // });
+  // C.belongsTo(CAT, {
+  //   foreignKey: 'category_id',
+  //   as: 'categoryData'
+  // });
 
   // Category (self-referencing) - Parent/Child hierarchy
   CAT.hasMany(CAT, {

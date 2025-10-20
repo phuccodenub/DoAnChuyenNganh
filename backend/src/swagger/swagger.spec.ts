@@ -1,11 +1,29 @@
 import { userSchemas } from './schemas/user.schema';
 import { authSchemas } from './schemas/auth.schema';
+import { courseSchemas } from './schemas/course.schema';
+import { enrollmentSchemas } from './schemas/enrollment.schema';
+import { lessonSchemas } from './schemas/lesson.schema';
+import { sectionSchemas } from './schemas/section.schema';
+import { assignmentSchemas } from './schemas/assignment.schema';
+import { quizSchemas } from './schemas/quiz.schema';
+import { gradeSchemas } from './schemas/grade.schema';
+import { liveSessionSchemas } from './schemas/live-session.schema';
+import { notificationSchemas } from './schemas/notification.schema';
+import { chatSchemas } from './schemas/chat.schema';
+
 import { authPaths } from './paths/auth.paths';
 import { userPaths } from './paths/user.paths';
 import { coursePaths } from './paths/course.paths';
 import { enrollmentPaths } from './paths/enrollment.paths';
-import { courseSchemas } from './schemas/course.schema';
-import { enrollmentSchemas } from './schemas/enrollment.schema';
+import { lessonPaths } from './paths/lesson.paths';
+import { sectionPaths } from './paths/section.paths';
+import { assignmentPaths } from './paths/assignment.paths';
+import { quizPaths } from './paths/quiz.paths';
+import { gradePaths } from './paths/grade.paths';
+import { liveSessionPaths } from './paths/live-session.paths';
+import { notificationPaths } from './paths/notification.paths';
+import { chatPaths } from './paths/chat.paths';
+
 import env from '../config/env.config';
 
 export const swaggerSpec = {
@@ -62,7 +80,15 @@ export const swaggerSpec = {
       ...userSchemas,
       ...authSchemas,
       ...courseSchemas,
-      ...enrollmentSchemas
+      ...enrollmentSchemas,
+      ...lessonSchemas,
+      ...sectionSchemas,
+      ...assignmentSchemas,
+      ...quizSchemas,
+      ...gradeSchemas,
+      ...liveSessionSchemas,
+      ...notificationSchemas,
+      ...chatSchemas
     }
   },
   security: [
@@ -88,10 +114,41 @@ export const swaggerSpec = {
       description: 'Enrollment management endpoints'
     },
     {
+      name: 'Lessons',
+      description: 'Lesson management endpoints'
+    },
+    {
+      name: 'Sections',
+      description: 'Course section management endpoints'
+    },
+    {
+      name: 'Assignments',
+      description: 'Assignment management endpoints'
+    },
+    {
+      name: 'Quizzes',
+      description: 'Quiz management endpoints'
+    },
+    {
+      name: 'Grades',
+      description: 'Grade management endpoints'
+    },
+    {
+      name: 'Live Sessions',
+      description: 'Live session management endpoints'
+    },
+    {
+      name: 'Notifications',
+      description: 'Notification management endpoints'
+    },
+    {
+      name: 'Chat',
+      description: 'Course chat endpoints'
+    },
+    {
       name: 'Health',
       description: 'Health check endpoints'
-    }
-    ,
+    },
     {
       name: 'Metrics',
       description: 'Metrics and Prometheus endpoints'
@@ -102,6 +159,14 @@ export const swaggerSpec = {
     ...userPaths,
     ...coursePaths,
     ...enrollmentPaths,
+    ...lessonPaths,
+    ...sectionPaths,
+    ...assignmentPaths,
+    ...quizPaths,
+    ...gradePaths,
+    ...liveSessionPaths,
+    ...notificationPaths,
+    ...chatPaths,
     '/ping': {
       get: {
         summary: 'Ping',
