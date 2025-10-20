@@ -33,11 +33,22 @@ jobs:
       - name: Build (hard-fail)
         run: npm run build
 
+      - name: Prepare SQLite DB (migrate + seed)
+        env:
+          NODE_ENV: test
+          DB_DIALECT: sqlite
+          DB_STORAGE: ./tmp/test.sqlite
+          JWT_SECRET: test-secret-key-for-ci
+          JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
+        run: |
+          mkdir -p ./tmp
+          npm run reset-db-simple
+
       - name: Run e2e tests with SQLite (hard-fail)
         env:
           NODE_ENV: test
           DB_DIALECT: sqlite
-          DB_STORAGE: ':memory:'
+          DB_STORAGE: ./tmp/test.sqlite
           JWT_SECRET: test-secret-key-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
         run: npm run test:e2e
