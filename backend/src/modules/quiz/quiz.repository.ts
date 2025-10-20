@@ -256,12 +256,12 @@ export class QuizRepository extends BaseRepository<Quiz> {
 
       // Calculate max_score (total points from all questions)
       const questions = await this.getQuizQuestions(attempt.quiz_id);
-      const maxScore = questions.reduce((total, q) => total + parseFloat(q.points || 0), 0);
+      const maxScore = questions.reduce((total: number, q: any) => total + parseFloat(q.points || 0), 0);
       
       // Calculate actual score based on correct answers
       let earnedScore = 0;
       for (const [questionId, answerValue] of Object.entries(answers)) {
-        const question = questions.find(q => q.id === questionId);
+        const question = questions.find((q: any) => q.id === questionId);
         if (question) {
           // For now, give full points for any answer (simplified scoring)
           earnedScore += parseFloat(question.points || 0);
@@ -371,7 +371,7 @@ export class QuizRepository extends BaseRepository<Quiz> {
       
       // Calculate max_score (total points from all questions)
       const questions = await this.getQuizQuestions(attempt.quiz_id);
-      const maxScore = questions.reduce((total, q) => total + parseFloat(q.points || 0), 0);
+      const maxScore = questions.reduce((total: number, q: any) => total + parseFloat(q.points || 0), 0);
       
       // Determine if passed (score is on 10-point scale, convert passing_score from percentage)
       const passingScoreOn10Scale = quiz.passing_score ? (quiz.passing_score / 100) * 10 : null;

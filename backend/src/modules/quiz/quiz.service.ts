@@ -44,7 +44,7 @@ export class QuizService {
       
       if (!quiz) {
         logger.error('Quiz not found', { quizId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Quiz not found');
+        throw new ApiError('Quiz not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Quiz retrieved successfully', { quizId });
@@ -83,7 +83,7 @@ export class QuizService {
       
       if (!quiz) {
         logger.error('Quiz not found for update', { quizId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Quiz not found');
+        throw new ApiError('Quiz not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Quiz updated successfully', { quizId });
@@ -144,7 +144,7 @@ export class QuizService {
       
       if (!question) {
         logger.error('Question not found', { quizId, questionId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Question not found');
+        throw new ApiError('Question not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Question retrieved successfully', { quizId, questionId });
@@ -183,7 +183,7 @@ export class QuizService {
       
       if (!question) {
         logger.error('Question not found for update', { quizId, questionId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Question not found');
+        throw new ApiError('Question not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Question updated successfully', { quizId, questionId });
@@ -261,7 +261,7 @@ export class QuizService {
       
       if (!attempt) {
         logger.error('Quiz attempt not found', { attemptId, userId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Quiz attempt not found');
+        throw new ApiError('Quiz attempt not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Quiz attempt retrieved successfully', { attemptId, userId });

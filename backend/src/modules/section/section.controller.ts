@@ -46,7 +46,7 @@ export class SectionController {
       const section = await this.sectionService.getSectionById(id);
       
       if (!section) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Section not found');
+        throw new ApiError('Section not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({

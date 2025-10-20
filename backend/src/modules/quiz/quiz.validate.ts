@@ -20,6 +20,11 @@ export const quizSchemas = {
     attemptId: z.string().min(1, 'Attempt ID is required')
   }),
 
+  // Quiz question parameters schema
+  quizQuestionParams: z.object({
+    id: z.string().min(1, 'Quiz ID is required')
+  }),
+
   // Submit quiz attempt schema
   submitQuizAttempt: z.object({
     answers: z.record(z.string(), z.union([

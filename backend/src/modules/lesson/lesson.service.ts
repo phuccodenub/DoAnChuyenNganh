@@ -44,7 +44,7 @@ export class LessonService {
       
       if (!lesson) {
         logger.error('Lesson not found', { lessonId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Lesson not found');
+        throw new ApiError('Lesson not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Lesson retrieved successfully', { lessonId });
@@ -83,7 +83,7 @@ export class LessonService {
       
       if (!lesson) {
         logger.error('Lesson not found for update', { lessonId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Lesson not found');
+        throw new ApiError('Lesson not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Lesson updated successfully', { lessonId });
@@ -105,7 +105,7 @@ export class LessonService {
       
       if (!deleted) {
         logger.error('Lesson not found for deletion', { lessonId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Lesson not found');
+        throw new ApiError('Lesson not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Lesson deleted successfully', { lessonId });

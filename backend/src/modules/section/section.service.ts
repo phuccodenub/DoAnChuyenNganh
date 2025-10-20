@@ -43,7 +43,7 @@ export class SectionService {
       
       if (!section) {
         logger.error('Section not found', { sectionId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Section not found');
+        throw new ApiError('Section not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Section retrieved successfully', { sectionId });
@@ -82,7 +82,7 @@ export class SectionService {
       
       if (!section) {
         logger.error('Section not found for update', { sectionId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Section not found');
+        throw new ApiError('Section not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Section updated successfully', { sectionId });
@@ -104,7 +104,7 @@ export class SectionService {
       
       if (!deleted) {
         logger.error('Section not found for deletion', { sectionId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Section not found');
+        throw new ApiError('Section not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Section deleted successfully', { sectionId });

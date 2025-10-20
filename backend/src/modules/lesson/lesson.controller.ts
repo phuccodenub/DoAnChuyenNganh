@@ -47,7 +47,7 @@ export class LessonController {
       const lesson = await this.lessonService.getLessonById(id);
       
       if (!lesson) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Lesson not found');
+        throw new ApiError('Lesson not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({

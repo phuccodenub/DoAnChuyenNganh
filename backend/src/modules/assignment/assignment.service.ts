@@ -44,7 +44,7 @@ export class AssignmentService {
       
       if (!assignment) {
         logger.error('Assignment not found', { assignmentId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Assignment not found');
+        throw new ApiError('Assignment not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Assignment retrieved successfully', { assignmentId });
@@ -83,7 +83,7 @@ export class AssignmentService {
       
       if (!assignment) {
         logger.error('Assignment not found for update', { assignmentId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Assignment not found');
+        throw new ApiError('Assignment not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Assignment updated successfully', { assignmentId });
@@ -105,7 +105,7 @@ export class AssignmentService {
       
       if (!deleted) {
         logger.error('Assignment not found for deletion', { assignmentId });
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Assignment not found');
+        throw new ApiError('Assignment not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       logger.info('Assignment deleted successfully', { assignmentId });

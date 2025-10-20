@@ -47,7 +47,7 @@ export class QuizController {
       const quiz = await this.quizService.getQuizById(id);
       
       if (!quiz) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Quiz not found');
+        throw new ApiError('Quiz not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
@@ -167,7 +167,7 @@ export class QuizController {
       const question = await this.quizService.getQuizQuestionById(quizId, questionId);
       
       if (!question) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Question not found');
+        throw new ApiError('Question not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
@@ -261,7 +261,7 @@ export class QuizController {
       const userId = (req as any).user?.userId || (req as any).user?.id;
       
       if (!userId) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'User not authenticated');
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
       }
 
       const attempt = await this.quizService.startQuizAttempt(id, userId);
@@ -287,7 +287,7 @@ export class QuizController {
       const { answers } = req.body;
       
       if (!userId) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'User not authenticated');
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
       }
 
       const result = await this.quizService.submitQuizAttempt(attemptId, userId, answers);
@@ -312,13 +312,13 @@ export class QuizController {
       const userId = (req as any).user?.userId || (req as any).user?.id;
       
       if (!userId) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'User not authenticated');
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
       }
 
       const attempt = await this.quizService.getQuizAttemptById(attemptId, userId);
       
       if (!attempt) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Quiz attempt not found');
+        throw new ApiError('Quiz attempt not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
@@ -341,7 +341,7 @@ export class QuizController {
       const userId = (req as any).user?.userId || (req as any).user?.id;
       
       if (!userId) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'User not authenticated');
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
       }
 
       const attempts = await this.quizService.getUserQuizAttempts(id, userId);

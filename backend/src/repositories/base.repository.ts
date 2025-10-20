@@ -187,8 +187,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Checking if ${this.modelName} exists`, { id });
       
-      const model = this.getModelInstance();
-      const count = await model.count({ where: { id: id as any } as any });
+      const count = await this.model.count({ where: { id: id as any } as any });
       
       const exists = (count as any as number) > 0;
       logger.debug(`${this.modelName} exists check`, { id, exists });
@@ -206,8 +205,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
-      const model = this.getModelInstance();
-      const instances = await model.findAll({
+      const instances = await this.model.findAll({
         where: { [field]: value },
         ...options
       });
@@ -227,8 +225,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
-      const model = this.getModelInstance();
-      const instance = await model.findOne({
+      const instance = await this.model.findOne({
         where: { [field]: value },
         ...options
       });
@@ -253,8 +250,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Bulk creating ${this.modelName}`, { count: data.length });
       
-      const model = this.getModelInstance();
-      const instances = await model.bulkCreate(data, options);
+      const instances = await this.model.bulkCreate(data, options);
       
       logger.debug(`${this.modelName} bulk created`, { count: instances.length });
       return instances;
@@ -271,8 +267,7 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Bulk updating ${this.modelName}`, { count: data.length });
       
-      const model = this.getModelInstance();
-      await model.bulkCreate(data, { updateOnDuplicate: Object.keys(data[0] || {}), ...options });
+      await this.model.bulkCreate(data, { updateOnDuplicate: Object.keys(data[0] || {}), ...options });
       
       logger.debug(`${this.modelName} bulk updated`, { count: data.length });
     } catch (error: unknown) {

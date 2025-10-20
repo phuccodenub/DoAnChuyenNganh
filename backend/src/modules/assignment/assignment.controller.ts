@@ -47,7 +47,7 @@ export class AssignmentController {
       const assignment = await this.assignmentService.getAssignmentById(id);
       
       if (!assignment) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Assignment not found');
+        throw new ApiError('Assignment not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
