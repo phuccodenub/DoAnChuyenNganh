@@ -24,6 +24,11 @@ describe('Course Registration E2E', () => {
     const { setupExtendedAssociations } = await import('../../models/associations-extended');
     setupExtendedAssociations();
     
+    // Run migrations first to create enum types
+    const { MigrationManager } = await import('../../migrations');
+    const migrationManager = new MigrationManager(sequelize);
+    await migrationManager.migrate();
+    
     await sequelize.sync({ force: true });
     
     // Create test user and get auth token

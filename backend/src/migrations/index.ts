@@ -7,6 +7,7 @@ import { Sequelize, QueryInterface } from 'sequelize';
 import logger from '../utils/logger.util';
 
 // Import migration files
+import { createEnumTypes, dropEnumTypes } from './000-create-enum-types';
 import { createUsersTable } from './001-create-users-table';
 import { createCoursesTable } from './002-create-courses-table';
 import { createEnrollmentsTable } from './003-create-enrollments-table';
@@ -33,6 +34,12 @@ export interface Migration {
 
 // Migration registry
 export const migrations: Migration[] = [
+  {
+    version: '000',
+    description: 'Create PostgreSQL enum types',
+    up: createEnumTypes,
+    down: dropEnumTypes
+  },
   {
     version: '001',
     description: 'Create users table',
