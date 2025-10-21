@@ -32,7 +32,7 @@ async function checkTableSchema(tableName: string): Promise<void> {
   const sequelize = getSequelize();
 
   try {
-    const columns = await sequelize.query<ColumnInfo>(
+    const columns = await sequelize.query(
       `
       SELECT 
         column_name,
@@ -96,8 +96,8 @@ async function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
-  main();
+if (process.argv[1] === __filename) {
+  main().catch(console.error);
 }
 
 export { checkTableSchema };

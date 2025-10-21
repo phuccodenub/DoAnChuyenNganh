@@ -99,7 +99,7 @@ export class FilesController {
       res.setHeader('Content-Length', fileInfo.size);
 
       // Send file
-      res.sendFile(fileInfo.path, (err) => {
+      res.sendFile(fileInfo.path, (err: Error | null) => {
         if (err) {
           logger.error('Error sending file:', err);
           if (!res.headersSent) {
@@ -134,7 +134,7 @@ export class FilesController {
       res.setHeader('Content-Length', fileInfo.size);
 
       // Send file
-      res.sendFile(fileInfo.path, (err) => {
+      res.sendFile(fileInfo.path, (err: Error | null) => {
         if (err) {
           logger.error('Error sending file:', err);
           if (!res.headersSent) {

@@ -23,7 +23,7 @@ export * from './model.types';
 // ===================================
 // SEQUELIZE ENHANCED TYPES
 // ===================================
-export {
+export type {
   // Base interfaces
   BaseModelAttributes,
   EnhancedModel,
