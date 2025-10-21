@@ -13,6 +13,21 @@ jobs:
       run:
         working-directory: backend
     
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: lms_db
+          POSTGRES_USER: lms_user
+          POSTGRES_PASSWORD: 123456
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,28 +42,37 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install PostgreSQL client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: Type check (hard-fail)
         run: npm run lint
 
       - name: Build (hard-fail)
         run: npm run build
 
-      - name: Prepare SQLite DB (migrate + seed)
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 5432 -U lms_user; do
+            echo "Waiting for PostgreSQL to be ready..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+
+      - name: Prepare PostgreSQL DB (migrate + seed)
         env:
           NODE_ENV: test
-          DB_DIALECT: sqlite
-          DB_STORAGE: ./tmp/test.sqlite
+          DATABASE_URL: postgresql://lms_user:123456@localhost:5432/lms_db
           JWT_SECRET: test-secret-key-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
-        run: |
-          mkdir -p ./tmp
-          npm run reset-db-simple
+        run: npm run reset-db-simple
 
-      - name: Run e2e tests with SQLite (hard-fail)
+      - name: Run e2e tests with PostgreSQL (hard-fail)
         env:
           NODE_ENV: test
-          DB_DIALECT: sqlite
-          DB_STORAGE: ./tmp/test.sqlite
+          DATABASE_URL: postgresql://lms_user:123456@localhost:5432/lms_db
           JWT_SECRET: test-secret-key-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
         run: npm run test:e2e
