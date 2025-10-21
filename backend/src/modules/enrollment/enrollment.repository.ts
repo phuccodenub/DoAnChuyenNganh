@@ -9,13 +9,8 @@ import Enrollment from '../../models/enrollment.model';
 
 export class EnrollmentRepository extends BaseRepository {
   constructor() {
-    super('Enrollment');
+    super(Enrollment);
   }
-
-  /**
-   * Get the Enrollment model instance
-   */
-  protected getModel(): any { return Enrollment as any; }
 
   // ===== ENROLLMENT MANAGEMENT METHODS =====
 

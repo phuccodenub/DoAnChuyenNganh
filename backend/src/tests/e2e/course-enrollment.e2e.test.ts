@@ -17,6 +17,14 @@ describe('Course Enrollment E2E', () => {
   beforeAll(async () => {
     // Setup test database
     const sequelize = getSequelize();
+    
+    // Setup model associations before sync
+    const { setupAssociations } = await import('../../models/associations');
+    setupAssociations();
+    
+    const { setupExtendedAssociations } = await import('../../models/associations-extended');
+    setupExtendedAssociations();
+    
     await sequelize.sync({ force: true });
     
     // Create test user and get auth token

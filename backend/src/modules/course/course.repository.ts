@@ -3,19 +3,11 @@ import { BaseRepository } from '@repositories/base.repository';
 import { CourseTypes } from './course.types';
 import logger from '@utils/logger.util';
 import { Op } from 'sequelize';
-declare const require: any;
+import Course from '../../models/course.model';
 
 export class CourseRepository extends BaseRepository {
   constructor() {
-    super('Course');
-  }
-
-  /**
-   * Get the Course model instance
-   */
-  protected getModel(): any {
-    const { Course } = require('../../models');
-    return Course as any;
+    super(Course);
   }
 
   // ===== COURSE MANAGEMENT METHODS =====

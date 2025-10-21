@@ -16,6 +16,14 @@ describe('Course Registration E2E', () => {
   beforeAll(async () => {
     // Setup test database
     const sequelize = getSequelize();
+    
+    // Setup model associations before sync
+    const { setupAssociations } = await import('../../models/associations');
+    setupAssociations();
+    
+    const { setupExtendedAssociations } = await import('../../models/associations-extended');
+    setupExtendedAssociations();
+    
     await sequelize.sync({ force: true });
     
     // Create test user and get auth token
@@ -137,7 +145,7 @@ describe('Course Registration E2E', () => {
 
     it('should return 404 for non-existent course', async () => {
       const response = await request(app)
-        .get('/api/v1/courses/999999')
+        .get('/api/v1/courses/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(404);
@@ -185,7 +193,7 @@ describe('Course Registration E2E', () => {
 
     it('should return 404 when deleting non-existent course', async () => {
       const response = await request(app)
-        .delete('/api/v1/courses/999999')
+        .delete('/api/v1/courses/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(404);
