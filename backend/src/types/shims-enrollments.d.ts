@@ -56,9 +56,8 @@ declare module '../config/db' {
 declare module '../../repositories/base.repository' {
   export class BaseRepository<T = any> {
     protected modelName: string;
-    constructor(modelName: string);
-    protected getModel(): any;
-    protected getModelInstance(): any;
+    protected model: any;
+    constructor(model: any);
     create(data: any, options?: any): Promise<T>;
     findById(id: string | number, options?: any): Promise<T | null>;
     findOne(options: any): Promise<T | null>;
@@ -75,9 +74,8 @@ declare module '../../repositories/base.repository' {
 declare module '@repositories/base.repository' {
   export class BaseRepository<T = any> {
     protected modelName: string;
-    constructor(modelName: string);
-    protected getModel(): any;
-    protected getModelInstance(): any;
+    protected model: any;
+    constructor(model: any);
     create(data: any, options?: any): Promise<T>;
     findById(id: string | number, options?: any): Promise<T | null>;
     findOne(options: any): Promise<T | null>;

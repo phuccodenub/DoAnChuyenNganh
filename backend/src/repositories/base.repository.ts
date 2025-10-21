@@ -1,4 +1,4 @@
-import { Model, ModelCtor, FindOptions, CreateOptions, UpdateOptions, DestroyOptions } from 'sequelize';
+import { Model, FindOptions, CreateOptions, UpdateOptions, DestroyOptions } from 'sequelize';
 import logger from '../utils/logger.util';
 
 /**
@@ -7,7 +7,7 @@ import logger from '../utils/logger.util';
  */
 export abstract class BaseRepository<T = any> {
   protected modelName: string;
-  protected model: any | null = null;
+  protected model: any;
 
   constructor(model: any) {
     this.model = model;

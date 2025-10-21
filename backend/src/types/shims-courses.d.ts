@@ -2,9 +2,9 @@
 
 declare module '../../repositories/base.repository' {
   export class BaseRepository<T = any> {
-    constructor(modelName?: string);
-    protected getModel(): any;
-    protected getModelInstance(): any;
+    protected modelName: string;
+    protected model: any;
+    constructor(model: any);
     findById(id: string | number, options?: any): Promise<T | null>;
     findOne(options: any): Promise<T | null>;
     findAll(options?: any): Promise<T[]>;
@@ -18,9 +18,9 @@ declare module '../../repositories/base.repository' {
 
 declare module '@repositories/base.repository' {
   export class BaseRepository<T = any> {
-    constructor(modelName?: string);
-    protected getModel(): any;
-    protected getModelInstance(): any;
+    protected modelName: string;
+    protected model: any;
+    constructor(model: any);
     findById(id: string | number, options?: any): Promise<T | null>;
     findOne(options: any): Promise<T | null>;
     findAll(options?: any): Promise<T[]>;
