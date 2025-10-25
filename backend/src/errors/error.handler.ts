@@ -18,6 +18,7 @@ import { ErrorUtils } from './error.utils';
 import { responseUtils } from '../utils/response.util';
 import logger from '../utils/logger.util';
 
+import { objectUtils } from '../utils/object.util';
 export class ErrorHandler {
   /**
    * Global error handler middleware
@@ -35,8 +36,8 @@ export class ErrorHandler {
         method: req.method,
         ip: req.ip,
         userAgent: req.get('User-Agent'),
-        userId: (req as any).user?.id,
-        requestId: (req as any).requestId
+        userId: objectUtils.get(req, 'user.id'),
+        requestId: objectUtils.get(req, 'requestId')
       });
 
       // Log error if necessary
@@ -46,8 +47,8 @@ export class ErrorHandler {
           method: req.method,
           ip: req.ip,
           userAgent: req.get('User-Agent'),
-          userId: (req as any).user?.id,
-          requestId: (req as any).requestId
+          userId: objectUtils.get(req, 'user.id'),
+          requestId: objectUtils.get(req, 'requestId')
         }));
       }
 
@@ -56,7 +57,7 @@ export class ErrorHandler {
     } catch (handlerError) {
       // Fallback error handling
       logger.error('Error handler failed:', {
-        originalError: (error as Error).message,
+        originalError: error.message,
         handlerError: handlerError instanceof Error ? handlerError.message : 'Unknown error'
       });
 
@@ -78,8 +79,8 @@ export class ErrorHandler {
       method: req.method,
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      userId: (req as any).user?.id,
-      requestId: (req as any).requestId
+      userId: objectUtils.get(req, 'user.id'),
+      requestId: objectUtils.get(req, 'requestId')
     });
 
     logger.warn('Validation error:', ErrorUtils.formatForLogging(validationError));
@@ -91,7 +92,7 @@ export class ErrorHandler {
    * Handle Sequelize errors
    */
   static handleSequelizeError(
-    error: any,
+    error: unknown,
     req: Request,
     res: Response,
     next: NextFunction
@@ -101,8 +102,8 @@ export class ErrorHandler {
       method: req.method,
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      userId: (req as any).user?.id,
-      requestId: (req as any).requestId
+      userId: objectUtils.get(req, 'user.id'),
+      requestId: objectUtils.get(req, 'requestId')
     });
 
     logger.error('Database error:', ErrorUtils.formatForLogging(databaseError));
@@ -144,20 +145,20 @@ export class ErrorHandler {
     if (error instanceof ValidationError) {
       responseUtils.sendValidationError(res, (error as Error).message, error.validationErrors || []);
     } else if (error instanceof AuthenticationError) {
-      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), (error as any).statusCode);
+      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
     } else if (error instanceof AuthorizationError) {
-      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), (error as any).statusCode);
+      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
     } else if (error instanceof DatabaseError) {
       const message = isDevelopment ? (error as Error).message : 'Database error occurred';
-      responseUtils.sendError(res, message, (error as any).statusCode);
+      responseUtils.sendError(res, message, error.statusCode);
     } else if (error instanceof FileError) {
-      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), (error as any).statusCode);
+      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
     } else if (error instanceof ExternalServiceError) {
       const message = isDevelopment ? (error as Error).message : 'External service error occurred';
-      responseUtils.sendError(res, message, (error as any).statusCode);
+      responseUtils.sendError(res, message, error.statusCode);
     } else {
       // Generic API error
-      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), (error as any).statusCode);
+      responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
     }
   }
 
@@ -190,7 +191,7 @@ export class ErrorHandler {
   /**
    * Error boundary for unhandled promise rejections
    */
-  static handleUnhandledRejection(reason: any, promise: Promise<any>): void {
+  static handleUnhandledRejection(reason: unknown, promise: Promise<unknown>): void {
     const error = reason instanceof Error ? reason : new Error(String(reason));
     const baseError = ErrorFactory.fromUnknownError(error, {
       type: 'unhandled_rejection',

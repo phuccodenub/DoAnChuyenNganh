@@ -1,5 +1,6 @@
 import { jwtConfig } from '../config/jwt.config';
 import { jwtUtils } from './jwt.util';
+import type { TokenUserInput } from './jwt.util';
 import { secureUtils } from './secure.util';
 import { dateUtils } from './date.util';
 import logger from './logger.util';
@@ -366,7 +367,7 @@ export const tokenUtils = {
      * @param user - User object with id, email, role, token_version
      * @returns Object with accessToken and refreshToken
      */
-    generateTokenPair(user: any): { accessToken: string; refreshToken: string } {
+    generateTokenPair(user: TokenUserInput): { accessToken: string; refreshToken: string } {
       try {
         const accessToken = this.generateAccessToken(user.id, user.email, user.role);
         const refreshToken = this.generateRefreshToken(user.id, user.token_version);
@@ -424,7 +425,7 @@ export const tokenUtils = {
      */
     isTokenExpired(token: string): boolean {
       try {
-        const decoded = jwtUtils.decodeToken(token) as any;
+        const decoded = jwtUtils.decodeToken(token) as { exp?: number } | null;
         if (!decoded || !decoded.exp) return true;
         
         const currentTime = Math.floor(dateUtils.timestamp() / 1000);
@@ -442,7 +443,7 @@ export const tokenUtils = {
      */
     getTokenExpiration(token: string): Date | null {
       try {
-        const decoded = jwtUtils.decodeToken(token) as any;
+        const decoded = jwtUtils.decodeToken(token) as { exp?: number } | null;
         if (!decoded || !decoded.exp) return null;
         
         return new Date(decoded.exp * 1000);

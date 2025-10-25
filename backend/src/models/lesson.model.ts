@@ -1,6 +1,7 @@
 import { DataTypes, Model } from 'sequelize';
 import { getSequelize } from '../config/db';
 import { LessonAttributes, LessonCreationAttributes, LessonInstance } from '../types/model.types';
+import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -115,60 +116,60 @@ const Lesson = sequelize.define('Lesson', {
   ]
 });
 
-// Instance Methods
-;(Lesson as any).prototype.getMaterialCount = async function(): Promise<number> {
-  return await sequelize.models.LessonMaterial.count({
-    where: { lesson_id: this.id }
-  });
-};
+// Instance & Static Methods (type-safe helpers)
+addInstanceMethods(Lesson, {
+ async getMaterialCount(this: any): Promise<number> {
+   return await sequelize.models.LessonMaterial.count({
+     where: { lesson_id: this.id }
+   });
+ },
+ async getCompletionRate(this: any): Promise<number> {
+   const total = await sequelize.models.LessonProgress.count({
+     where: { lesson_id: this.id }
+   });
+   const completed = await sequelize.models.LessonProgress.count({
+     where: { lesson_id: this.id, completed: true }
+   });
+   return total > 0 ? (completed / total) * 100 : 0;
+ }
+});
 
-;(Lesson as any).prototype.getCompletionRate = async function(): Promise<number> {
-  const total = await sequelize.models.LessonProgress.count({
-    where: { lesson_id: this.id }
-  });
-  const completed = await sequelize.models.LessonProgress.count({
-    where: { lesson_id: this.id, completed: true }
-  });
-  return total > 0 ? (completed / total) * 100 : 0;
-};
+addStaticMethods(Lesson, {
+ async findBySection(this: typeof Lesson, sectionId: string, includeUnpublished: boolean = false) {
+   const where: any = { section_id: sectionId };
+   if (!includeUnpublished) {
+     where.is_published = true;
+   }
+   return await (this as any).findAll({
+     where,
+     order: [['order_index', 'ASC']],
+     include: [
+       {
+         model: sequelize.models.LessonMaterial,
+         as: 'materials'
+       }
+     ]
+   });
+ },
+ async reorderLessons(this: typeof Lesson, sectionId: string, lessonOrders: { id: string; order_index: number }[]) {
+   const transaction = await sequelize.transaction();
+   try {
+     for (const { id, order_index } of lessonOrders) {
+       await (this as any).update(
+         { order_index },
+         { where: { id, section_id: sectionId }, transaction }
+       );
+     }
+     await transaction.commit();
+     return true;
+   } catch (error: unknown) {
+     await transaction.rollback();
+     throw error;
+   }
+ }
+});
 
-// Class Methods
-;(Lesson as any).findBySection = async function(sectionId: string, includeUnpublished: boolean = false) {
-  const where: any = { section_id: sectionId };
-  if (!includeUnpublished) {
-    where.is_published = true;
-  }
-  
-  return await this.findAll({
-    where,
-    order: [['order_index', 'ASC']],
-    include: [
-      {
-        model: sequelize.models.LessonMaterial,
-        as: 'materials'
-      }
-    ]
-  });
-};
-
-;(Lesson as any).reorderLessons = async function(sectionId: string, lessonOrders: { id: string, order_index: number }[]) {
-  const transaction = await sequelize.transaction();
-  try {
-    for (const { id, order_index } of lessonOrders) {
-      await this.update(
-        { order_index },
-        { where: { id, section_id: sectionId }, transaction }
-      );
-    }
-    await transaction.commit();
-    return true;
-  } catch (error: unknown) {
-    await transaction.rollback();
-    throw error;
-  }
-};
-
-export default Lesson as any;
+export default exportModel(Lesson);
 
 
 

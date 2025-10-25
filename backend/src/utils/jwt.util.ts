@@ -1,5 +1,20 @@
 import { tokenUtils } from './token.util';
 import logger from './logger.util';
+// Payload cơ bản cho JWT - dùng làm mặc định cho verifyToken&lt;T&gt;
+export type JWTPayload = {
+  iat?: number;
+  exp?: number;
+  iss?: string;
+  aud?: string;
+} & Record<string, unknown>;
+
+// Kiểu đầu vào tối thiểu cho generateTokenPair(user)
+export interface TokenUserInput {
+  id: string;
+  email: string;
+  role: string;
+  token_version: number;
+}
 
 /**
  * JWT utility interface for IDE autocomplete
@@ -7,8 +22,8 @@ import logger from './logger.util';
 export interface JWTUtils {
   // Core JWT operations
   signToken(payload: object, secret: string, options?: any): string;
-  verifyToken<T = any>(token: string, secret: string, options?: any): T;
-  decodeToken(token: string): any;
+  verifyToken<T = JWTPayload>(token: string, secret: string, options?: any): T;
+  decodeToken(token: string): unknown;
   
   // High-level token operations
   generateAccessToken(userId: string, email: string, role: string): string;
@@ -23,7 +38,7 @@ export interface JWTUtils {
   verifyApiKeyToken(token: string): { userId: string; permissions: string[] };
   generateSessionToken(userId: string, sessionId: string): string;
   verifySessionToken(token: string): { userId: string; sessionId: string };
-  generateTokenPair(user: any): { accessToken: string; refreshToken: string };
+  generateTokenPair(user: TokenUserInput): { accessToken: string; refreshToken: string };
   
   // Token utilities
   extractTokenFromHeader(authHeader: string): string | null;
@@ -64,7 +79,7 @@ export const jwtUtils: JWTUtils = {
    * @param options - Optional JWT verification options
    * @returns Decoded payload
    */
-  verifyToken<T = any>(token: string, secret: string, options?: any): T {
+  verifyToken<T = JWTPayload>(token: string, secret: string, options?: any): T {
     try {
       const jsonwebtoken = require('jsonwebtoken') as typeof import('jsonwebtoken');
       return jsonwebtoken.verify(token, secret, options) as T;
@@ -79,7 +94,7 @@ export const jwtUtils: JWTUtils = {
    * @param token - The JWT token to decode
    * @returns Decoded payload or null if invalid
    */
-  decodeToken(token: string): any {
+  decodeToken(token: string): unknown {
     try {
       const jsonwebtoken = require('jsonwebtoken') as typeof import('jsonwebtoken');
       return jsonwebtoken.decode(token);
@@ -211,7 +226,7 @@ export const jwtUtils: JWTUtils = {
    * @param user - User object with id, email, role, token_version
    * @returns Object with accessToken and refreshToken
    */
-  generateTokenPair(user: any): { accessToken: string; refreshToken: string } {
+  generateTokenPair(user: TokenUserInput): { accessToken: string; refreshToken: string } {
     return tokenUtils.jwt.generateTokenPair(user);
   },
 

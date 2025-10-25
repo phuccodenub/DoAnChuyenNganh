@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, Model, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
 import { AssignmentSubmissionAttributes, AssignmentSubmissionCreationAttributes, AssignmentSubmissionInstance } from '../types/model.types';
+import { addInstanceMethods, addStaticMethods, exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -51,7 +52,8 @@ const AssignmentSubmission = sequelize.define('AssignmentSubmission', {
   ]
 });
 
-export default AssignmentSubmission as any;
+const AssignmentSubmissionModel = AssignmentSubmission as unknown as ModelStatic<AssignmentSubmissionInstance>;
+export default exportModel(AssignmentSubmissionModel);
 
 
 

@@ -1,9 +1,10 @@
+import { ModelStatic, FindOptions } from 'sequelize';
 import Enrollment from '../models/enrollment.model';
-import { EnrollmentInstance } from '../types/model.types';
+import { EnrollmentInstance, EnrollmentAttributes, EnrollmentStatus, EnrollmentCreationAttributes } from '../types/model.types';
 import { BaseRepository } from './base.repository';
 import logger from '../utils/logger.util';
 
-export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
+export class EnrollmentRepository extends BaseRepository<EnrollmentInstance, EnrollmentCreationAttributes, Partial<EnrollmentAttributes>> {
   constructor() {
     super('Enrollment');
   }
@@ -11,8 +12,8 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
   /**
    * Get the Enrollment model
    */
-  protected getModel() {
-    return Enrollment;
+  protected getModel(): ModelStatic<EnrollmentInstance> {
+    return Enrollment as unknown as ModelStatic<EnrollmentInstance>;
   }
 
   /**
@@ -45,7 +46,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
   /**
    * Find enrollments by course
    */
-  async findByCourse(courseId: string, options?: any): Promise<EnrollmentInstance[]> {
+  async findByCourse(courseId: string, options?: FindOptions<EnrollmentAttributes>): Promise<EnrollmentInstance[]> {
     try {
       logger.debug('Finding enrollments by course', { courseId });
       
@@ -65,7 +66,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
   /**
    * Find enrollments by user
    */
-  async findByUser(userId: string, options?: any): Promise<EnrollmentInstance[]> {
+  async findByUser(userId: string, options?: FindOptions<EnrollmentAttributes>): Promise<EnrollmentInstance[]> {
     try {
       logger.debug('Finding enrollments by user', { userId });
       
@@ -141,7 +142,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
   /**
    * Get enrollments with course details
    */
-  async findWithCourseDetails(userId: string, options?: any): Promise<EnrollmentInstance[]> {
+  async findWithCourseDetails(userId: string, options?: FindOptions<EnrollmentAttributes>): Promise<EnrollmentInstance[]> {
     try {
       logger.debug('Finding enrollments with course details', { userId });
       
@@ -168,7 +169,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
   /**
    * Get enrollments with user details
    */
-  async findWithUserDetails(courseId: string, options?: any): Promise<EnrollmentInstance[]> {
+  async findWithUserDetails(courseId: string, options?: FindOptions<EnrollmentAttributes>): Promise<EnrollmentInstance[]> {
     try {
       logger.debug('Finding enrollments with user details', { courseId });
       
@@ -195,7 +196,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
   /**
    * Update enrollment status
    */
-  async updateStatus(enrollmentId: string, status: string): Promise<EnrollmentInstance> {
+  async updateStatus(enrollmentId: string, status: EnrollmentStatus): Promise<EnrollmentInstance> {
     try {
       logger.debug('Updating enrollment status', { enrollmentId, status });
       
@@ -227,7 +228,7 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
         this.count({ where: whereClause }),
         this.count({ where: { ...whereClause, status: 'active' } }),
         this.count({ where: { ...whereClause, status: 'completed' } }),
-        this.count({ where: { ...whereClause, status: 'dropped' } })
+        this.count({ where: { ...whereClause, status: 'cancelled' } })
       ]);
       
       const stats = {

@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { QuizQuestionAttributes, QuizQuestionCreationAttributes, QuizQuestionInstance } from '../types/model.types';
+import { QuizQuestionInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -43,7 +44,9 @@ const QuizQuestion = sequelize.define('QuizQuestion', {
   ]
 });
 
-export default QuizQuestion as any;
+const QuizQuestionModel = QuizQuestion as unknown as ModelStatic<QuizQuestionInstance>;
+
+export default exportModel(QuizQuestionModel);
 
 
 

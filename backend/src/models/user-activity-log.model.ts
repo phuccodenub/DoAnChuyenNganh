@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { UserActivityLogAttributes, UserActivityLogCreationAttributes, UserActivityLogInstance } from '../types/model.types';
+import { UserActivityLogInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -37,7 +38,8 @@ const UserActivityLog = sequelize.define('UserActivityLog', {
   ]
 });
 
-export default UserActivityLog as any;
+const UserActivityLogModel = UserActivityLog as unknown as ModelStatic<UserActivityLogInstance>;
+export default exportModel(UserActivityLogModel);
 
 
 

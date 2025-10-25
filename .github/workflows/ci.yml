@@ -1,0 +1,30 @@
+name: CI Quality Gates
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend-type-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Type check (tsc --noEmit)
+        working-directory: backend
+        run: npx tsc -p tsconfig.json --noEmit
+
+      - name: ESLint
+        working-directory: backend
+        run: npx eslint . --ext .ts --max-warnings=0

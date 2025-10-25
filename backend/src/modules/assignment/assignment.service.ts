@@ -3,6 +3,7 @@ import { CreateAssignmentDto, SubmitAssignmentDto, UpdateAssignmentDto } from '.
 import { ApiError } from '../../errors/api.error';
 import { AuthorizationError } from '../../errors/authorization.error';
 import logger from '../../utils/logger.util';
+import type { CourseInstance } from '../../types/model.types';
 
 export class AssignmentService {
   private repo: AssignmentRepository;
@@ -20,7 +21,13 @@ export class AssignmentService {
       // Verify user is instructor of the course
       await this.verifyInstructorAccess(dto.course_id, userId);
       
-      const assignment = await this.repo.createAssignment(dto);
+      // Convert DTO to model attributes (handle null → undefined)
+      const createData = {
+        ...dto,
+        due_date: dto.due_date === null ? undefined : (dto.due_date ? new Date(dto.due_date) : undefined)
+      };
+      
+      const assignment = await this.repo.createAssignment(createData);
       logger.info(`Assignment created: ${assignment.id} by user ${userId}`);
       return assignment;
     } catch (error: unknown) {
@@ -57,7 +64,13 @@ export class AssignmentService {
 
       await this.verifyInstructorAccess(assignment.course_id, userId);
 
-      const updated = await this.repo.updateAssignment(assignmentId, data);
+      // Convert DTO to model attributes (handle null → undefined)
+      const updateData = {
+        ...data,
+        due_date: data.due_date === null ? undefined : (data.due_date ? new Date(data.due_date) : undefined)
+      };
+
+      const updated = await this.repo.updateAssignment(assignmentId, updateData);
       logger.info(`Assignment updated: ${assignmentId} by user ${userId}`);
       return updated;
     } catch (error: unknown) {
@@ -259,7 +272,7 @@ export class AssignmentService {
 
   private async verifyInstructorAccess(courseId: string, userId: string) {
     const { Course } = await import('../../models');
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findByPk(courseId) as CourseInstance | null;
     
     if (!course) {
       throw new ApiError('Course not found', 404);

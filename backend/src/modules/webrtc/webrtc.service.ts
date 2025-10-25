@@ -6,6 +6,7 @@
 import LiveSession from '../../models/live-session.model';
 import LiveSessionAttendance from '../../models/live-session-attendance.model';
 import logger from '../../utils/logger.util';
+import { CourseInstance, LiveSessionInstance, LiveSessionAttributes } from '../../types/model.types';
 
 export class WebRTCService {
   /**
@@ -14,16 +15,16 @@ export class WebRTCService {
   async validateUserAccess(userId: string, sessionId: string): Promise<boolean> {
     try {
       // Check if session exists
-      const session = await LiveSession.findByPk(sessionId);
+      const session = await LiveSession.findByPk(sessionId) as LiveSessionInstance | null;
       if (!session) {
         return false;
       }
 
       // Check if user is instructor
       const Course = (await import('../../models/course.model')).default;
-      const course = await Course.findByPk((session as any).course_id);
+      const course = await Course.findByPk(session.course_id) as CourseInstance | null;
       
-      if (course && (course as any).instructor_id === userId) {
+      if (course && course.instructor_id === userId) {
         return true;
       }
 
@@ -32,7 +33,7 @@ export class WebRTCService {
       const enrollment = await Enrollment.findOne({
         where: {
           user_id: userId,
-          course_id: (session as any).course_id,
+          course_id: session.course_id,
           status: 'active'
         }
       });
@@ -118,9 +119,9 @@ export class WebRTCService {
   /**
    * Update session status
    */
-  async updateSessionStatus(sessionId: string, status: string) {
+  async updateSessionStatus(sessionId: string, status: LiveSessionAttributes['status']) {
     try {
-      const session = await LiveSession.findByPk(sessionId);
+      const session = await LiveSession.findByPk(sessionId) as LiveSessionInstance | null;
       
       if (!session) {
         throw new Error('Session not found');

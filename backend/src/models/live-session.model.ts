@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { LiveSessionAttributes, LiveSessionCreationAttributes, LiveSessionInstance } from '../types/model.types';
+import { LiveSessionInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -53,7 +54,8 @@ const LiveSession = sequelize.define('LiveSession', {
   ]
 });
 
-export default LiveSession as any;
+const LiveSessionModel = LiveSession as unknown as ModelStatic<LiveSessionInstance>;
+export default exportModel(LiveSessionModel);
 
 
 

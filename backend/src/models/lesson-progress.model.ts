@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { LessonProgressAttributes, LessonProgressCreationAttributes, LessonProgressInstance } from '../types/model.types';
+import { LessonProgressInstance, LessonInstance } from '../types/model.types';
+import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -119,124 +120,130 @@ const LessonProgress = sequelize.define('LessonProgress', {
   ]
 });
 
-// Instance Methods
-;(LessonProgress as any).prototype.markAsCompleted = async function() {
-  this.completed = true;
-  this.completion_percentage = 100;
-  this.completed_at = new Date();
-  await this.save();
-  return this;
-};
+const LessonProgressModel = LessonProgress as unknown as ModelStatic<LessonProgressInstance>;
 
-;(LessonProgress as any).prototype.updateProgress = async function(data: {
-  last_position?: number;
-  completion_percentage?: number;
-  time_spent_seconds?: number;
-}) {
-  if (data.last_position !== undefined) {
-    this.last_position = data.last_position;
-  }
-  if (data.completion_percentage !== undefined) {
-    this.completion_percentage = data.completion_percentage;
-  }
-  if (data.time_spent_seconds !== undefined) {
-    this.time_spent_seconds = data.time_spent_seconds;
-  }
-  
-  this.last_accessed_at = new Date();
-  
-  // Auto-complete if 100%
-  if (this.completion_percentage >= 100 && !this.completed) {
-    await this.markAsCompleted();
-  } else {
+// Instance Methods (type-safe)
+addInstanceMethods(LessonProgressModel, {
+  async markAsCompleted(this: LessonProgressInstance) {
+    this.completed = true;
+    this.completion_percentage = 100;
+    this.completed_at = new Date();
     await this.save();
-  }
-  
-  return this;
-};
-
-// Class Methods
-;(LessonProgress as any).findOrCreateProgress = async function(userId: string, lessonId: string) {
-  const [progress, created] = await this.findOrCreate({
-    where: { user_id: userId, lesson_id: lessonId },
-    defaults: {
-      started_at: new Date(),
-      last_accessed_at: new Date()
+    return this;
+  },
+  async updateProgress(this: LessonProgressInstance, data: {
+    last_position?: number;
+    completion_percentage?: number;
+    time_spent_seconds?: number;
+  }) {
+    if (data.last_position !== undefined) {
+      this.last_position = data.last_position;
     }
-  });
-  
-  if (!created && !progress.started_at) {
-    progress.started_at = new Date();
-    await progress.save();
-  }
-  
-  return progress;
-};
-
-;(LessonProgress as any).getUserCourseProgress = async function(userId: string, courseId: string) {
-  // Get all lessons in the course
-  const sections = await sequelize.models.Section.findAll({
-    where: { course_id: courseId },
-    include: [
-      {
-        model: sequelize.models.Lesson,
-        as: 'lessons',
-        attributes: ['id']
-      }
-    ]
-  });
-  
-  const lessonIds = sections.flatMap((section: any) => 
-    section.lessons.map((lesson: any) => lesson.id)
-  );
-  
-  if (lessonIds.length === 0) return { total: 0, completed: 0, percentage: 0 };
-  
-  // Get progress for all lessons
-  const progress = await this.findAll({
-    where: {
-      user_id: userId,
-      lesson_id: lessonIds
+    if (data.completion_percentage !== undefined) {
+      this.completion_percentage = data.completion_percentage;
     }
-  });
-  
-  const completed = progress.filter((p: any) => p.completed).length;
-  
-  return {
-    total: lessonIds.length,
-    completed,
-    percentage: (completed / lessonIds.length) * 100
-  };
-};
+    if (data.time_spent_seconds !== undefined) {
+      this.time_spent_seconds = data.time_spent_seconds;
+    }
+    
+    this.last_accessed_at = new Date();
+    
+    // Auto-complete if 100%
+    if (this.completion_percentage >= 100 && !this.completed) {
+      await this.markAsCompleted();
+    } else {
+      await this.save();
+    }
+    
+    return this;
+  }
+});
 
-;(LessonProgress as any).getRecentActivity = async function(userId: string, limit: number = 10) {
-  return await this.findAll({
-    where: { user_id: userId },
-    order: [['last_accessed_at', 'DESC']],
-    limit,
-    include: [
-      {
-        model: sequelize.models.Lesson,
-        as: 'lesson',
-        include: [
-          {
-            model: sequelize.models.Section,
-            as: 'section',
-            include: [
-              {
-                model: sequelize.models.Course,
-                as: 'course',
-                attributes: ['id', 'title', 'thumbnail_url']
-              }
-            ]
-          }
-        ]
+// Static Methods (type-safe)
+addStaticMethods(LessonProgressModel, {
+  async findOrCreateProgress(this: ModelStatic<LessonProgressInstance>, userId: string, lessonId: string) {
+    const [progress, created] = await this.findOrCreate({
+      where: { user_id: userId, lesson_id: lessonId },
+      defaults: {
+        user_id: userId,
+        lesson_id: lessonId,
+        started_at: new Date(),
+        last_accessed_at: new Date()
       }
-    ]
-  });
-};
+    });
+    
+    if (!created && !progress.started_at) {
+      progress.started_at = new Date();
+      await progress.save();
+    }
+    
+    return progress;
+  },
+  async getUserCourseProgress(this: ModelStatic<LessonProgressInstance>, userId: string, courseId: string) {
+    // Lấy danh sách bài học thuộc course bằng include Section (alias 'section') để tránh truy cập any
+    const lessons = await sequelize.models.Lesson.findAll({
+      attributes: ['id'],
+      include: [
+        {
+          model: sequelize.models.Section,
+          as: 'section',
+          attributes: [],
+          where: { course_id: courseId }
+        }
+      ]
+    });
 
-export default LessonProgress as any;
+    const lessonIds = lessons.map((l) => (l as unknown as LessonInstance).id);
+
+    if (lessonIds.length === 0) {
+      return { total: 0, completed: 0, percentage: 0 };
+    }
+
+    // Tiến độ cho tất cả bài học đã xác định
+    const progress = await this.findAll({
+      where: {
+        user_id: userId,
+        lesson_id: lessonIds
+      }
+    });
+
+    const completed = progress.filter((p: LessonProgressInstance) => p.completed).length;
+
+    return {
+      total: lessonIds.length,
+      completed,
+      percentage: (completed / lessonIds.length) * 100
+    };
+  },
+  async getRecentActivity(this: ModelStatic<LessonProgressInstance>, userId: string, limit: number = 10) {
+    return await this.findAll({
+      where: { user_id: userId },
+      order: [['last_accessed_at', 'DESC']],
+      limit,
+      include: [
+        {
+          model: sequelize.models.Lesson,
+          as: 'lesson',
+          include: [
+            {
+              model: sequelize.models.Section,
+              as: 'section',
+              include: [
+                {
+                  model: sequelize.models.Course,
+                  as: 'course',
+                  attributes: ['id', 'title', 'thumbnail_url']
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+  }
+});
+
+export default exportModel(LessonProgressModel);
 
 
 

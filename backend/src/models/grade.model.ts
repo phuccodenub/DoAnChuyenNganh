@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { GradeAttributes, GradeCreationAttributes, GradeInstance } from '../types/model.types';
+import { GradeInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -55,7 +56,8 @@ const Grade = sequelize.define('Grade', {
   ]
 });
 
-export default Grade as any;
+const GradeModel = Grade as unknown as ModelStatic<GradeInstance>;
+export default exportModel(GradeModel);
 
 
 

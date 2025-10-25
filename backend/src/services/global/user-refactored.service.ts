@@ -1,7 +1,7 @@
 import * as userRepository from '../../repositories/user.repository';
 import { CacheService } from './cache.service';
 import logger from '../../utils/logger.util';
-import { UserAttributes } from '../../types/model.types';
+import { UserAttributes, UserCreationAttributes } from '../../types/model.types';
 
 // ===================================
 // TYPE DEFINITIONS
@@ -255,7 +255,7 @@ export class GlobalUserService {
   // ===== MISSING METHODS FOR CONTROLLER =====
 
   // Add user
-  async addUser(userData: Partial<UserAttributes>): Promise<UserAttributes | null> {
+  async addUser(userData: UserCreationAttributes): Promise<UserAttributes | null> {
     try {
       const user = await userRepository.createUser(userData);
       if (user && isUserWithId(user)) {

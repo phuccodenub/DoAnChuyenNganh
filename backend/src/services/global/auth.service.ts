@@ -1,4 +1,4 @@
-import { jwtUtils } from '../../utils/jwt.util';
+import { jwtUtils, TokenUserInput } from '../../utils/jwt.util';
 import { comparePassword, hashPassword } from '../../utils';
 import logger from '../../utils/logger.util';
 
@@ -6,7 +6,7 @@ export class GlobalAuthService {
   // ===== JWT UTILITIES (Shared across modules) =====
 
   // Generate tokens for any user
-  async generateTokens(user: any): Promise<{ accessToken: string; refreshToken: string }> {
+  async generateTokens(user: TokenUserInput): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       return jwtUtils.generateTokenPair(user);
     } catch (error: unknown) {
@@ -16,7 +16,7 @@ export class GlobalAuthService {
   }
 
   // Verify access token
-  async verifyAccessToken(token: string): Promise<any> {
+  async verifyAccessToken(token: string): Promise<{ userId: string; email: string; role: string }> {
     try {
       return await jwtUtils.verifyAccessToken(token);
     } catch (error: unknown) {
@@ -26,7 +26,7 @@ export class GlobalAuthService {
   }
 
   // Verify refresh token
-  async verifyRefreshToken(token: string): Promise<any> {
+  async verifyRefreshToken(token: string): Promise<{ userId: string; tokenVersion: number }> {
     try {
       return await jwtUtils.verifyRefreshToken(token);
     } catch (error: unknown) {
@@ -70,7 +70,7 @@ export class GlobalAuthService {
   }
 
   // Decode JWT token (without verification)
-  decodeToken(token: string): any {
+  decodeToken(token: string): unknown {
     try {
       return jwtUtils.decodeToken(token);
     } catch (error: unknown) {

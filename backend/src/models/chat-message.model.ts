@@ -1,6 +1,7 @@
-import { DataTypes, Model, Op } from 'sequelize';
+import { DataTypes, ModelStatic, Op } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { ChatMessageAttributes, ChatMessageCreationAttributes, ChatMessageInstance } from '../types/model.types';
+import { ChatMessageInstance } from '../types/model.types';
+import { exportModel, addStaticMethods } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -76,28 +77,32 @@ const ChatMessage = sequelize.define('ChatMessage', {
   underscored: true,
 });
 
-// Add search method
-;(ChatMessage as any).searchInCourse = async function(courseId: string, searchTerm: string) {
-  return await this.findAll({
-    where: {
-      course_id: courseId,
-      message: {
-        [Op.iLike]: `%${searchTerm}%`
-      },
-      is_deleted: false
-    },
-    include: [
-      {
-        model: sequelize.models.User,
-        as: 'sender',
-        attributes: ['id', 'first_name', 'last_name', 'avatar']
-      }
-    ],
-    order: [['created_at', 'DESC']],
-    limit: 50
-  });
-};
+const ChatMessageModel = ChatMessage as unknown as ModelStatic<ChatMessageInstance>;
 
-export default ChatMessage as any;
+// Static Methods (type-safe)
+addStaticMethods(ChatMessageModel, {
+  async searchInCourse(this: ModelStatic<ChatMessageInstance>, courseId: string, searchTerm: string) {
+    return await this.findAll({
+      where: {
+        course_id: courseId,
+        message: {
+          [Op.iLike]: `%${searchTerm}%`
+        },
+        is_deleted: false
+      },
+      include: [
+        {
+          model: sequelize.models.User,
+          as: 'sender',
+          attributes: ['id', 'first_name', 'last_name', 'avatar']
+        }
+      ],
+      order: [['created_at', 'DESC']],
+      limit: 50
+    });
+  }
+});
+
+export default exportModel(ChatMessageModel);
 
 

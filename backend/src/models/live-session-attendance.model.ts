@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { LiveSessionAttendanceAttributes, LiveSessionAttendanceCreationAttributes, LiveSessionAttendanceInstance } from '../types/model.types';
+import { LiveSessionAttendanceInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -39,7 +40,8 @@ const LiveSessionAttendance = sequelize.define('LiveSessionAttendance', {
   ]
 });
 
-export default LiveSessionAttendance as any;
+const LiveSessionAttendanceModel = LiveSessionAttendance as unknown as ModelStatic<LiveSessionAttendanceInstance>;
+export default exportModel(LiveSessionAttendanceModel);
 
 
 

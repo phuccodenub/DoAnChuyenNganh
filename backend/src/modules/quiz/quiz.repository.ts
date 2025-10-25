@@ -1,13 +1,30 @@
-import { Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, User, Course } from '../../models';
+import { Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, User } from '../../models';
 import { Op } from 'sequelize';
+import { CreateQuizDto, UpdateQuizDto, CreateQuestionDto, UpdateQuestionDto } from './quiz.types';
+import { QuizOptionCreationAttributes, QuizAnswerCreationAttributes } from '../../types/model.types';
+type QuizOptionCreateDTO = Omit<QuizOptionCreationAttributes, 'id' | 'created_at' | 'updated_at' | 'question_id'>;
+type QuizAnswerCreateDTO = Omit<QuizAnswerCreationAttributes, 'id' | 'created_at' | 'updated_at' | 'attempt_id'>;
 
 export class QuizRepository {
   // ===================================
   // QUIZ CRUD
   // ===================================
 
-  async createQuiz(data: any) {
-    return await Quiz.create(data);
+  async createQuiz(data: CreateQuizDto) {
+    const payload = {
+      course_id: data.course_id,
+      title: data.title,
+      description: data.description,
+      duration_minutes: data.duration_minutes,
+      passing_score: data.passing_score,
+      max_attempts: data.max_attempts,
+      shuffle_questions: data.shuffle_questions ?? false,
+      show_correct_answers: data.show_correct_answers ?? true,
+      available_from: data.available_from != null ? new Date(data.available_from) : undefined,
+      available_until: data.available_until != null ? new Date(data.available_until) : undefined,
+      is_published: data.is_published ?? false,
+    };
+    return await Quiz.create(payload);
   }
 
   async getQuizById(quizId: string, includeAnswers: boolean = false) {
@@ -18,11 +35,9 @@ export class QuizRepository {
         include: [
           {
             model: QuizOption,
-            as: 'options',
-            order: [['order_index', 'ASC']]
+            as: 'options'
           }
-        ],
-        order: [['order_index', 'ASC']]
+        ]
       }
     ] : [];
 
@@ -31,8 +46,32 @@ export class QuizRepository {
     });
   }
 
-  async updateQuiz(quizId: string, data: any) {
-    await Quiz.update(data, { where: { id: quizId } });
+  async updateQuiz(quizId: string, data: UpdateQuizDto) {
+    const payload: Partial<{
+      title: string;
+      description?: string;
+      duration_minutes?: number;
+      passing_score?: number;
+      max_attempts?: number;
+      shuffle_questions?: boolean;
+      show_correct_answers?: boolean;
+      available_from?: Date | null;
+      available_until?: Date | null;
+      is_published?: boolean;
+    }> = {};
+
+    if (data.title !== undefined) payload.title = data.title;
+    if (data.description !== undefined) payload.description = data.description;
+    if (data.duration_minutes !== undefined) payload.duration_minutes = data.duration_minutes;
+    if (data.passing_score !== undefined) payload.passing_score = data.passing_score;
+    if (data.max_attempts !== undefined) payload.max_attempts = data.max_attempts;
+    if (data.shuffle_questions !== undefined) payload.shuffle_questions = data.shuffle_questions;
+    if (data.show_correct_answers !== undefined) payload.show_correct_answers = data.show_correct_answers;
+    if (data.available_from !== undefined) payload.available_from = data.available_from == null ? undefined : new Date(data.available_from);
+    if (data.available_until !== undefined) payload.available_until = data.available_until == null ? undefined : new Date(data.available_until);
+    if (data.is_published !== undefined) payload.is_published = data.is_published;
+
+    await Quiz.update(payload, { where: { id: quizId } });
     return await this.getQuizById(quizId);
   }
 
@@ -44,16 +83,38 @@ export class QuizRepository {
   // QUESTION CRUD
   // ===================================
 
-  async addQuestion(quizId: string, data: any) {
-    return await QuizQuestion.create({ quiz_id: quizId, ...data });
+  async addQuestion(quizId: string, data: CreateQuestionDto) {
+    const payload = {
+      quiz_id: quizId,
+      question_text: data.question_text,
+      question_type: data.question_type,
+      points: data.points ?? 1.0,
+      order_index: data.order_index,
+      explanation: data.explanation,
+    };
+    return await QuizQuestion.create(payload);
   }
 
   async getQuestionById(questionId: string) {
     return await QuizQuestion.findByPk(questionId);
   }
 
-  async updateQuestion(questionId: string, data: any) {
-    await QuizQuestion.update(data, { where: { id: questionId } });
+  async updateQuestion(questionId: string, data: UpdateQuestionDto) {
+    const payload: Partial<{
+      question_text: string;
+      question_type: 'single_choice' | 'multiple_choice' | 'true_false';
+      points: number;
+      order_index: number;
+      explanation?: string;
+    }> = {};
+
+    if (data.question_text !== undefined) payload.question_text = data.question_text;
+    if (data.question_type !== undefined) payload.question_type = data.question_type;
+    if (data.points !== undefined) payload.points = data.points;
+    if (data.order_index !== undefined) payload.order_index = data.order_index;
+    if (data.explanation !== undefined) payload.explanation = data.explanation;
+
+    await QuizQuestion.update(payload, { where: { id: questionId } });
     return await this.getQuestionById(questionId);
   }
 
@@ -73,8 +134,7 @@ export class QuizRepository {
         {
           model: QuizOption,
           as: 'options',
-          attributes: optionAttributes,
-          order: [['order_index', 'ASC']]
+          attributes: optionAttributes
         }
       ]
     });
@@ -84,8 +144,14 @@ export class QuizRepository {
   // OPTION CRUD
   // ===================================
 
-  async addOption(questionId: string, data: any) {
-    return await QuizOption.create({ question_id: questionId, ...data });
+  async addOption(questionId: string, data: QuizOptionCreateDTO) {
+    const payload: QuizOptionCreationAttributes = {
+      question_id: questionId,
+      option_text: data.option_text,
+      order_index: data.order_index,
+      is_correct: data.is_correct ?? false
+    };
+    return await QuizOption.create(payload);
   }
 
   async getOptionById(optionId: string) {
@@ -129,7 +195,10 @@ export class QuizRepository {
       where: {
         quiz_id: quizId,
         user_id: userId,
-        submitted_at: null
+        [Op.and]: QuizAttempt.sequelize!.where(
+          QuizAttempt.sequelize!.col('submitted_at'),
+          { [Op.is]: null }
+        )
       }
     });
   }
@@ -198,16 +267,27 @@ export class QuizRepository {
   // QUIZ ANSWERS
   // ===================================
 
-  async submitAnswer(attemptId: string, data: any) {
-    return await QuizAnswer.create({ attempt_id: attemptId, ...data });
+  async submitAnswer(attemptId: string, data: QuizAnswerCreateDTO) {
+    const payload: QuizAnswerCreationAttributes = {
+      attempt_id: attemptId,
+      question_id: data.question_id,
+      selected_option_id: data.selected_option_id,
+      selected_options: data.selected_options,
+      is_correct: data.is_correct,
+      points_earned: data.points_earned
+    };
+    return await QuizAnswer.create(payload);
   }
 
-  async submitAnswers(attemptId: string, answers: any[]) {
-    const answerData = answers.map(answer => ({
+  async submitAnswers(attemptId: string, answers: ReadonlyArray<QuizAnswerCreateDTO>) {
+    const answerData: QuizAnswerCreationAttributes[] = answers.map(answer => ({
       attempt_id: attemptId,
-      ...answer
+      question_id: answer.question_id,
+      selected_option_id: answer.selected_option_id,
+      selected_options: answer.selected_options,
+      is_correct: answer.is_correct,
+      points_earned: answer.points_earned
     }));
-    
     return await QuizAnswer.bulkCreate(answerData);
   }
 
@@ -223,14 +303,28 @@ export class QuizRepository {
 
   async getQuizStatistics(quizId: string) {
     const totalAttempts = await QuizAttempt.count({
-      where: { quiz_id: quizId, submitted_at: { [Op.not]: null } }
+      where: {
+        quiz_id: quizId,
+        [Op.and]: QuizAttempt.sequelize!.where(
+          QuizAttempt.sequelize!.col('submitted_at'),
+          { [Op.not]: null }
+        )
+      }
     });
 
-    const averageScore = await QuizAttempt.findOne({
-      where: { 
-        quiz_id: quizId, 
-        submitted_at: { [Op.not]: null },
-        score: { [Op.not]: null }
+    const averageScoreRow = await QuizAttempt.findOne({
+      where: {
+        quiz_id: quizId,
+        [Op.and]: [
+          QuizAttempt.sequelize!.where(
+            QuizAttempt.sequelize!.col('submitted_at'),
+            { [Op.not]: null }
+          ),
+          QuizAttempt.sequelize!.where(
+            QuizAttempt.sequelize!.col('score'),
+            { [Op.not]: null }
+          )
+        ]
       },
       attributes: [
         [Quiz.sequelize!.fn('AVG', Quiz.sequelize!.col('score')), 'average_score']
@@ -238,27 +332,37 @@ export class QuizRepository {
       raw: true
     });
 
-    const completionRate = await QuizAttempt.findOne({
+    type AvgScoreRow = { average_score: string | number | null };
+    const avgVal = (averageScoreRow as unknown as AvgScoreRow | null)?.average_score;
+    const average_score = avgVal == null ? 0 : (typeof avgVal === 'string' ? parseFloat(avgVal) : avgVal);
+
+    const completionRow = await QuizAttempt.findOne({
       where: { quiz_id: quizId },
       attributes: [
         [Quiz.sequelize!.fn('COUNT', Quiz.sequelize!.col('id')), 'total_started'],
         [
-          Quiz.sequelize!.fn('COUNT', 
+          Quiz.sequelize!.fn('COUNT',
             Quiz.sequelize!.where(
-              Quiz.sequelize!.col('submitted_at'), 
+              Quiz.sequelize!.col('submitted_at'),
               { [Op.not]: null }
             )
-          ), 
+          ),
           'total_completed'
         ]
       ],
       raw: true
     });
 
+    type CompletionRow = { total_started: string | number; total_completed: string | number };
+    const totals = (completionRow as unknown as CompletionRow | null) ?? { total_started: 0, total_completed: 0 };
+    const total_started = typeof totals.total_started === 'string' ? parseInt(totals.total_started, 10) : (totals.total_started || 0);
+    const total_completed = typeof totals.total_completed === 'string' ? parseInt(totals.total_completed, 10) : (totals.total_completed || 0);
+    const completion_rate = total_started > 0 ? (total_completed / total_started) * 100 : 0;
+
     return {
       total_attempts: totalAttempts,
-      average_score: parseFloat((averageScore as any)?.average_score || '0'),
-      completion_rate: (completionRate as any)?.total_completed / (completionRate as any)?.total_started * 100 || 0
+      average_score,
+      completion_rate
     };
   }
 

@@ -9,6 +9,7 @@ import Course from '../../models/course.model';
 import { GetMessagesOptions, SearchMessagesOptions } from './chat.types';
 import logger from '../../utils/logger.util';
 import { Op } from 'sequelize';
+import type { CourseInstance } from '../../types/model.types';
 
 export class ChatRepository {
   /**
@@ -18,7 +19,7 @@ export class ChatRepository {
     course_id: string;
     sender_id: string;
     message: string;
-    message_type?: string;
+    message_type?: 'text' | 'file' | 'image' | 'system' | 'announcement';
     file_url?: string;
     file_name?: string;
     file_size?: number;
@@ -296,7 +297,7 @@ export class ChatRepository {
   async canUserAccessChat(userId: string, courseId: string): Promise<boolean> {
     try {
       // Check if course exists
-      const course = await Course.findByPk(courseId);
+      const course = await Course.findByPk(courseId) as CourseInstance | null;
       if (!course) {
         return false;
       }

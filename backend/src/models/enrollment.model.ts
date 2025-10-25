@@ -1,6 +1,7 @@
 import { DataTypes, Model } from 'sequelize';
 import { getSequelize } from '../config/db';
 import { EnrollmentAttributes, EnrollmentCreationAttributes, EnrollmentInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -10,6 +11,8 @@ const Enrollment = sequelize.define('Enrollment', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  
+  // ===== RELATIONSHIPS =====
   user_id: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -26,6 +29,8 @@ const Enrollment = sequelize.define('Enrollment', {
       key: 'id'
     }
   },
+  
+  // ===== STATUS =====
   status: {
     type: DataTypes.ENUM('pending', 'active', 'completed', 'cancelled', 'suspended'),
     defaultValue: 'pending',
@@ -35,6 +40,8 @@ const Enrollment = sequelize.define('Enrollment', {
     defaultValue: 'free',
     allowNull: false
   },
+  
+  // ===== PROGRESS TRACKING =====
   progress_percentage: {
     type: DataTypes.DECIMAL(5, 2),
     defaultValue: 0,
@@ -54,13 +61,52 @@ const Enrollment = sequelize.define('Enrollment', {
     defaultValue: 0,
     allowNull: false
   },
+  
+  // ===== ACCESS CONTROL =====
   last_accessed_at: {
     type: DataTypes.DATE,
-    allowNull: true
+    allowNull: true,
+    comment: 'Lần truy cập khóa học gần nhất'
   },
+  access_expires_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Thời gian hết hạn truy cập khóa học'
+  },
+  
+  // ===== COMPLETION =====
   completion_date: {
     type: DataTypes.DATE,
     allowNull: true,
+  },
+  
+  // ===== REVIEW & FEEDBACK =====
+  rating: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      min: 1,
+      max: 5
+    },
+    comment: 'Đánh giá khóa học (1-5 sao)'
+  },
+  review: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Nội dung review của học viên'
+  },
+  review_date: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Thời gian đánh giá'
+  },
+  
+  // ===== METADATA =====
+  metadata: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {},
+    comment: 'Additional data (notes, bookmarks, etc.)'
   },
   
   // Timestamps (automatically managed by Sequelize)
@@ -88,6 +134,6 @@ const Enrollment = sequelize.define('Enrollment', {
   ]
 });
 
-export default Enrollment as any;
+export default exportModel(Enrollment);
 
 

@@ -3,6 +3,7 @@ import { CreateOptionDto, CreateQuestionDto, CreateQuizDto, SubmitQuizDto, QuizA
 import { ApiError } from '../../errors/api.error';
 import { AuthorizationError } from '../../errors/authorization.error';
 import logger from '../../utils/logger.util';
+import { CourseInstance } from '../../types/model.types';
 
 export class QuizService {
   private repo: QuizRepository;
@@ -354,7 +355,7 @@ export class QuizService {
 
   private async verifyInstructorAccess(courseId: string, userId: string) {
     const { Course } = await import('../../models');
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findByPk(courseId) as CourseInstance | null;
     
     if (!course) {
       throw new ApiError('Course not found', 404);
@@ -382,15 +383,19 @@ export class QuizService {
           correctAnswers++;
         }
       } else if (question?.question_type === 'multiple_choice') {
-        const selectedOptions = await this.repo.getOptionsByIds(answer.selected_option_ids || []);
+        const selectedIds = Array.isArray(answer.selected_options) ? answer.selected_options : [];
+        const selectedOptions = await this.repo.getOptionsByIds(selectedIds);
         const correctOptions = await this.repo.getCorrectOptions(question.id);
-        
         if (selectedOptions.length === correctOptions.length &&
-            selectedOptions.every((opt: any) => correctOptions.some((correct: any) => correct.id === opt.id))) {
+            selectedOptions.every(opt => correctOptions.some(correct => correct.id === opt.id))) {
           correctAnswers++;
         }
       } else if (question?.question_type === 'true_false') {
-        if (answer.text_answer === question.correct_answer) {
+        const correctOptions = await this.repo.getCorrectOptions(question.id);
+        const selected = answer.selected_option_id ? await this.repo.getOptionById(answer.selected_option_id) : null;
+        const correctText = correctOptions[0]?.option_text?.toLowerCase();
+        const selectedText = selected?.option_text?.toLowerCase();
+        if (correctText && selectedText && correctText === selectedText) {
           correctAnswers++;
         }
       }

@@ -3,6 +3,8 @@
  * Handles quiz creation, management, and real-time responses
  */
 
+import type { SocketEvents } from './socketService'
+
 export interface QuizQuestion {
   id: string
   question: string
@@ -67,10 +69,34 @@ export interface LiveQuizSession {
   timeRemaining?: number
 }
 
+// Typed Socket API interface dùng SocketEvents đã được định nghĩa ở socketService
+type SocketApi = {
+  on<K extends keyof SocketEvents>(event: K, callback: (data: SocketEvents[K]) => void): void;
+  off<K extends keyof SocketEvents>(event: K, callback: (data: SocketEvents[K]) => void): void;
+  emit<K extends keyof SocketEvents>(event: K, data: SocketEvents[K]): void;
+};
+
+// Nội bộ: các sự kiện mà QuizService phát ra cho UI
+type SocketQuestionPayload = SocketEvents['quiz-next-question'] extends { question: infer Q } ? Q : never;
+type InternalQuizStartedPayload =
+  | { quiz: Quiz; session: LiveQuizSession; courseId?: string }
+  | SocketEvents['quiz-started'];
+type InternalQuestionChangedPayload = { questionIndex: number; question: QuizQuestion | SocketQuestionPayload };
+type InternalResponseReceivedPayload =
+  | QuizResponse
+  | (SocketEvents['quiz-response'] extends { response: infer R } ? R : never);
+type InternalEvents = {
+  'quiz-started': InternalQuizStartedPayload;
+  'quiz-ended': { quizId: string };
+  'question-changed': InternalQuestionChangedPayload;
+  'response-received': InternalResponseReceivedPayload;
+  'results-updated': Map<string, QuizAttempt>;
+};
+
 class QuizService {
-  private socketService: any = null
+  private socketService: SocketApi | null = null
   private currentSession?: LiveQuizSession
-  private callbacks: Map<string, Function[]> = new Map()
+  private callbacks: Map<keyof InternalEvents, Array<(data: InternalEvents[keyof InternalEvents]) => void>> = new Map()
 
   // Mock quiz data for demo
   private mockQuizzes: Quiz[] = [
@@ -164,7 +190,7 @@ class QuizService {
     this.callbacks.set('results-updated', [])
   }
 
-  initialize(socketService: any) {
+  initialize(socketService: SocketApi) {
     this.socketService = socketService
     this.setupSocketListeners()
   }
@@ -218,13 +244,32 @@ class QuizService {
     this.currentSession = session
     quiz.isActive = true
 
-    // Notify via socket
+    // Notify via socket - chuẩn hóa payload theo SocketEvents
     if (this.socketService) {
+      const quizPayload: SocketEvents['start-quiz']['quiz'] = {
+        id: quiz.id,
+        title: quiz.title,
+        courseId,
+        questions: quiz.questions.map(q => ({
+          id: q.id,
+          question: q.question,
+          type: q.type,
+          options: q.options,
+          points: q.points,
+          timeLimit: q.timeLimit
+        }))
+      }
+      const sessionPayload: SocketEvents['start-quiz']['session'] = {
+        quizId,
+        courseId,
+        currentQuestionIndex: session.currentQuestionIndex,
+        timeRemaining: session.timeRemaining
+      }
       this.socketService.emit('start-quiz', {
         courseId,
         quizId,
-        quiz: quiz,
-        session: session
+        quiz: quizPayload,
+        session: sessionPayload
       })
     }
 
@@ -318,11 +363,12 @@ class QuizService {
       this.currentSession.responses.get(userId.toString())!.push(response)
     }
 
-    // Notify via socket
+    // Notify via socket - loại bỏ answer để khớp QuizResponsePublic
     if (this.socketService) {
+      const { answer: _omit, ...publicResponse } = response
       this.socketService.emit('quiz-response', {
         courseId: quiz.courseId,
-        response: { ...response, answer: undefined } // Don't broadcast the answer
+        response: publicResponse
       })
     }
 
@@ -389,48 +435,56 @@ class QuizService {
   private setupSocketListeners(): void {
     if (!this.socketService) return
 
-    this.socketService.on('quiz-started', (data: any) => {
-      this.emit('quiz-started', data)
+    this.socketService.on('quiz-started', (data) => {
+      // data: SocketEvents['quiz-started']
+      this.emit('quiz-started', data as InternalQuizStartedPayload)
     })
 
-    this.socketService.on('quiz-ended', (data: any) => {
+    this.socketService.on('quiz-ended', (data) => {
+      // data: SocketEvents['quiz-ended']
       this.emit('quiz-ended', data)
     })
 
-    this.socketService.on('quiz-next-question', (data: any) => {
-      this.emit('question-changed', data)
+    this.socketService.on('quiz-next-question', (data) => {
+      // data: SocketEvents['quiz-next-question']
+      const payload: InternalQuestionChangedPayload = {
+        questionIndex: data.questionIndex,
+        question: data.question
+      }
+      this.emit('question-changed', payload)
     })
 
-    this.socketService.on('quiz-response', (data: any) => {
-      this.emit('response-received', data.response)
+    this.socketService.on('quiz-response', (data) => {
+      // data: SocketEvents['quiz-response']
+      this.emit('response-received', data.response as InternalResponseReceivedPayload)
     })
   }
 
   // Event handling
-  on(event: string, callback: Function): void {
+  on<K extends keyof InternalEvents>(event: K, callback: (data: InternalEvents[K]) => void): void {
     if (!this.callbacks.has(event)) {
       this.callbacks.set(event, [])
     }
-    this.callbacks.get(event)!.push(callback)
+    this.callbacks.get(event)!.push(callback as unknown as (data: InternalEvents[keyof InternalEvents]) => void)
   }
 
-  off(event: string, callback: Function): void {
+  off<K extends keyof InternalEvents>(event: K, callback: (data: InternalEvents[K]) => void): void {
     if (this.callbacks.has(event)) {
       const callbacks = this.callbacks.get(event)!
-      const index = callbacks.indexOf(callback)
+      const index = callbacks.indexOf(callback as unknown as (data: InternalEvents[keyof InternalEvents]) => void)
       if (index > -1) {
         callbacks.splice(index, 1)
       }
     }
   }
 
-  private emit(event: string, data: any): void {
+  private emit<K extends keyof InternalEvents>(event: K, data: InternalEvents[K]): void {
     if (this.callbacks.has(event)) {
       this.callbacks.get(event)!.forEach(callback => {
         try {
-          callback(data)
+          ;(callback as (d: InternalEvents[K]) => void)(data)
         } catch (error) {
-          console.error(`Error in ${event} callback:`, error)
+          console.error(`Error in ${String(event)} callback:`, error)
         }
       })
     }

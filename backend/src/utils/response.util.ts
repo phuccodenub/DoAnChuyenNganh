@@ -1,41 +1,24 @@
 import { Response } from 'express';
 import { RESPONSE_CONSTANTS } from '../constants/response.constants';
+import type { ApiErrorItem, ApiResponse, PaginatedResponse, Pagination } from '../types/common.types';
 
 // Response utility functions
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data: T;
-  meta?: any;
-  errors?: any[];
-}
+export type { ApiErrorItem, ApiResponse, PaginatedResponse, Pagination } from '../types/common.types';
 
-export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-    nextPage?: number;
-    prevPage?: number;
-  };
-}
 
 export const responseUtils = {
   // Send success response
   sendSuccess<T>(
     res: Response,
     message: string = 'Success',
-    data: T = null as any,
+    data?: T,
     statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.OK,
-    meta?: any
+    meta?: Record<string, unknown>
   ): void {
     const response: ApiResponse<T> = {
       success: true,
       message,
-      data,
+      ...(data !== undefined && { data }),
       ...(meta && { meta })
     };
 
@@ -47,13 +30,12 @@ export const responseUtils = {
     res: Response,
     message: string = 'Error',
     statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.INTERNAL_SERVER_ERROR,
-    errors?: any[]
+    errors?: unknown[]
   ): void {
     const response: ApiResponse = {
       success: false,
       message,
-      data: null,
-      ...(errors && { errors })
+      ...(errors && { errors: this.formatValidationErrors(errors) })
     };
 
     res.status(statusCode).json(response);
@@ -63,7 +45,7 @@ export const responseUtils = {
   sendValidationError(
     res: Response,
     message: string = 'Validation failed',
-    errors: any[] = []
+    errors: unknown[] = []
   ): void {
     this.sendError(
       res,
@@ -125,16 +107,7 @@ export const responseUtils = {
   sendPaginated<T>(
     res: Response,
     data: T[],
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-      nextPage?: number;
-      prevPage?: number;
-    },
+    pagination: Pagination,
     message: string = 'Success',
     statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.OK
   ): void {
@@ -152,7 +125,7 @@ export const responseUtils = {
   sendCreated<T>(
     res: Response,
     message: string = 'Created successfully',
-    data: T = null as any
+    data?: T
   ): void {
     this.sendSuccess(
       res,
@@ -192,34 +165,29 @@ export const responseUtils = {
   },
 
   // Format error for response
-  formatError(error: any): {
-    message: string;
-    code?: string;
-    field?: string;
-    value?: any;
-  } {
+  formatError(error: unknown): ApiErrorItem {
     if (typeof error === 'string') {
       return { message: error };
     }
 
     if (error instanceof Error) {
-      return { message: (error as Error).message };
+      return { message: error.message };
     }
 
     if (error && typeof error === 'object') {
-      return {
-        message: (error as Error).message || 'Unknown error',
-        code: (error as any).code,
-        field: error.field,
-        value: error.value
-      };
+      const obj = error as Record<string, unknown>;
+      const message = typeof obj.message === 'string' ? obj.message : 'Unknown error';
+      const code = typeof obj.code === 'string' ? obj.code : undefined;
+      const field = typeof obj.field === 'string' ? obj.field : undefined;
+      const value = Object.prototype.hasOwnProperty.call(obj, 'value') ? obj.value : undefined;
+      return { message, code, field, value };
     }
 
     return { message: 'Unknown error' };
   },
 
   // Format validation errors
-  formatValidationErrors(errors: any[]): any[] {
+  formatValidationErrors(errors: unknown[]): ApiErrorItem[] {
     return errors.map(error => this.formatError(error));
   },
 
@@ -228,13 +196,13 @@ export const responseUtils = {
     res: Response,
     statusCode: number,
     message: string,
-    data: T = null as any,
+    data?: T,
     success: boolean = true
   ): void {
     const response: ApiResponse<T> = {
       success,
       message,
-      data
+      ...(data !== undefined && { data })
     };
 
     res.status(statusCode).json(response);
@@ -251,17 +219,17 @@ export const responseUtils = {
   },
 
   // Extract data from response
-  getResponseData<T>(response: ApiResponse<T>): T {
+  getResponseData<T>(response: ApiResponse<T>): T | undefined {
     return response.data;
   },
 
   // Alias for backward compatibility
   success: function<T>(
     res: Response,
-    data: T = null as any,
+    data?: T,
     message: string = 'Success',
     statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.OK,
-    meta?: any
+    meta?: Record<string, unknown>
   ): void {
     return this.sendSuccess(res, message, data, statusCode, meta);
   },
@@ -271,7 +239,7 @@ export const responseUtils = {
     res: Response,
     message: string = 'Error',
     statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.INTERNAL_SERVER_ERROR,
-    errors?: any[]
+    errors?: unknown[]
   ): void {
     return this.sendError(res, message, statusCode, errors);
   }

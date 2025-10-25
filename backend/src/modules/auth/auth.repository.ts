@@ -1,8 +1,9 @@
 import User from '../../models/user.model';
-import { UserInstance } from '../../types/model.types';
+import { UserInstance, UserCreationAttributes } from '../../types/model.types';
 import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
 import { RegisterData } from './auth.types';
 import logger from '../../utils/logger.util';
+import { hashPassword } from '../../utils';
 
 export class AuthRepository extends BaseUserRepository {
   constructor() {
@@ -37,9 +38,19 @@ export class AuthRepository extends BaseUserRepository {
   async createUserForAuth(userData: RegisterData): Promise<UserInstance> {
     try {
       logger.debug('Creating user for authentication', { email: userData.email });
-      
-      const user = await this.create(userData);
-      
+
+      const creation: UserCreationAttributes = {
+        email: userData.email.toLowerCase(),
+        password_hash: await hashPassword(userData.password),
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        phone: userData.phone,
+        role: userData.role ?? 'student',
+        status: 'pending'
+      };
+
+      const user = await this.create(creation);
+
       logger.debug('User created for authentication', { email: userData.email, userId: user.id });
       return user;
     } catch (error: unknown) {
@@ -101,7 +112,7 @@ export class AuthRepository extends BaseUserRepository {
       }
       
       const updatedUser = await this.update(userId, {
-        token_version: (user as any).token_version + 1
+        token_version: user.token_version + 1
       });
       
       logger.debug('Token version updated', { userId });

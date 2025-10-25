@@ -1,17 +1,28 @@
 import { Assignment, AssignmentSubmission, User, Course } from '../../models';
-import { Op } from 'sequelize';
+import type { ModelStatic, WhereOptions } from 'sequelize';
+import type {
+  AssignmentInstance,
+  AssignmentCreationAttributes,
+  AssignmentAttributes,
+  AssignmentSubmissionInstance,
+  AssignmentSubmissionCreationAttributes,
+  AssignmentSubmissionAttributes
+} from '../../types/model.types';
 
 export class AssignmentRepository {
+  private readonly AssignmentModel = Assignment as unknown as ModelStatic<AssignmentInstance>;
+  private readonly AssignmentSubmissionModel = AssignmentSubmission as unknown as ModelStatic<AssignmentSubmissionInstance>;
+
   // ===================================
   // ASSIGNMENT CRUD
   // ===================================
 
-  async createAssignment(data: any) {
-    return await Assignment.create(data);
+  async createAssignment(data: AssignmentCreationAttributes): Promise<AssignmentInstance> {
+    return this.AssignmentModel.create(data);
   }
 
-  async getAssignmentById(id: string) {
-    return await Assignment.findByPk(id, {
+  async getAssignmentById(id: string): Promise<AssignmentInstance | null> {
+    return this.AssignmentModel.findByPk(id, {
       include: [
         {
           model: Course,
@@ -22,23 +33,23 @@ export class AssignmentRepository {
     });
   }
 
-  async updateAssignment(assignmentId: string, data: any) {
-    await Assignment.update(data, { where: { id: assignmentId } });
-    return await this.getAssignmentById(assignmentId);
+  async updateAssignment(assignmentId: string, data: Partial<AssignmentAttributes>): Promise<AssignmentInstance | null> {
+    await this.AssignmentModel.update(data, { where: { id: assignmentId } as WhereOptions<AssignmentAttributes> });
+    return this.getAssignmentById(assignmentId);
   }
 
-  async deleteAssignment(assignmentId: string) {
-    return await Assignment.destroy({ where: { id: assignmentId } });
+  async deleteAssignment(assignmentId: string): Promise<number> {
+    return this.AssignmentModel.destroy({ where: { id: assignmentId } as WhereOptions<AssignmentAttributes> });
   }
 
-  async getCourseAssignments(courseId: string, includeUnpublished: boolean = false) {
-    const whereClause: any = { course_id: courseId };
+  async getCourseAssignments(courseId: string, includeUnpublished: boolean = false): Promise<AssignmentInstance[]> {
+    const whereClause: WhereOptions<AssignmentAttributes> = { course_id: courseId };
     
     if (!includeUnpublished) {
       whereClause.is_published = true;
     }
 
-    return await Assignment.findAll({
+    return this.AssignmentModel.findAll({
       where: whereClause,
       order: [['due_date', 'ASC'], ['created_at', 'DESC']],
       include: [
@@ -55,8 +66,8 @@ export class AssignmentRepository {
   // SUBMISSION CRUD
   // ===================================
 
-  async submit(assignmentId: string, userId: string, data: any) {
-    return await AssignmentSubmission.create({ 
+  async submit(assignmentId: string, userId: string, data: Partial<AssignmentSubmissionCreationAttributes>): Promise<AssignmentSubmissionInstance> {
+    return this.AssignmentSubmissionModel.create({ 
       assignment_id: assignmentId, 
       user_id: userId, 
       submitted_at: new Date(),
@@ -65,24 +76,24 @@ export class AssignmentRepository {
     });
   }
 
-  async getSubmissionById(submissionId: string) {
-    return await AssignmentSubmission.findByPk(submissionId);
+  async getSubmissionById(submissionId: string): Promise<AssignmentSubmissionInstance | null> {
+    return this.AssignmentSubmissionModel.findByPk(submissionId);
   }
 
-  async updateSubmission(submissionId: string, data: any) {
-    await AssignmentSubmission.update(
+  async updateSubmission(submissionId: string, data: Partial<AssignmentSubmissionAttributes>): Promise<AssignmentSubmissionInstance | null> {
+    await this.AssignmentSubmissionModel.update(
       { ...data, submitted_at: new Date() },
-      { where: { id: submissionId } }
+      { where: { id: submissionId } as WhereOptions<AssignmentSubmissionAttributes> }
     );
-    return await this.getSubmissionById(submissionId);
+    return this.getSubmissionById(submissionId);
   }
 
-  async getUserSubmission(assignmentId: string, userId: string) {
-    return await AssignmentSubmission.findOne({
+  async getUserSubmission(assignmentId: string, userId: string): Promise<AssignmentSubmissionInstance | null> {
+    return this.AssignmentSubmissionModel.findOne({
       where: {
         assignment_id: assignmentId,
         user_id: userId
-      },
+      } as WhereOptions<AssignmentSubmissionAttributes>,
       include: [
         {
           model: Assignment,
@@ -93,8 +104,8 @@ export class AssignmentRepository {
     });
   }
 
-  async getSubmissionWithDetails(submissionId: string) {
-    return await AssignmentSubmission.findByPk(submissionId, {
+  async getSubmissionWithDetails(submissionId: string): Promise<AssignmentSubmissionInstance | null> {
+    return this.AssignmentSubmissionModel.findByPk(submissionId, {
       include: [
         {
           model: Assignment,
@@ -119,8 +130,8 @@ export class AssignmentRepository {
   // GRADING
   // ===================================
 
-  async grade(submissionId: string, data: { score?: number; feedback?: string; graded_by: string }) {
-    const submission = await AssignmentSubmission.findByPk(submissionId);
+  async grade(submissionId: string, data: { score?: number; feedback?: string; graded_by: string }): Promise<AssignmentSubmissionInstance | null> {
+    const submission = await this.AssignmentSubmissionModel.findByPk(submissionId);
     if (!submission) return null;
 
     await submission.update({
@@ -131,18 +142,18 @@ export class AssignmentRepository {
       graded_at: new Date()
     });
 
-    return await this.getSubmissionWithDetails(submissionId);
+    return this.getSubmissionWithDetails(submissionId);
   }
 
   // ===================================
   // INSTRUCTOR FEATURES
   // ===================================
 
-  async getAssignmentSubmissions(assignmentId: string, page: number = 1, limit: number = 20) {
+  async getAssignmentSubmissions(assignmentId: string, page: number = 1, limit: number = 20): Promise<{ rows: AssignmentSubmissionInstance[]; count: number }> {
     const offset = (page - 1) * limit;
     
-    return await AssignmentSubmission.findAndCountAll({
-      where: { assignment_id: assignmentId },
+    return this.AssignmentSubmissionModel.findAndCountAll({
+      where: { assignment_id: assignmentId } as WhereOptions<AssignmentSubmissionAttributes>,
       include: [
         {
           model: User,
@@ -161,53 +172,59 @@ export class AssignmentRepository {
     });
   }
 
-  async getAssignmentStatistics(assignmentId: string) {
-    const totalSubmissions = await AssignmentSubmission.count({
-      where: { assignment_id: assignmentId }
+  async getAssignmentStatistics(assignmentId: string): Promise<{
+    total_submissions: number;
+    graded_submissions: number;
+    pending_submissions: number;
+    average_score: number;
+    late_submissions: number;
+    grading_progress: number;
+  }> {
+    const totalSubmissions = await this.AssignmentSubmissionModel.count({
+      where: { assignment_id: assignmentId } as WhereOptions<AssignmentSubmissionAttributes>
     });
 
-    const gradedSubmissions = await AssignmentSubmission.count({
+    const gradedSubmissions = await this.AssignmentSubmissionModel.count({
       where: { 
         assignment_id: assignmentId,
         status: 'graded'
-      }
+      } as WhereOptions<AssignmentSubmissionAttributes>
     });
 
-    const averageScore = await AssignmentSubmission.findOne({
-      where: { 
+    const averageScore = await this.AssignmentSubmissionModel.findOne({
+      where: {
         assignment_id: assignmentId,
-        status: 'graded',
-        score: { [Op.not]: null }
-      },
+        status: 'graded'
+      } as WhereOptions<AssignmentSubmissionAttributes>,
       attributes: [
         [Assignment.sequelize!.fn('AVG', Assignment.sequelize!.col('score')), 'average_score']
       ],
       raw: true
-    });
+    }) as { average_score: string | null } | null;
 
-    const lateSubmissions = await AssignmentSubmission.count({
+    const lateSubmissions = await this.AssignmentSubmissionModel.count({
       where: { 
         assignment_id: assignmentId,
         is_late: true
-      }
+      } as WhereOptions<AssignmentSubmissionAttributes>
     });
 
     return {
       total_submissions: totalSubmissions,
       graded_submissions: gradedSubmissions,
       pending_submissions: totalSubmissions - gradedSubmissions,
-      average_score: parseFloat((averageScore as any)?.average_score || '0'),
+      average_score: parseFloat(averageScore?.average_score || '0'),
       late_submissions: lateSubmissions,
       grading_progress: totalSubmissions > 0 ? (gradedSubmissions / totalSubmissions) * 100 : 0
     };
   }
 
-  async getStudentAssignments(courseId: string, userId: string) {
-    return await Assignment.findAll({
+  async getStudentAssignments(courseId: string, userId: string): Promise<AssignmentInstance[]> {
+    return this.AssignmentModel.findAll({
       where: {
         course_id: courseId,
         is_published: true
-      },
+      } as WhereOptions<AssignmentAttributes>,
       include: [
         {
           model: AssignmentSubmission,

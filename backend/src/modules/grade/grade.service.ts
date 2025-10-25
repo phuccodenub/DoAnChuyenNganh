@@ -3,6 +3,7 @@ import { UpsertFinalGradeDto, UpsertGradeDto, CreateGradeComponentDto } from './
 import { ApiError } from '../../errors/api.error';
 import { AuthorizationError } from '../../errors/authorization.error';
 import logger from '../../utils/logger.util';
+import { CourseInstance, EnrollmentInstance, GradeInstance } from '../../types/model.types';
 
 export class GradeService {
   private repo: GradeRepository;
@@ -96,11 +97,15 @@ export class GradeService {
         throw new ApiError(`Score must be between 0 and ${component.max_score}`, 400);
       }
 
-      const grade = await this.repo.upsertGrade({ 
-        ...dto, 
+      const grade = await this.repo.upsertGrade({
+        user_id: dto.user_id,
         course_id: component.course_id,
-        graded_by: instructorId, 
-        graded_at: new Date() 
+        component_id: dto.grade_component_id,
+        score: dto.score,
+        max_score: component.max_score,
+        graded_by: instructorId,
+        graded_at: new Date(),
+        feedback: dto.notes
       });
 
       logger.info(`Grade upserted for user ${dto.user_id} in component ${dto.grade_component_id}`);
@@ -144,15 +149,15 @@ export class GradeService {
   async calculateAndUpdateFinalGrade(userId: string, courseId: string) {
     try {
       const components = await this.repo.getCourseGradeComponents(courseId);
-      const userGrades = await this.repo.getGradesByUserCourse(userId, courseId);
+      const userGrades = await this.repo.getGradesByUserCourse(userId, courseId) as GradeInstance[];
 
       let totalWeightedScore = 0;
       let totalWeight = 0;
       let hasAllRequiredGrades = true;
 
       for (const component of components) {
-const grade = userGrades.find((g: any) => g.grade_component_id === component.id);
-        
+        const grade = userGrades.find((g) => g.component_id === component.id);
+
         if (grade) {
           const percentage = (grade.score / component.max_score) * 100;
           totalWeightedScore += percentage * component.weight;
@@ -241,7 +246,7 @@ const grade = userGrades.find((g: any) => g.grade_component_id === component.id)
     try {
       await this.verifyInstructorAccess(courseId, instructorId);
       
-      const enrollments = await this.repo.getCourseEnrollments(courseId);
+      const enrollments = await this.repo.getCourseEnrollments(courseId) as EnrollmentInstance[];
       const results = [];
 
       for (const enrollment of enrollments) {
@@ -267,7 +272,7 @@ const grade = userGrades.find((g: any) => g.grade_component_id === component.id)
 
   private async verifyInstructorAccess(courseId: string, userId: string) {
     const { Course } = await import('../../models');
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findByPk(courseId) as CourseInstance | null;
     
     if (!course) {
       throw new ApiError('Course not found', 404);

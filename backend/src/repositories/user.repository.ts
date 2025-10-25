@@ -1,7 +1,8 @@
 import User from '../models/user.model';
-import { UserInstance } from '../types/model.types';
+import { UserInstance, UserCreationAttributes } from '../types/model.types';
 import { BaseRepository } from './base.repository';
 import logger from '../utils/logger.util';
+import { FindOptions, ModelStatic } from 'sequelize';
 
 export class UserRepository extends BaseRepository<UserInstance> {
   constructor() {
@@ -11,8 +12,8 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Get the User model
    */
-  protected getModel() {
-    return User;
+  protected getModel(): ModelStatic<UserInstance> {
+    return User as unknown as ModelStatic<UserInstance>;
   }
 
   /**
@@ -90,7 +91,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Find users by role
    */
-  async findByRole(role: string, options?: any): Promise<UserInstance[]> {
+  async findByRole(role: string, options?: FindOptions): Promise<UserInstance[]> {
     try {
       logger.debug('Finding users by role', { role });
       
@@ -110,7 +111,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Find users by status
    */
-  async findByStatus(status: string, options?: any): Promise<UserInstance[]> {
+  async findByStatus(status: string, options?: FindOptions): Promise<UserInstance[]> {
     try {
       logger.debug('Finding users by status', { status });
       
@@ -130,7 +131,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Find users by department (for instructors)
    */
-  async findByDepartment(department: string, options?: any): Promise<UserInstance[]> {
+  async findByDepartment(department: string, options?: FindOptions): Promise<UserInstance[]> {
     try {
       logger.debug('Finding users by department', { department });
       
@@ -150,7 +151,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Find users by major (for students)
    */
-  async findByMajor(major: string, options?: any): Promise<UserInstance[]> {
+  async findByMajor(major: string, options?: FindOptions): Promise<UserInstance[]> {
     try {
       logger.debug('Finding users by major', { major });
       
@@ -170,7 +171,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Find users by class (for students)
    */
-  async findByClass(className: string, options?: any): Promise<UserInstance[]> {
+  async findByClass(className: string, options?: FindOptions): Promise<UserInstance[]> {
     try {
       logger.debug('Finding users by class', { className });
       
@@ -190,7 +191,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Find users by year (for students)
    */
-  async findByYear(year: number, options?: any): Promise<UserInstance[]> {
+  async findByYear(year: number, options?: FindOptions): Promise<UserInstance[]> {
     try {
       logger.debug('Finding users by year', { year });
       
@@ -210,7 +211,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Search users by name or email
    */
-  async searchUsers(searchTerm: string, options?: any): Promise<UserInstance[]> {
+  async searchUsers(searchTerm: string, options?: FindOptions): Promise<UserInstance[]> {
     try {
       logger.debug('Searching users', { searchTerm });
       
@@ -299,7 +300,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   /**
    * Get users by role with pagination
    */
-  async getUsersByRoleWithPagination(role: string, page: number, limit: number, options?: any): Promise<{
+  async getUsersByRoleWithPagination(role: string, page: number, limit: number, options?: FindOptions): Promise<{
     data: UserInstance[];
     pagination: {
       page: number;
@@ -421,11 +422,11 @@ const userRepository = new UserRepository();
 
 export const findUserById = (id: string) => userRepository.findById(id);
 export const findUserByEmail = (email: string) => userRepository.findByEmail(email);
-export const createUser = (userData: any) => userRepository.create(userData);
-export const updateUser = (id: string, updateData: any) => userRepository.update(id, updateData);
+export const createUser = (userData: UserCreationAttributes | Partial<UserCreationAttributes>) => userRepository.create(userData as UserCreationAttributes);
+export const updateUser = (id: string, updateData: Partial<UserCreationAttributes> | Record<string, unknown>) => userRepository.update(id, updateData);
 export const deleteUser = (id: string) => userRepository.delete(id);
-export const findAllUsers = (options: any) => userRepository.paginate(options.page || 1, options.limit || 10, options);
-export const findUsersByRole = (role: string) => userRepository.findByRole(role);
+export const findAllUsers = (options: ({ page?: number; limit?: number } & FindOptions)) => userRepository.paginate(options.page ?? 1, options.limit ?? 10, options);
+export const findUsersByRole = (role: string, options?: FindOptions) => userRepository.findByRole(role, options);
 export const getUserStatistics = () => userRepository.getUserStats();
 
 export default userRepository;

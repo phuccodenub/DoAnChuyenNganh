@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { GradeComponentAttributes, GradeComponentCreationAttributes, GradeComponentInstance } from '../types/model.types';
+import { GradeComponentInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -39,7 +40,8 @@ const GradeComponent = sequelize.define('GradeComponent', {
   ]
 });
 
-export default GradeComponent as any;
+const GradeComponentModel = GradeComponent as unknown as ModelStatic<GradeComponentInstance>;
+export default exportModel(GradeComponentModel);
 
 
 

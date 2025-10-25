@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { NotificationsService } from './notifications.service';
+import { QueryNotificationsDto } from './notifications.types';
 import { responseUtils } from '../../utils/response.util';
 
 export class NotificationsController {
@@ -22,7 +23,27 @@ export class NotificationsController {
   myNotifications = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.userId;
-      const data = await this.service.getMyNotifications(userId, req.query as any);
+      const raw = req.query as Record<string, unknown>;
+      const query: QueryNotificationsDto = {
+        category: typeof raw.category === 'string' ? raw.category : undefined,
+        priority:
+          typeof raw.priority === 'string' && ['low', 'normal', 'high', 'urgent'].includes(raw.priority as string)
+            ? (raw.priority as QueryNotificationsDto['priority'])
+            : undefined,
+        limit:
+          typeof raw.limit === 'string'
+            ? parseInt(raw.limit as string, 10)
+            : typeof raw.limit === 'number'
+              ? (raw.limit as number)
+              : undefined,
+        offset:
+          typeof raw.offset === 'string'
+            ? parseInt(raw.offset as string, 10)
+            : typeof raw.offset === 'number'
+              ? (raw.offset as number)
+              : undefined,
+      };
+      const data = await this.service.getMyNotifications(userId, query);
       return responseUtils.success(res, data, 'Notifications retrieved');
     } catch (error: unknown) {
       next(error);
@@ -60,6 +81,10 @@ export class NotificationsController {
     }
   };
 }
+
+
+
+
 
 
 

@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { CourseStatisticsAttributes, CourseStatisticsCreationAttributes, CourseStatisticsInstance } from '../types/model.types';
+import { CourseStatisticsInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -40,7 +41,8 @@ const CourseStatistics = sequelize.define('CourseStatistics', {
   ]
 });
 
-export default CourseStatistics as any;
+const CourseStatisticsModel = CourseStatistics as unknown as ModelStatic<CourseStatisticsInstance>;
+export default exportModel(CourseStatisticsModel);
 
 
 

@@ -160,7 +160,7 @@ export class MetricsController {
       const metrics = this.metricsService.getMetrics(name);
       
       if (metrics.length === 0) {
-        responseUtils.sendError(res, `Metric '${name}' not found`, 404);
+        responseUtils.sendNotFound(res, `Metric '${name}' not found`);
         return;
       }
       responseUtils.sendSuccess(res, `Metric '${name}' retrieved`, metrics);

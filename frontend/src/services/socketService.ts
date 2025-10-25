@@ -23,12 +23,103 @@ export interface OnlineUser {
   avatar_url?: string
   status: 'online' | 'away' | 'offline'
 }
+/**
+ * Typed event map cho socket on/off/emit
+ * Kèm theo một số payload tối thiểu để tránh vòng phụ thuộc
+ */
+
+// Lightweight payload types to tránh circular deps với quizService
+type QuizQuestionPayload = {
+  id: string;
+  question: string;
+  type: 'multiple-choice' | 'true-false' | 'short-answer' | 'essay';
+  options?: string[];
+  points: number;
+  timeLimit?: number;
+};
+
+type QuizPayload = {
+  id: string;
+  title: string;
+  courseId: string;
+  questions: QuizQuestionPayload[];
+};
+
+type LiveQuizSessionPayload = {
+  quizId: string;
+  courseId: string;
+  currentQuestionIndex: number;
+  timeRemaining?: number;
+};
+
+type QuizResponsePublic = {
+  id: string;
+  quizId: string;
+  questionId: string;
+  userId: number;
+  isCorrect?: boolean;
+  pointsEarned: number;
+  timeSpent: number;
+  submittedAt: string;
+};
+
+export type SocketEvents = {
+  // Chat events (incoming)
+  'message-received': ChatMessage;
+  'new-message': ChatMessage;
+
+  // Presence (incoming)
+  'user-joined': OnlineUser;
+  'user-left': number;
+  'online-users': OnlineUser[];
+
+  // Chat/course actions (outgoing)
+  'send-message': ChatMessage;
+  'join-course': { courseId: string };
+  'leave-course': { courseId: string };
+
+  // Live stream control (outgoing)
+  'start-livestream': { courseId?: string; streamId: string };
+  'join-livestream': { courseId?: string };
+  'end-livestream': { courseId?: string };
+
+  // Live stream status (incoming)
+  'livestream-started': { courseId: string; instructorName: string; streamId: string };
+  'livestream-ended': { courseId: string };
+
+  // WebRTC signaling (bi-directional)
+  'webrtc-offer': { offer: RTCSessionDescriptionInit; courseId?: string; to?: string; from?: string };
+  'webrtc-answer': { answer: RTCSessionDescriptionInit; courseId?: string; to?: string; from?: string };
+  'ice-candidate': { candidate: RTCIceCandidateInit; courseId?: string; to?: string; from?: string };
+
+  // Participant events (incoming)
+  'participant-joined-stream': { participantId: string };
+  'participant-left-stream': { participantId: string };
+
+  // Quiz control (outgoing)
+  'start-quiz': { courseId: string; quizId: string; quiz: QuizPayload; session: LiveQuizSessionPayload };
+  'end-quiz': { courseId: string; quizId: string };
+  'quiz-next-question': {
+    courseId: string;
+    quizId: string;
+    questionIndex: number;
+    question: QuizQuestionPayload;
+    timeRemaining?: number;
+  };
+  'quiz-response': { courseId: string; response: QuizResponsePublic };
+
+  // Quiz status (incoming)
+  'quiz-started': { courseId: string; quiz: QuizPayload; session: LiveQuizSessionPayload };
+  'quiz-ended': { courseId: string; quizId: string };
+  // 'quiz-next-question' và 'quiz-response' dùng 2 chiều đã được định nghĩa phía trên
+};
 
 class SocketService {
   private socket: Socket | null = null
   private currentUser: User | null = null
   private currentCourse: string | null = null
-  private callbacks: Map<string, Function[]> = new Map()
+  private callbacks: Map<keyof SocketEvents, Function[]> = new Map()
+  private listenerWrappers: Map<string, Map<Function, (data: unknown) => void>> = new Map()
 
   connect(user: User): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -195,35 +286,50 @@ class SocketService {
   }
 
   // Generic event handling for notification service
-  on(event: string, callback: Function): void {
+  on<K extends keyof SocketEvents>(event: K, callback: (data: SocketEvents[K]) => void): void {
+    const eventKey = event as string
     if (!this.callbacks.has(event)) {
       this.callbacks.set(event, [])
     }
-    this.callbacks.get(event)!.push(callback)
+    this.callbacks.get(event)!.push(callback as unknown as Function)
 
     // Set up socket listener if connected
     if (this.socket) {
-      this.socket.on(event, callback as any)
+      const listener = (data: unknown) => callback(data as SocketEvents[K])
+      let map = this.listenerWrappers.get(eventKey)
+      if (!map) {
+        map = new Map()
+        this.listenerWrappers.set(eventKey, map)
+      }
+      map.set(callback as unknown as Function, listener)
+      this.socket.on(eventKey, listener)
     }
   }
 
-  off(event: string, callback: Function): void {
+  off<K extends keyof SocketEvents>(event: K, callback: (data: SocketEvents[K]) => void): void {
+    const eventKey = event as string
     if (this.callbacks.has(event)) {
       const callbacks = this.callbacks.get(event)!
-      const index = callbacks.indexOf(callback)
+      const index = callbacks.indexOf(callback as unknown as Function)
       if (index > -1) {
         callbacks.splice(index, 1)
       }
     }
 
     if (this.socket) {
-      this.socket.off(event, callback as any)
+      const map = this.listenerWrappers.get(eventKey)
+      const listener = map?.get(callback as unknown as Function)
+      if (listener) {
+        this.socket.off(eventKey, listener)
+        map!.delete(callback as unknown as Function)
+      }
     }
   }
 
-  emit(event: string, data: any): void {
+  emit<K extends keyof SocketEvents>(event: K, data: SocketEvents[K]): void {
+    const eventKey = event as string
     if (this.socket?.connected) {
-      this.socket.emit(event, data)
+      this.socket.emit(eventKey, data)
     }
   }
 

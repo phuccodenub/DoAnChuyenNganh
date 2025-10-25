@@ -211,3 +211,251 @@ Model có nhưng DB không có:
 - [ ] D) Tạm thời OK, để sau
 
 **Trả lời của bạn:** ___________
+
+---
+
+# 📋 PHÂN TÍCH CHI TIẾT USER MODEL vs USERS TABLE
+
+## 🎯 TỔNG QUAN XUNG ĐỘT
+
+**Tình trạng:** 🔴 **NGHIÊM TRỌNG** - Ảnh hưởng đến bảo mật và chức năng hệ thống
+
+**Các vấn đề chính:**
+1. **Xung đột tên field** (4 trường quan trọng)
+2. **Thiếu field bảo mật** (7 trường)
+3. **Thiếu field chức năng** (6 trường)
+4. **Thừa field không cần thiết** (10 trường)
+
+---
+
+## 📊 BẢNG SO SÁNH CHI TIẾT
+
+### ✅ KHỚP HOÀN HẢO (8 fields)
+| Field | Model | Database | Trạng thái |
+|-------|-------|----------|------------|
+| `id` | UUID, PK | UUID, PK | ✅ OK |
+| `email` | VARCHAR(255), unique | VARCHAR(255), unique | ✅ OK |
+| `first_name` | VARCHAR(100), not null | VARCHAR(100), not null | ✅ OK |
+| `last_name` | VARCHAR(100), not null | VARCHAR(100), not null | ✅ OK |
+| `phone` | VARCHAR(20), nullable | VARCHAR(20), nullable, unique | ⚠️ DB có unique |
+| `bio` | TEXT, nullable | TEXT, nullable | ✅ OK |
+| `avatar` | TEXT, nullable | VARCHAR(500), nullable | ⚠️ Kiểu khác |
+| `role` | ENUM, default: student | ENUM, default: student | ✅ OK |
+| `status` | ENUM, default: active | ENUM, default: pending | ⚠️ Default khác |
+
+### ❌ XUNG ĐỘT TÊN FIELD (4 fields)
+| Model Field | Database Field | Mức độ nghiêm trọng | Ảnh hưởng |
+|-------------|----------------|-------------------|-----------|
+| `password_hash` | `password` | 🔴 **CAO** | Auth không hoạt động |
+| `email_verified` | ❌ Không có | 🟡 **TRUNG BÌNH** | Logic xác thực sai |
+| `email_verified_at` | `email_verified_at` | ✅ **OK** | Có trong cả 2 |
+| ❌ Không có | `email_verified` | 🔴 **CAO** | Không kiểm tra được trạng thái xác thực |
+
+### ❌ THIẾU TRONG MODEL (13 fields)
+| Field | Kiểu dữ liệu | Mức độ quan trọng | Lý do cần thiết |
+|-------|--------------|------------------|----------------|
+| `username` | VARCHAR(50), unique | 🔴 **CAO** | Đăng nhập bằng username |
+| `email_verification_token` | VARCHAR(255) | 🔴 **CAO** | Xác thực email |
+| `email_verification_expires` | DATE | 🔴 **CAO** | Hạn token xác thực |
+| `password_reset_token` | VARCHAR(255) | 🟡 **TRUNG BÌNH** | Reset mật khẩu |
+| `password_reset_expires` | DATE | 🟡 **TRUNG BÌNH** | Hạn token reset |
+| `two_factor_enabled` | BOOLEAN, default: false | 🔴 **CAO** | Bảo mật 2FA |
+| `two_factor_secret` | VARCHAR(255) | 🔴 **CAO** | Secret cho 2FA |
+| `two_factor_backup_codes` | JSON | 🟡 **TRUNG BÌNH** | Backup codes cho 2FA |
+| `login_attempts` | INTEGER, default: 0 | 🔴 **CAO** | Chống brute force |
+| `lockout_until` | DATE | 🔴 **CAO** | Khóa tài khoản tạm thời |
+| `social_id` | VARCHAR(255), unique | 🟡 **TRUNG BÌNH** | Đăng nhập mạng xã hội |
+| `social_provider` | VARCHAR(50) | 🟡 **TRUNG BÌNH** | Nhà cung cấp OAuth |
+| `preferences` | JSON | 🟡 **TRUNG BÌNH** | Tùy chỉnh người dùng |
+| `metadata` | JSON | 🟡 **TRUNG BÌNH** | Thông tin bổ sung |
+
+### ❌ THỪA TRONG MODEL (10 fields)
+| Field | Kiểu dữ liệu | Khuyến nghị | Lý do không cần |
+|-------|--------------|-------------|----------------|
+| `student_id` | VARCHAR(20) | ❌ **XÓA** | Thông tin học thuật, không cần thiết |
+| `class` | VARCHAR(50) | ❌ **XÓA** | Thông tin học thuật |
+| `major` | VARCHAR(100) | ❌ **XÓA** | Thông tin học thuật |
+| `year` | INTEGER | ❌ **XÓA** | Thông tin học thuật |
+| `gpa` | DECIMAL(3,2) | ❌ **XÓA** | Thông tin học thuật |
+| `instructor_id` | VARCHAR(20) | ❌ **XÓA** | Thông tin chuyên môn |
+| `department` | VARCHAR(100) | ❌ **XÓA** | Thông tin chuyên môn |
+| `specialization` | VARCHAR(200) | ❌ **XÓA** | Thông tin chuyên môn |
+| `experience_years` | INTEGER | ❌ **XÓA** | Thông tin chuyên môn |
+| `education_level` | ENUM | ❌ **XÓA** | Thông tin chuyên môn |
+| `research_interests` | TEXT | ❌ **XÓA** | Thông tin chuyên môn |
+| `date_of_birth` | DATEONLY | ❌ **XÓA** | Thông tin cá nhân |
+| `gender` | ENUM | ❌ **XÓA** | Thông tin cá nhân |
+| `address` | TEXT | ❌ **XÓA** | Thông tin cá nhân |
+| `emergency_contact` | VARCHAR(100) | ❌ **XÓA** | Thông tin cá nhân |
+| `emergency_phone` | VARCHAR(20) | ❌ **XÓA** | Thông tin cá nhân |
+
+---
+
+## 🚨 VẤN ĐỀ NGHIÊM TRỌNG NHẤT
+
+### 1. **XUNG ĐỘT AUTHENTICATION**
+```typescript
+// Model hiện tại
+password_hash: string  // ❌ SAI - không tồn tại trong DB
+email_verified: boolean // ❌ SAI - không tồn tại trong DB
+
+// Database thực tế
+password: string       // ✅ ĐÚNG - field thực tế
+email_verified: boolean // ✅ ĐÚNG - field thực tế
+```
+
+**Ảnh hưởng:**
+- ❌ Không thể đăng nhập được (password_hash không có trong DB)
+- ❌ Không kiểm tra được trạng thái xác thực email
+- ❌ Logic xác thực hoàn toàn sai
+
+### 2. **THIẾU TÍNH NĂNG BẢO MẬT**
+- ❌ Không có 2FA (two_factor_enabled, two_factor_secret)
+- ❌ Không có chống brute force (login_attempts, lockout_until)
+- ❌ Không có xác thực email (email_verification_token, email_verification_expires)
+- ❌ Không có reset mật khẩu (password_reset_token, password_reset_expires)
+
+### 3. **THIẾU TÍNH NĂNG CƠ BẢN**
+- ❌ Không có username (đăng nhập bằng username)
+- ❌ Không có social login (social_id, social_provider)
+- ❌ Không có tùy chỉnh người dùng (preferences)
+
+---
+
+## 🎯 KHUYẾN NGHỊ KHẮC PHỤC
+
+### **PHASE 1: KHẮC PHỤC NGAY (Ưu tiên cao nhất)**
+
+#### 1. **Sửa Xung Đột Tên Field**
+```typescript
+// Thay đổi trong User model
+- password_hash → password
+- Thêm email_verified field
+- Xóa email_verified field hiện tại (nếu có)
+```
+
+#### 2. **Thêm Field Bảo Mật Thiếu**
+```typescript
+// Các field BẮT BUỘC phải thêm
++ username: VARCHAR(50), unique
++ email_verification_token: VARCHAR(255)
++ email_verification_expires: DATE
++ two_factor_enabled: BOOLEAN, default: false
++ two_factor_secret: VARCHAR(255)
++ login_attempts: INTEGER, default: 0
++ lockout_until: DATE
+```
+
+#### 3. **Tạo Migration Cập Nhật**
+```javascript
+// Migration để đồng bộ model với database
+await queryInterface.renameColumn('users', 'password_hash', 'password');
+await queryInterface.addColumn('users', 'username', { ... });
+await queryInterface.addColumn('users', 'email_verification_token', { ... });
+// ... các field còn lại
+```
+
+### **PHASE 2: CẢI THIỆN CHỨC NĂNG (Ưu tiên trung bình)**
+
+#### 1. **Thêm Field Chức Năng**
+```typescript
+// Các field nên có
++ password_reset_token: VARCHAR(255)
++ password_reset_expires: DATE
++ two_factor_backup_codes: JSON
++ social_id: VARCHAR(255), unique
++ social_provider: VARCHAR(50)
++ preferences: JSON
++ metadata: JSON
+```
+
+#### 2. **Xóa Field Thừa**
+```typescript
+// Xóa các field không cần thiết
+- student_id
+- class, major, year, gpa
+- instructor_id, department, specialization, experience_years, education_level, research_interests
+- date_of_birth, gender, address, emergency_contact, emergency_phone
+```
+
+### **PHASE 3: KIỂM TRA VÀ TEST**
+
+#### 1. **Kiểm tra Authentication Flow**
+- Đăng nhập với password
+- Xác thực email
+- Reset mật khẩu
+- 2FA (nếu có)
+
+#### 2. **Kiểm tra Database Constraints**
+- Unique constraints cho username, phone, social_id
+- Foreign key constraints
+- Index cho performance
+
+---
+
+## 📈 TÁC ĐỘNG NẾU KHÔNG SỬA
+
+### **NGUY CƠ BẢO MẬT**
+- ❌ Không thể đăng nhập (sai field name)
+- ❌ Không có bảo vệ brute force
+- ❌ Không có 2FA
+- ❌ Không có xác thực email
+
+### **CHỨC NĂNG BỊ ĐỔI**
+- ❌ Social login không hoạt động
+- ❌ Password reset không hoạt động
+- ❌ Email verification không hoạt động
+
+### **TRẢI NGHIỆM NGƯỜI DÙNG**
+- ❌ Không thể đăng nhập bằng username
+- ❌ Không có tùy chỉnh cá nhân
+- ❌ Không thể liên kết mạng xã hội
+
+---
+
+## ⏱️ THỜI GIAN ƯỚC TÍNH
+
+| Task | Thời gian | Độ khó | Ưu tiên |
+|------|-----------|-------|---------|
+| Sửa xung đột tên field | 2 giờ | Dễ | ⭐⭐⭐⭐⭐ |
+| Thêm field bảo mật | 3 giờ | Trung bình | ⭐⭐⭐⭐⭐ |
+| Thêm field chức năng | 2 giờ | Dễ | ⭐⭐⭐ |
+| Xóa field thừa | 1 giờ | Dễ | ⭐⭐ |
+| Test và verify | 2 giờ | Trung bình | ⭐⭐⭐⭐ |
+| **TỔNG CỘNG** | **10 giờ** | | |
+
+---
+
+## ❓ CÂU HỎI QUAN TRỌNG
+
+### 1. **Về Field Thừa:**
+```
+Các field học thuật (student_id, class, major, gpa) có cần thiết không?
+- A) Có, cần cho hệ thống giáo dục
+- B) Không, chỉ cần thông tin cơ bản
+- C) Một phần, chỉ giữ student_id và instructor_id
+```
+
+### 2. **Về Bảo Mật:**
+```
+Có muốn implement 2FA không?
+- A) Có, bắt buộc cho bảo mật
+- B) Không, quá phức tạp cho MVP
+- C) Tùy chọn, bật tắt được
+```
+
+### 3. **Về Social Login:**
+```
+Có cần đăng nhập bằng Google/Facebook không?
+- A) Có, cần thiết cho UX tốt
+- B) Không cần thiết cho MVP
+- C) Để sau, hiện tại chỉ dùng email
+```
+
+---
+
+## 🎯 KẾT LUẬN
+
+**KHẨN CẤP:** User model hiện tại **KHÔNG THỂ SỬ DỤNG** được vì xung đột tên field nghiêm trọng với database. Việc khắc phục là **BẮT BUỘC** để hệ thống hoạt động được.
+
+**Khuyến nghị:** Bắt đầu với Phase 1 ngay lập tức để đảm bảo authentication cơ bản hoạt động đúng.

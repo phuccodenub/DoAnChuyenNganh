@@ -66,7 +66,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -83,7 +83,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -101,7 +101,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -132,7 +132,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
       
@@ -149,7 +149,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
       

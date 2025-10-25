@@ -1,6 +1,7 @@
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, ModelStatic } from 'sequelize';
 import { getSequelize } from '../config/db';
-import { LessonMaterialAttributes, LessonMaterialCreationAttributes, LessonMaterialInstance } from '../types/model.types';
+import { LessonMaterialInstance } from '../types/model.types';
+import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -100,45 +101,50 @@ const LessonMaterial = sequelize.define('LessonMaterial', {
   ]
 });
 
-// Instance Methods
-;(LessonMaterial as any).prototype.getFormattedSize = function(): string {
-  if (!this.file_size) return 'N/A';
-  
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(this.file_size) / Math.log(1024));
-  return `${(this.file_size / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
-};
+const LessonMaterialModel = LessonMaterial as unknown as ModelStatic<LessonMaterialInstance>;
 
-;(LessonMaterial as any).prototype.incrementDownloadCount = async function() {
-  this.download_count += 1;
-  await this.save();
-  return this.download_count;
-};
+// Instance Methods (type-safe)
+addInstanceMethods(LessonMaterialModel, {
+ getFormattedSize(this: LessonMaterialInstance): string {
+   if (!this.file_size) return 'N/A';
+   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+   const i = Math.floor(Math.log(this.file_size) / Math.log(1024));
+   return `${(this.file_size / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+ },
+ async incrementDownloadCount(this: LessonMaterialInstance) {
+   this.download_count += 1;
+   await this.save();
+   return this.download_count;
+ }
+});
 
-// Class Methods
-;(LessonMaterial as any).findByLesson = async function(lessonId: string) {
-  return await this.findAll({
-    where: { lesson_id: lessonId },
-    order: [['order_index', 'ASC'], ['created_at', 'ASC']],
-    include: [
-      {
-        model: sequelize.models.User,
-        as: 'uploader',
-        attributes: ['id', 'first_name', 'last_name', 'email']
-      }
-    ]
-  });
-};
+// Static Methods (type-safe)
+addStaticMethods(LessonMaterialModel, {
+ async findByLesson(this: ModelStatic<LessonMaterialInstance>, lessonId: string) {
+   return await this.findAll({
+     where: { lesson_id: lessonId },
+     order: [['order_index', 'ASC'], ['created_at', 'ASC']],
+     include: [
+       {
+         model: sequelize.models.User,
+         as: 'uploader',
+         attributes: ['id', 'first_name', 'last_name', 'email']
+       }
+     ]
+   });
+ },
+ async getTotalSizeByLesson(this: ModelStatic<LessonMaterialInstance>, lessonId: string): Promise<number> {
+   const materials = await this.findAll({
+     where: { lesson_id: lessonId },
+     attributes: ['file_size']
+   });
+   return materials.reduce((total: number, material: LessonMaterialInstance) => {
+     return total + (material.file_size ?? 0);
+   }, 0);
+ }
+});
 
-;(LessonMaterial as any).getTotalSizeByLesson = async function(lessonId: string): Promise<number> {
-  const materials = await this.findAll({
-    where: { lesson_id: lessonId },
-    attributes: ['file_size']
-  });
-  return materials.reduce((total: number, material: any) => total + (material.file_size || 0), 0);
-};
-
-export default LessonMaterial as any;
+export default exportModel(LessonMaterialModel);
 
 
 
