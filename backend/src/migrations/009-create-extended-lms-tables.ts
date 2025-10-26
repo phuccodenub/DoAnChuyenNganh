@@ -475,3 +475,4 @@ export async function dropExtendedLmsTables(queryInterface: QueryInterface): Pro
 
 
 
+
