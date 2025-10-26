@@ -33,7 +33,7 @@ export interface PaginationMeta {
 
 export const paginationUtils = {
   // Parse pagination options from query parameters
-  parsePaginationOptions(query: any, options: PaginationOptions = {}): {
+  parsePaginationOptions(query: Record<string, unknown>, options: PaginationOptions = {}): {
     page: number;
     limit: number;
     offset: number;
@@ -46,12 +46,12 @@ export const paginationUtils = {
     } = options;
 
     // Parse page number
-    const parsedPage = Math.max(1, parseInt(query.page) || page);
+    const parsedPage = Math.max(1, parseInt(String(query.page || '')) || page);
     
     // Parse limit with constraints
     const parsedLimit = Math.min(
       maxLimit,
-      Math.max(1, parseInt(query.limit) || defaultLimit)
+      Math.max(1, parseInt(String(query.limit || '')) || defaultLimit)
     );
 
     // Calculate offset
@@ -107,7 +107,7 @@ export const paginationUtils = {
     page: number,
     limit: number,
     total: number,
-    queryParams: Record<string, any> = {}
+    queryParams: Record<string, unknown> = {}
   ): {
     first?: string;
     prev?: string;
@@ -115,12 +115,19 @@ export const paginationUtils = {
     last?: string;
   } {
     const totalPages = Math.ceil(total / limit);
-    const links: any = {};
+    const links: {
+      first?: string;
+      prev?: string;
+      next?: string;
+      last?: string;
+    } = {};
 
     // Helper function to build URL
     const buildUrl = (pageNum: number) => {
       const params = new URLSearchParams({
-        ...queryParams,
+        ...Object.fromEntries(
+          Object.entries(queryParams).map(([key, value]) => [key, String(value)])
+        ),
         page: pageNum.toString(),
         limit: limit.toString()
       });
@@ -151,7 +158,7 @@ export const paginationUtils = {
   },
 
   // Validate pagination parameters
-  validatePaginationParams(query: any): {
+  validatePaginationParams(query: Record<string, unknown>): {
     isValid: boolean;
     errors: string[];
     page?: number;
@@ -163,7 +170,7 @@ export const paginationUtils = {
 
     // Validate page
     if (query.page !== undefined) {
-      const parsedPage = parseInt(query.page);
+      const parsedPage = parseInt(String(query.page));
       if (isNaN(parsedPage) || parsedPage < 1) {
         errors.push('Page must be a positive integer');
       } else {
@@ -173,7 +180,7 @@ export const paginationUtils = {
 
     // Validate limit
     if (query.limit !== undefined) {
-      const parsedLimit = parseInt(query.limit);
+      const parsedLimit = parseInt(String(query.limit));
       if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
         errors.push('Limit must be a positive integer between 1 and 100');
       } else {

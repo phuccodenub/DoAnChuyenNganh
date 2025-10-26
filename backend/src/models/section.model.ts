@@ -83,50 +83,57 @@ const Section = sequelize.define('Section', {
 
 // Instance & Static Methods (type-safe helpers)
 addInstanceMethods(Section, {
- async getLessonCount(this: any): Promise<number> {
-   return await sequelize.models.Lesson.count({
-     where: { section_id: this.id }
-   });
- },
- async getTotalDuration(this: any): Promise<number> {
-   const lessons = await sequelize.models.Lesson.findAll({
-     where: { section_id: this.id },
-     attributes: ['duration_minutes']
-   });
-   return lessons.reduce((total: number, lesson: any) => total + (lesson.duration_minutes || 0), 0);
- }
+  async getLessonCount(this: Model<SectionAttributes>): Promise<number> {
+    const section = this as unknown as SectionInstance;
+    return await sequelize.models.Lesson.count({
+      where: { section_id: section.id }
+    });
+  },
+  async getTotalDuration(this: Model<SectionAttributes>): Promise<number> {
+    const section = this as unknown as SectionInstance;
+    const lessons = await sequelize.models.Lesson.findAll({
+      where: { section_id: section.id },
+      attributes: ['duration_minutes']
+    });
+    return lessons.reduce((total: number, lesson) => {
+      const duration = (lesson as any).duration_minutes as number | null;
+      return total + (duration || 0);
+    }, 0);
+  }
 });
 
 addStaticMethods(Section, {
- async findByCourse(this: typeof Section, courseId: string) {
-   return await (this as any).findAll({
-     where: { course_id: courseId },
-     order: [['order_index', 'ASC']],
-     include: [
-       {
-         model: sequelize.models.Lesson,
-         as: 'lessons',
-         order: [['order_index', 'ASC']]
-       }
-     ]
-   });
- },
- async reorderSections(this: typeof Section, courseId: string, sectionOrders: { id: string; order_index: number }[]) {
-   const transaction = await sequelize.transaction();
-   try {
-     for (const { id, order_index } of sectionOrders) {
-       await (this as any).update(
-         { order_index },
-         { where: { id, course_id: courseId }, transaction }
-       );
-     }
-     await transaction.commit();
-     return true;
-   } catch (error: unknown) {
-     await transaction.rollback();
-     throw error;
-   }
- }
+  async findByCourse(this: typeof Section, courseId: string) {
+    const model = this as any;
+    return await model.findAll({
+      where: { course_id: courseId },
+      order: [['order_index', 'ASC']],
+      include: [
+        {
+          model: sequelize.models.Lesson,
+          as: 'lessons',
+          order: [['order_index', 'ASC']]
+        }
+      ]
+    });
+  },
+  async reorderSections(this: typeof Section, courseId: string, sectionOrders: { id: string; order_index: number }[]) {
+    const model = this as any;
+    const transaction = await sequelize.transaction();
+    try {
+      for (const { id, order_index } of sectionOrders) {
+        await model.update(
+          { order_index },
+          { where: { id, course_id: courseId }, transaction }
+        );
+      }
+      await transaction.commit();
+      return true;
+    } catch (error: unknown) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
 });
 
 export default exportModel(Section);

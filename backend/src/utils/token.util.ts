@@ -90,6 +90,8 @@ export const tokenUtils = {
         };
 
         return jwtUtils.signToken(payload, jwtConfig.secret, {
+          // Type assertion required: jsonwebtoken@9.x expects specific StringValue type
+          // but we use string | number from env config (acceptable controlled cast)
           expiresIn: jwtConfig.expiresIn as any,
           issuer: jwtConfig.issuer,
           audience: jwtConfig.audience
@@ -142,6 +144,8 @@ export const tokenUtils = {
         };
 
         return jwtUtils.signToken(payload, jwtConfig.secret, {
+          // Type assertion required: jsonwebtoken@9.x expects specific StringValue type
+          // but we use string | number from env config (acceptable controlled cast)
           expiresIn: jwtConfig.refreshExpiresIn as any,
           issuer: jwtConfig.issuer,
           audience: jwtConfig.audience

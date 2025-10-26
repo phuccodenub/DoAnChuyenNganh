@@ -126,7 +126,7 @@ export const authValidateHelpers = {
   },
   
   // Sanitize auth input
-  sanitizeAuthInput: (input: any) => {
+  sanitizeAuthInput: (input: unknown) => {
     if (typeof input === 'string') {
       return input.trim().replace(/[<>]/g, '');
     }

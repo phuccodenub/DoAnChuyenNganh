@@ -1,4 +1,9 @@
 import { Section, Lesson, LessonMaterial, LessonProgress, Course } from '../../models';
+import type { 
+  SectionInstance, 
+  LessonInstance, 
+  LessonProgressInstance 
+} from '../../types/model.types';
 import { Op } from 'sequelize';
 import { getSequelize } from '../../config/db';
 
@@ -16,6 +21,24 @@ type CreateLessonMaterialDTO = {
   is_downloadable?: boolean;
   order_index?: number;
 };
+
+// DTOs for progress calculations
+interface SectionProgressDTO {
+  section_id: string;
+  section_title: string;
+  total_lessons: number;
+  completed_lessons: number;
+  completion_percentage: number;
+}
+
+interface CourseProgressDTO {
+  total_lessons: number;
+  completed_lessons: number;
+  completion_percentage: number;
+  total_time_spent_seconds: number;
+  last_accessed_at?: Date;
+  sections: SectionProgressDTO[];
+}
 
 export class CourseContentRepository {
   private sequelize = getSequelize();
@@ -326,7 +349,7 @@ export class CourseContentRepository {
     });
   }
 
-  async getUserCourseProgress(userId: string, courseId: string) {
+  async getUserCourseProgress(userId: string, courseId: string): Promise<CourseProgressDTO> {
     // Get all sections and lessons for the course
     const sections = await Section.findAll({
       where: { course_id: courseId },
@@ -339,10 +362,10 @@ export class CourseContentRepository {
         }
       ],
       order: [['order_index', 'ASC']]
-    });
+    }) as (SectionInstance & { lessons: LessonInstance[] })[];
 
-    const lessonIds = sections.flatMap((section: any) => 
-      section.lessons.map((lesson: any) => lesson.id)
+    const lessonIds = sections.flatMap((section) => 
+      section.lessons.map((lesson) => lesson.id)
     );
 
     if (lessonIds.length === 0) {
@@ -361,17 +384,17 @@ export class CourseContentRepository {
         user_id: userId,
         lesson_id: lessonIds
       }
-    });
+    }) as LessonProgressInstance[];
 
-    const progressMap = new Map(
-      progressRecords.map((p: any) => [p.lesson_id, p])
+    const progressMap = new Map<string, LessonProgressInstance>(
+      progressRecords.map((p) => [p.lesson_id, p])
     );
 
     // Calculate section-level progress
-    const sectionProgress = sections.map((section: any) => {
+    const sectionProgress: SectionProgressDTO[] = sections.map((section) => {
       const sectionLessons = section.lessons;
-      const completedInSection = sectionLessons.filter((lesson: any) => {
-        const p = progressMap.get(lesson.id) as any;
+      const completedInSection = sectionLessons.filter((lesson) => {
+        const p = progressMap.get(lesson.id);
         return p?.completed;
       }).length;
 
@@ -386,13 +409,13 @@ export class CourseContentRepository {
       };
     });
 
-    const completedTotal = progressRecords.filter((p: any) => p.completed).length;
+    const completedTotal = progressRecords.filter((p) => p.completed).length;
     const totalTimeSpent = progressRecords.reduce(
-      (sum: number, p: any) => sum + (p.time_spent_seconds || 0), 
+      (sum: number, p) => sum + (p.time_spent_seconds || 0), 
       0
     );
     const lastAccessed = progressRecords.length > 0
-      ? new Date(Math.max(...progressRecords.map((p: any) => p.last_accessed_at?.getTime() || 0)))
+      ? new Date(Math.max(...progressRecords.map((p) => p.last_accessed_at?.getTime() || 0)))
       : undefined;
 
     return {

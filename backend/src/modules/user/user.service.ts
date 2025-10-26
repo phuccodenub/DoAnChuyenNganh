@@ -1,6 +1,7 @@
 import { UserModuleRepository } from './user.repository';
 import * as UserTypes from './user.types';
 import { UserInstance } from '../../types/user.types';
+import type { UploadedFile } from '../../services/global/file.service';
 import { globalServices } from '../../services/global';
 import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
 import { ApiError } from '../../errors/api.error';
@@ -71,7 +72,7 @@ export class UserModuleService {
   /**
    * Upload avatar
    */
-  async uploadAvatar(userId: string, file: any): Promise<{ avatar: string }> {
+  async uploadAvatar(userId: string, file: UploadedFile): Promise<{ avatar: string }> {
     try {
       logger.info('Uploading avatar', { userId });
 
@@ -137,8 +138,19 @@ export class UserModuleService {
 
       const sessions = await this.userRepository.getActiveSessions(userId);
       
-      logger.info('Active sessions retrieved successfully', { userId, count: sessions.length });
-      return sessions;
+      // Map UserSessionInstance to UserSession DTO
+      const mappedSessions: UserTypes.UserSession[] = sessions.map(session => ({
+        id: session.id,
+        device: session.device,
+        location: session.location || 'Unknown',
+        lastActivity: session.last_activity,
+        isCurrent: false, // Will be determined by comparing session ID
+        ipAddress: session.ip_address,
+        userAgent: session.user_agent
+      }));
+      
+      logger.info('Active sessions retrieved successfully', { userId, count: mappedSessions.length });
+      return mappedSessions;
     } catch (error: unknown) {
       logger.error('Error getting active sessions:', error);
       throw error;

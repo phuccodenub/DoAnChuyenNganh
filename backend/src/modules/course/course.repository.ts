@@ -1,13 +1,13 @@
 import Course from '../../models/course.model';
 import User from '../../models/user.model';
 import Enrollment from '../../models/enrollment.model';
-import { CourseInstance } from '../../types/model.types';
+import { CourseInstance, CourseAttributes } from '../../types/model.types';
 import { UserInstance } from '../../types/model.types';
 import { EnrollmentInstance } from '../../types/model.types';
 import * as CourseTypes from './course.types';
 import { BaseRepository } from '../../repositories/base.repository';
 import logger from '../../utils/logger.util';
-import { ModelStatic } from 'sequelize';
+import { ModelStatic, WhereOptions } from 'sequelize';
 
 export class CourseRepository extends BaseRepository<CourseInstance> {
   constructor() {
@@ -58,7 +58,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       const offset = (page - 1) * limit;
 
       // Build where clause
-      const whereClause: any = {};
+      const whereClause: WhereOptions<CourseAttributes> = {};
       
       if (status) {
         whereClause.status = status;
@@ -69,7 +69,8 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       }
       
       if (search) {
-        whereClause[Op.or] = [
+        // Use Op.or for search - requires type assertion for Sequelize operator
+        (whereClause as any)[Op.or] = [
           { title: { [Op.iLike]: `%${search}%` } },
           { description: { [Op.iLike]: `%${search}%` } }
         ];
@@ -114,7 +115,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       const { page, limit, status } = options;
       const offset = (page - 1) * limit;
 
-      const whereClause: any = { instructor_id: instructorId };
+      const whereClause: WhereOptions<CourseAttributes> = { instructor_id: instructorId };
       
       if (status) {
         whereClause.status = status;
@@ -160,7 +161,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       const { page, limit, status } = options;
       const offset = (page - 1) * limit;
 
-      const whereClause: any = {};
+      const whereClause: WhereOptions<CourseAttributes> = {};
       
       if (status) {
         whereClause.status = status;

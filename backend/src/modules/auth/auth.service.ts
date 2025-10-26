@@ -54,8 +54,8 @@ export class AuthModuleService {
 
       const userProfile = userUtils.getPublicProfile(newUser) as AuthTypes.UserProfile;
       
-      // Cache the new user
-      await globalServices.user.cacheUser(newUser.id, userProfile);
+      // Cache the new user (using the full user instance, not just the profile)
+      await globalServices.user.cacheUser(newUser.id, newUser);
 
       logger.info('User registered successfully', { email: userData.email, userId: newUser.id });
       return userProfile;
@@ -143,9 +143,8 @@ export class AuthModuleService {
         userAgent
       );
 
-      // Cache user data
-      const userProfile = userUtils.getPublicProfile(user) as AuthTypes.UserProfile;
-      await globalServices.user.cacheUser(user.id, userProfile);
+      // Cache user data (using full user instance, not just profile)
+      await globalServices.user.cacheUser(user.id, user);
 
       // Cache session data
       const sessionData = {
@@ -157,6 +156,9 @@ export class AuthModuleService {
         sessionId: session.id
       };
       await globalServices.cache.cacheSession(`session:${user.id}`, sessionData);
+
+      // Return profile for response
+      const userProfile = userUtils.getPublicProfile(user) as AuthTypes.UserProfile;
 
       logger.info('User logged in successfully', { email: user.email, userId: user.id });
 

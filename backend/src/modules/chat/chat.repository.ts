@@ -8,8 +8,24 @@ import User from '../../models/user.model';
 import Course from '../../models/course.model';
 import { GetMessagesOptions, SearchMessagesOptions } from './chat.types';
 import logger from '../../utils/logger.util';
-import { Op } from 'sequelize';
-import type { CourseInstance } from '../../types/model.types';
+import { Op, WhereOptions } from 'sequelize';
+import type { 
+  ChatMessageInstance, 
+  ChatMessageAttributes, 
+  ChatMessageCreationAttributes,
+  CourseInstance 
+} from '../../types/model.types';
+
+export interface ChatStats {
+  totalMessages: number;
+  messagesByType: {
+    text: number;
+    file: number;
+    image: number;
+    system: number;
+    announcement: number;
+  };
+}
 
 export class ChatRepository {
   /**
@@ -24,12 +40,12 @@ export class ChatRepository {
     file_name?: string;
     file_size?: number;
     reply_to?: string;
-  }) {
+  }): Promise<ChatMessageInstance | null> {
     try {
-      const message = await ChatMessage.create(data);
+      const message = await ChatMessage.create(data) as ChatMessageInstance;
       
       // Fetch with sender details
-      return await this.getMessageById((message as any).id);
+      return await this.getMessageById(message.id);
     } catch (error: unknown) {
       logger.error('Error creating message:', error);
       throw error;
@@ -39,7 +55,7 @@ export class ChatRepository {
   /**
    * Get message by ID with sender details
    */
-  async getMessageById(messageId: string) {
+  async getMessageById(messageId: string): Promise<ChatMessageInstance | null> {
     try {
       const message = await ChatMessage.findByPk(messageId, {
         include: [
@@ -85,7 +101,7 @@ export class ChatRepository {
         messageType
       } = options;
 
-      const where: any = {
+      const where: WhereOptions<ChatMessageAttributes> = {
         course_id: courseId,
         is_deleted: false
       };
@@ -97,26 +113,26 @@ export class ChatRepository {
 
       // Search in messages
       if (searchTerm) {
-        where.message = {
+        (where as any).message = {
           [Op.iLike]: `%${searchTerm}%`
         };
       }
 
       // Pagination with message ID
       if (beforeMessageId) {
-        const beforeMessage = await ChatMessage.findByPk(beforeMessageId);
+        const beforeMessage = await ChatMessage.findByPk(beforeMessageId) as ChatMessageInstance | null;
         if (beforeMessage) {
-          where.created_at = {
-            [Op.lt]: (beforeMessage as any).created_at
+          (where as any).created_at = {
+            [Op.lt]: beforeMessage.created_at
           };
         }
       }
 
       if (afterMessageId) {
-        const afterMessage = await ChatMessage.findByPk(afterMessageId);
+        const afterMessage = await ChatMessage.findByPk(afterMessageId) as ChatMessageInstance | null;
         if (afterMessage) {
-          where.created_at = {
-            [Op.gt]: (afterMessage as any).created_at
+          (where as any).created_at = {
+            [Op.gt]: afterMessage.created_at
           };
         }
       }
@@ -327,7 +343,7 @@ export class ChatRepository {
   /**
    * Get chat statistics for a course
    */
-  async getChatStatistics(courseId: string) {
+  async getChatStatistics(courseId: string): Promise<ChatStats> {
     try {
       const totalMessages = await this.getMessageCount(courseId);
 
@@ -341,9 +357,9 @@ export class ChatRepository {
           [ChatMessage.sequelize!.fn('COUNT', ChatMessage.sequelize!.col('id')), 'count']
         ],
         group: ['message_type']
-      });
+      }) as Array<ChatMessageInstance & { getDataValue: (key: string) => any }>;
 
-      const stats: any = {
+      const stats: ChatStats = {
         totalMessages,
         messagesByType: {
           text: 0,
@@ -354,8 +370,12 @@ export class ChatRepository {
         }
       };
 
-      messagesByType.forEach((item: any) => {
-        stats.messagesByType[item.message_type] = parseInt(item.getDataValue('count'));
+      messagesByType.forEach((item) => {
+        const messageType = item.message_type;
+        const count = parseInt(item.getDataValue('count'));
+        if (messageType in stats.messagesByType) {
+          stats.messagesByType[messageType] = count;
+        }
       });
 
       return stats;

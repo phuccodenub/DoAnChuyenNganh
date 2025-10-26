@@ -303,7 +303,7 @@ export const validatorsUtils = {
    * @param value - Value to check
    * @returns True if value is null or undefined
    */
-  isNullOrUndefined(value: any): boolean {
+  isNullOrUndefined(value: unknown): boolean {
     return value === null || value === undefined;
   },
 
@@ -312,7 +312,7 @@ export const validatorsUtils = {
    * @param value - Value to check
    * @returns True if value is a valid number
    */
-  isNumber(value: any): boolean {
+  isNumber(value: unknown): boolean {
     return typeof value === 'number' && !isNaN(value) && isFinite(value);
   },
 
@@ -321,7 +321,7 @@ export const validatorsUtils = {
    * @param value - Value to check
    * @returns True if value is a valid integer
    */
-  isInteger(value: any): boolean {
+  isInteger(value: unknown): boolean {
     return this.isNumber(value) && Number.isInteger(value);
   },
 
@@ -330,8 +330,8 @@ export const validatorsUtils = {
    * @param value - Value to check
    * @returns True if value is a valid positive number
    */
-  isPositiveNumber(value: any): boolean {
-    return this.isNumber(value) && value > 0;
+  isPositiveNumber(value: unknown): boolean {
+    return this.isNumber(value) && (value as number) > 0;
   },
 
   /**
@@ -341,8 +341,8 @@ export const validatorsUtils = {
    * @param max - Maximum value
    * @returns True if value is within range
    */
-  isInRange(value: any, min: number, max: number): boolean {
-    return this.isNumber(value) && value >= min && value <= max;
+  isInRange(value: unknown, min: number, max: number): boolean {
+    return this.isNumber(value) && (value as number) >= min && (value as number) <= max;
   }
 };
 

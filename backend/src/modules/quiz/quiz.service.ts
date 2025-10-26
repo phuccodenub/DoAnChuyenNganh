@@ -3,7 +3,7 @@ import { CreateOptionDto, CreateQuestionDto, CreateQuizDto, SubmitQuizDto, QuizA
 import { ApiError } from '../../errors/api.error';
 import { AuthorizationError } from '../../errors/authorization.error';
 import logger from '../../utils/logger.util';
-import { CourseInstance } from '../../types/model.types';
+import { CourseInstance, QuizAttemptInstance } from '../../types/model.types';
 
 export class QuizService {
   private repo: QuizRepository;
@@ -224,14 +224,14 @@ export class QuizService {
       // Check if user has an active attempt
       const activeAttempt = await this.repo.getActiveAttempt(quizId, userId);
       if (activeAttempt) {
-        return activeAttempt as any;
+        return this.mapAttemptToDto(activeAttempt);
       }
 
       // Create new attempt
       const attempt = await this.repo.startAttempt(quizId, userId, attemptCount + 1);
       logger.info(`Quiz attempt started: ${attempt.id} for user ${userId}`);
       
-      return attempt as any;
+      return this.mapAttemptToDto(attempt);
     } catch (error: unknown) {
       logger.error(`Error starting quiz attempt: ${error}`);
       throw error;
@@ -255,9 +255,13 @@ export class QuizService {
 
       // Check time limit
       const quiz = await this.repo.getQuizById(attempt.quiz_id);
-      if ((quiz as any)!.time_limit_minutes) {
+      if (!quiz) {
+        throw new ApiError('Quiz not found', 404);
+      }
+
+      if (quiz.duration_minutes) {
         const timeElapsed = (Date.now() - new Date(attempt.started_at).getTime()) / (1000 * 60);
-        if (timeElapsed > (quiz as any)!.time_limit_minutes) {
+        if (timeElapsed > quiz.duration_minutes) {
           throw new ApiError('Time limit exceeded', 400);
         }
       }
@@ -265,12 +269,9 @@ export class QuizService {
       // Submit answers
       const answers = await this.repo.submitAnswers(attemptId, dto.answers);
       
-      // Calculate score if auto-grading is enabled
-      let score = null;
-      if ((quiz as any)!.auto_grade) {
-        score = await this.calculateScore(attemptId);
-        await this.repo.updateAttemptScore(attemptId, score);
-      }
+      // Calculate score (always auto-grade for now)
+      const score = await this.calculateScore(attemptId);
+      await this.repo.updateAttemptScore(attemptId, score);
 
       // Mark attempt as submitted
       await this.repo.submitAttempt(attemptId);
@@ -411,6 +412,21 @@ export class QuizService {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
+  }
+
+  private mapAttemptToDto(attempt: QuizAttemptInstance): QuizAttemptDto {
+    return {
+      id: attempt.id,
+      quiz_id: attempt.quiz_id,
+      user_id: attempt.user_id,
+      attempt_number: attempt.attempt_number,
+      started_at: attempt.started_at,
+      submitted_at: attempt.submitted_at || undefined,
+      score: attempt.score || undefined,
+      status: attempt.submitted_at 
+        ? (attempt.score !== null && attempt.score !== undefined ? 'graded' : 'submitted')
+        : 'in_progress'
+    };
   }
 }
 

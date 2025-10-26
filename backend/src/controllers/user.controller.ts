@@ -68,15 +68,13 @@ export const getAllUsersInfo = async (req: Request, res: Response, next: NextFun
     const options = {
       page: parseInt(req.query.page as string) || 1,
       limit: parseInt(req.query.limit as string) || 10,
-      role: req.query.role,
-      status: req.query.status,
-      search: req.query.search,
-      sortBy: req.query.sortBy || 'created_at',
-      sortOrder: req.query.sortOrder || 'DESC'
+      role: req.query.role as string | undefined,
+      status: req.query.status as string | undefined,
+      search: req.query.search as string | undefined
     };
     
     const result = await userService.getAllUsers(options);
-    sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, result.users, RESPONSE_CONSTANTS.STATUS_CODE.OK, result.pagination);
+    sendSuccessResponse(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, result.data, RESPONSE_CONSTANTS.STATUS_CODE.OK, result.pagination);
   } catch (err) {
     logger.error('Error getting all users:', err);
     next(err);

@@ -1,10 +1,23 @@
 import { redisHelpers } from '../../config/redis.config';
 import { APP_CONSTANTS } from '@constants/app.constants';
 import logger from '@utils/logger.util';
+import type { UserInstance } from '@/types/model.types';
+import type { CourseInstance } from '@/types/model.types';
+
+// Session data interface for type safety
+export interface SessionData {
+  userId: string;
+  email: string;
+  role: 'student' | 'instructor' | 'admin' | 'super_admin';
+  loginTime: Date;
+  tokenVersion: number;
+  sessionId: string;
+  [key: string]: unknown; // Allow additional properties for flexibility
+}
 
 export class CacheService {
-  // Set cache with TTL
-  async set(key: string, value: any, ttl: number = APP_CONSTANTS.SYSTEM.CACHE_TTL.MEDIUM): Promise<void> {
+  // Set cache with TTL - now generic
+  async set<T>(key: string, value: T, ttl: number = APP_CONSTANTS.SYSTEM.CACHE_TTL.MEDIUM): Promise<void> {
     try {
       const serializedValue = JSON.stringify(value);
       await redisHelpers.set(key, serializedValue, ttl);
@@ -46,7 +59,7 @@ export class CacheService {
   }
 
   // Set cache with pattern
-  async setWithPattern(pattern: string, value: any, ttl?: number): Promise<void> {
+  async setWithPattern<T>(pattern: string, value: T, ttl?: number): Promise<void> {
     try {
       const key = this.generateCacheKey(pattern);
       await this.set(key, value, ttl);
@@ -79,7 +92,7 @@ export class CacheService {
   }
 
   // Cache user data
-  async cacheUser(userId: string, userData: any): Promise<void> {
+  async cacheUser(userId: string, userData: UserInstance): Promise<void> {
     try {
       const key = `user:${userId}`;
       await this.set(key, userData, APP_CONSTANTS.SYSTEM.CACHE_TTL.LONG);
@@ -90,10 +103,10 @@ export class CacheService {
   }
 
   // Get cached user
-  async getCachedUser(userId: string): Promise<any> {
+  async getCachedUser(userId: string): Promise<UserInstance | null> {
     try {
       const key = `user:${userId}`;
-      return await this.get(key);
+      return await this.get<UserInstance>(key);
     } catch (error: unknown) {
       logger.error('Get cached user error:', error);
       throw error;
@@ -101,7 +114,7 @@ export class CacheService {
   }
 
   // Cache course data
-  async cacheCourse(courseId: string, courseData: any): Promise<void> {
+  async cacheCourse(courseId: string, courseData: CourseInstance): Promise<void> {
     try {
       const key = `course:${courseId}`;
       await this.set(key, courseData, APP_CONSTANTS.SYSTEM.CACHE_TTL.LONG);
@@ -112,10 +125,10 @@ export class CacheService {
   }
 
   // Get cached course
-  async getCachedCourse(courseId: string): Promise<any> {
+  async getCachedCourse(courseId: string): Promise<CourseInstance | null> {
     try {
       const key = `course:${courseId}`;
-      return await this.get(key);
+      return await this.get<CourseInstance>(key);
     } catch (error: unknown) {
       logger.error('Get cached course error:', error);
       throw error;
@@ -123,7 +136,7 @@ export class CacheService {
   }
 
   // Cache session
-  async cacheSession(sessionId: string, sessionData: any): Promise<void> {
+  async cacheSession(sessionId: string, sessionData: SessionData): Promise<void> {
     try {
       const key = `session:${sessionId}`;
       await this.set(key, sessionData, APP_CONSTANTS.SYSTEM.CACHE_TTL.SHORT);
@@ -134,10 +147,10 @@ export class CacheService {
   }
 
   // Get cached session
-  async getCachedSession(sessionId: string): Promise<any> {
+  async getCachedSession(sessionId: string): Promise<SessionData | null> {
     try {
       const key = `session:${sessionId}`;
-      return await this.get(key);
+      return await this.get<SessionData>(key);
     } catch (error: unknown) {
       logger.error('Get cached session error:', error);
       throw error;

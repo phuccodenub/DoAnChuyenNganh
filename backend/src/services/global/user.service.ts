@@ -1,6 +1,69 @@
 import * as userRepository from '../../repositories/user.repository';
 import { CacheService } from './cache.service';
 import logger from '../../utils/logger.util';
+import type { UserInstance, UserCreationAttributes, UserAttributes } from '@/types/model.types';
+
+// DTOs for user operations
+export interface UserUpdateDTO {
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  bio?: string;
+  avatar?: string;
+  status?: 'active' | 'inactive' | 'suspended' | 'pending';
+  last_login?: Date;
+  token_version?: number;
+  // Student fields
+  student_id?: string;
+  class?: string;
+  major?: string;
+  year?: number;
+  gpa?: number;
+  // Instructor fields
+  instructor_id?: string;
+  department?: string;
+  specialization?: string;
+  experience_years?: number;
+  education_level?: 'bachelor' | 'master' | 'phd' | 'professor';
+  research_interests?: string;
+  // Other fields
+  date_of_birth?: Date;
+  gender?: 'male' | 'female' | 'other';
+  address?: string;
+  emergency_contact?: string;
+  emergency_phone?: string;
+}
+
+export interface UserStatistics {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  students: number;
+  instructors: number;
+  admins: number;
+  superAdmins: number;
+  verifiedUsers: number;
+  unverifiedUsers: number;
+}
+
+export interface GetUsersOptions {
+  page?: number;
+  limit?: number;
+  role?: string;
+  status?: string;
+  search?: string;
+}
+
+export interface PaginatedUserResponse {
+  data: UserInstance[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 export class GlobalUserService {
   private cacheService: CacheService;
@@ -12,10 +75,10 @@ export class GlobalUserService {
   // ===== USER CRUD OPERATIONS (Shared across modules) =====
 
   // Get user by ID
-  async getUserById(userId: string): Promise<any> {
+  async getUserById(userId: string): Promise<UserInstance | null> {
     try {
       // Try cache first
-      const cachedUser = await this.cacheService.get(`user:${userId}`);
+      const cachedUser = await this.cacheService.getCachedUser(userId);
       if (cachedUser) {
         return cachedUser;
       }
@@ -35,10 +98,10 @@ export class GlobalUserService {
   }
 
   // Get user by email
-  async getUserByEmail(email: string): Promise<any> {
+  async getUserByEmail(email: string): Promise<UserInstance | null> {
     try {
       // Try cache first
-      const cachedUser = await this.cacheService.get(`user:email:${email}`);
+      const cachedUser = await this.cacheService.get<UserInstance>(`user:email:${email}`);
       if (cachedUser) {
         return cachedUser;
       }
@@ -47,7 +110,7 @@ export class GlobalUserService {
       const user = await userRepository.findUserByEmail(email);
       if (user) {
         // Cache for future requests
-        await this.cacheUser((user as any).id, user);
+        await this.cacheUser(user.id, user);
         await this.cacheService.set(`user:email:${email}`, user, 300); // 5 minutes
       }
       
@@ -75,7 +138,7 @@ export class GlobalUserService {
         'student': ['course:read', 'profile:read', 'profile:write']
       };
 
-      const userPermissions = rolePermissions[(user as any).role] || [];
+      const userPermissions = rolePermissions[user.role] || [];
       return userPermissions.includes('*') || userPermissions.includes(permission);
     } catch (error: unknown) {
       logger.error('Error checking user permission:', error);
@@ -89,7 +152,7 @@ export class GlobalUserService {
       const user = await this.getUserById(userId);
       if (!user) return false;
 
-      return (user as any).role === role;
+      return user.role === role;
     } catch (error: unknown) {
       logger.error('Error checking user role:', error);
       return false;
@@ -99,9 +162,9 @@ export class GlobalUserService {
   // ===== USER CACHE OPERATIONS (Shared across modules) =====
 
   // Cache user data
-  async cacheUser(userId: string, userData: any): Promise<void> {
+  async cacheUser(userId: string, userData: UserInstance): Promise<void> {
     try {
-      await this.cacheService.set(`user:${userId}`, userData, 600); // 10 minutes
+      await this.cacheService.cacheUser(userId, userData);
     } catch (error: unknown) {
       logger.error('Error caching user:', error);
       // Don't throw error for cache failures
@@ -115,7 +178,7 @@ export class GlobalUserService {
       // Also clear email cache if we have the user data
       const user = await userRepository.findUserById(userId);
       if (user) {
-        await this.cacheService.delete(`user:email:${(user as any).email}`);
+        await this.cacheService.delete(`user:email:${user.email}`);
       }
     } catch (error: unknown) {
       logger.error('Error clearing user cache:', error);
@@ -134,7 +197,7 @@ export class GlobalUserService {
       }
 
       await userRepository.updateUser(userId, {
-        token_version: (user as any).token_version + 1
+        token_version: user.token_version + 1
       });
 
       // Clear cache after updating token version
@@ -153,7 +216,7 @@ export class GlobalUserService {
       const user = await this.getUserById(userId);
       if (!user) return false;
 
-      return (user as any).status === 'active';
+      return user.status === 'active';
     } catch (error: unknown) {
       logger.error('Error checking user status:', error);
       return false;
@@ -178,11 +241,11 @@ export class GlobalUserService {
   // ===== MISSING METHODS FOR CONTROLLER =====
 
   // Add user
-  async addUser(userData: any): Promise<any> {
+  async addUser(userData: UserCreationAttributes): Promise<UserInstance> {
     try {
       const user = await userRepository.createUser(userData);
       if (user) {
-        await this.cacheUser((user as any).id, user);
+        await this.cacheUser(user.id, user);
       }
       return user;
     } catch (error: unknown) {
@@ -192,7 +255,7 @@ export class GlobalUserService {
   }
 
   // Update user info
-  async updateUserInfo(userId: string, updateData: any): Promise<any> {
+  async updateUserInfo(userId: string, updateData: UserUpdateDTO): Promise<UserInstance | null> {
     try {
       const user = await userRepository.updateUser(userId, updateData);
       if (user) {
@@ -217,7 +280,7 @@ export class GlobalUserService {
   }
 
   // Get all users with pagination
-  async getAllUsers(options: any): Promise<any> {
+  async getAllUsers(options: GetUsersOptions): Promise<PaginatedUserResponse> {
     try {
       return await userRepository.findAllUsers(options);
     } catch (error: unknown) {
@@ -227,7 +290,7 @@ export class GlobalUserService {
   }
 
   // Get users by role
-  async getUsersByRole(role: string): Promise<any> {
+  async getUsersByRole(role: string): Promise<UserInstance[]> {
     try {
       return await userRepository.findUsersByRole(role);
     } catch (error: unknown) {
@@ -237,7 +300,7 @@ export class GlobalUserService {
   }
 
   // Get user statistics
-  async getUserStatistics(): Promise<any> {
+  async getUserStatistics(): Promise<UserStatistics> {
     try {
       return await userRepository.getUserStatistics();
     } catch (error: unknown) {
@@ -247,7 +310,7 @@ export class GlobalUserService {
   }
 
   // Change user status
-  async changeUserStatus(userId: string, status: string): Promise<any> {
+  async changeUserStatus(userId: string, status: string): Promise<UserInstance | null> {
     try {
       const user = await userRepository.updateUser(userId, { status });
       if (user) {

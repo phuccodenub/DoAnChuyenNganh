@@ -204,21 +204,21 @@ export const validationHelpers = {
   /**
    * Validate pagination parameters
    */
-  validatePagination: (query: any) => {
+  validatePagination: (query: unknown) => {
     return baseValidation.pagination.parse(query);
   },
   
   /**
    * Validate search parameters
    */
-  validateSearch: (query: any) => {
+  validateSearch: (query: unknown) => {
     return baseValidation.search.parse(query);
   },
   
   /**
    * Validate file upload
    */
-  validateFile: (file: any) => {
+  validateFile: (file: unknown) => {
     return baseValidation.file.parse(file);
   },
   

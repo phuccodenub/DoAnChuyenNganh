@@ -3,6 +3,47 @@ import { UserInstance } from '../../types/model.types';
 import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
 import * as UserTypes from './user.types';
 import logger from '../../utils/logger.util';
+import type { Model } from 'sequelize';
+
+// Extended instance types for user-related entities
+export interface UserSessionInstance extends Model {
+  id: string;
+  user_id: string;
+  device: string;
+  location?: string;
+  ip_address: string;
+  user_agent: string;
+  is_active: boolean;
+  last_activity: Date;
+  started_at: Date;
+  ended_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface SocialAccountInstance extends Model {
+  id: string;
+  user_id: string;
+  provider: 'google' | 'facebook' | 'github' | 'twitter';
+  social_id: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+  linked_at: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface UserSessionCreationData {
+  user_id: string;
+  device: string;
+  location?: string;
+  ip_address: string;
+  user_agent: string;
+  is_active?: boolean;
+  started_at?: Date;
+  last_activity?: Date;
+}
 
 export class UserModuleRepository extends BaseUserRepository {
   constructor() {
@@ -185,13 +226,13 @@ export class UserModuleRepository extends BaseUserRepository {
   /**
    * Create user session
    */
-async createSession(sessionData: any): Promise<any> {
+  async createSession(sessionData: UserSessionCreationData): Promise<UserSessionInstance> {
     try {
       logger.debug('Creating user session', { userId: sessionData.user_id });
       
       const { UserSession } = require('../../models');
       
-      const session = await UserSession.create(sessionData);
+      const session = await UserSession.create(sessionData) as UserSessionInstance;
       
       logger.debug('User session created', { userId: sessionData.user_id, sessionId: session.id });
       return session;
@@ -204,7 +245,7 @@ async createSession(sessionData: any): Promise<any> {
   /**
    * Get active sessions
    */
-  async getActiveSessions(userId: string): Promise<any[]> {
+  async getActiveSessions(userId: string): Promise<UserSessionInstance[]> {
     try {
       logger.debug('Getting active sessions', { userId });
       
@@ -216,7 +257,7 @@ async createSession(sessionData: any): Promise<any> {
           is_active: true
         },
         order: [['last_activity', 'DESC']]
-      });
+      }) as UserSessionInstance[];
       
       logger.debug('Active sessions retrieved', { userId, count: sessions.length });
       return sessions;
@@ -335,7 +376,7 @@ async createSession(sessionData: any): Promise<any> {
   /**
    * Get social accounts
    */
-  async getSocialAccounts(userId: string): Promise<any[]> {
+  async getSocialAccounts(userId: string): Promise<SocialAccountInstance[]> {
     try {
       logger.debug('Getting social accounts', { userId });
       
@@ -343,7 +384,7 @@ async createSession(sessionData: any): Promise<any> {
       
       const accounts = await SocialAccount.findAll({
         where: { user_id: userId }
-      });
+      }) as SocialAccountInstance[];
       
       logger.debug('Social accounts retrieved', { userId, count: accounts.length });
       return accounts;

@@ -218,7 +218,7 @@ export const userValidateHelpers = {
   },
   
   // Sanitize user input
-  sanitizeUserInput: (input: any) => {
+  sanitizeUserInput: (input: unknown) => {
     if (typeof input === 'string') {
       return input.trim().replace(/[<>]/g, '');
     }

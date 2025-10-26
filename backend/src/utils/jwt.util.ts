@@ -1,6 +1,8 @@
 import { tokenUtils } from './token.util';
 import logger from './logger.util';
-// Payload cơ bản cho JWT - dùng làm mặc định cho verifyToken&lt;T&gt;
+import type { SignOptions, VerifyOptions } from 'jsonwebtoken';
+
+// Payload cơ bản cho JWT - dùng làm mặc định cho verifyToken<T>
 export type JWTPayload = {
   iat?: number;
   exp?: number;
@@ -21,8 +23,8 @@ export interface TokenUserInput {
  */
 export interface JWTUtils {
   // Core JWT operations
-  signToken(payload: object, secret: string, options?: any): string;
-  verifyToken<T = JWTPayload>(token: string, secret: string, options?: any): T;
+  signToken(payload: object, secret: string, options?: SignOptions): string;
+  verifyToken<T = JWTPayload>(token: string, secret: string, options?: VerifyOptions): T;
   decodeToken(token: string): unknown;
   
   // High-level token operations
@@ -62,10 +64,10 @@ export const jwtUtils: JWTUtils = {
    * @param options - Optional JWT signing options
    * @returns Signed JWT token string
    */
-  signToken(payload: object, secret: string, options?: any): string {
+  signToken(payload: object, secret: string, options?: SignOptions): string {
     try {
       const jsonwebtoken = require('jsonwebtoken') as typeof import('jsonwebtoken');
-      return jsonwebtoken.sign(payload as any, secret, options);
+      return jsonwebtoken.sign(payload, secret, options);
     } catch (error: unknown) {
       logger.error('JWT sign token error:', error);
       throw new Error('Token signing failed');
@@ -79,7 +81,7 @@ export const jwtUtils: JWTUtils = {
    * @param options - Optional JWT verification options
    * @returns Decoded payload
    */
-  verifyToken<T = JWTPayload>(token: string, secret: string, options?: any): T {
+  verifyToken<T = JWTPayload>(token: string, secret: string, options?: VerifyOptions): T {
     try {
       const jsonwebtoken = require('jsonwebtoken') as typeof import('jsonwebtoken');
       return jsonwebtoken.verify(token, secret, options) as T;

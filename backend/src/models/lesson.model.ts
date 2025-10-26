@@ -118,55 +118,59 @@ const Lesson = sequelize.define('Lesson', {
 
 // Instance & Static Methods (type-safe helpers)
 addInstanceMethods(Lesson, {
- async getMaterialCount(this: any): Promise<number> {
-   return await sequelize.models.LessonMaterial.count({
-     where: { lesson_id: this.id }
-   });
- },
- async getCompletionRate(this: any): Promise<number> {
-   const total = await sequelize.models.LessonProgress.count({
-     where: { lesson_id: this.id }
-   });
-   const completed = await sequelize.models.LessonProgress.count({
-     where: { lesson_id: this.id, completed: true }
-   });
-   return total > 0 ? (completed / total) * 100 : 0;
- }
+  async getMaterialCount(this: Model<LessonAttributes>): Promise<number> {
+    const lesson = this as unknown as LessonInstance;
+    return await sequelize.models.LessonMaterial.count({
+      where: { lesson_id: lesson.id }
+    });
+  },
+  async getCompletionRate(this: Model<LessonAttributes>): Promise<number> {
+    const lesson = this as unknown as LessonInstance;
+    const total = await sequelize.models.LessonProgress.count({
+      where: { lesson_id: lesson.id }
+    });
+    const completed = await sequelize.models.LessonProgress.count({
+      where: { lesson_id: lesson.id, completed: true }
+    });
+    return total > 0 ? (completed / total) * 100 : 0;
+  }
 });
 
 addStaticMethods(Lesson, {
- async findBySection(this: typeof Lesson, sectionId: string, includeUnpublished: boolean = false) {
-   const where: any = { section_id: sectionId };
-   if (!includeUnpublished) {
-     where.is_published = true;
-   }
-   return await (this as any).findAll({
-     where,
-     order: [['order_index', 'ASC']],
-     include: [
-       {
-         model: sequelize.models.LessonMaterial,
-         as: 'materials'
-       }
-     ]
-   });
- },
- async reorderLessons(this: typeof Lesson, sectionId: string, lessonOrders: { id: string; order_index: number }[]) {
-   const transaction = await sequelize.transaction();
-   try {
-     for (const { id, order_index } of lessonOrders) {
-       await (this as any).update(
-         { order_index },
-         { where: { id, section_id: sectionId }, transaction }
-       );
-     }
-     await transaction.commit();
-     return true;
-   } catch (error: unknown) {
-     await transaction.rollback();
-     throw error;
-   }
- }
+  async findBySection(this: typeof Lesson, sectionId: string, includeUnpublished: boolean = false) {
+    const model = this as any;
+    const where: { section_id: string; is_published?: boolean } = { section_id: sectionId };
+    if (!includeUnpublished) {
+      where.is_published = true;
+    }
+    return await model.findAll({
+      where,
+      order: [['order_index', 'ASC']],
+      include: [
+        {
+          model: sequelize.models.LessonMaterial,
+          as: 'materials'
+        }
+      ]
+    });
+  },
+  async reorderLessons(this: typeof Lesson, sectionId: string, lessonOrders: { id: string; order_index: number }[]) {
+    const model = this as any;
+    const transaction = await sequelize.transaction();
+    try {
+      for (const { id, order_index } of lessonOrders) {
+        await model.update(
+          { order_index },
+          { where: { id, section_id: sectionId }, transaction }
+        );
+      }
+      await transaction.commit();
+      return true;
+    } catch (error: unknown) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
 });
 
 export default exportModel(Lesson);
