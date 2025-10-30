@@ -27,6 +27,8 @@ export class UserModuleService {
       logger.info('Getting user profile', { userId });
 
       const user = await this.userRepository.findById(userId);
+      // Temporary debug to verify repository result in tests
+      logger.debug('User repository findById result', { userId, found: !!user });
       if (!user) {
         throw new ApiError('User not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
@@ -49,6 +51,7 @@ export class UserModuleService {
       logger.info('Updating user profile', { userId });
 
       const user = await this.userRepository.findById(userId);
+      logger.debug('User repository findById (for update) result', { userId, found: !!user });
       if (!user) {
         throw new ApiError('User not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }

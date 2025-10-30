@@ -1,28 +1,33 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import { mockCourses } from '@/services/mockData'
 import LiveStreamInterface from '@/components/LiveStream/LiveStreamInterface'
 import { Button } from '@/components/ui/Button'
-import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useCourseById } from '@/hooks/useCourses'
 
 function LiveStreamPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuthStore()
   const navigate = useNavigate()
-
-  const course = useMemo(() => 
-    mockCourses.find(c => c.id === id),
-    [id]
-  )
+  const { t } = useTranslation()
+  const { data: course, isLoading } = useCourseById(id)
 
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="text-4xl mb-4">🔒</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Yêu cầu xác thực</h3>
-          <p className="text-gray-600">Vui lòng đăng nhập để truy cập phát trực tiếp.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('liveStream.authRequiredTitle')}</h3>
+          <p className="text-gray-600">{t('liveStream.authRequiredDescription')}</p>
         </div>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center text-gray-600">{t('common.loading')}</div>
       </div>
     )
   }
@@ -32,9 +37,9 @@ function LiveStreamPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="text-4xl mb-4">❌</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy khóa học</h3>
-          <p className="text-gray-600 mb-4">Khóa học bạn đang tìm kiếm không tồn tại.</p>
-          <Button onClick={() => navigate('/dashboard')}>Về trang chủ</Button>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('liveStream.notFoundTitle')}</h3>
+          <p className="text-gray-600 mb-4">{t('liveStream.notFoundDescription')}</p>
+          <Button onClick={() => navigate('/dashboard')}>{t('home.goToDashboard')}</Button>
         </div>
       </div>
     )
@@ -50,10 +55,10 @@ function LiveStreamPage() {
             onClick={() => navigate(`/courses/${course.id}`)}
             className="text-gray-600 hover:text-gray-900"
           >
-            ← Về khóa học
+            ← {t('liveStream.backToCourse')}
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Phát trực tiếp</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('navigation.liveStream')}</h1>
             <p className="text-gray-600">{course.title} • {course.code}</p>
           </div>
         </div>

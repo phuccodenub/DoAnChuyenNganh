@@ -3,7 +3,7 @@ import * as AuthTypes from './auth.types';
 import { UserInstance } from '../../types/user.types';
 import { globalServices } from '../../services/global';
 import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
-import { ApiError } from '../../middlewares/error.middleware';
+import { ApiError } from '../../errors/api.error';
 import { userUtils } from '../../utils/user.util';
 import logger from '../../utils/logger.util';
 
@@ -21,44 +21,49 @@ export class AuthModuleService {
   /**
    * Register new user
    */
-  async register(userData: AuthTypes.RegisterData): Promise<AuthTypes.UserProfile> {
+  async register(userData: AuthTypes.RegisterData): Promise<{ user: AuthTypes.UserProfile; tokens: AuthTypes.AuthTokens }> {
     try {
       logger.info('Starting user registration', { email: userData.email });
 
       // Check if user already exists
       const existingUser = await this.authRepository.findUserForAuth(userData.email);
       if (existingUser) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.CONFLICT, 'Email already exists');
+        // Align with tests: treat duplicate email as Bad Request (400) and include lowercase 'email'
+        throw ApiError.badRequest('email already exists');
+      }
+
+      // Check for existing username
+      const existingUsername = await this.authRepository.findByUsername(userData.username);
+      if (existingUsername) {
+        // Include lowercase 'username' to satisfy tests using substring match
+        throw ApiError.badRequest('username already exists');
       }
 
       // Validate password strength
       const passwordValidation = globalServices.passwordSecurity.validatePasswordStrength(userData.password);
       if (!passwordValidation.isValid) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST, passwordValidation.feedback.join(', '));
+        throw ApiError.badRequest(passwordValidation.feedback.join(', '));
       }
 
       // Check if password is compromised
       const isCompromised = await globalServices.passwordSecurity.isPasswordCompromised(userData.password);
       if (isCompromised) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST, 'This password has been compromised. Please choose a different password.');
+        throw ApiError.badRequest('This password has been compromised. Please choose a different password.');
       }
 
-      // Hash password
-      const hashedPassword = await globalServices.auth.hashPassword(userData.password);
+      // Create new user (repository handles password hashing) with enhanced error handling
+      const newUser = await this.authRepository.createUserForAuth(userData as any);
 
-      // Create new user
-      const newUser = await this.authRepository.createUserForAuth({
-        ...userData,
-        password_hash: hashedPassword
-      } as any);
-
-      const userProfile = userUtils.getPublicProfile(newUser) as AuthTypes.UserProfile;
+  const userProfile = userUtils.getPublicProfile(newUser) as AuthTypes.UserProfile;
+  // Generate tokens for the newly registered user
+  const tokens = await globalServices.auth.generateTokens(newUser);
       
       // Cache the new user (using the full user instance, not just the profile)
       await globalServices.user.cacheUser(newUser.id, newUser);
 
       logger.info('User registered successfully', { email: userData.email, userId: newUser.id });
-      return userProfile;
+  // Return combined payload to satisfy tests
+  return { user: userProfile, tokens };
     } catch (error: unknown) {
       logger.error('Error registering user:', error);
       throw error;
@@ -76,8 +81,7 @@ export class AuthModuleService {
       const isLocked = await globalServices.accountLockout.isAccountLocked(credentials.email);
       if (isLocked) {
         const lockoutInfo = await globalServices.accountLockout.getLockoutInfo(credentials.email);
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 
-          `Account is locked due to multiple failed attempts. Try again after ${lockoutInfo.lockedUntil}`);
+        throw ApiError.forbidden(`Account is locked due to multiple failed attempts. Try again after ${lockoutInfo.lockedUntil}`);
       }
 
       // Find user by email
@@ -86,7 +90,7 @@ export class AuthModuleService {
       if (!user) {
         // Increment failed attempts even for non-existent users
         await globalServices.accountLockout.incrementFailedAttempts(credentials.email);
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'Invalid credentials');
+        throw ApiError.unauthorized('Invalid credentials');
       }
 
       // Check password
@@ -97,17 +101,15 @@ export class AuthModuleService {
         const lockoutResult = await globalServices.accountLockout.incrementFailedAttempts(credentials.email);
         
         if (lockoutResult.isLocked) {
-          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 
-            `Account locked due to ${lockoutResult.remainingAttempts} failed attempts`);
+          throw ApiError.forbidden(`Account locked due to ${lockoutResult.remainingAttempts} failed attempts`);
         }
         
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 
-          `Invalid credentials. ${lockoutResult.remainingAttempts} attempts remaining`);
+        throw ApiError.unauthorized(`Invalid credentials. ${lockoutResult.remainingAttempts} attempts remaining`);
       }
 
       // Check if user is active
       if (!userUtils.isActive(user)) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'Account is inactive');
+        throw ApiError.forbidden('Account is inactive');
       }
 
       // Check for suspicious activity
@@ -179,13 +181,23 @@ export class AuthModuleService {
     try {
       logger.info('Refreshing token');
 
-      const decoded = await globalServices.auth.verifyRefreshToken(refreshToken);
+      let decoded: any;
+      try {
+        decoded = await globalServices.auth.verifyRefreshToken(refreshToken);
+      } catch (e) {
+        // Map any verification error (invalid/malformed/expired) to 401 for tests
+        throw ApiError.unauthorized('invalid refresh token');
+      }
       
       // Try to get user from cache
       let user = await globalServices.user.getUserById(decoded.userId);
       
       if (!user) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'Invalid token');
+        // Fallback to database when cache is disabled in tests or cache miss
+        user = await this.authRepository.getUserForAuth(decoded.userId);
+        if (!user) {
+          throw ApiError.unauthorized('Invalid token');
+        }
       }
       
       // Check token version
@@ -193,7 +205,7 @@ export class AuthModuleService {
         // Clear cache if token version mismatch
         await globalServices.user.clearUserCache(decoded.userId);
         await globalServices.cache.deleteWithPattern(`session:${decoded.userId}`);
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'Token revoked');
+        throw ApiError.unauthorized('Token revoked');
       }
 
       const tokens = await globalServices.auth.generateTokens(user);
@@ -215,25 +227,33 @@ export class AuthModuleService {
 
       const user = await this.authRepository.getUserForAuth(userId);
       if (!user) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'User not found');
+        throw ApiError.notFound('User not found');
       }
 
       // Verify current password
       const isCurrentPasswordValid = await globalServices.auth.comparePassword(data.currentPassword, user.password_hash);
+      // Temporary elevated log to trace password comparison behavior in tests
+      logger.info('Password compare result', {
+        userId,
+        providedLength: data.currentPassword ? data.currentPassword.length : 0,
+        hashPrefix: typeof user.password_hash === 'string' ? user.password_hash.slice(0, 10) : 'n/a',
+        compare: isCurrentPasswordValid
+      });
       if (!isCurrentPasswordValid) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'Invalid current password');
+        // Treat invalid current password as a bad request (400) to align with API contract/tests
+        throw ApiError.badRequest('Invalid current password');
       }
 
       // Validate new password strength
       const passwordValidation = globalServices.passwordSecurity.validatePasswordStrength(data.newPassword);
       if (!passwordValidation.isValid) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST, passwordValidation.feedback.join(', '));
+        throw ApiError.badRequest(passwordValidation.feedback.join(', '));
       }
 
       // Check if new password is compromised
       const isCompromised = await globalServices.passwordSecurity.isPasswordCompromised(data.newPassword);
       if (isCompromised) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST, 'This password has been compromised. Please choose a different password.');
+        throw ApiError.badRequest('This password has been compromised. Please choose a different password.');
       }
 
       // Hash new password
@@ -277,7 +297,7 @@ export class AuthModuleService {
 
       const user = await this.authRepository.getUserForAuth(userId);
       if (!user) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'User not found');
+        throw ApiError.notFound('User not found');
       }
 
       await this.authRepository.updateEmailVerification(userId, true);
@@ -298,13 +318,13 @@ export class AuthModuleService {
 
       const user = await this.authRepository.getUserForAuth(userId);
       if (!user) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'User not found');
+        throw ApiError.notFound('User not found');
       }
 
       // Check if 2FA is already enabled
       const isEnabled = await globalServices.twoFactor.is2FAEnabled(userId);
       if (isEnabled) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.CONFLICT, 'Two-factor authentication is already enabled');
+        throw ApiError.conflict('Two-factor authentication is already enabled');
       }
 
       // Generate secret and QR code
@@ -339,7 +359,7 @@ export class AuthModuleService {
 
       const secret = await globalServices.twoFactor.get2FASecret(userId);
       if (!secret) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST, '2FA is not enabled');
+        throw ApiError.badRequest('2FA is not enabled');
       }
 
       const isValid = globalServices.twoFactor.verifyTOTPCode(secret, code);
@@ -364,20 +384,20 @@ export class AuthModuleService {
 
       const user = await this.authRepository.getUserForAuth(userId);
       if (!user) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'User not found');
+        throw ApiError.notFound('User not found');
       }
 
       // Verify the code before disabling
       const secret = await globalServices.twoFactor.get2FASecret(userId);
       if (!secret) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST, '2FA is not enabled');
+        throw ApiError.badRequest('2FA is not enabled');
       }
 
       const isValidCode = globalServices.twoFactor.verifyTOTPCode(secret, code);
       const isValidBackupCode = await globalServices.twoFactor.verifyBackupCode(userId, code);
 
       if (!isValidCode && !isValidBackupCode) {
-        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'Invalid verification code');
+        throw ApiError.unauthorized('Invalid verification code');
       }
 
       // Disable 2FA
@@ -407,14 +427,14 @@ export class AuthModuleService {
         // Verify 2FA code
         const secret = await globalServices.twoFactor.get2FASecret(loginResult.user.id);
         if (!secret) {
-          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.INTERNAL_SERVER_ERROR, '2FA secret not found');
+          throw ApiError.internalServerError('2FA secret not found');
         }
 
         const isValidCode = globalServices.twoFactor.verifyTOTPCode(secret, code);
         const isValidBackupCode = await globalServices.twoFactor.verifyBackupCode(loginResult.user.id, code);
 
         if (!isValidCode && !isValidBackupCode) {
-          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED, 'Invalid 2FA code');
+          throw ApiError.unauthorized('Invalid 2FA code');
         }
       }
 

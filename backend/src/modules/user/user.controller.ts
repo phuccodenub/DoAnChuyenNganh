@@ -31,8 +31,12 @@ export class UserModuleController {
   async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
+      // Temporary debug: trace which userId is being fetched
+  // Elevate to info for better visibility in CI logs
+  logger.info('User getProfile called', { userIdFromToken: userId });
       const profile = await this.userModuleService.getProfile(userId);
-      responseUtils.sendSuccess(res, 'Profile retrieved successfully', profile);
+      // Wrap under { user } to match test expectations
+      responseUtils.sendSuccess(res, 'Profile retrieved successfully', { user: profile });
     } catch (error: unknown) {
       if ((error as Error).message === 'User ID not found in request') {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
@@ -47,10 +51,12 @@ export class UserModuleController {
   async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-
+      // Temporary debug: trace update profile caller id
+  logger.info('User updateProfile called', { userIdFromToken: userId });
       const userData = req.body;
       const updatedProfile = await this.userModuleService.updateProfile(userId, userData);
-      responseUtils.sendSuccess(res, 'Profile updated successfully', updatedProfile);
+      // Wrap under { user } to match test expectations
+      responseUtils.sendSuccess(res, 'Profile updated successfully', { user: updatedProfile });
     } catch (error: unknown) {
       logger.error('Error updating profile:', error);
       next(error);

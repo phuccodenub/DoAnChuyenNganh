@@ -13,7 +13,7 @@ const mockUser: any = {
   avatar: 'https://example.com/avatar.jpg',
   role: 'student',
   status: 'active',
-  is_email_verified: true,
+  email_verified: true,
   email_verified_at: new Date(),
   token_version: 1,
   last_login: new Date(),
@@ -145,7 +145,7 @@ describe('User Utils', () => {
     test('should check if email is verified', () => {
       expect(userUtils.isEmailVerified(mockUser)).toBe(true);
       
-      const unverifiedUser = { ...mockUser, is_email_verified: false };
+      const unverifiedUser = { ...mockUser, email_verified: false };
       expect(userUtils.isEmailVerified(unverifiedUser)).toBe(false);
     });
   });

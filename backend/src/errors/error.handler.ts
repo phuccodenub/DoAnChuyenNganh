@@ -30,6 +30,12 @@ export class ErrorHandler {
     next: NextFunction
   ): void {
     try {
+      // If this is a Sequelize error, normalize it via the Sequelize-specific path
+      const errName = (error as any)?.name || (error as any)?.constructor?.name || '';
+      if (typeof errName === 'string' && errName.startsWith('Sequelize')) {
+        return ErrorHandler.handleSequelizeError(error, req, res, next);
+      }
+
       // Convert unknown errors to BaseError
       const baseError = ErrorFactory.fromUnknownError(error, {
         url: req.url,
@@ -53,7 +59,7 @@ export class ErrorHandler {
       }
 
       // Send error response
-      this.sendErrorResponse(res, baseError);
+      ErrorHandler.sendErrorResponse(res, baseError);
     } catch (handlerError) {
       // Fallback error handling
       logger.error('Error handler failed:', {
@@ -85,7 +91,7 @@ export class ErrorHandler {
 
     logger.warn('Validation error:', ErrorUtils.formatForLogging(validationError));
 
-    this.sendErrorResponse(res, validationError);
+    ErrorHandler.sendErrorResponse(res, validationError);
   }
 
   /**
@@ -108,7 +114,7 @@ export class ErrorHandler {
 
     logger.error('Database error:', ErrorUtils.formatForLogging(databaseError));
 
-    this.sendErrorResponse(res, databaseError);
+    ErrorHandler.sendErrorResponse(res, databaseError);
   }
 
   /**
@@ -128,7 +134,7 @@ export class ErrorHandler {
 
     logger.warn('Route not found:', ErrorUtils.formatForLogging(notFoundError));
 
-    this.sendErrorResponse(res, notFoundError);
+    ErrorHandler.sendErrorResponse(res, notFoundError);
   }
 
   /**

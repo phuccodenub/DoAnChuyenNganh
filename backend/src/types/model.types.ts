@@ -7,6 +7,7 @@ import { Model, Optional } from 'sequelize';
 export interface UserAttributes {
   id: string;
   email: string;
+  username?: string;
   password_hash: string;
   first_name: string;
   last_name: string;
@@ -15,7 +16,7 @@ export interface UserAttributes {
   avatar?: string;
   role: 'student' | 'instructor' | 'admin' | 'super_admin';
   status: 'active' | 'inactive' | 'suspended' | 'pending';
-  is_email_verified: boolean;
+  email_verified: boolean;
   email_verified_at?: Date;
   token_version: number;
   last_login?: Date;
@@ -47,7 +48,7 @@ export interface UserAttributes {
   updated_at: Date;
 }
 
-export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'created_at' | 'updated_at' | 'token_version' | 'is_email_verified'> {}
+export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'created_at' | 'updated_at' | 'token_version' | 'email_verified'> {}
 
 // Model definition attributes (without timestamps as Sequelize adds them automatically)
 export interface UserModelAttributes extends Omit<UserAttributes, 'created_at' | 'updated_at'> {}

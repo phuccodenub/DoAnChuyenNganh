@@ -273,8 +273,8 @@ export class UserRepository extends BaseRepository<UserInstance> {
         this.count({ where: { role: 'instructor' } }),
         this.count({ where: { role: 'admin' } }),
         this.count({ where: { role: 'super_admin' } }),
-        this.count({ where: { is_email_verified: true } }),
-        this.count({ where: { is_email_verified: false } })
+        this.count({ where: { email_verified: true } }),
+        this.count({ where: { email_verified: false } })
       ]);
       
       const stats = {
@@ -350,7 +350,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
       logger.debug('Updating user email verification', { userId, isVerified });
       
       const user = await this.update(userId, { 
-        is_email_verified: isVerified,
+        email_verified: isVerified,
         email_verified_at: isVerified ? new Date() : null
       });
       

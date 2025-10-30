@@ -124,6 +124,11 @@ export const userValidation = {
     status: z.enum(['active', 'inactive', 'suspended', 'pending'])
   }),
 
+  // Update user role schema (Admin)
+  updateRole: z.object({
+    role: z.enum(['student', 'instructor', 'admin', 'super_admin'])
+  }),
+
   // Update user preferences schema
   updatePreferences: z.object({
     theme: z.enum(['light', 'dark', 'auto']).optional(),

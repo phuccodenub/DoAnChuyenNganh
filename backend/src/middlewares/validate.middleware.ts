@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema } from 'zod';
+import { ZodError, ZodSchema } from 'zod';
 import { RESPONSE_CONSTANTS } from '../constants/response.constants';
 import { responseUtils } from '../utils/response.util';
+import logger from '../utils/logger.util';
 
 // Validation middleware factory
 export const validateRequest = (schema: {
@@ -16,9 +17,19 @@ export const validateRequest = (schema: {
         req.body = schema.body.parse(req.body);
       }
 
-      // Validate query
+      // Validate query - coerce types since query params are always strings
       if (schema.query) {
-        req.query = schema.query.parse(req.query) as any;
+        // Create a mutable copy of query to avoid readonly issues
+        const queryData = { ...req.query } as any;
+        const validated = schema.query.parse(queryData) as any;
+        // Mutate existing req.query object instead of reassigning (Express 5 has getter-only property)
+        Object.keys(req.query || {}).forEach((k) => {
+          // remove existing keys to avoid stale values
+          delete (req.query as any)[k];
+        });
+        Object.entries(validated).forEach(([k, v]) => {
+          (req.query as any)[k] = v;
+        });
       }
 
       // Validate params
@@ -28,11 +39,34 @@ export const validateRequest = (schema: {
 
       next();
     } catch (error: unknown) {
-      responseUtils.sendValidationError(
-        res,
-        RESPONSE_CONSTANTS.ERROR.VALIDATION_ERROR,
-        (error as any).issues || [(error as any).message]
-      );
+      // If it's a Zod validation error, respond with 400 Bad Request
+      if (error instanceof ZodError) {
+        const details = error.issues?.map(i => ({
+          path: i.path,
+          message: i.message,
+          code: i.code,
+          expected: (i as any).expected,
+          received: (i as any).received,
+          values: (i as any).options || (i as any).values
+        }));
+        // Add targeted debug log to identify why validation fails in tests (avoid logging sensitive body content)
+        try {
+          logger.error('Zod validation error', {
+            method: req.method,
+            path: req.path,
+            issues: details
+          });
+        } catch {}
+        responseUtils.sendValidationError(
+          res,
+          RESPONSE_CONSTANTS.ERROR.VALIDATION_ERROR,
+          details || []
+        );
+        return;
+      }
+
+      // Otherwise, defer to the global error handler
+      next(error);
     }
   };
 };

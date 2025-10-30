@@ -6,6 +6,16 @@ export const baseValidation = {
   // ===== COMMON FIELD VALIDATIONS =====
   
   /**
+   * Username validation
+   */
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username must be less than 30 characters')
+    // Allow letters, numbers, underscores, and hyphens (factories generate usernames with hyphens)
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
+    .transform(val => val.trim().toLowerCase()),
+  
+  /**
    * UUID validation
    */
   uuid: z.string().uuid('Invalid UUID format'),

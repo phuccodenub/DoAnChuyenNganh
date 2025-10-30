@@ -22,6 +22,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED).json({
         success: false,
         message: RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED,
+        error: RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED,
         data: null
       });
       return;
@@ -38,6 +39,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED).json({
         success: false,
         message: RESPONSE_CONSTANTS.ERROR.TOKEN_INVALID,
+        error: RESPONSE_CONSTANTS.ERROR.TOKEN_INVALID,
         data: null
       });
       return;
@@ -47,6 +49,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     res.status(RESPONSE_CONSTANTS.STATUS_CODE.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: RESPONSE_CONSTANTS.ERROR.INTERNAL_SERVER_ERROR,
+      error: RESPONSE_CONSTANTS.ERROR.INTERNAL_SERVER_ERROR,
       data: null
     });
   }
@@ -59,6 +62,7 @@ export const authorizeRoles = (...roles: string[] | [string[]]) => {
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED).json({
         success: false,
         message: RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED,
+        error: RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED,
         data: null
       });
       return;
@@ -69,6 +73,7 @@ export const authorizeRoles = (...roles: string[] | [string[]]) => {
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN).json({
         success: false,
         message: RESPONSE_CONSTANTS.ERROR.ACCESS_DENIED,
+        error: RESPONSE_CONSTANTS.ERROR.ACCESS_DENIED,
         data: null
       });
       return;

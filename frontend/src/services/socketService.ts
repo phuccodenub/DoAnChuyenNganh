@@ -1,6 +1,10 @@
 import { io, Socket } from 'socket.io-client'
 import type { User } from '@/stores/authStore'
 
+const DEMO_MODE = (import.meta as any).env?.VITE_DEMO_MODE === 'true'
+const SOCKET_URL = (import.meta as any).env?.VITE_SOCKET_URL || 'http://localhost:3000'
+const DEBUG_MODE = (import.meta as any).env?.VITE_DEBUG_MODE === 'true'
+
 export interface ChatMessage {
   id: string
   courseId: string
@@ -23,6 +27,7 @@ export interface OnlineUser {
   avatar_url?: string
   status: 'online' | 'away' | 'offline'
 }
+
 /**
  * Typed event map cho socket on/off/emit
  * Kèm theo một số payload tối thiểu để tránh vòng phụ thuộc
@@ -124,39 +129,86 @@ class SocketService {
   connect(user: User): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        // In demo mode, we'll connect to localhost:3003 where our demo server should be running
-        this.socket = io('http://localhost:3003', {
+        // Skip socket connection in demo mode
+        if (DEMO_MODE) {
+          if (DEBUG_MODE) {
+            console.log('🔄 Socket: Demo mode - skipping real connection')
+          }
+          this.currentUser = user
+          setTimeout(() => resolve(), 100)
+          return
+        }
+
+        const authStorage = localStorage.getItem('auth-storage')
+        if (!authStorage) {
+          throw new Error('No auth token found')
+        }
+
+        const parsed = JSON.parse(authStorage)
+        const token = parsed?.state?.token
+
+        if (!token) {
+          throw new Error('No valid token found')
+        }
+
+        if (DEBUG_MODE) {
+          console.log('🔄 Socket: Connecting to', SOCKET_URL, 'with auth token')
+        }
+
+        this.socket = io(SOCKET_URL, {
           auth: {
-            demo: true,
+            token,
             userId: user.id,
-            userName: user.full_name,
-            userRole: user.role,
-            userAvatar: user.avatar_url
+            role: user.role
           },
-          transports: ['websocket', 'polling']
+          transports: ['websocket', 'polling'],
+          timeout: 10000,
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          reconnectionAttempts: 5
         })
 
         this.currentUser = user
 
         this.socket.on('connect', () => {
-          console.log('Connected to server:', this.socket?.id)
+          if (DEBUG_MODE) {
+            console.log('✅ Socket: Connected to server:', this.socket?.id)
+          }
           resolve()
         })
 
         this.socket.on('connect_error', (error) => {
-          console.log('Connection error:', error.message)
-          // For demo mode, we'll simulate a successful connection even if server is not running
-          setTimeout(() => resolve(), 500)
+          console.error('❌ Socket: Connection error:', error.message)
+          reject(error)
         })
 
-        this.socket.on('disconnect', () => {
-          console.log('Disconnected from server')
+        this.socket.on('disconnect', (reason) => {
+          if (DEBUG_MODE) {
+            console.log('🔌 Socket: Disconnected from server. Reason:', reason)
+          }
+        })
+
+        this.socket.on('reconnect', (attemptNumber) => {
+          if (DEBUG_MODE) {
+            console.log('🔄 Socket: Reconnected after', attemptNumber, 'attempts')
+          }
+        })
+
+        this.socket.on('reconnect_error', (error) => {
+          console.error('❌ Socket: Reconnection error:', error.message)
+        })
+
+        // Handle authentication errors
+        this.socket.on('auth_error', (error) => {
+          console.error('❌ Socket: Authentication error:', error)
+          this.disconnect()
+          reject(new Error('Socket authentication failed'))
         })
 
       } catch (error) {
-        console.error('Socket connection failed:', error)
-        // For demo mode, resolve anyway
-        setTimeout(() => resolve(), 500)
+        console.error('❌ Socket: Connection setup failed:', error)
+        reject(error)
       }
     })
   }
@@ -207,7 +259,7 @@ class SocketService {
     // If socket is connected, emit to server
     if (this.socket?.connected) {
       this.socket.emit('send-message', chatMessage)
-    } else {
+    } else if (DEMO_MODE) {
       // For demo mode, simulate message sending
       this.simulateMessage(chatMessage)
     }

@@ -34,5 +34,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Start the application
-CMD ["npm", "start"]
+# Preload module-alias for resolving dist-time path aliases
+ENV NODE_OPTIONS="--require module-alias/register"
+
+# Start the application with module-alias preloaded
+CMD ["node", "-r", "module-alias/register", "dist/server.js"]

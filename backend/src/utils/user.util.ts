@@ -12,6 +12,7 @@ type PublicUserFields = Pick<
   UserInstance,
   | 'id'
   | 'email'
+  | 'username'
   | 'first_name'
   | 'last_name'
   | 'phone'
@@ -19,7 +20,7 @@ type PublicUserFields = Pick<
   | 'avatar'
   | 'role'
   | 'status'
-  | 'is_email_verified'
+  | 'email_verified'
   | 'created_at'
   | 'student_id'
   | 'class'
@@ -54,6 +55,7 @@ export const userUtils = {
     const {
       id,
       email,
+      username,
       first_name,
       last_name,
       phone,
@@ -61,7 +63,7 @@ export const userUtils = {
       avatar,
       role,
       status,
-      is_email_verified,
+      email_verified,
       created_at,
       student_id,
       class: userClass,
@@ -84,6 +86,7 @@ export const userUtils = {
     return {
       id,
       email,
+      username,
       first_name,
       last_name,
       phone,
@@ -91,7 +94,7 @@ export const userUtils = {
       avatar,
       role,
       status,
-      is_email_verified,
+      email_verified,
       created_at,
       student_id,
       class: userClass,
@@ -141,9 +144,11 @@ export const userUtils = {
   getInitials(user: UserInstance): string {
     const firstName = user.first_name || '';
     const lastName = user.last_name || '';
-    const firstInitial = firstName.charAt(0).toUpperCase();
-    const lastInitial = lastName.charAt(0).toUpperCase();
-    return `${firstInitial}${lastInitial}`;
+    const firstInitial = firstName.trim().charAt(0).toUpperCase();
+    const lastWord = lastName.trim().split(/\s+/).pop() || '';
+    const lastInitial = lastWord.charAt(0).toUpperCase();
+    const initials = `${firstInitial}${lastInitial}`;
+    return initials.trim();
   },
 
   /**
@@ -156,12 +161,12 @@ export const userUtils = {
   },
 
   /**
-   * Check if user email is verified
+   * Check if user's email is verified
    * @param user - User instance
    * @returns True if email is verified
    */
   isEmailVerified(user: UserInstance): boolean {
-    return user.is_email_verified === true;
+    return user.email_verified === true;
   },
 
   /**
@@ -296,6 +301,7 @@ export const userUtils = {
     const publicFields: (keyof UserInstance)[] = [
       'id',
       'email',
+      'username',
       'first_name',
       'last_name',
       'phone',
@@ -303,7 +309,7 @@ export const userUtils = {
       'avatar',
       'role',
       'status',
-      'is_email_verified',
+      'email_verified',
       'created_at',
       'student_id',
       'class',

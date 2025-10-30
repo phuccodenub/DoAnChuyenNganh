@@ -241,9 +241,20 @@ export class GlobalUserService {
   // ===== MISSING METHODS FOR CONTROLLER =====
 
   // Add user
-  async addUser(userData: UserCreationAttributes): Promise<UserInstance> {
+  async addUser(userData: UserCreationAttributes | (UserCreationAttributes & { password?: string })): Promise<UserInstance> {
     try {
-      const user = await userRepository.createUser(userData);
+      // Map plain `password` to hashed `password_hash` if provided
+      const dataToCreate: Record<string, unknown> = { ...userData } as Record<string, unknown>;
+      if (typeof (dataToCreate as any).password === 'string' && (dataToCreate as any).password.length > 0) {
+        const plain = (dataToCreate as any).password as string;
+        // Hash using centralized util, keep strict typing
+        const { hashPassword } = await import('../../utils/hash.util');
+        const hashed = await hashPassword(plain);
+        delete (dataToCreate as any).password;
+        (dataToCreate as any).password_hash = hashed;
+      }
+
+      const user = await userRepository.createUser(dataToCreate as UserCreationAttributes);
       if (user) {
         await this.cacheUser(user.id, user);
       }
@@ -282,7 +293,34 @@ export class GlobalUserService {
   // Get all users with pagination
   async getAllUsers(options: GetUsersOptions): Promise<PaginatedUserResponse> {
     try {
-      return await userRepository.findAllUsers(options);
+      // Translate high-level filter options to Sequelize FindOptions
+      const { page = 1, limit = 10, role, status, search } = options || {};
+
+      const { Op } = require('sequelize');
+
+      const where: Record<string, unknown> = {};
+      if (role) {
+        where.role = role;
+      }
+      if (status) {
+        where.status = status;
+      }
+      if (search && String(search).trim().length > 0) {
+        const term = String(search).trim();
+        // Case-insensitive match against common user fields
+        where[Op.or] = [
+          { first_name: { [Op.iLike]: `%${term}%` } },
+          { last_name: { [Op.iLike]: `%${term}%` } },
+          { email: { [Op.iLike]: `%${term}%` } },
+          { username: { [Op.iLike]: `%${term}%` } }
+        ];
+      }
+
+      return await userRepository.findAllUsers({
+        page,
+        limit,
+        where
+      });
     } catch (error: unknown) {
       logger.error('Error getting all users:', error);
       throw error;

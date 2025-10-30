@@ -1,3 +1,7 @@
+// Ensure runtime alias resolution for compiled JS
+ 
+require('module-alias/register');
+import 'module-alias/register';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -34,18 +38,22 @@ app.use(requestIdMiddleware);
 // Logger middleware
 app.use(loggerMiddleware);
 
-// Metrics middleware
-app.use(metricsMiddleware.collectHttpMetrics);
-app.use(metricsMiddleware.collectMemoryMetrics);
-app.use(metricsMiddleware.collectCpuMetrics);
-app.use(metricsMiddleware.collectUptimeMetrics);
-app.use(metricsMiddleware.collectAuthMetrics);
-app.use(metricsMiddleware.collectUserMetrics);
-app.use(metricsMiddleware.collectCourseMetrics);
+// Metrics middleware (allow disabling in tests via DISABLE_METRICS=true)
+if (process.env.DISABLE_METRICS !== 'true' && process.env.NODE_ENV !== 'test') {
+  app.use(metricsMiddleware.collectHttpMetrics);
+  app.use(metricsMiddleware.collectMemoryMetrics);
+  app.use(metricsMiddleware.collectCpuMetrics);
+  app.use(metricsMiddleware.collectUptimeMetrics);
+  app.use(metricsMiddleware.collectAuthMetrics);
+  app.use(metricsMiddleware.collectUserMetrics);
+  app.use(metricsMiddleware.collectCourseMetrics);
+}
 
-// Cache middleware
-app.use(cacheMiddleware.cacheGet({ ttl: 300 })); // Cache GET requests for 5 minutes
-app.use(cacheMiddleware.cacheUserData({ ttl: 600 })); // Cache user data for 10 minutes
+// Cache middleware (allow disabling in tests via DISABLE_CACHE=true)
+if (process.env.DISABLE_CACHE !== 'true') {
+  app.use(cacheMiddleware.cacheGet({ ttl: 300 })); // Cache GET requests for 5 minutes
+  app.use(cacheMiddleware.cacheUserData({ ttl: 600 })); // Cache user data for 10 minutes
+}
 
 // Security middleware
 app.use(helmet());
@@ -58,16 +66,17 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: APP_CONSTANTS.SYSTEM.RATE_LIMIT_WINDOW_MS,
-  max: APP_CONSTANTS.SYSTEM.RATE_LIMIT_MAX_REQUESTS,
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
-app.use(limiter);
+// Rate limiting (allow disabling in tests via DISABLE_RATE_LIMIT=true)
+if (process.env.DISABLE_RATE_LIMIT !== 'true' && process.env.NODE_ENV !== 'test') {
+  const limiter = rateLimit({
+    windowMs: APP_CONSTANTS.SYSTEM.RATE_LIMIT_WINDOW_MS,
+    max: APP_CONSTANTS.SYSTEM.RATE_LIMIT_MAX_REQUESTS,
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+  app.use(limiter);
+}
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -107,15 +116,40 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 // API routes with versioning
 app.use('/api', apiRoutes);
 
+// Temporary: dump key API routes at startup to verify registration order
+try {
+  const stack: any[] = (apiRoutes as any).stack || [];
+  const important = stack
+    .map((layer: any) => {
+      if (layer?.route) {
+        const methods = Object.keys(layer.route.methods || {}).join(',').toUpperCase();
+        return `${methods} ${layer.route.path}`;
+      }
+      if (layer?.name === 'router' && layer?.regexp) {
+        return `USE ${layer.regexp?.toString()}`;
+      }
+      return null;
+    })
+    .filter(Boolean);
+   
+  console.log('[API_ROUTE_DEBUG_COUNT]', important.length);
+   
+  console.log('[API_ROUTE_DEBUG_LIST]', important.slice(0, 200));
+} catch {}
+
 // Cache invalidation for write operations
-app.use(cacheMiddleware.invalidateCache([
-  'user:*',
-  'course:*',
-  'enrollment:*'
-]));
+if (process.env.DISABLE_CACHE !== 'true') {
+  app.use(cacheMiddleware.invalidateCache([
+    'user:*',
+    'course:*',
+    'enrollment:*'
+  ]));
+}
 
 // Error handling middleware
-app.use(metricsMiddleware.collectErrorMetrics);
+if (process.env.DISABLE_METRICS !== 'true' && process.env.NODE_ENV !== 'test') {
+  app.use(metricsMiddleware.collectErrorMetrics);
+}
 app.use(errorHandler);
 
 // 404 handler

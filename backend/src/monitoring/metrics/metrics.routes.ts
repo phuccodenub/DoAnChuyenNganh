@@ -8,8 +8,13 @@ import { MetricsController } from './metrics.controller';
 import { MetricsService } from './metrics.service';
 
 const router = Router();
-const metricsService = new MetricsService();
-const metricsController = new MetricsController(metricsService);
+const disableMetrics = process.env.DISABLE_METRICS === 'true' || process.env.NODE_ENV === 'test';
+
+let metricsController: MetricsController | null = null;
+if (!disableMetrics) {
+	const metricsService = new MetricsService();
+	metricsController = new MetricsController(metricsService);
+}
 
 /**
  * @swagger
@@ -35,7 +40,9 @@ const metricsController = new MetricsController(metricsService);
  *                   items:
  *                     type: object
  */
-router.get('/', metricsController.getAllMetrics);
+if (metricsController) {
+	router.get('/', metricsController.getAllMetrics);
+}
 
 /**
  * @swagger
@@ -76,7 +83,9 @@ router.get('/', metricsController.getAllMetrics);
  *                     timestamp:
  *                       type: string
  */
-router.get('/summary', metricsController.getApplicationMetrics);
+if (metricsController) {
+	router.get('/summary', metricsController.getApplicationMetrics);
+}
 
 /**
  * @swagger
@@ -102,7 +111,9 @@ router.get('/summary', metricsController.getApplicationMetrics);
  *                   additionalProperties:
  *                     type: number
  */
-router.get('/counters', metricsController.getCounterMetrics);
+if (metricsController) {
+	router.get('/counters', metricsController.getCounterMetrics);
+}
 
 /**
  * @swagger
@@ -128,7 +139,9 @@ router.get('/counters', metricsController.getCounterMetrics);
  *                   additionalProperties:
  *                     type: number
  */
-router.get('/gauges', metricsController.getGaugeMetrics);
+if (metricsController) {
+	router.get('/gauges', metricsController.getGaugeMetrics);
+}
 
 /**
  * @swagger
@@ -167,7 +180,9 @@ router.get('/gauges', metricsController.getGaugeMetrics);
  *                       p99:
  *                         type: number
  */
-router.get('/histograms', metricsController.getHistogramMetrics);
+if (metricsController) {
+	router.get('/histograms', metricsController.getHistogramMetrics);
+}
 
 /**
  * @swagger
@@ -206,7 +221,9 @@ router.get('/histograms', metricsController.getHistogramMetrics);
  *                       p99:
  *                         type: number
  */
-router.get('/timers', metricsController.getTimerMetrics);
+if (metricsController) {
+	router.get('/timers', metricsController.getTimerMetrics);
+}
 
 /**
  * @swagger
@@ -241,7 +258,9 @@ router.get('/timers', metricsController.getTimerMetrics);
  *       404:
  *         description: Metric not found
  */
-router.get('/:name', metricsController.getMetricByName);
+if (metricsController) {
+	router.get('/:name', metricsController.getMetricByName);
+}
 
 /**
  * @swagger
@@ -265,7 +284,9 @@ router.get('/:name', metricsController.getMetricByName);
  *                 data:
  *                   type: null
  */
-router.post('/reset', metricsController.resetMetrics);
+if (metricsController) {
+	router.post('/reset', metricsController.resetMetrics);
+}
 
 /**
  * @swagger
@@ -282,7 +303,9 @@ router.post('/reset', metricsController.resetMetrics);
  *             schema:
  *               type: string
  */
-router.get('/prometheus', metricsController.getPrometheusMetrics);
+if (metricsController) {
+	router.get('/prometheus', metricsController.getPrometheusMetrics);
+}
 
 export default router;
 

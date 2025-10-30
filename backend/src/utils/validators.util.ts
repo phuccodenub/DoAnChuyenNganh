@@ -96,7 +96,7 @@ export const validatorsUtils = {
    */
   isStudentId(studentId: string): boolean {
     if (!studentId || typeof studentId !== 'string') return false;
-    return REGEX_PATTERNS.STUDENT_ID.test(studentId.trim().toUpperCase());
+    return /^[A-Z]{2}\d{8}$/.test(studentId.trim().toUpperCase());
   },
 
   /**
@@ -106,7 +106,7 @@ export const validatorsUtils = {
    */
   isInstructorId(instructorId: string): boolean {
     if (!instructorId || typeof instructorId !== 'string') return false;
-    return REGEX_PATTERNS.INSTRUCTOR_ID.test(instructorId.trim().toUpperCase());
+    return /^[A-Z]{2}\d{6}$/.test(instructorId.trim().toUpperCase());
   },
 
   // ===== PASSWORD VALIDATION =====
@@ -164,7 +164,8 @@ export const validatorsUtils = {
    */
   isVietnameseName(name: string): boolean {
     if (!name || typeof name !== 'string') return false;
-    return REGEX_PATTERNS.VIETNAMESE_NAME.test(name.trim());
+    // Allow any Unicode letters and spaces
+    return /^[\p{L} ]+$/u.test(name.trim());
   },
 
   /**
@@ -253,7 +254,14 @@ export const validatorsUtils = {
    */
   isISODate(date: string): boolean {
     if (!date || typeof date !== 'string') return false;
-    return REGEX_PATTERNS.DATE_ISO.test(date.trim());
+    const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(date.trim());
+    if (!m) return false;
+    const year = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const day = parseInt(m[3], 10);
+    if (month < 1 || month > 12) return false;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    return day >= 1 && day <= daysInMonth;
   },
 
   /**

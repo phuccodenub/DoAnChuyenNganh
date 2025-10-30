@@ -1,4 +1,8 @@
 import 'dotenv-flow/config';
+// Enable runtime resolution for TypeScript path aliases in compiled JS
+ 
+require('module-alias/register');
+import 'module-alias/register';
 import app from './app';
 import { connectRedis } from './config/redis.config';
 import { connectDatabase } from './config/db';

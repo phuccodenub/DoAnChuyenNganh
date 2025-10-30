@@ -63,7 +63,12 @@ const Course = sequelize.define('Course', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
     defaultValue: 0,
-    comment: 'Giá khóa học'
+    comment: 'Giá khóa học',
+    // Ensure JSON output returns a number instead of string for DECIMAL
+    get(this: any) {
+      const raw = this.getDataValue('price');
+      return raw === null || typeof raw === 'number' ? raw : Number(raw);
+    }
   },
   currency: {
     type: DataTypes.STRING(3),
@@ -119,7 +124,12 @@ const Course = sequelize.define('Course', {
       min: 0,
       max: 5
     },
-    comment: 'Điểm trung bình (0-5)'
+    comment: 'Điểm trung bình (0-5)',
+    // Normalize DECIMAL to number when serializing
+    get(this: any) {
+      const raw = this.getDataValue('rating');
+      return raw === null || typeof raw === 'number' ? raw : Number(raw);
+    }
   },
   total_ratings: {
     type: DataTypes.INTEGER,

@@ -16,9 +16,12 @@ export interface SessionData {
 }
 
 export class CacheService {
+  private readonly disabled: boolean = (process.env.DISABLE_CACHE || '').toLowerCase() === 'true';
+
   // Set cache with TTL - now generic
   async set<T>(key: string, value: T, ttl: number = APP_CONSTANTS.SYSTEM.CACHE_TTL.MEDIUM): Promise<void> {
     try {
+      if (this.disabled) return; // no-op when cache disabled
       const serializedValue = JSON.stringify(value);
       await redisHelpers.set(key, serializedValue, ttl);
     } catch (error: unknown) {
@@ -30,6 +33,7 @@ export class CacheService {
   // Get cache
   async get<T>(key: string): Promise<T | null> {
     try {
+      if (this.disabled) return null; // bypass when disabled
       const value = await redisHelpers.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error: unknown) {
@@ -41,6 +45,7 @@ export class CacheService {
   // Delete cache
   async delete(key: string): Promise<void> {
     try {
+      if (this.disabled) return; // no-op
       await redisHelpers.del(key);
     } catch (error: unknown) {
       logger.error('Cache delete error:', error);
@@ -51,6 +56,7 @@ export class CacheService {
   // Check if key exists
   async exists(key: string): Promise<boolean> {
     try {
+      if (this.disabled) return false;
       return await redisHelpers.exists(key);
     } catch (error: unknown) {
       logger.error('Cache exists error:', error);
@@ -167,6 +173,10 @@ export class CacheService {
     try {
       // In a real implementation, you would use Redis FLUSHDB or FLUSHALL
       // For now, we'll just log it
+      if (this.disabled) {
+        logger.info('Cache disabled - skip clearing');
+        return;
+      }
       logger.info('Clearing all cache');
     } catch (error: unknown) {
       logger.error('Clear all cache error:', error);

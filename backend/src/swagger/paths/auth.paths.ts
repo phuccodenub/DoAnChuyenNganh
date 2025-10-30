@@ -148,7 +148,7 @@ export const authPaths = {
                     last_name: 'Van A',
                     role: 'student',
                     status: 'active',
-                    is_email_verified: true,
+                    email_verified: true,
                     student_id: 'SV001',
                     class: 'CNTT-K62',
                     major: 'Công nghệ thông tin',

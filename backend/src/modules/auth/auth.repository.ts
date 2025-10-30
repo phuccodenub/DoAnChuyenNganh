@@ -11,6 +11,20 @@ export class AuthRepository extends BaseUserRepository {
   }
 
   /**
+   * Find user by username for authentication/registration checks
+   */
+  async findByUsername(username: string): Promise<UserInstance | null> {
+    try {
+      logger.debug('Finding user by username', { username });
+      const user = await this.findOne({ where: { username } });
+      return user;
+    } catch (error: unknown) {
+      logger.error('Error finding user by username:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Find user by email for authentication
    */
   async findUserForAuth(email: string): Promise<UserInstance | null> {
@@ -41,6 +55,7 @@ export class AuthRepository extends BaseUserRepository {
 
       const creation: UserCreationAttributes = {
         email: userData.email.toLowerCase(),
+        username: userData.username,
         password_hash: await hashPassword(userData.password),
         first_name: userData.first_name,
         last_name: userData.last_name,
@@ -53,8 +68,48 @@ export class AuthRepository extends BaseUserRepository {
 
       logger.debug('User created for authentication', { email: userData.email, userId: user.id });
       return user;
-    } catch (error: unknown) {
+    } catch (error: any) {
       logger.error('Error creating user for authentication:', error);
+      
+      // Handle unique/validation constraint violations with field-specific messages for tests
+      const name = error?.name || error?.constructor?.name || '';
+      const lowerName = String(name).toLowerCase();
+      const isUniqueOrValidation = lowerName.includes('uniqueconstrainterror') || lowerName.includes('validationerror');
+      if (isUniqueOrValidation) {
+        // Common Sequelize shapes:
+        // - error.fields: { username: 'dup' }
+        // - error.errors: [{ path: 'username', type: 'unique violation' }]
+        const fields = (error && error.fields) || {};
+        const firstError = Array.isArray(error?.errors) && error.errors.length > 0 ? error.errors[0] : undefined;
+        const firstPath = firstError?.path;
+        const field = Object.keys(fields)[0] || firstPath;
+
+        const ApiErrorMod = await import('../../errors/api.error');
+        const ApiError = ApiErrorMod.ApiError;
+
+        if (field) {
+          const f = String(field).toLowerCase();
+          if (f.includes('username')) {
+            throw ApiError.badRequest('username already exists');
+          }
+          if (f.includes('email')) {
+            throw ApiError.badRequest('email already exists');
+          }
+        }
+
+        // Try to infer from message if no explicit field is present
+        const msg: string = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+        if (msg.includes('username')) {
+          throw ApiError.badRequest('username already exists');
+        }
+        if (msg.includes('email')) {
+          throw ApiError.badRequest('email already exists');
+        }
+
+        // Fall back to a generic but descriptive message covering both fields
+        throw ApiError.badRequest('username or email already exists');
+      }
+      
       throw error;
     }
   }
@@ -87,7 +142,7 @@ export class AuthRepository extends BaseUserRepository {
       logger.debug('Updating email verification', { userId, isVerified });
       
       const user = await this.update(userId, {
-        is_email_verified: isVerified,
+        email_verified: isVerified,
         email_verified_at: isVerified ? new Date() : null
       });
       
@@ -148,11 +203,11 @@ export class AuthRepository extends BaseUserRepository {
   async userExistsByEmail(email: string): Promise<boolean> {
     try {
       logger.debug('Checking if user exists by email', { email });
-      
-      const exists = await this.exists(email);
-      
-      logger.debug('User existence check completed', { email, exists });
-      return exists;
+      // Correctly check by email field instead of primary key
+      const user = await this.findByEmail(email);
+      const exists = !!user;
+      logger.debug('User existence check completed', { email, exists, userId: user?.id });
+      return !!user;
     } catch (error: unknown) {
       logger.error('Error checking user existence by email:', error);
       throw error;

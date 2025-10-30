@@ -13,8 +13,8 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:unit": "jest --testPathPatterns=unit",
-    "test:integration": "jest --testPathPatterns=integration",
+  "test:unit": "set TEST_CATEGORY=unit&& jest --testPathPatterns=unit",
+  "test:integration": "set TEST_CATEGORY=integration&& jest --testPathPatterns=integration --runInBand --detectOpenHandles",
     "test:e2e": "jest --testPathPatterns=e2e",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
@@ -28,12 +28,14 @@
     "setup-db": "ts-node -r tsconfig-paths/register src/scripts/setup-db.ts",
     "setup-db-simple": "ts-node -r tsconfig-paths/register src/scripts/setup-db-simple.ts",
     "reset-db-simple": "ts-node -r tsconfig-paths/register src/scripts/reset-db-simple.ts",
-    "migrate": "ts-node -r tsconfig-paths/register src/scripts/migrate.ts"
+    "migrate": "ts-node -r tsconfig-paths/register src/scripts/migrate.ts",
+    "seed": "ts-node -r tsconfig-paths/register src/scripts/seed-database.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "module-alias": "^2.2.3",
     "@types/express-validator": "^2.20.33",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.2",
@@ -80,11 +82,28 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.37.0",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.10",
     "rimraf": "^6.0.1",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
+  },
+  "_moduleAliases": {
+    "@": "dist",
+    "@config": "dist/config",
+    "@constants": "dist/constants",
+    "@controllers": "dist/controllers",
+    "@middlewares": "dist/middlewares",
+    "@models": "dist/models",
+    "@modules": "dist/modules",
+    "@repositories": "dist/repositories",
+    "@routes": "dist/routes",
+    "@services": "dist/services",
+    "@utils": "dist/utils",
+    "@types": "dist/types"
   }
 }

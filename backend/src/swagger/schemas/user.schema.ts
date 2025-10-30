@@ -43,7 +43,7 @@ export const userSchemas = {
         enum: ['active', 'inactive', 'suspended', 'pending'],
         description: 'User status'
       },
-      is_email_verified: {
+      email_verified: {
         type: 'boolean',
         description: 'Email verification status'
       },

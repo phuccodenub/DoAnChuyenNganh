@@ -33,7 +33,7 @@ export const extractUtils = {
    */
   extractEmails(str: string): string[] {
     if (!str) return [];
-    const matches = str.match(REGEX_PATTERNS.EMAIL);
+    const matches = str.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g);
     return matches || [];
   },
 
@@ -44,7 +44,7 @@ export const extractUtils = {
    */
   extractPhones(str: string): string[] {
     if (!str) return [];
-    const matches = str.match(REGEX_PATTERNS.PHONE);
+    const matches = str.match(/\b\d{3}[-\.]\d{3}[-\.]\d{4}\b/g);
     return matches || [];
   },
 
@@ -55,7 +55,7 @@ export const extractUtils = {
    */
   extractURLs(str: string): string[] {
     if (!str) return [];
-    const matches = str.match(REGEX_PATTERNS.URL);
+    const matches = str.match(/https?:\/\/[^\s]+/g);
     return matches || [];
   },
 

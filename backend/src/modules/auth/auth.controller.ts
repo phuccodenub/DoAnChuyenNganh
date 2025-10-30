@@ -19,9 +19,8 @@ export class AuthController {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userData: RegisterData = req.body;
-      const newUser = await this.authService.register(userData);
-      
-      responseUtils.sendCreated(res, RESPONSE_CONSTANTS.MESSAGE.CREATED, newUser);
+      const result = await this.authService.register(userData);
+      responseUtils.sendCreated(res, RESPONSE_CONSTANTS.MESSAGE.CREATED, result);
     } catch (error: unknown) {
       logger.error('Error during registration:', error);
       next(error);
@@ -119,8 +118,8 @@ export class AuthController {
     try {
       const { refreshToken } = req.body;
       const tokens = await this.authService.refreshToken(refreshToken);
-      
-      responseUtils.sendSuccess(res, 'Token refreshed successfully', tokens);
+      // Wrap tokens in an object to match tests expecting data.tokens.{accessToken,refreshToken}
+      responseUtils.sendSuccess(res, 'Token refreshed successfully', { tokens });
     } catch (error: unknown) {
       logger.error('Error refreshing token:', error);
       next(error);

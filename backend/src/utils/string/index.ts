@@ -30,20 +30,20 @@ import { normalizeUtils } from './normalize.util';
  * Provides access to all string utility functions
  */
 export const stringUtils = {
-  // Format utilities
+  // Normalize utilities first (to avoid overriding format utils)
+  ...normalizeUtils,
+
+  // Format utilities (should take precedence for case conversions)
   ...formatUtils,
-  
+
   // Mask utilities
   ...maskUtils,
-  
+
   // Extract utilities
   ...extractUtils,
-  
+
   // Crypto utilities
-  ...cryptoUtils,
-  
-  // Normalize utilities
-  ...normalizeUtils
+  ...cryptoUtils
 };
 
 // ===== LEGACY EXPORTS (for backward compatibility) =====

@@ -16,6 +16,8 @@ import { addIndexesToCoursesTable } from './006-add-indexes-to-courses-table';
 import { addIndexesToEnrollmentsTable } from './007-add-indexes-to-enrollments-table';
 import { addIndexesToChatMessagesTable } from './008-add-indexes-to-chat-messages-table';
 import { createExtendedLmsTables, dropExtendedLmsTables } from './009-create-extended-lms-tables';
+import { addEmailVerifiedAt, removeEmailVerifiedAt } from './010-add-email-verified-at';
+import { addUserProfileColumns, removeUserProfileColumns } from './011-add-user-profile-columns';
 
 // Migration interface
 export interface Migration {
@@ -107,6 +109,20 @@ export const migrations: Migration[] = [
     description: 'Create extended LMS tables and alter existing ones',
     up: createExtendedLmsTables,
     down: dropExtendedLmsTables
+  }
+  ,
+  {
+    version: '010',
+    description: 'Add email_verified_at column and index to users',
+    up: addEmailVerifiedAt,
+    down: removeEmailVerifiedAt
+  }
+  ,
+  {
+    version: '011',
+    description: 'Add missing user profile columns to users table',
+    up: addUserProfileColumns,
+    down: removeUserProfileColumns
   }
 ];
 

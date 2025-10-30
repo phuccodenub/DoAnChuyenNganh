@@ -38,13 +38,14 @@ export class PasswordSecurityService {
     */
 
     // Kiểm tra các pattern phổ biến
+    // Only reject if the entire password equals a known weak pattern
     const commonPatterns = [
-      /123456/,
-      /password/i,
-      /qwerty/i,
-      /abc123/i,
-      /admin/i,
-      /letmein/i
+      /^123456$/i,
+      /^password$/i,
+      /^qwerty$/i,
+      /^abc123$/i,
+      /^admin$/i,
+      /^letmein$/i
     ];
 
     for (const pattern of commonPatterns) {

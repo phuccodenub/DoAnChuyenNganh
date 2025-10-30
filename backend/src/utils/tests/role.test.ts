@@ -13,7 +13,7 @@ const mockStudent: any = {
   avatar: 'https://example.com/avatar.jpg',
   role: 'student',
   status: 'active',
-  is_email_verified: true,
+  email_verified: true,
   email_verified_at: new Date(),
   token_version: 1,
   last_login: new Date(),

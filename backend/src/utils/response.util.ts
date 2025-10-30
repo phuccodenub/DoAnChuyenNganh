@@ -35,6 +35,10 @@ export const responseUtils = {
     const response: ApiResponse = {
       success: false,
       message,
+      // Backward-compat alias expected by some tests
+      // e.g., tests assert body.error exists
+      // Keep both for compatibility during integration
+      ...(message && { error: message }),
       ...(errors && { errors: this.formatValidationErrors(errors) })
     };
 

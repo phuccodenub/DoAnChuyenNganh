@@ -16,8 +16,8 @@ const sequelize = getSequelize();
  */
 const PasswordResetToken = sequelize.define('PasswordResetToken', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true,
   },
   user_id: {
@@ -25,10 +25,10 @@ const PasswordResetToken = sequelize.define('PasswordResetToken', {
     allowNull: false,
     references: {
       model: 'users',
-      key: 'id'
+      key: 'id',
     },
     onDelete: 'CASCADE', // Khi user bị xóa, tất cả token liên quan cũng bị xóa
-    comment: 'ID của người dùng yêu cầu đặt lại mật khẩu'
+    comment: 'ID của người dùng yêu cầu đặt lại mật khẩu',
   },
   token: {
     type: DataTypes.STRING(255),

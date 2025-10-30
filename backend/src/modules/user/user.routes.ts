@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { UserModuleController } from './user.controller';
+import { AuthController } from '../auth/auth.controller';
+import { authSchemas } from '../../validates/auth.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { UserRole } from '../../constants/roles.enum';
 import { validateBody, validateQuery } from '../../middlewares/validate.middleware';
@@ -8,6 +10,7 @@ import multer from 'multer';
 
 const router = Router();
 const userModuleController = new UserModuleController();
+const authController = new AuthController();
 
 // Configure multer for file uploads
 const upload = multer({
@@ -32,6 +35,13 @@ router.use(authMiddleware);
 // Get user profile (authenticated users only)
 router.get(
   '/profile',
+  (req, _res, next) => {
+    // Temporary info log to verify route match during tests
+     
+    const logger = require('../../utils/logger.util').default;
+    logger.info('Matched route GET /users/profile', { baseUrl: req.baseUrl, url: req.url });
+    next();
+  },
   (req, res, next) => userModuleController.getProfile(req, res, next)
 );
 
@@ -39,6 +49,13 @@ router.get(
 router.put(
   '/profile',
   validateBody(userSchemas.updateProfile),
+  (req, _res, next) => {
+    // Temporary info log to verify route match during tests
+     
+    const logger = require('../../utils/logger.util').default;
+    logger.info('Matched route PUT /users/profile', { baseUrl: req.baseUrl, url: req.url });
+    next();
+  },
   (req, res, next) => userModuleController.updateProfile(req, res, next)
 );
 
@@ -66,6 +83,14 @@ router.get(
 router.post(
   '/logout-all',
   (req, res, next) => userModuleController.logoutAllDevices(req, res, next)
+);
+
+// Backward-compatible alias: some clients/tests expect change-password under /api/users
+// Delegate to AuthController to keep single implementation
+router.put(
+  '/change-password',
+  validateBody(authSchemas.changePassword),
+  (req, res, next) => authController.changePassword(req, res, next)
 );
 
 // Two-factor authentication (authenticated users only)
