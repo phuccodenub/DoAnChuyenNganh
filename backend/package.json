@@ -35,6 +35,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/storage": "^7.14.0",
+    "cloudinary": "^2.5.0",
     "module-alias": "^2.2.3",
     "@types/express-validator": "^2.20.33",
     "@types/multer": "^2.0.0",
