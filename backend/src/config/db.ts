@@ -1,11 +1,11 @@
-import { Sequelize, Options } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 let sequelize: Sequelize | null = null;
 
 export function getSequelize(): Sequelize {
   if (!sequelize) {
     // Prefer DATABASE_URL if provided; fallback to discrete DB_* variables
-    const baseOptions: Options = {
+    const baseOptions = {
       dialect: 'postgres',
       logging: false,
       pool: {
@@ -43,7 +43,7 @@ export function getSequelize(): Sequelize {
         ? (process.env.DB_PASSWORD_TEST || process.env.DB_PASSWORD || '123456')
         : (process.env.DB_PASSWORD || 'lms_password');
 
-      const connectionOptions: Options = {
+      const connectionOptions = {
         ...baseOptions,
         host: dbHost,
         port: parseInt(dbPort)
