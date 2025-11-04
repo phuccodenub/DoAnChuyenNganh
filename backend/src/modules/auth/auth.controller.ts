@@ -48,7 +48,7 @@ export class AuthController {
       const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown IP';
       const userAgent = req.headers['user-agent'] || 'Unknown User Agent';
 
-      const credentials: LoginCredentials = { username, password };
+      const credentials: LoginCredentials = { email: username, password };
       const result = await this.authService.loginWith2FA(credentials, code, device, ipAddress, userAgent);
       responseUtils.sendSuccess(res, 'Login with 2FA successful', result);
     } catch (error: unknown) {
@@ -62,7 +62,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -79,7 +79,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -97,7 +97,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -128,7 +128,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
       
@@ -145,7 +145,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
       

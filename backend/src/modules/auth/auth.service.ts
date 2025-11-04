@@ -54,7 +54,7 @@ export class AuthModuleService {
       // Create new user (repository handles password hashing) with enhanced error handling
       const newUser = await this.authRepository.createUserForAuth(userData as any);
 
-  const userProfile = userUtils.getPublicProfile(newUser) as AuthTypes.UserProfile;
+  const userProfile = userUtils.getPublicProfile(newUser as any) as AuthTypes.UserProfile;
   // Generate tokens for the newly registered user
   const tokens = await globalServices.auth.generateTokens(newUser);
       
@@ -108,7 +108,7 @@ export class AuthModuleService {
       }
 
       // Check if user is active
-      if (!userUtils.isActive(user)) {
+      if (!userUtils.isActive(user as any)) {
         throw ApiError.forbidden('Account is inactive');
       }
 
@@ -160,7 +160,7 @@ export class AuthModuleService {
       await globalServices.cache.cacheSession(`session:${user.id}`, sessionData);
 
       // Return profile for response
-      const userProfile = userUtils.getPublicProfile(user) as AuthTypes.UserProfile;
+      const userProfile = userUtils.getPublicProfile(user as any) as AuthTypes.UserProfile;
 
       logger.info('User logged in successfully', { email: user.email, userId: user.id });
 

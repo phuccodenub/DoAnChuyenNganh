@@ -118,13 +118,13 @@ const Lesson = sequelize.define('Lesson', {
 
 // Instance & Static Methods (type-safe helpers)
 addInstanceMethods(Lesson, {
-  async getMaterialCount(this: Model<LessonAttributes>): Promise<number> {
+  async getMaterialCount(this: Model): Promise<number> {
     const lesson = this as unknown as LessonInstance;
     return await sequelize.models.LessonMaterial.count({
       where: { lesson_id: lesson.id }
     });
   },
-  async getCompletionRate(this: Model<LessonAttributes>): Promise<number> {
+  async getCompletionRate(this: Model): Promise<number> {
     const lesson = this as unknown as LessonInstance;
     const total = await sequelize.models.LessonProgress.count({
       where: { lesson_id: lesson.id }

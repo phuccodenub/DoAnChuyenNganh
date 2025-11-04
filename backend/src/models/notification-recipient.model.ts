@@ -1,4 +1,5 @@
-import { DataTypes, Op, ModelStatic } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
 import { getSequelize } from '../config/db';
 import { NotificationRecipientAttributes, NotificationRecipientCreationAttributes, NotificationRecipientInstance } from '../types/model.types';
 import Notification from './notification.model';
@@ -118,7 +119,7 @@ addInstanceMethods(NotificationRecipientModel, {
     if (!this.is_read) {
       this.is_read = true;
       this.read_at = new Date();
-      await this.save();
+      await (this as any).save();
 
       await Notification.updateReadCount(this.notification_id);
     }
@@ -129,7 +130,7 @@ addInstanceMethods(NotificationRecipientModel, {
     if (this.is_read) {
       this.is_read = false;
       this.read_at = null;
-      await this.save();
+      await (this as any).save();
 
       await Notification.updateReadCount(this.notification_id);
     }
@@ -139,20 +140,20 @@ addInstanceMethods(NotificationRecipientModel, {
   async archive(this: NotificationRecipientInstance) {
     this.is_archived = true;
     this.archived_at = new Date();
-    await this.save();
+    await (this as any).save();
     return this;
   },
 
   async dismiss(this: NotificationRecipientInstance) {
     this.is_dismissed = true;
     this.dismissed_at = new Date();
-    await this.save();
+    await (this as any).save();
     return this;
   },
 
   async trackClick(this: NotificationRecipientInstance) {
     this.clicked_at = new Date();
-    await this.save();
+    await (this as any).save();
     return this;
   }
 });
@@ -240,7 +241,7 @@ addStaticMethods(NotificationRecipientModel, {
     );
 
     // Update read counts for all affected notifications
-    const notificationIds = Array.from(new Set(recipients.map((r) => r.notification_id)));
+    const notificationIds = Array.from(new Set(recipients.map((r: any) => r.notification_id)));
     for (const notificationId of notificationIds) {
       await Notification.updateReadCount(notificationId);
     }

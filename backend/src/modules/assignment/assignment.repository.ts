@@ -1,5 +1,5 @@
 import { Assignment, AssignmentSubmission, User, Course } from '../../models';
-import type { ModelStatic, WhereOptions } from 'sequelize';
+import type { ModelStatic, WhereOptions } from '../../types/sequelize-types';
 import type {
   AssignmentInstance,
   AssignmentCreationAttributes,

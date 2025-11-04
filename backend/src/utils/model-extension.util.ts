@@ -3,7 +3,8 @@
  * Thay thế việc sử dụng 'as any' khi thêm methods vào Sequelize models
  */
 
-import { Model, ModelStatic } from 'sequelize';
+import { Model } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
 
 // ===================================
 // TYPE-SAFE MODEL EXTENSION HELPERS

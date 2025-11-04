@@ -2,7 +2,8 @@ import User from '../models/user.model';
 import { UserInstance, UserCreationAttributes } from '../types/model.types';
 import { BaseRepository } from './base.repository';
 import logger from '../utils/logger.util';
-import { FindOptions, ModelStatic } from 'sequelize';
+import { FindOptions } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
 
 export class UserRepository extends BaseRepository<UserInstance> {
   constructor() {

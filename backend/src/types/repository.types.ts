@@ -2,7 +2,8 @@
  * Repository Types - Type definitions for repository layer
  */
 
-import { FindOptions, WhereOptions, Includeable } from 'sequelize';
+import { FindOptions, Includeable } from 'sequelize';
+import type { WhereOptions } from './sequelize-types';
 
 // ===================================
 // SEQUELIZE QUERY OPTIONS

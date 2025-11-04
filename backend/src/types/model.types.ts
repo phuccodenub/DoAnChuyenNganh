@@ -1,4 +1,5 @@
-import { Model, Optional } from 'sequelize';
+import { Model } from 'sequelize';
+import type { Optional } from './sequelize-types';
 
 // ===================================
 // USER MODEL INTERFACES
@@ -53,7 +54,7 @@ export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 
 // Model definition attributes (without timestamps as Sequelize adds them automatically)
 export interface UserModelAttributes extends Omit<UserAttributes, 'created_at' | 'updated_at'> {}
 
-export interface UserInstance extends Model<UserAttributes, UserCreationAttributes>, UserAttributes {}
+export interface UserInstance extends Model, UserAttributes {}
 
 // ===================================
 // COURSE MODEL INTERFACES
@@ -83,7 +84,7 @@ export interface CourseAttributes {
 
 export interface CourseCreationAttributes extends Optional<CourseAttributes, 'id' | 'created_at' | 'updated_at' | 'status' | 'level' | 'language' | 'total_lessons'> {}
 
-export interface CourseInstance extends Model<CourseAttributes, CourseCreationAttributes>, CourseAttributes {}
+export interface CourseInstance extends Model, CourseAttributes {}
 
 // ===================================
 // QUIZ MODEL INTERFACES
@@ -114,7 +115,7 @@ export interface QuizCreationAttributes extends Optional<
   'available_from' | 'available_until' | 'is_published'
 > {}
 
-export interface QuizInstance extends Model<QuizAttributes, QuizCreationAttributes>, QuizAttributes {}
+export interface QuizInstance extends Model, QuizAttributes {}
 
 // ===================================
 // QUIZ QUESTION MODEL INTERFACES
@@ -134,7 +135,7 @@ export interface QuizQuestionAttributes {
 
 export interface QuizQuestionCreationAttributes extends Optional<QuizQuestionAttributes, 'id' | 'created_at' | 'updated_at' | 'points'> {}
 
-export interface QuizQuestionInstance extends Model<QuizQuestionAttributes, QuizQuestionCreationAttributes>, QuizQuestionAttributes {}
+export interface QuizQuestionInstance extends Model, QuizQuestionAttributes {}
 
 // ===================================
 // QUIZ OPTION MODEL INTERFACES
@@ -152,7 +153,7 @@ export interface QuizOptionAttributes {
 
 export interface QuizOptionCreationAttributes extends Optional<QuizOptionAttributes, 'id' | 'created_at' | 'updated_at' | 'is_correct'> {}
 
-export interface QuizOptionInstance extends Model<QuizOptionAttributes, QuizOptionCreationAttributes>, QuizOptionAttributes {}
+export interface QuizOptionInstance extends Model, QuizOptionAttributes {}
 
 // ===================================
 // QUIZ ATTEMPT MODEL INTERFACES
@@ -178,7 +179,7 @@ export interface QuizAttemptCreationAttributes extends Optional<
   'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'score' | 'max_score' | 'time_spent_minutes' | 'is_passed'
 > {}
 
-export interface QuizAttemptInstance extends Model<QuizAttemptAttributes, QuizAttemptCreationAttributes>, QuizAttemptAttributes {}
+export interface QuizAttemptInstance extends Model, QuizAttemptAttributes {}
 
 // ===================================
 // QUIZ ANSWER MODEL INTERFACES
@@ -198,7 +199,7 @@ export interface QuizAnswerAttributes {
 
 export interface QuizAnswerCreationAttributes extends Optional<QuizAnswerAttributes, 'id' | 'created_at' | 'updated_at' | 'is_correct' | 'points_earned'> {}
 
-export interface QuizAnswerInstance extends Model<QuizAnswerAttributes, QuizAnswerCreationAttributes>, QuizAnswerAttributes {}
+export interface QuizAnswerInstance extends Model, QuizAnswerAttributes {}
 
 // ===================================
 // ASSIGNMENT MODEL INTERFACES
@@ -220,7 +221,7 @@ export interface AssignmentAttributes {
 
 export interface AssignmentCreationAttributes extends Optional<AssignmentAttributes, 'id' | 'created_at' | 'updated_at' | 'max_score' | 'allow_late_submission' | 'is_published'> {}
 
-export interface AssignmentInstance extends Model<AssignmentAttributes, AssignmentCreationAttributes>, AssignmentAttributes {}
+export interface AssignmentInstance extends Model, AssignmentAttributes {}
 
 // ===================================
 // ASSIGNMENT SUBMISSION MODEL INTERFACES
@@ -246,7 +247,7 @@ export interface AssignmentSubmissionAttributes {
 
 export interface AssignmentSubmissionCreationAttributes extends Optional<AssignmentSubmissionAttributes, 'id' | 'created_at' | 'updated_at' | 'is_late' | 'status'> {}
 
-export interface AssignmentSubmissionInstance extends Model<AssignmentSubmissionAttributes, AssignmentSubmissionCreationAttributes>, AssignmentSubmissionAttributes {}
+export interface AssignmentSubmissionInstance extends Model, AssignmentSubmissionAttributes {}
 
 // ===================================
 // ENROLLMENT MODEL INTERFACES
@@ -272,7 +273,7 @@ export interface EnrollmentAttributes {
 
 export interface EnrollmentCreationAttributes extends Optional<EnrollmentAttributes, 'id' | 'created_at' | 'updated_at' | 'status' | 'enrollment_type' | 'progress_percentage' | 'completed_lessons' | 'total_lessons'> {}
 
-export interface EnrollmentInstance extends Model<EnrollmentAttributes, EnrollmentCreationAttributes>, EnrollmentAttributes {}
+export interface EnrollmentInstance extends Model, EnrollmentAttributes {}
 
 // ===================================
 // CATEGORY MODEL INTERFACES
@@ -296,7 +297,7 @@ export interface CategoryAttributes {
 
 export interface CategoryCreationAttributes extends Optional<CategoryAttributes, 'id' | 'created_at' | 'updated_at' | 'is_active' | 'order_index' | 'course_count'> {}
 
-export interface CategoryInstance extends Model<CategoryAttributes, CategoryCreationAttributes>, CategoryAttributes {
+export interface CategoryInstance extends Model, CategoryAttributes {
   // Instance methods
   isRootCategory(): boolean;
 }
@@ -325,7 +326,7 @@ export interface SectionAttributes {
 
 export interface SectionCreationAttributes extends Optional<SectionAttributes, 'id' | 'created_at' | 'updated_at' | 'is_published'> {}
 
-export interface SectionInstance extends Model<SectionAttributes, SectionCreationAttributes>, SectionAttributes {}
+export interface SectionInstance extends Model, SectionAttributes {}
 
 // ===================================
 // LESSON MODEL INTERFACES
@@ -348,7 +349,7 @@ export interface LessonAttributes {
 
 export interface LessonCreationAttributes extends Optional<LessonAttributes, 'id' | 'created_at' | 'updated_at' | 'is_published' | 'is_free'> {}
 
-export interface LessonInstance extends Model<LessonAttributes, LessonCreationAttributes>, LessonAttributes {}
+export interface LessonInstance extends Model, LessonAttributes {}
 
 // ===================================
 // NOTIFICATION MODEL INTERFACES
@@ -387,7 +388,7 @@ export interface NotificationCreationAttributes extends Optional<
   'total_recipients' | 'read_count'
 > {}
 
-export interface NotificationInstance extends Model<NotificationAttributes, NotificationCreationAttributes>, NotificationAttributes {}
+export interface NotificationInstance extends Model, NotificationAttributes {}
 
 // ===================================
 // GRADE MODEL INTERFACES
@@ -409,7 +410,7 @@ export interface GradeAttributes {
 
 export interface GradeCreationAttributes extends Optional<GradeAttributes, 'id' | 'created_at' | 'updated_at'> {}
 
-export interface GradeInstance extends Model<GradeAttributes, GradeCreationAttributes>, GradeAttributes {}
+export interface GradeInstance extends Model, GradeAttributes {}
 
 // ===================================
 // LIVE SESSION MODEL INTERFACES
@@ -436,7 +437,7 @@ export interface LiveSessionAttributes {
 
 export interface LiveSessionCreationAttributes extends Optional<LiveSessionAttributes, 'id' | 'created_at' | 'updated_at' | 'status'> {}
 
-export interface LiveSessionInstance extends Model<LiveSessionAttributes, LiveSessionCreationAttributes>, LiveSessionAttributes {}
+export interface LiveSessionInstance extends Model, LiveSessionAttributes {}
 
 // ===================================
 // CHAT MESSAGE MODEL INTERFACES
@@ -462,7 +463,7 @@ export interface ChatMessageAttributes {
 
 export interface ChatMessageCreationAttributes extends Optional<ChatMessageAttributes, 'id' | 'created_at' | 'updated_at' | 'message_type' | 'is_edited' | 'is_deleted'> {}
 
-export interface ChatMessageInstance extends Model<ChatMessageAttributes, ChatMessageCreationAttributes>, ChatMessageAttributes {}
+export interface ChatMessageInstance extends Model, ChatMessageAttributes {}
 
 // ===================================
 // PASSWORD RESET TOKEN MODEL INTERFACES
@@ -482,7 +483,7 @@ export interface PasswordResetTokenAttributes {
 
 export interface PasswordResetTokenCreationAttributes extends Optional<PasswordResetTokenAttributes, 'id' | 'created_at' | 'updated_at' | 'used'> {}
 
-export interface PasswordResetTokenInstance extends Model<PasswordResetTokenAttributes, PasswordResetTokenCreationAttributes>, PasswordResetTokenAttributes {}
+export interface PasswordResetTokenInstance extends Model, PasswordResetTokenAttributes {}
 
 // ===================================
 // LESSON MATERIAL MODEL INTERFACES
@@ -521,7 +522,7 @@ export interface LessonMaterialCreationAttributes extends Optional<
   | 'file_url'
 > {}
 
-export interface LessonMaterialInstance extends Model<LessonMaterialAttributes, LessonMaterialCreationAttributes>, LessonMaterialAttributes {}
+export interface LessonMaterialInstance extends Model, LessonMaterialAttributes {}
 
 // ===================================
 // LESSON PROGRESS MODEL INTERFACES
@@ -550,7 +551,7 @@ export interface LessonProgressCreationAttributes extends Optional<
   'id' | 'created_at' | 'updated_at' | 'completed' | 'last_position' | 'completion_percentage' | 'time_spent_seconds' | 'bookmarked'
 > {}
 
-export interface LessonProgressInstance extends Model<LessonProgressAttributes, LessonProgressCreationAttributes>, LessonProgressAttributes {
+export interface LessonProgressInstance extends Model, LessonProgressAttributes {
   markAsCompleted(): Promise<LessonProgressInstance>;
   updateProgress(data: {
     last_position?: number;
@@ -594,7 +595,7 @@ export interface NotificationRecipientCreationAttributes extends Optional<
   | 'interaction_data'
 > {}
 
-export interface NotificationRecipientInstance extends Model<NotificationRecipientAttributes, NotificationRecipientCreationAttributes>, NotificationRecipientAttributes {}
+export interface NotificationRecipientInstance extends Model, NotificationRecipientAttributes {}
 
 // ===================================
 // GRADE COMPONENT MODEL INTERFACES
@@ -615,7 +616,7 @@ export interface GradeComponentAttributes {
 
 export interface GradeComponentCreationAttributes extends Optional<GradeComponentAttributes, 'id' | 'created_at' | 'updated_at' | 'is_active'> {}
 
-export interface GradeComponentInstance extends Model<GradeComponentAttributes, GradeComponentCreationAttributes>, GradeComponentAttributes {}
+export interface GradeComponentInstance extends Model, GradeComponentAttributes {}
 
 // ===================================
 // FINAL GRADE MODEL INTERFACES
@@ -635,7 +636,7 @@ export interface FinalGradeAttributes {
 
 export interface FinalGradeCreationAttributes extends Optional<FinalGradeAttributes, 'id' | 'created_at' | 'updated_at' | 'calculated_at' | 'is_complete'> {}
 
-export interface FinalGradeInstance extends Model<FinalGradeAttributes, FinalGradeCreationAttributes>, FinalGradeAttributes {}
+export interface FinalGradeInstance extends Model, FinalGradeAttributes {}
 
 // ===================================
 // LIVE SESSION ATTENDANCE MODEL INTERFACES
@@ -654,7 +655,7 @@ export interface LiveSessionAttendanceAttributes {
 
 export interface LiveSessionAttendanceCreationAttributes extends Optional<LiveSessionAttendanceAttributes, 'id' | 'created_at' | 'updated_at'> {}
 
-export interface LiveSessionAttendanceInstance extends Model<LiveSessionAttendanceAttributes, LiveSessionAttendanceCreationAttributes>, LiveSessionAttendanceAttributes {}
+export interface LiveSessionAttendanceInstance extends Model, LiveSessionAttendanceAttributes {}
 
 // ===================================
 // USER ACTIVITY LOG MODEL INTERFACES
@@ -675,7 +676,7 @@ export interface UserActivityLogAttributes {
 
 export interface UserActivityLogCreationAttributes extends Optional<UserActivityLogAttributes, 'id' | 'created_at' | 'updated_at'> {}
 
-export interface UserActivityLogInstance extends Model<UserActivityLogAttributes, UserActivityLogCreationAttributes>, UserActivityLogAttributes {}
+export interface UserActivityLogInstance extends Model, UserActivityLogAttributes {}
 
 // ===================================
 // COURSE STATISTICS MODEL INTERFACES
@@ -697,5 +698,5 @@ export interface CourseStatisticsCreationAttributes extends Optional<
   'id' | 'created_at' | 'updated_at' | 'total_enrollments' | 'active_enrollments'
 > {}
 
-export interface CourseStatisticsInstance extends Model<CourseStatisticsAttributes, CourseStatisticsCreationAttributes>, CourseStatisticsAttributes {}
+export interface CourseStatisticsInstance extends Model, CourseStatisticsAttributes {}
 

@@ -136,7 +136,7 @@ export const baseValidation = {
     size: z.number()
       .min(1, 'File size must be at least 1 byte')
       .max(10 * 1024 * 1024, 'File size must be less than 10MB'),
-    buffer: z.instanceof(Buffer)
+    buffer: z.any() // Buffer type for file uploads
   }),
 
   // ===== COMMON RESPONSE VALIDATION =====

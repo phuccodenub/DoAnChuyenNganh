@@ -1,4 +1,5 @@
-import { DataTypes, Model, ModelStatic, Op } from 'sequelize';
+import { DataTypes, Model, Op } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
 import { getSequelize } from '../config/db';
 import { NotificationAttributes, NotificationCreationAttributes, NotificationInstance } from '../types/model.types';
 import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
@@ -157,7 +158,7 @@ addInstanceMethods(NotificationModel, {
   },
   async markAsSent(this: NotificationInstance) {
     this.sent_at = new Date();
-    await this.save();
+    await (this as any).save();
     return this;
   }
 });

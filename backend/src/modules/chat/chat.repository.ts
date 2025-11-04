@@ -8,7 +8,8 @@ import User from '../../models/user.model';
 import Course from '../../models/course.model';
 import { GetMessagesOptions, SearchMessagesOptions } from './chat.types';
 import logger from '../../utils/logger.util';
-import { Op, WhereOptions } from 'sequelize';
+import { Op } from 'sequelize';
+import type { WhereOptions } from '../../types/sequelize-types';
 import type { 
   ChatMessageInstance, 
   ChatMessageAttributes, 

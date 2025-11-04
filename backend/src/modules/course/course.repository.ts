@@ -7,7 +7,7 @@ import { EnrollmentInstance } from '../../types/model.types';
 import * as CourseTypes from './course.types';
 import { BaseRepository } from '../../repositories/base.repository';
 import logger from '../../utils/logger.util';
-import { ModelStatic, WhereOptions } from 'sequelize';
+import type { ModelStatic, WhereOptions } from '../../types/sequelize-types';
 
 export class CourseRepository extends BaseRepository<CourseInstance> {
   constructor() {

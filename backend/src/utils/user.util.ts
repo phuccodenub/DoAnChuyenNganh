@@ -285,7 +285,7 @@ export const userUtils = {
    */
   async comparePassword(user: UserInstance, candidatePassword: string): Promise<boolean> {
     try {
-      return await comparePassword(candidatePassword, user.password);
+      return await comparePassword(candidatePassword, user.password_hash);
     } catch (error) {
       throw new Error('Password comparison failed');
     }

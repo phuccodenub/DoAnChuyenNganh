@@ -1,5 +1,5 @@
 import { Grade, FinalGrade } from '../../models';
-import type { WhereOptions, ModelStatic } from 'sequelize';
+import type { WhereOptions, ModelStatic } from '../../types/sequelize-types';
 import type {
   GradeInstance,
   GradeCreationAttributes,

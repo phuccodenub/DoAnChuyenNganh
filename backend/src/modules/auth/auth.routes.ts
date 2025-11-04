@@ -46,7 +46,7 @@ router.post(
 router.post(
   '/refresh',
   validateBody(authSchemas.refreshToken),
-  (req, res, next) => authController.refreshToken(req, res, next)
+  (req: any, res: any, next: any) => authController.refreshToken(req, res, next)
 );
 
 // Verify email

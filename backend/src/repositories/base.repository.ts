@@ -1,4 +1,5 @@
-import { Model, ModelStatic, FindOptions, CreateOptions, UpdateOptions, DestroyOptions, BulkCreateOptions, Attributes, CreationAttributes, WhereOptions } from 'sequelize';
+import { Model, FindOptions, CreateOptions, UpdateOptions, DestroyOptions } from 'sequelize';
+import type { ModelStatic, BulkCreateOptions, Attributes, CreationAttributes, WhereOptions } from '../types/sequelize-types';
 import logger from '../utils/logger.util';
 
 /**
@@ -36,14 +37,14 @@ export abstract class BaseRepository<
   /**
    * Create a new record
    */
-  async create(data: TCreate, options?: CreateOptions<Attributes<T>>): Promise<T> {
+  async create(data: TCreate, options?: CreateOptions): Promise<T> {
     try {
       logger.debug(`Creating ${this.modelName}`, { data });
       
       const model = this.getModelInstance();
       const instance = await model.create(
         data as CreationAttributes<T>,
-        options as CreateOptions<Attributes<T>>
+        options as CreateOptions
       );
       
       logger.debug(`${this.modelName} created successfully`, { id: instance.get('id') });
@@ -126,7 +127,7 @@ export abstract class BaseRepository<
       logger.debug(`Finding and counting ${this.modelName}`, { options });
       
       const model = this.getModelInstance();
-      const result = await model.findAndCountAll(options);
+      const result = await (model as any).findAndCountAll(options);
       
       logger.debug(`${this.modelName} found and counted`, { count: result.count, rows: result.rows.length });
       return result;
@@ -139,13 +140,13 @@ export abstract class BaseRepository<
   /**
    * Update a record by primary key
    */
-  async update(id: string | number, data: TUpdate | Record<string, unknown>, options?: UpdateOptions<Attributes<T>>): Promise<T> {
+  async update(id: string | number, data: TUpdate | Record<string, unknown>, options?: UpdateOptions): Promise<T> {
     try {
       logger.debug(`Updating ${this.modelName}`, { id, data });
       
       const model = this.getModelInstance();
-      const finalOptions: UpdateOptions<Attributes<T>> = { ...(options as UpdateOptions<Attributes<T>> | undefined) } as UpdateOptions<Attributes<T>>;
-      finalOptions.where = { ...(finalOptions.where as object | undefined), id } as unknown as WhereOptions<Attributes<T>>;
+      const finalOptions: UpdateOptions = { ...(options as UpdateOptions | undefined) } as UpdateOptions;
+      finalOptions.where = { ...(finalOptions.where as object | undefined), id } as unknown as WhereOptions;
       const [affectedCount] = await model.update(
         data as Partial<Attributes<T>>,
         finalOptions
@@ -171,13 +172,13 @@ export abstract class BaseRepository<
   /**
    * Delete a record by primary key
    */
-  async delete(id: string | number, options?: DestroyOptions<Attributes<T>>): Promise<void> {
+  async delete(id: string | number, options?: DestroyOptions): Promise<void> {
     try {
       logger.debug(`Deleting ${this.modelName}`, { id });
       
       const model = this.getModelInstance();
-      const finalOptions: DestroyOptions<Attributes<T>> = { ...(options as DestroyOptions<Attributes<T>> | undefined) } as DestroyOptions<Attributes<T>>;
-      finalOptions.where = { ...(finalOptions.where as object | undefined), id } as unknown as WhereOptions<Attributes<T>>;
+      const finalOptions: DestroyOptions = { ...(options as DestroyOptions | undefined) } as DestroyOptions;
+      finalOptions.where = { ...(finalOptions.where as object | undefined), id } as unknown as WhereOptions;
       const deletedCount = await model.destroy(finalOptions);
       
       if (deletedCount === 0) {
@@ -233,14 +234,14 @@ export abstract class BaseRepository<
   /**
    * Find records by field
    */
-  async findByField(field: string, value: unknown, options?: FindOptions<Attributes<T>>): Promise<T[]> {
+  async findByField(field: string, value: unknown, options?: FindOptions): Promise<T[]> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
       const model = this.getModelInstance();
       const instances = await model.findAll({
-        where: { [field]: value } as unknown as WhereOptions<Attributes<T>>,
-        ...(options as FindOptions<Attributes<T>>)
+        where: { [field]: value } as unknown as WhereOptions,
+        ...(options as FindOptions)
       });
       
       logger.debug(`${this.modelName} found by field`, { field, value, count: instances.length });
@@ -254,14 +255,14 @@ export abstract class BaseRepository<
   /**
    * Find a single record by field
    */
-  async findOneByField(field: string, value: unknown, options?: FindOptions<Attributes<T>>): Promise<T | null> {
+  async findOneByField(field: string, value: unknown, options?: FindOptions): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
       const model = this.getModelInstance();
       const instance = await model.findOne({
-        where: { [field]: value } as unknown as WhereOptions<Attributes<T>>,
-        ...(options as FindOptions<Attributes<T>>)
+        where: { [field]: value } as unknown as WhereOptions,
+        ...(options as FindOptions)
       });
       
       if (instance) {
@@ -280,14 +281,14 @@ export abstract class BaseRepository<
   /**
    * Bulk create records
    */
-  async bulkCreate(data: TCreate[], options?: BulkCreateOptions<Attributes<T>>): Promise<T[]> {
+  async bulkCreate(data: TCreate[], options?: BulkCreateOptions): Promise<T[]> {
     try {
       logger.debug(`Bulk creating ${this.modelName}`, { count: data.length });
       
       const model = this.getModelInstance();
       const instances = await model.bulkCreate(
-        data as ReadonlyArray<CreationAttributes<T>>,
-        options as BulkCreateOptions<Attributes<T>>
+        data as any[],
+        options as BulkCreateOptions
       );
       
       logger.debug(`${this.modelName} bulk created`, { count: instances.length });
@@ -301,17 +302,17 @@ export abstract class BaseRepository<
   /**
    * Bulk update records
    */
-  async bulkUpdate(data: CreationAttributes<T>[], options?: BulkCreateOptions<Attributes<T>>): Promise<void> {
+  async bulkUpdate(data: CreationAttributes<T>[], options?: BulkCreateOptions): Promise<void> {
     try {
       logger.debug(`Bulk updating ${this.modelName}`, { count: data.length });
       
       const model = this.getModelInstance();
       await model.bulkCreate(
-        data as unknown as ReadonlyArray<CreationAttributes<T>>,
+        data as any[],
         {
           updateOnDuplicate: Object.keys((data[0] ?? {}) as object),
           ...(options as object)
-        } as BulkCreateOptions<Attributes<T>>
+        } as BulkCreateOptions
       );
       
       logger.debug(`${this.modelName} bulk updated`, { count: data.length });

@@ -83,19 +83,19 @@ const Section = sequelize.define('Section', {
 
 // Instance & Static Methods (type-safe helpers)
 addInstanceMethods(Section, {
-  async getLessonCount(this: Model<SectionAttributes>): Promise<number> {
+  async getLessonCount(this: Model): Promise<number> {
     const section = this as unknown as SectionInstance;
     return await sequelize.models.Lesson.count({
       where: { section_id: section.id }
     });
   },
-  async getTotalDuration(this: Model<SectionAttributes>): Promise<number> {
+  async getTotalDuration(this: Model): Promise<number> {
     const section = this as unknown as SectionInstance;
     const lessons = await sequelize.models.Lesson.findAll({
       where: { section_id: section.id },
       attributes: ['duration_minutes']
     });
-    return lessons.reduce((total: number, lesson) => {
+    return lessons.reduce((total: number, lesson: any) => {
       const duration = (lesson as any).duration_minutes as number | null;
       return total + (duration || 0);
     }, 0);
