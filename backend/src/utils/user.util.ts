@@ -328,7 +328,7 @@ export const userUtils = {
       'emergency_phone'
     ];
 
-    const sanitized: Partial<UserInstance> = {};
+    const sanitized: any = {};
     publicFields.forEach(field => {
       const value = user[field];
       if (value !== undefined) {
