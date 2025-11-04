@@ -47,7 +47,7 @@ async function checkTableSchema(tableName: string): Promise<void> {
         replacements: { tableName },
         type: QueryTypes.SELECT,
       }
-    );
+    ) as unknown as ColumnInfo[];
 
     if (columns.length === 0) {
       console.log(`⚠️  Table "${tableName}" does not exist in database!`);
@@ -96,8 +96,9 @@ async function main() {
 }
 
 // Run if called directly
-if (process.argv[1] === __filename) {
-  main().catch(console.error);
+declare const require: any; declare const module: any;
+if ((require as any).main === module) {
+  main();
 }
 
 export { checkTableSchema };

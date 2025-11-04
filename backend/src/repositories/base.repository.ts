@@ -1,27 +1,51 @@
 import { Model, FindOptions, CreateOptions, UpdateOptions, DestroyOptions } from 'sequelize';
+import type { ModelStatic, BulkCreateOptions, Attributes, CreationAttributes, WhereOptions } from '../types/sequelize-types';
 import logger from '../utils/logger.util';
 
 /**
  * Base repository class providing common CRUD operations
  * All repositories should extend this class
  */
-export abstract class BaseRepository<T = any> {
+export abstract class BaseRepository<
+  T extends Model,
+  TCreate extends CreationAttributes<T> = CreationAttributes<T>,
+  TUpdate extends Partial<CreationAttributes<T>> = Partial<CreationAttributes<T>>
+> {
   protected modelName: string;
-  protected model: any;
+  protected model: ModelStatic<T> | null = null;
 
-  constructor(model: any) {
-    this.model = model;
-    this.modelName = model.name;
+  constructor(modelName: string) {
+    this.modelName = modelName;
+  }
+
+  /**
+   * Get the model instance
+   * This method should be implemented by subclasses
+   */
+  protected abstract getModel(): ModelStatic<T>;
+
+  /**
+   * Get model instance with lazy loading
+   */
+  private getModelInstance(): ModelStatic<T> {
+    if (!this.model) {
+      this.model = this.getModel();
+    }
+    return this.model;
   }
 
   /**
    * Create a new record
    */
-  async create(data: any, options?: any): Promise<T> {
+  async create(data: TCreate, options?: CreateOptions): Promise<T> {
     try {
       logger.debug(`Creating ${this.modelName}`, { data });
       
-      const instance = await this.model.create(data, options);
+      const model = this.getModelInstance();
+      const instance = await model.create(
+        data as CreationAttributes<T>,
+        options as CreateOptions
+      );
       
       logger.debug(`${this.modelName} created successfully`, { id: instance.get('id') });
       return instance;
@@ -34,11 +58,12 @@ export abstract class BaseRepository<T = any> {
   /**
    * Find a record by primary key
    */
-  async findById(id: string | number, options?: any): Promise<T | null> {
+  async findById(id: string | number, options?: FindOptions): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName} by ID`, { id });
       
-      const instance = await this.model.findByPk(id, options);
+      const model = this.getModelInstance();
+      const instance = await model.findByPk(id, options);
       
       if (instance) {
         logger.debug(`${this.modelName} found`, { id });
@@ -56,11 +81,12 @@ export abstract class BaseRepository<T = any> {
   /**
    * Find a single record by conditions
    */
-  async findOne(options: any): Promise<T | null> {
+  async findOne(options: FindOptions): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName}`, { options });
       
-      const instance = await this.model.findOne(options);
+      const model = this.getModelInstance();
+      const instance = await model.findOne(options);
       
       if (instance) {
         logger.debug(`${this.modelName} found`);
@@ -78,11 +104,12 @@ export abstract class BaseRepository<T = any> {
   /**
    * Find all records
    */
-  async findAll(options?: any): Promise<T[]> {
+  async findAll(options?: FindOptions): Promise<T[]> {
     try {
       logger.debug(`Finding all ${this.modelName}`, { options });
       
-      const instances = await this.model.findAll(options);
+      const model = this.getModelInstance();
+      const instances = await model.findAll(options);
       
       logger.debug(`${this.modelName} found`, { count: instances.length });
       return instances;
@@ -95,11 +122,12 @@ export abstract class BaseRepository<T = any> {
   /**
    * Find and count records with pagination
    */
-  async findAndCountAll(options?: any): Promise<{ count: number; rows: T[] }> {
+  async findAndCountAll(options?: FindOptions): Promise<{ count: number; rows: T[] }> {
     try {
       logger.debug(`Finding and counting ${this.modelName}`, { options });
       
-      const result = await this.model.findAndCountAll(options);
+      const model = this.getModelInstance();
+      const result = await (model as any).findAndCountAll(options);
       
       logger.debug(`${this.modelName} found and counted`, { count: result.count, rows: result.rows.length });
       return result;
@@ -112,20 +140,23 @@ export abstract class BaseRepository<T = any> {
   /**
    * Update a record by primary key
    */
-  async update(id: string | number, data: any, options?: any): Promise<T> {
+  async update(id: string | number, data: TUpdate | Record<string, unknown>, options?: UpdateOptions): Promise<T> {
     try {
       logger.debug(`Updating ${this.modelName}`, { id, data });
       
-      const [affectedCount] = await this.model.update(data, {
-        where: { id },
-        ...options
-      });
+      const model = this.getModelInstance();
+      const finalOptions: UpdateOptions = { ...(options as UpdateOptions | undefined) } as UpdateOptions;
+      finalOptions.where = { ...(finalOptions.where as object | undefined), id } as unknown as WhereOptions;
+      const [affectedCount] = await model.update(
+        data as Partial<Attributes<T>>,
+        finalOptions
+      );
       
       if (affectedCount === 0) {
         throw new Error(`${this.modelName} not found`);
       }
       
-      const updatedInstance = await this.model.findByPk(id);
+      const updatedInstance = await model.findByPk(id);
       if (!updatedInstance) {
         throw new Error(`${this.modelName} not found after update`);
       }
@@ -136,27 +167,25 @@ export abstract class BaseRepository<T = any> {
       logger.error(`Error updating ${this.modelName}:`, error);
       throw error;
     }
-    }
+  }
 
   /**
    * Delete a record by primary key
    */
-  async delete(id: string | number, options?: any): Promise<boolean> {
+  async delete(id: string | number, options?: DestroyOptions): Promise<void> {
     try {
       logger.debug(`Deleting ${this.modelName}`, { id });
       
-      const deletedCount = await this.model.destroy({
-        where: { id },
-        ...options
-      });
+      const model = this.getModelInstance();
+      const finalOptions: DestroyOptions = { ...(options as DestroyOptions | undefined) } as DestroyOptions;
+      finalOptions.where = { ...(finalOptions.where as object | undefined), id } as unknown as WhereOptions;
+      const deletedCount = await model.destroy(finalOptions);
       
       if (deletedCount === 0) {
-        logger.debug(`${this.modelName} not found for deletion`, { id });
-        return false;
+        throw new Error(`${this.modelName} not found`);
       }
       
       logger.debug(`${this.modelName} deleted successfully`, { id });
-      return true;
     } catch (error: unknown) {
       logger.error(`Error deleting ${this.modelName}:`, error);
       throw error;
@@ -166,11 +195,12 @@ export abstract class BaseRepository<T = any> {
   /**
    * Count records
    */
-  async count(options?: any): Promise<number> {
+  async count(options?: FindOptions): Promise<number> {
     try {
       logger.debug(`Counting ${this.modelName}`, { options });
       
-      const count = await this.model.count(options);
+      const model = this.getModelInstance();
+      const count = await model.count(options);
       
       logger.debug(`${this.modelName} counted`, { count });
       return count;
@@ -187,9 +217,12 @@ export abstract class BaseRepository<T = any> {
     try {
       logger.debug(`Checking if ${this.modelName} exists`, { id });
       
-      const count = await this.model.count({ where: { id: id as any } as any });
+      const model = this.getModelInstance();
+      const count = await model.count({
+        where: { id } as unknown as WhereOptions<Attributes<T>>
+      });
       
-      const exists = (count as any as number) > 0;
+      const exists = Number(count) > 0;
       logger.debug(`${this.modelName} exists check`, { id, exists });
       return exists;
     } catch (error: unknown) {
@@ -201,13 +234,14 @@ export abstract class BaseRepository<T = any> {
   /**
    * Find records by field
    */
-  async findByField(field: string, value: any, options?: any): Promise<T[]> {
+  async findByField(field: string, value: unknown, options?: FindOptions): Promise<T[]> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
-      const instances = await this.model.findAll({
-        where: { [field]: value },
-        ...options
+      const model = this.getModelInstance();
+      const instances = await model.findAll({
+        where: { [field]: value } as unknown as WhereOptions,
+        ...(options as FindOptions)
       });
       
       logger.debug(`${this.modelName} found by field`, { field, value, count: instances.length });
@@ -221,13 +255,14 @@ export abstract class BaseRepository<T = any> {
   /**
    * Find a single record by field
    */
-  async findOneByField(field: string, value: any, options?: any): Promise<T | null> {
+  async findOneByField(field: string, value: unknown, options?: FindOptions): Promise<T | null> {
     try {
       logger.debug(`Finding ${this.modelName} by field`, { field, value });
       
-      const instance = await this.model.findOne({
-        where: { [field]: value },
-        ...options
+      const model = this.getModelInstance();
+      const instance = await model.findOne({
+        where: { [field]: value } as unknown as WhereOptions,
+        ...(options as FindOptions)
       });
       
       if (instance) {
@@ -246,11 +281,15 @@ export abstract class BaseRepository<T = any> {
   /**
    * Bulk create records
    */
-  async bulkCreate(data: any[], options?: any): Promise<T[]> {
+  async bulkCreate(data: TCreate[], options?: BulkCreateOptions): Promise<T[]> {
     try {
       logger.debug(`Bulk creating ${this.modelName}`, { count: data.length });
       
-      const instances = await this.model.bulkCreate(data, options);
+      const model = this.getModelInstance();
+      const instances = await model.bulkCreate(
+        data as any[],
+        options as BulkCreateOptions
+      );
       
       logger.debug(`${this.modelName} bulk created`, { count: instances.length });
       return instances;
@@ -263,11 +302,18 @@ export abstract class BaseRepository<T = any> {
   /**
    * Bulk update records
    */
-  async bulkUpdate(data: any[], options?: any): Promise<void> {
+  async bulkUpdate(data: CreationAttributes<T>[], options?: BulkCreateOptions): Promise<void> {
     try {
       logger.debug(`Bulk updating ${this.modelName}`, { count: data.length });
       
-      await this.model.bulkCreate(data, { updateOnDuplicate: Object.keys(data[0] || {}), ...options });
+      const model = this.getModelInstance();
+      await model.bulkCreate(
+        data as any[],
+        {
+          updateOnDuplicate: Object.keys((data[0] ?? {}) as object),
+          ...(options as object)
+        } as BulkCreateOptions
+      );
       
       logger.debug(`${this.modelName} bulk updated`, { count: data.length });
     } catch (error: unknown) {
@@ -311,7 +357,7 @@ export abstract class BaseRepository<T = any> {
   /**
    * Get paginated results
    */
-  async paginate(page: number, limit: number, options?: any): Promise<{
+  async paginate(page: number, limit: number, options?: FindOptions): Promise<{
     data: T[];
     pagination: {
       page: number;

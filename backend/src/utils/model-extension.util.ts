@@ -3,7 +3,22 @@
  * Thay thế việc sử dụng 'as any' khi thêm methods vào Sequelize models
  */
 
-import { Model } from 'sequelize';
+import { Model, Sequelize } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
+import { getSequelize } from '../config/db';
+
+let fallbackSequelize: Sequelize | null = null;
+
+export function getModelSequelize(): Sequelize {
+  const primary = getSequelize() as unknown as Sequelize | undefined;
+  if (primary && typeof (primary as any).define === 'function') {
+    return primary;
+  }
+  if (!fallbackSequelize) {
+    fallbackSequelize = new Sequelize({ dialect: 'postgres', logging: false } as any);
+  }
+  return fallbackSequelize;
+}
 
 // ===================================
 // TYPE-SAFE MODEL EXTENSION HELPERS
@@ -13,7 +28,7 @@ import { Model } from 'sequelize';
  * Type-safe helper để thêm instance methods vào Sequelize model
  */
 export function addInstanceMethod<
-  TModel extends typeof Model,
+  TModel extends ModelStatic<Model>,
   TMethodName extends string,
   TMethod extends (this: InstanceType<TModel>, ...args: any[]) => any
 >(
@@ -30,7 +45,7 @@ export function addInstanceMethod<
  * Type-safe helper để thêm static methods vào Sequelize model
  */
 export function addStaticMethod<
-  TModel extends typeof Model,
+  TModel extends ModelStatic<Model>,
   TMethodName extends string,
   TMethod extends (this: TModel, ...args: any[]) => any
 >(
@@ -45,7 +60,7 @@ export function addStaticMethod<
  * Type-safe helper để thêm multiple instance methods
  */
 export function addInstanceMethods<
-  TModel extends typeof Model,
+  TModel extends ModelStatic<Model>,
   TMethods extends Record<string, (this: InstanceType<TModel>, ...args: any[]) => any>
 >(
   model: TModel,
@@ -62,7 +77,7 @@ export function addInstanceMethods<
  * Type-safe helper để thêm multiple static methods
  */
 export function addStaticMethods<
-  TModel extends typeof Model,
+  TModel extends ModelStatic<Model>,
   TMethods extends Record<string, (this: TModel, ...args: any[]) => any>
 >(
   model: TModel,
@@ -82,7 +97,7 @@ export function addStaticMethods<
  * Thay thế cho việc export Model as any
  */
 export function exportModel<
-  TModel extends typeof Model,
+  TModel extends ModelStatic<Model>,
   TInstanceMethods = {},
   TStaticMethods = {}
 >(
@@ -149,7 +164,7 @@ export function hasInstanceMethod<T extends Model, K extends string>(
 /**
  * Type guard để kiểm tra static method
  */
-export function hasStaticMethod<T extends typeof Model, K extends string>(
+export function hasStaticMethod<T extends ModelStatic<Model>, K extends string>(
   model: T,
   methodName: K
 ): model is T & Record<K, Function> {
@@ -164,7 +179,7 @@ export function hasStaticMethod<T extends typeof Model, K extends string>(
  * Type-safe helper để access associations
  */
 export function getAssociation<T = any>(
-  model: typeof Model,
+  model: ModelStatic<Model>,
   associationName: string
 ): T | null {
   const associations = (model as any).associations;
@@ -175,7 +190,7 @@ export function getAssociation<T = any>(
  * Type-safe helper để kiểm tra association có tồn tại không
  */
 export function hasAssociation(
-  model: typeof Model,
+  model: ModelStatic<Model>,
   associationName: string
 ): boolean {
   const associations = (model as any).associations;
@@ -189,7 +204,7 @@ export function hasAssociation(
 /**
  * Type-safe helper để lấy model attributes
  */
-export function getModelAttributes(model: typeof Model): Record<string, any> {
+export function getModelAttributes(model: ModelStatic<Model>): Record<string, any> {
   return (model as any).rawAttributes || {};
 }
 
@@ -197,7 +212,7 @@ export function getModelAttributes(model: typeof Model): Record<string, any> {
  * Type-safe helper để kiểm tra attribute có tồn tại không
  */
 export function hasAttribute(
-  model: typeof Model,
+  model: ModelStatic<Model>,
   attributeName: string
 ): boolean {
   const attributes = getModelAttributes(model);

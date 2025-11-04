@@ -2,7 +2,8 @@
  * Repository Types - Type definitions for repository layer
  */
 
-import { FindOptions } from 'sequelize';
+import type { FindOptions } from './sequelize-types';
+import type { WhereOptions } from './sequelize-types';
 
 // ===================================
 // SEQUELIZE QUERY OPTIONS
@@ -19,15 +20,15 @@ export interface BaseQueryOptions {
 }
 
 export interface FindManyOptions extends BaseQueryOptions {
-  where?: any;
+  where?: WhereOptions;
 }
 
 export interface FindOneOptions extends BaseQueryOptions {
-  where?: any;
+  where?: WhereOptions;
 }
 
 export interface CountOptions {
-  where?: any;
+  where?: WhereOptions;
   distinct?: boolean;
 }
 
