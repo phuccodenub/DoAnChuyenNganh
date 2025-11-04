@@ -1,78 +1,263 @@
 /**
- * Quiz Service for Real-Time Quizzes
- * Handles quiz creation, management, and real-time responses
+ * Quiz Service - REST API Integration
+ * Handles quiz CRUD operations, attempts, and statistics
  */
+
+import { apiClient } from './apiClient'
+
+export interface QuizOption {
+  id: string
+  text: string
+  is_correct: boolean
+}
 
 export interface QuizQuestion {
   id: string
-  question: string
-  type: 'multiple-choice' | 'true-false' | 'short-answer' | 'essay'
-  options?: string[]
-  correctAnswer?: string | string[]
+  quiz_id: string
+  question_text: string
+  question_type: 'multiple_choice' | 'true_false' | 'short_answer' | 'essay'
   points: number
-  timeLimit?: number // seconds
+  time_limit?: number
   explanation?: string
+  options?: QuizOption[]
+  correct_answer?: string
+  order_index: number
 }
 
 export interface Quiz {
   id: string
   title: string
   description: string
-  courseId: string
-  createdBy: number
-  questions: QuizQuestion[]
-  timeLimit?: number // total time in minutes
-  isActive: boolean
-  allowMultipleAttempts: boolean
-  showCorrectAnswers: boolean
-  randomizeQuestions: boolean
-  startTime?: string
-  endTime?: string
-  createdAt: string
-}
-
-export interface QuizResponse {
-  id: string
-  quizId: string
-  questionId: string
-  userId: number
-  answer: string | string[]
-  isCorrect?: boolean
-  pointsEarned: number
-  timeSpent: number
-  submittedAt: string
+  course_id: string
+  instructor_id: number
+  time_limit?: number
+  max_attempts: number
+  show_correct_answers: boolean
+  randomize_questions: boolean
+  is_published: boolean
+  start_time?: string
+  end_time?: string
+  created_at: string
+  updated_at: string
+  questions?: QuizQuestion[]
 }
 
 export interface QuizAttempt {
   id: string
-  quizId: string
-  userId: number
-  responses: QuizResponse[]
-  totalPoints: number
-  maxPoints: number
-  percentage: number
-  startedAt: string
-  completedAt?: string
-  timeSpent: number
-  status: 'in-progress' | 'completed' | 'submitted'
+  quiz_id: string
+  student_id: number
+  attempt_number: number
+  started_at: string
+  completed_at?: string
+  score?: number
+  max_score?: number
+  percentage?: number
+  time_spent?: number
+  status: 'in_progress' | 'completed' | 'graded'
 }
 
-export interface LiveQuizSession {
-  quizId: string
-  courseId: string
-  currentQuestionIndex: number
-  isActive: boolean
-  participants: number
-  responses: Map<string, QuizResponse[]>
-  timeRemaining?: number
+export interface QuizAnswer {
+  id: string
+  attempt_id: string
+  question_id: string
+  answer_text?: string
+  selected_option_id?: string
+  is_correct?: boolean
+  points_earned?: number
+  answered_at: string
 }
 
-class QuizService {
-  private socketService: any = null
-  private currentSession?: LiveQuizSession
-  private callbacks: Map<string, Function[]> = new Map()
+export interface QuizStatistics {
+  quiz_id: string
+  total_attempts: number
+  completed_attempts: number
+  average_score: number
+  highest_score: number
+  lowest_score: number
+  average_time: number
+  question_statistics: Array<{
+    question_id: string
+    correct_answers: number
+    total_answers: number
+    accuracy_rate: number
+  }>
+}
 
-  // Mock quiz data for demo
+export interface ApiResponse<T> {
+  success: boolean
+  message: string
+  data: T
+}
+
+export interface PaginationParams {
+  page?: number
+  limit?: number
+}
+
+export interface CreateQuizData {
+  title: string
+  description?: string
+  course_id: string
+  time_limit?: number
+  max_attempts?: number
+  show_correct_answers?: boolean
+  randomize_questions?: boolean
+  start_time?: string
+  end_time?: string
+}
+
+export interface CreateQuestionData {
+  question_text: string
+  question_type: 'multiple_choice' | 'true_false' | 'short_answer' | 'essay'
+  points: number
+  time_limit?: number
+  explanation?: string
+  correct_answer?: string
+  order_index: number
+}
+
+export interface CreateOptionData {
+  text: string
+  is_correct: boolean
+}
+
+export interface SubmitAnswersData {
+  answers: Array<{
+    question_id: string
+    answer_text?: string
+    selected_option_id?: string
+  }>
+}
+
+export const quizService = {
+  // ===== QUIZ MANAGEMENT (INSTRUCTOR) =====
+
+  /**
+   * Create new quiz
+   */
+  async createQuiz(data: CreateQuizData): Promise<ApiResponse<Quiz>> {
+    const response = await apiClient.post<ApiResponse<Quiz>>('/quizzes', data)
+    return response.data
+  },
+
+  /**
+   * Get quiz by ID
+   */
+  async getQuiz(quizId: string): Promise<ApiResponse<Quiz>> {
+    const response = await apiClient.get<ApiResponse<Quiz>>(`/quizzes/${quizId}`)
+    return response.data
+  },
+
+  /**
+   * Update quiz
+   */
+  async updateQuiz(quizId: string, data: Partial<CreateQuizData>): Promise<ApiResponse<Quiz>> {
+    const response = await apiClient.put<ApiResponse<Quiz>>(`/quizzes/${quizId}`, data)
+    return response.data
+  },
+
+  /**
+   * Delete quiz
+   */
+  async deleteQuiz(quizId: string): Promise<ApiResponse<null>> {
+    const response = await apiClient.delete<ApiResponse<null>>(`/quizzes/${quizId}`)
+    return response.data
+  },
+
+  // ===== QUESTION MANAGEMENT =====
+
+  /**
+   * Add question to quiz
+   */
+  async addQuestion(quizId: string, data: CreateQuestionData): Promise<ApiResponse<QuizQuestion>> {
+    const response = await apiClient.post<ApiResponse<QuizQuestion>>(`/quizzes/${quizId}/questions`, data)
+    return response.data
+  },
+
+  /**
+   * Update question
+   */
+  async updateQuestion(questionId: string, data: Partial<CreateQuestionData>): Promise<ApiResponse<QuizQuestion>> {
+    const response = await apiClient.put<ApiResponse<QuizQuestion>>(`/quizzes/questions/${questionId}`, data)
+    return response.data
+  },
+
+  /**
+   * Delete question
+   */
+  async deleteQuestion(questionId: string): Promise<ApiResponse<null>> {
+    const response = await apiClient.delete<ApiResponse<null>>(`/quizzes/questions/${questionId}`)
+    return response.data
+  },
+
+  /**
+   * Get questions for a quiz
+   */
+  async getQuizQuestions(quizId: string): Promise<ApiResponse<QuizQuestion[]>> {
+    const response = await apiClient.get<ApiResponse<QuizQuestion[]>>(`/quizzes/${quizId}/questions`)
+    return response.data
+  },
+
+  /**
+   * Add option to question
+   */
+  async addOption(questionId: string, data: CreateOptionData): Promise<ApiResponse<QuizOption>> {
+    const response = await apiClient.post<ApiResponse<QuizOption>>(`/quizzes/questions/${questionId}/options`, data)
+    return response.data
+  },
+
+  // ===== QUIZ ATTEMPTS (STUDENT) =====
+
+  /**
+   * Start quiz attempt
+   */
+  async startAttempt(quizId: string): Promise<ApiResponse<QuizAttempt>> {
+    const response = await apiClient.post<ApiResponse<QuizAttempt>>(`/quizzes/${quizId}/attempts`)
+    return response.data
+  },
+
+  /**
+   * Submit quiz attempt
+   */
+  async submitAttempt(attemptId: string, data: SubmitAnswersData): Promise<ApiResponse<QuizAttempt>> {
+    const response = await apiClient.post<ApiResponse<QuizAttempt>>(`/quizzes/attempts/${attemptId}/submit`, data)
+    return response.data
+  },
+
+  /**
+   * Get my attempts for a quiz
+   */
+  async getMyAttempts(quizId: string): Promise<ApiResponse<QuizAttempt[]>> {
+    const response = await apiClient.get<ApiResponse<QuizAttempt[]>>(`/quizzes/${quizId}/my-attempts`)
+    return response.data
+  },
+
+  /**
+   * Get attempt details
+   */
+  async getAttemptDetails(attemptId: string): Promise<ApiResponse<QuizAttempt & { answers: QuizAnswer[] }>> {
+    const response = await apiClient.get<ApiResponse<QuizAttempt & { answers: QuizAnswer[] }>>(`/quizzes/attempts/${attemptId}`)
+    return response.data
+  },
+
+  // ===== INSTRUCTOR ANALYTICS =====
+
+  /**
+   * Get quiz statistics (instructor only)
+   */
+  async getQuizStatistics(quizId: string): Promise<ApiResponse<QuizStatistics>> {
+    const response = await apiClient.get<ApiResponse<QuizStatistics>>(`/quizzes/${quizId}/statistics`)
+    return response.data
+  },
+
+  /**
+   * Get all quiz attempts (instructor only)
+   */
+  async getQuizAttempts(quizId: string, params?: PaginationParams): Promise<ApiResponse<{ attempts: QuizAttempt[], pagination: any }>> {
+    const response = await apiClient.get<ApiResponse<{ attempts: QuizAttempt[], pagination: any }>>(`/quizzes/${quizId}/attempts`, { params })
+    return response.data
+  }
+}
   private mockQuizzes: Quiz[] = [
     {
       id: 'quiz-1',
@@ -164,7 +349,7 @@ class QuizService {
     this.callbacks.set('results-updated', [])
   }
 
-  initialize(socketService: any) {
+  initialize(socketService: SocketApi) {
     this.socketService = socketService
     this.setupSocketListeners()
   }
@@ -218,13 +403,32 @@ class QuizService {
     this.currentSession = session
     quiz.isActive = true
 
-    // Notify via socket
+    // Notify via socket - chuẩn hóa payload theo SocketEvents
     if (this.socketService) {
+      const quizPayload: SocketEvents['start-quiz']['quiz'] = {
+        id: quiz.id,
+        title: quiz.title,
+        courseId,
+        questions: quiz.questions.map(q => ({
+          id: q.id,
+          question: q.question,
+          type: q.type,
+          options: q.options,
+          points: q.points,
+          timeLimit: q.timeLimit
+        }))
+      }
+      const sessionPayload: SocketEvents['start-quiz']['session'] = {
+        quizId,
+        courseId,
+        currentQuestionIndex: session.currentQuestionIndex,
+        timeRemaining: session.timeRemaining
+      }
       this.socketService.emit('start-quiz', {
         courseId,
         quizId,
-        quiz: quiz,
-        session: session
+        quiz: quizPayload,
+        session: sessionPayload
       })
     }
 
@@ -318,11 +522,12 @@ class QuizService {
       this.currentSession.responses.get(userId.toString())!.push(response)
     }
 
-    // Notify via socket
+    // Notify via socket - loại bỏ answer để khớp QuizResponsePublic
     if (this.socketService) {
+      const { answer: _omit, ...publicResponse } = response
       this.socketService.emit('quiz-response', {
         courseId: quiz.courseId,
-        response: { ...response, answer: undefined } // Don't broadcast the answer
+        response: publicResponse
       })
     }
 
@@ -389,48 +594,56 @@ class QuizService {
   private setupSocketListeners(): void {
     if (!this.socketService) return
 
-    this.socketService.on('quiz-started', (data: any) => {
-      this.emit('quiz-started', data)
+    this.socketService.on('quiz-started', (data) => {
+      // data: SocketEvents['quiz-started']
+      this.emit('quiz-started', data as InternalQuizStartedPayload)
     })
 
-    this.socketService.on('quiz-ended', (data: any) => {
+    this.socketService.on('quiz-ended', (data) => {
+      // data: SocketEvents['quiz-ended']
       this.emit('quiz-ended', data)
     })
 
-    this.socketService.on('quiz-next-question', (data: any) => {
-      this.emit('question-changed', data)
+    this.socketService.on('quiz-next-question', (data) => {
+      // data: SocketEvents['quiz-next-question']
+      const payload: InternalQuestionChangedPayload = {
+        questionIndex: data.questionIndex,
+        question: data.question
+      }
+      this.emit('question-changed', payload)
     })
 
-    this.socketService.on('quiz-response', (data: any) => {
-      this.emit('response-received', data.response)
+    this.socketService.on('quiz-response', (data) => {
+      // data: SocketEvents['quiz-response']
+      this.emit('response-received', data.response as InternalResponseReceivedPayload)
     })
   }
 
   // Event handling
-  on(event: string, callback: Function): void {
+  on<K extends keyof InternalEvents>(event: K, callback: (data: InternalEvents[K]) => void): void {
     if (!this.callbacks.has(event)) {
       this.callbacks.set(event, [])
     }
-    this.callbacks.get(event)!.push(callback)
+    this.callbacks.get(event)!.push(callback as unknown as (data: InternalEvents[keyof InternalEvents]) => void)
   }
 
-  off(event: string, callback: Function): void {
+  off<K extends keyof InternalEvents>(event: K, callback: (data: InternalEvents[K]) => void): void {
     if (this.callbacks.has(event)) {
       const callbacks = this.callbacks.get(event)!
-      const index = callbacks.indexOf(callback)
+      const index = callbacks.indexOf(callback as unknown as (data: InternalEvents[keyof InternalEvents]) => void)
       if (index > -1) {
         callbacks.splice(index, 1)
       }
     }
   }
 
-  private emit(event: string, data: any): void {
+  private emit<K extends keyof InternalEvents>(event: K, data: InternalEvents[K]): void {
     if (this.callbacks.has(event)) {
       this.callbacks.get(event)!.forEach(callback => {
         try {
-          callback(data)
+          ;(callback as (d: InternalEvents[K]) => void)(data)
         } catch (error) {
-          console.error(`Error in ${event} callback:`, error)
+          console.error(`Error in ${String(event)} callback:`, error)
         }
       })
     }

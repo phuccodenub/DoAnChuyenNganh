@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import toast from 'react-hot-toast'
 // Use mock service for demo mode (switch to authService when backend is ready)
 import { mockAuthService as authService } from '@/services/mockAuthService'
+import i18n from '@/i18n'
 
 export interface User {
   id: number
@@ -64,15 +65,15 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false
             })
             
-            toast.success('Login successful!')
+            toast.success(i18n.t('auth.messages.loginSuccess'))
             return true
           } else {
-            toast.error(response.message || 'Login failed')
+            toast.error(response.message || i18n.t('auth.messages.loginFailed'))
             set({ isLoading: false })
             return false
           }
         } catch (error: any) {
-          const message = error?.response?.data?.message || 'Login failed'
+          const message = error?.response?.data?.message || i18n.t('auth.messages.loginFailed')
           toast.error(message)
           set({ isLoading: false })
           return false
@@ -93,15 +94,15 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false
             })
             
-            toast.success('Registration successful!')
+            toast.success(i18n.t('auth.messages.registerSuccess'))
             return true
           } else {
-            toast.error(response.message || 'Registration failed')
+            toast.error(response.message || i18n.t('auth.messages.registerFailed'))
             set({ isLoading: false })
             return false
           }
         } catch (error: any) {
-          const message = error?.response?.data?.message || 'Registration failed'
+          const message = error?.response?.data?.message || i18n.t('auth.messages.registerFailed')
           toast.error(message)
           set({ isLoading: false })
           return false
@@ -120,7 +121,7 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: false
         })
         
-        toast.success('Logged out successfully')
+        toast.success(i18n.t('auth.messages.logoutSuccess'))
       },
 
       updateProfile: async (data) => {
@@ -135,15 +136,15 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false
             })
             
-            toast.success('Profile updated successfully!')
+            toast.success(i18n.t('auth.messages.updateProfileSuccess'))
             return true
           } else {
-            toast.error(response.message || 'Update failed')
+            toast.error(response.message || i18n.t('auth.messages.updateProfileFailed'))
             set({ isLoading: false })
             return false
           }
         } catch (error: any) {
-          const message = error?.response?.data?.message || 'Update failed'
+          const message = error?.response?.data?.message || i18n.t('auth.messages.updateProfileFailed')
           toast.error(message)
           set({ isLoading: false })
           return false

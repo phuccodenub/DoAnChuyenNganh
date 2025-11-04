@@ -23,8 +23,8 @@ describe('User API Integration Tests', () => {
     await sequelize.authenticate();
     
     // Import app after database setup
-    const { default: createApp } = await import('../../app');
-    app = createApp();
+    const { default: appInstance } = await import('@/app');
+    app = appInstance;
   });
 
   beforeEach(async () => {

@@ -20,8 +20,7 @@ export class UserFactory {
    */
   static async createSuperAdmin(overrides: Partial<TestUser> = {}): Promise<TestUser> {
     return this.create({
-      email: 'superadmin@test.com',
-      username: 'superadmin',
+      // Use unique email/username from generator to avoid unique constraint collisions across tests
       password: 'SuperAdmin123!',
       first_name: 'Super',
       last_name: 'Admin',
@@ -38,8 +37,7 @@ export class UserFactory {
    */
   static async createAdmin(overrides: Partial<TestUser> = {}): Promise<TestUser> {
     return this.create({
-      email: 'admin@test.com',
-      username: 'admin',
+      // Use unique email/username from generator to avoid unique constraint collisions across tests
       password: 'Admin123!',
       first_name: 'System',
       last_name: 'Admin',
@@ -56,8 +54,7 @@ export class UserFactory {
    */
   static async createInstructor(overrides: Partial<TestUser> = {}): Promise<TestUser> {
     return this.create({
-      email: 'instructor@test.com',
-      username: 'instructor',
+      // Use unique email/username from generator to avoid unique constraint collisions across tests
       password: 'Instructor123!',
       first_name: 'Test',
       last_name: 'Instructor',
@@ -74,8 +71,7 @@ export class UserFactory {
    */
   static async createStudent(overrides: Partial<TestUser> = {}): Promise<TestUser> {
     return this.create({
-      email: 'student@test.com',
-      username: 'student',
+      // Use unique email/username from generator to avoid unique constraint collisions across tests
       password: 'Student123!',
       first_name: 'Test',
       last_name: 'Student',
@@ -92,8 +88,7 @@ export class UserFactory {
    */
   static async createPending(overrides: Partial<TestUser> = {}): Promise<TestUser> {
     return this.create({
-      email: 'pending@test.com',
-      username: 'pending',
+      // Use unique email/username from generator to avoid unique constraint collisions across tests
       password: 'Pending123!',
       first_name: 'Pending',
       last_name: 'User',
@@ -110,8 +105,7 @@ export class UserFactory {
    */
   static async createSuspended(overrides: Partial<TestUser> = {}): Promise<TestUser> {
     return this.create({
-      email: 'suspended@test.com',
-      username: 'suspended',
+      // Use unique email/username from generator to avoid unique constraint collisions across tests
       password: 'Suspended123!',
       first_name: 'Suspended',
       last_name: 'User',

@@ -21,7 +21,7 @@ export class CourseFactory {
       title: 'JavaScript Fundamentals',
       description: 'Learn JavaScript from scratch',
       category: 'programming',
-      status: 'active',
+      status: 'published',
       price: 99.99,
       ...overrides
     });
@@ -35,7 +35,7 @@ export class CourseFactory {
       title: 'Full-Stack Web Development',
       description: 'Build modern web applications',
       category: 'web-development',
-      status: 'active',
+      status: 'published',
       price: 199.99,
       ...overrides
     });
@@ -49,7 +49,7 @@ export class CourseFactory {
       title: 'Data Science with Python',
       description: 'Learn data analysis and machine learning',
       category: 'data-science',
-      status: 'active',
+      status: 'published',
       price: 299.99,
       ...overrides
     });
@@ -104,7 +104,7 @@ export class CourseFactory {
    */
   static createWithStatuses(): TestCourse[] {
     return [
-      this.createProgramming({ status: 'active' }),
+      this.createProgramming({ status: 'published' }),
       this.createWebDev({ status: 'draft' }),
       this.createDataScience({ status: 'archived' })
     ];

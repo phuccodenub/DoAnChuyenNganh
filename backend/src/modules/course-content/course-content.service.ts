@@ -1,5 +1,6 @@
 import { CourseContentRepository } from './course-content.repository';
 import type { SectionInput, SectionWithLessons, ReorderItem, LessonInput, LessonMaterialInput, LessonProgressInput, CourseProgressSummary, CourseContentOverview } from './course-content.types';
+import type { SectionInstance, LessonInstance, LessonMaterialInstance, CourseInstance } from '../../types/model.types';
 import { ApiError } from '../../errors/api.error';
 import { DatabaseError } from '../../errors/database.error';
 import { AuthorizationError } from '../../errors/authorization.error';
@@ -32,7 +33,7 @@ data: SectionInput
       // Verify user is the instructor of the course
       await this.verifyInstructorAccess(courseId, userId);
 
-      const section = await this.repository.createSection(courseId, data);
+      const section = await this.repository.createSection(courseId, data) as SectionInstance;
       logger.info(`Section created: ${section.id} in course ${courseId}`);
       
       return section;
@@ -88,7 +89,7 @@ data: SectionInput
 data: Partial<SectionInput>
   ) {
     try {
-      const section = await this.repository.findSectionById(sectionId);
+      const section = await this.repository.findSectionById(sectionId) as SectionInstance;
       if (!section) {
         throw new ApiError('Section not found', 404);
       }
@@ -111,7 +112,7 @@ data: Partial<SectionInput>
    */
   async deleteSection(sectionId: string, userId: string) {
     try {
-      const section = await this.repository.findSectionById(sectionId);
+      const section = await this.repository.findSectionById(sectionId) as SectionInstance;
       if (!section) {
         throw new ApiError('Section not found', 404);
       }
@@ -161,14 +162,14 @@ orders: ReorderItem[]
 data: LessonInput
   ) {
     try {
-      const section = await this.repository.findSectionById(sectionId);
+      const section = await this.repository.findSectionById(sectionId) as SectionInstance;
       if (!section) {
         throw new ApiError('Section not found', 404);
       }
 
       await this.verifyInstructorAccess(section.course_id, userId);
 
-      const lesson = await this.repository.createLesson(sectionId, data);
+      const lesson = await this.repository.createLesson(sectionId, data) as LessonInstance;
       logger.info(`Lesson created: ${lesson.id} in section ${sectionId}`);
       
       return lesson;
@@ -182,7 +183,7 @@ data: LessonInput
    * Get a single lesson by ID
    */
   async getLesson(lessonId: string, userId?: string) {
-    const lesson = await this.repository.findLessonById(lessonId);
+    const lesson = await this.repository.findLessonById(lessonId) as LessonInstance | null;
     if (!lesson) {
       throw new ApiError('Lesson not found', 404);
     }
@@ -207,7 +208,7 @@ data: LessonInput
 data: Partial<LessonInput>
   ) {
     try {
-      const lesson = await this.repository.findLessonById(lessonId);
+      const lesson = await this.repository.findLessonById(lessonId) as LessonInstance | null;
       if (!lesson) {
         throw new ApiError('Lesson not found', 404);
       }
@@ -230,7 +231,7 @@ data: Partial<LessonInput>
    */
   async deleteLesson(lessonId: string, userId: string) {
     try {
-      const lesson = await this.repository.findLessonById(lessonId);
+      const lesson = await this.repository.findLessonById(lessonId) as LessonInstance | null;
       if (!lesson) {
         throw new ApiError('Lesson not found', 404);
       }
@@ -257,7 +258,7 @@ data: Partial<LessonInput>
 orders: ReorderItem[]
   ) {
     try {
-      const section = await this.repository.findSectionById(sectionId);
+      const section = await this.repository.findSectionById(sectionId) as SectionInstance | null;
       if (!section) {
         throw new ApiError('Section not found', 404);
       }
@@ -286,7 +287,7 @@ orders: ReorderItem[]
 data: LessonMaterialInput
   ) {
     try {
-      const lesson = await this.repository.findLessonById(lessonId);
+      const lesson = await this.repository.findLessonById(lessonId) as LessonInstance | null;
       if (!lesson) {
         throw new ApiError('Lesson not found', 404);
       }
@@ -294,7 +295,7 @@ data: LessonMaterialInput
       const courseId = (lesson as any).section?.course?.id;
       await this.verifyInstructorAccess(courseId, userId);
 
-      const material = await this.repository.createMaterial(lessonId, userId, data);
+      const material = await this.repository.createMaterial(lessonId, userId, data) as LessonMaterialInstance;
       logger.info(`Material added: ${material.id} to lesson ${lessonId}`);
       
       return material;
@@ -309,7 +310,7 @@ data: LessonMaterialInput
    */
   async deleteMaterial(materialId: string, userId: string) {
     try {
-      const material = await this.repository.findMaterialById(materialId);
+      const material = await this.repository.findMaterialById(materialId) as LessonMaterialInstance | null;
       if (!material) {
         throw new ApiError('Material not found', 404);
       }
@@ -462,7 +463,7 @@ data: LessonProgressInput
    */
   private async verifyInstructorAccess(courseId: string, userId: string) {
     const { Course } = await import('../../models');
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findByPk(courseId) as CourseInstance | null;
     
     if (!course) {
       throw new ApiError('Course not found', 404);

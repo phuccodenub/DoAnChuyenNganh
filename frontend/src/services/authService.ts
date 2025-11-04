@@ -97,5 +97,65 @@ export const authService = {
   async verifyToken(): Promise<VerifyResponse> {
     const response = await apiClient.get<VerifyResponse>('/auth/verify')
     return response.data
+  },
+
+  /**
+   * Verify email with token
+   */
+  async verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.get(`/auth/verify-email/${token}`)
+    return response.data
+  },
+
+  /**
+   * Refresh access token
+   */
+  async refreshToken(refreshToken: string): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/refresh-token', {
+      refresh_token: refreshToken
+    })
+    return response.data
+  },
+
+  // ===== 2FA METHODS =====
+
+  /**
+   * Enable 2FA for user account
+   */
+  async enable2FA(): Promise<{ success: boolean; message: string; data: { qrCodeUrl: string; secret: string } }> {
+    const response = await apiClient.post('/auth/2fa/enable')
+    return response.data
+  },
+
+  /**
+   * Verify 2FA setup with TOTP code
+   */
+  async verify2FASetup(code: string): Promise<{ success: boolean; message: string; data: { backupCodes: string[] } }> {
+    const response = await apiClient.post('/auth/2fa/verify-setup', {
+      code
+    })
+    return response.data
+  },
+
+  /**
+   * Disable 2FA for user account
+   */
+  async disable2FA(code: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post('/auth/2fa/disable', {
+      code
+    })
+    return response.data
+  },
+
+  /**
+   * Login with 2FA code
+   */
+  async loginWith2FA(email: string, password: string, code: string): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/login-2fa', {
+      email,
+      password,
+      code
+    })
+    return response.data
   }
 }

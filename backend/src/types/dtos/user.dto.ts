@@ -112,7 +112,7 @@ export interface UserResponseDTO {
   avatar?: string;
   role: UserRole;
   status: UserStatus;
-  is_email_verified: boolean;
+  email_verified: boolean;
   email_verified_at?: Date;
   last_login?: Date;
   
@@ -153,7 +153,7 @@ export interface UserListItemDTO {
   avatar?: string;
   role: UserRole;
   status: UserStatus;
-  is_email_verified: boolean;
+  email_verified: boolean;
 }
 
 /**
@@ -178,7 +178,7 @@ export interface UserSummaryDTO {
 export interface UserFilterDTO {
   role?: UserRole | UserRole[];
   status?: UserStatus | UserStatus[];
-  is_email_verified?: boolean;
+  email_verified?: boolean;
   search?: string; // Search in name, email, student_id, instructor_id
   
   // Student filters

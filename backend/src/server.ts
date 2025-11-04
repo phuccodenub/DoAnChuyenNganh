@@ -1,4 +1,8 @@
-import env from './config/env.config';
+import 'dotenv-flow/config';
+// Enable runtime resolution for TypeScript path aliases in compiled JS
+ 
+require('module-alias/register');
+import 'module-alias/register';
 import app from './app';
 import { connectRedis } from './config/redis.config';
 import { connectDatabase } from './config/db';
@@ -10,7 +14,7 @@ import { ErrorHandler } from './errors/error.handler';
 // Import all models to register them with sequelize
 import './models';
 
-const PORT = env.port;
+const PORT = process.env.PORT || 3000;
 
 async function startServer() {
   try {
@@ -26,7 +30,7 @@ async function startServer() {
     // Start server
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
-      logger.info(`Environment: ${env.nodeEnv}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
     
   } catch (error: unknown) {

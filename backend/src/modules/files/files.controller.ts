@@ -7,7 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { FilesService } from './files.service';
 import { FileUploadOptions } from './files.types';
-import { sendSuccessResponse, sendErrorResponse } from '../../utils/response.util';
+import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
 
 export class FilesController {
@@ -24,7 +24,7 @@ export class FilesController {
   uploadSingle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.file) {
-        sendErrorResponse(res, 'No file uploaded', 400);
+        responseUtils.sendError(res, 'No file uploaded', 400);
         return;
       }
 
@@ -38,7 +38,7 @@ export class FilesController {
 
       const fileInfo = await this.filesService.processUpload(req.file as any, options);
 
-      sendSuccessResponse(res, 'File uploaded successfully', fileInfo, 201);
+      responseUtils.sendCreated(res, 'File uploaded successfully', fileInfo);
     } catch (error: unknown) {
       logger.error('Error in uploadSingle:', error);
       next(error);
@@ -54,7 +54,7 @@ export class FilesController {
       const files = req.files as Express.Multer.File[];
       
       if (!files || files.length === 0) {
-        sendErrorResponse(res, 'No files uploaded', 400);
+        responseUtils.sendError(res, 'No files uploaded', 400);
         return;
       }
 
@@ -68,10 +68,10 @@ export class FilesController {
 
       const filesInfo = await this.filesService.processMultipleUploads(files, options);
 
-      sendSuccessResponse(res, 'Files uploaded successfully', {
+      responseUtils.sendCreated(res, 'Files uploaded successfully', {
         count: filesInfo.length,
         files: filesInfo
-      }, 201);
+      });
     } catch (error: unknown) {
       logger.error('Error in uploadMultiple:', error);
       next(error);
@@ -89,7 +89,7 @@ export class FilesController {
       const fileInfo = await this.filesService.getFileInfo(folder, filename);
 
       if (!fileInfo.exists) {
-        sendErrorResponse(res, 'File not found', 404);
+        responseUtils.sendNotFound(res, 'File not found');
         return;
       }
 
@@ -103,7 +103,7 @@ export class FilesController {
         if (err) {
           logger.error('Error sending file:', err);
           if (!res.headersSent) {
-            sendErrorResponse(res, 'Error downloading file', 500);
+            responseUtils.sendError(res, 'Error downloading file', 500);
           }
         }
       });
@@ -124,7 +124,7 @@ export class FilesController {
       const fileInfo = await this.filesService.getFileInfo(folder, filename);
 
       if (!fileInfo.exists) {
-        sendErrorResponse(res, 'File not found', 404);
+        responseUtils.sendNotFound(res, 'File not found');
         return;
       }
 
@@ -138,7 +138,7 @@ export class FilesController {
         if (err) {
           logger.error('Error sending file:', err);
           if (!res.headersSent) {
-            sendErrorResponse(res, 'Error viewing file', 500);
+            responseUtils.sendError(res, 'Error viewing file', 500);
           }
         }
       });
@@ -159,11 +159,11 @@ export class FilesController {
       const fileInfo = await this.filesService.getFileInfo(folder, filename);
 
       if (!fileInfo.exists) {
-        sendErrorResponse(res, 'File not found', 404);
+        responseUtils.sendNotFound(res, 'File not found');
         return;
       }
 
-      sendSuccessResponse(res, 'File info retrieved successfully', fileInfo);
+      responseUtils.sendSuccess(res, 'File info retrieved successfully', fileInfo);
     } catch (error: unknown) {
       logger.error('Error in getFileInfo:', error);
       next(error);
@@ -181,11 +181,11 @@ export class FilesController {
       const deleted = await this.filesService.deleteFile(folder, filename);
 
       if (!deleted) {
-        sendErrorResponse(res, 'File not found', 404);
+        responseUtils.sendNotFound(res, 'File not found');
         return;
       }
 
-      sendSuccessResponse(res, 'File deleted successfully', null);
+      responseUtils.sendSuccess(res, 'File deleted successfully', null);
     } catch (error: unknown) {
       logger.error('Error in deleteFile:', error);
       next(error);
@@ -202,7 +202,7 @@ export class FilesController {
 
       const files = await this.filesService.listFiles(folder);
 
-      sendSuccessResponse(res, 'Files retrieved successfully', {
+      responseUtils.sendSuccess(res, 'Files retrieved successfully', {
         folder,
         count: files.length,
         files
@@ -223,7 +223,7 @@ export class FilesController {
 
       const size = await this.filesService.getFolderSize(folder);
 
-      sendSuccessResponse(res, 'Folder size retrieved successfully', {
+      responseUtils.sendSuccess(res, 'Folder size retrieved successfully', {
         folder,
         size,
         formattedSize: this.filesService.formatFileSize(size)
@@ -243,7 +243,7 @@ export class FilesController {
       const { folder, filename, expiresIn } = req.body;
 
       if (!folder || !filename) {
-        sendErrorResponse(res, 'Folder and filename are required', 400);
+        responseUtils.sendError(res, 'Folder and filename are required', 400);
         return;
       }
 
@@ -253,7 +253,7 @@ export class FilesController {
         expiresIn || 3600
       );
 
-      sendSuccessResponse(res, 'Signed URL generated successfully', { url });
+      responseUtils.sendSuccess(res, 'Signed URL generated successfully', { url });
     } catch (error: unknown) {
       logger.error('Error in generateSignedUrl:', error);
       next(error);

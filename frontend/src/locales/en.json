@@ -20,6 +20,15 @@
     "download": "Download",
     "upload": "Upload"
   },
+  "errors": {
+    "sessionExpired": "Session expired. Please login again.",
+    "accessDenied": "Access denied. You do not have permission.",
+    "validation": "Validation error. Please check and try again.",
+    "tooManyRequests": "Too many requests. Please try again later.",
+    "server": "Server error. Please try again later.",
+    "unexpected": "An unexpected error occurred.",
+    "network": "Network error. Please check your connection."
+  },
   "auth": {
     "login": {
       "title": "Welcome Back",
@@ -53,7 +62,46 @@
       "submit": "Create Account",
       "haveAccount": "Already have an account?",
       "signIn": "Sign in"
+    },
+    "messages": {
+      "loginSuccess": "Login successful!",
+      "loginFailed": "Login failed",
+      "registerSuccess": "Registration successful!",
+      "registerFailed": "Registration failed",
+      "logoutSuccess": "Logged out successfully",
+      "updateProfileSuccess": "Profile updated successfully!",
+      "updateProfileFailed": "Profile update failed"
     }
+  },
+  "myCourses": {
+    "accessDeniedTitle": "Access Denied",
+    "accessDeniedDescription": "This page is for instructors only.",
+    "subtitle": "Manage your courses and content",
+    "createNew": "Create new course",
+    "labels": {
+      "enrolledStudents": "Enrolled Students"
+    },
+    "archiveCourse": "Archive course",
+    "restoreCourse": "Restore course",
+    "empty": {
+      "title": "No courses yet",
+      "subtitle": "Create your first course to start teaching.",
+      "createFirst": "Create first course"
+    },
+    "quickStats": {
+      "title": "Quick Stats",
+      "activeCourses": "Active courses",
+      "totalStudents": "Total students",
+      "totalCredits": "Total credits",
+      "archived": "Archived"
+    }
+  },
+  "liveStream": {
+    "authRequiredTitle": "Authentication Required",
+    "authRequiredDescription": "Please log in to access live streaming.",
+    "notFoundTitle": "Course not found",
+    "notFoundDescription": "The course you are looking for does not exist.",
+    "backToCourse": "Back to course"
   },
   "home": {
     "title": "Real-Time LMS",
@@ -102,7 +150,32 @@
     "upcomingEvents": "Upcoming Events",
     "progress": "Progress",
     "notifications": "Notifications",
-    "quickActions": "Quick Actions"
+    "quickActions": "Quick Actions",
+    "welcomeBackTitle": "Welcome back, {{name}}!",
+    "welcomeSubtitleInstructor": "Manage courses and engage with students",
+    "welcomeSubtitleStudent": "Continue your learning journey",
+    "stats": {
+      "instructorCourses": "Courses you teach",
+      "enrolledCourses": "Enrolled courses"
+    },
+    "analytics": {
+      "title": "Your learning analytics"
+    },
+    "yourCourses": "Your Courses",
+    "empty": {
+      "instructorTitle": "No courses created yet",
+      "instructorSubtitle": "Start by creating your first course",
+      "studentTitle": "No courses enrolled",
+      "studentSubtitle": "Browse available courses to start learning"
+    },
+    "demo": {
+      "notificationsTitle": "Real-time Notifications",
+      "notificationsDescription": "Check live updates, toast alerts, and browser notifications.",
+      "tryNotification": "Try notification",
+      "aiTitle": "AI Assistant",
+      "aiDescription": "Get help about courses, ask questions, and receive learning support.",
+      "aiHint": "Look for the floating AI assistant button at the bottom-right!"
+    }
   },
   "courses": {
     "title": "Courses",
@@ -116,12 +189,64 @@
     "sort": "Sort by",
     "enroll": "Enroll",
     "unenroll": "Unenroll",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "available": "Available Courses",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "archived": "Archived"
+    },
+    "labels": {
+      "students": "students",
+      "startedAgo": "Started {{time}} ago"
+    },
+    "enrollNow": "Enroll Now",
+    "viewCourse": "View Course",
+    "detail": {
+      "courseInfo": "Course Information",
+      "description": "Description",
+      "schedule": "Schedule",
+      "credits": "Credits",
+      "students": "Students",
+      "learningObjectives": "Learning Objectives",
+      "learningObjective1": "Understand fundamental concepts and principles",
+      "learningObjective2": "Apply theoretical knowledge to real-world situations",
+      "learningObjective3": "Develop critical thinking and problem-solving skills",
+      "learningObjective4": "Complete hands-on projects and assignments",
+      "progress": "Progress",
+      "courseProgress": "Course Progress",
+      "quickActions": "Quick Actions",
+      "viewCourseContent": "View course content",
+      "joinDiscussion": "Join Discussion",
+      "liveSession": "Live Session",
+      "startLiveSession": "Start live streaming",
+      "joinLiveSession": "Join live streaming",
+      "manageStudents": "Manage Students",
+      "courseContent": "Course Content",
+      "addContent": "Add Content",
+      "video": "Video",
+      "reading": "Reading",
+      "assignment": "Assignment",
+      "review": "Review",
+      "start": "Start",
+      "editCourse": "Edit Course",
+      "discussion": "Course Discussion",
+      "realtimeMessaging": "Real-time messaging",
+      "tabs": {
+        "overview": "Overview",
+        "content": "Content",
+        "files": "Files",
+        "quizzes": "Quizzes",
+        "chat": "Discussion"
+      },
+      "lessonsCompleted": "{{completed}} of {{total}} lessons completed"
+    }
   },
   "demo": {
     "mode": "Demo Mode",
     "demoMode": "Demo Mode",
     "demoModeActive": "Demo Mode Active",
+    "demoModeInfo": "You are using the demo version with simulated data. All interactions are mocked and data will not persist after refresh. Try switching between different demo accounts to experience different user roles.",
     "demoNotice": "Demo Mode",
     "connected": "Connected",
     "demoModeShort": "Demo",
@@ -179,6 +304,17 @@
       "instructions": {
         "title": "How to Test:"
       }
+    }
+  }
+  ,
+  "coursePage": {
+    "title": "Course {{id}}",
+    "description": "Course content will be implemented after setting up the database. This will include:",
+    "items": {
+      "materials": "Course materials and resources",
+      "realtimeChat": "Real-time chat with classmates",
+      "assignments": "Assignment submissions",
+      "liveSessions": "Access to live sessions"
     }
   }
 }

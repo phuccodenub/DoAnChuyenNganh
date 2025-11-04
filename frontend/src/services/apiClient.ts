@@ -1,22 +1,38 @@
 import axios from 'axios'
-import type { AxiosInstance, AxiosError } from 'axios'
+import type { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import toast from 'react-hot-toast'
+import i18n from '@/i18n'
 
-// Get API base URL from environment
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api'
+// Get API base URL from environment with versioning support
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api/v1.2.0'
+const DEBUG_MODE = (import.meta as any).env?.VITE_DEBUG_MODE === 'true'
 
-// Create axios instance
+// Create axios instance with enhanced configuration
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased for file uploads
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 })
 
-// Request interceptor to add authentication token
+// Retry configuration constants
+const MAX_RETRIES = 3
+const RETRY_DELAY = 1000
+
+// Request interceptor to add authentication token and logging
 apiClient.interceptors.request.use(
   (config) => {
+    // Add request timestamp for debugging
+    if (DEBUG_MODE) {
+      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+        baseURL: config.baseURL,
+        headers: config.headers,
+        data: config.data
+      })
+    }
+
     // Get token from localStorage (Zustand persist storage)
     const authStorage = localStorage.getItem('auth-storage')
     if (authStorage) {
@@ -32,19 +48,46 @@ apiClient.interceptors.request.use(
       }
     }
     
+    // Add request timestamp for tracking (using headers)
+    config.headers['X-Request-Start'] = Date.now().toString()
+    
     return config
   },
   (error) => {
+    if (DEBUG_MODE) {
+      console.error('❌ Request Error:', error)
+    }
     return Promise.reject(error)
   }
 )
 
-// Response interceptor for error handling
+// Response interceptor for error handling and logging
 apiClient.interceptors.response.use(
   (response) => {
+    // Log successful responses in debug mode
+    if (DEBUG_MODE) {
+      const startTime = response.config.headers['X-Request-Start']
+      const duration = startTime ? Date.now() - parseInt(startTime) : 0
+      console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+        status: response.status,
+        duration: `${duration}ms`,
+        data: response.data
+      })
+    }
     return response
   },
   (error: AxiosError) => {
+    // Log error in debug mode
+    if (DEBUG_MODE) {
+      const startTime = error.config?.headers?.['X-Request-Start']
+      const duration = startTime ? Date.now() - parseInt(startTime) : 0
+      console.error(`❌ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
+        status: error.response?.status,
+        duration: `${duration}ms`,
+        error: error.response?.data || error.message
+      })
+    }
+
     // Handle common errors
     if (error.response) {
       const status = error.response.status
@@ -57,13 +100,13 @@ apiClient.interceptors.response.use(
             // Clear auth state and redirect to login
             localStorage.removeItem('auth-storage')
             window.location.href = '/login'
-            toast.error('Session expired. Please login again.')
+            toast.error(i18n.t('errors.sessionExpired'))
           }
           break
           
         case 403:
           // Forbidden
-          toast.error('Access denied. You do not have permission.')
+          toast.error(i18n.t('errors.accessDenied'))
           break
           
         case 404:
@@ -80,17 +123,19 @@ apiClient.interceptors.response.use(
             toast.error(errorMessages)
           } else if (data?.message) {
             toast.error(data.message)
+          } else {
+            toast.error(i18n.t('errors.validation'))
           }
           break
           
         case 429:
           // Rate limit exceeded
-          toast.error('Too many requests. Please wait a moment and try again.')
+          toast.error(i18n.t('errors.tooManyRequests'))
           break
           
         case 500:
           // Server error
-          toast.error('Server error. Please try again later.')
+          toast.error(i18n.t('errors.server'))
           break
           
         default:
@@ -98,15 +143,15 @@ apiClient.interceptors.response.use(
           if (data?.message) {
             toast.error(data.message)
           } else {
-            toast.error('An unexpected error occurred.')
+            toast.error(i18n.t('errors.unexpected'))
           }
       }
     } else if (error.request) {
       // Network error
-      toast.error('Network error. Please check your connection.')
+      toast.error(i18n.t('errors.network'))
     } else {
       // Other errors
-      toast.error('An unexpected error occurred.')
+      toast.error(i18n.t('errors.unexpected'))
     }
     
     return Promise.reject(error)

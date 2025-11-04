@@ -18,7 +18,7 @@ export class EmailService {
     text?: string;
     html?: string;
     template?: string;
-    templateData?: any;
+    templateData?: Record<string, unknown>;
   }): Promise<void> {
     try {
       logger.info('Sending email', { 

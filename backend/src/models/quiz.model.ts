@@ -1,101 +1,68 @@
-import { DataTypes } from 'sequelize';
-import { getSequelize } from '@config/db';
+import { DataTypes, ModelStatic } from 'sequelize';
+import { getSequelize } from '../config/db';
+import { QuizInstance } from '../types/model.types';
+import { exportModel } from '../utils/model-extension.util';
 
-const { Model } = require('sequelize');
 const sequelize = getSequelize();
 
-class Quiz extends Model {
-  declare id: string;
-  declare course_id: string;
-  declare title: string;
-  declare description: string | null;
-  declare duration_minutes: number | null;
-  declare passing_score: number | null;
-  declare max_attempts: number;
-  declare shuffle_questions: boolean;
-  declare show_correct_answers: boolean;
-  declare available_from: Date | null;
-  declare available_until: Date | null;
-  declare is_published: boolean;
-  declare created_at: Date | null;
-  declare updated_at: Date | null;
-}
-
-(Quiz as any).init(
-  {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
-    },
-    course_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'courses', key: 'id' }
-    },
-    title: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    duration_minutes: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
-    passing_score: {
-      type: DataTypes.DECIMAL(5, 2),
-      allowNull: true
-    },
-    max_attempts: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 1
-    },
-    shuffle_questions: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false
-    },
-    show_correct_answers: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true
-    },
-    available_from: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    available_until: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    is_published: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    }
+/**
+ * Quiz Model
+ * Quản lý bài trắc nghiệm trong khóa học
+ */
+const Quiz = sequelize.define('Quiz', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
   },
-  {
-    sequelize,
-    tableName: 'quizzes',
-    underscored: true,
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
+  course_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'courses', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  title: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  description: DataTypes.TEXT,
+  duration_minutes: DataTypes.INTEGER,
+  passing_score: DataTypes.DECIMAL(5, 2),
+  max_attempts: {
+    type: DataTypes.INTEGER,
+    defaultValue: 1
+  },
+  shuffle_questions: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  show_correct_answers: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  available_from: DataTypes.DATE,
+  available_until: DataTypes.DATE,
+  is_published: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
-);
+}, {
+  tableName: 'quizzes',
+  timestamps: true,
+  underscored: true,
+  indexes: [
+    { fields: ['course_id'] },
+    { fields: ['available_from'] },
+    { fields: ['available_until'] }
+  ]
+});
 
-export default Quiz;
+const QuizModel = Quiz as unknown as ModelStatic<QuizInstance>;
+
+export default exportModel(QuizModel);
+
+
+
+
+
+

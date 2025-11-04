@@ -42,6 +42,13 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => authController.refreshToken(req, res, next)
 );
 
+// Backward-compatible alias to satisfy tests expecting /api/auth/refresh
+router.post(
+  '/refresh',
+  validateBody(authSchemas.refreshToken),
+  (req, res, next) => authController.refreshToken(req, res, next)
+);
+
 // Verify email
 router.get(
   '/verify-email/:token',

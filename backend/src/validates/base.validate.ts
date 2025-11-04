@@ -6,20 +6,20 @@ export const baseValidation = {
   // ===== COMMON FIELD VALIDATIONS =====
   
   /**
-   * UUID validation (custom regex to accept all valid UUID formats)
-   */
-  uuid: z.string()
-    .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, 'Invalid UUID format'),
-  
-  /**
-   * Username validation (for LMS login)
+   * Username validation
    */
   username: z.string()
     .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username must be less than 50 characters')
+    .max(30, 'Username must be less than 30 characters')
+    // Allow letters, numbers, underscores, and hyphens (factories generate usernames with hyphens)
     .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
-    .transform(val => val.toLowerCase().trim()),
-
+    .transform(val => val.trim().toLowerCase()),
+  
+  /**
+   * UUID validation
+   */
+  uuid: z.string().uuid('Invalid UUID format'),
+  
   /**
    * Email validation
    */
@@ -72,7 +72,9 @@ export const baseValidation = {
   /**
    * Date validation
    */
-  date: z.coerce.date().optional(),
+  date: z.string()
+    .refine((date) => validatorsUtils.isISODate(date), 'Invalid date format')
+    .optional(),
   
   /**
    * Gender validation
@@ -134,7 +136,7 @@ export const baseValidation = {
     size: z.number()
       .min(1, 'File size must be at least 1 byte')
       .max(10 * 1024 * 1024, 'File size must be less than 10MB'),
-    buffer: z.instanceof(Buffer as any)
+    buffer: z.instanceof(Buffer)
   }),
 
   // ===== COMMON RESPONSE VALIDATION =====
@@ -212,21 +214,21 @@ export const validationHelpers = {
   /**
    * Validate pagination parameters
    */
-  validatePagination: (query: any) => {
+  validatePagination: (query: unknown) => {
     return baseValidation.pagination.parse(query);
   },
   
   /**
    * Validate search parameters
    */
-  validateSearch: (query: any) => {
+  validateSearch: (query: unknown) => {
     return baseValidation.search.parse(query);
   },
   
   /**
    * Validate file upload
    */
-  validateFile: (file: any) => {
+  validateFile: (file: unknown) => {
     return baseValidation.file.parse(file);
   },
   
@@ -253,3 +255,4 @@ export const validationHelpers = {
 // Legacy export for backward compatibility
 export const baseSchemas = baseValidation;
 export const validateHelpers = validationHelpers;
+

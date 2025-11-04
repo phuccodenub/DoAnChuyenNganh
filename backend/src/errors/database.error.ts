@@ -197,11 +197,26 @@ export class DatabaseError extends BaseError {
   static fromSequelizeError(sequelizeError: any): DatabaseError {
     const { name, message, table, column, constraint, query } = sequelizeError;
 
+    // Attempt to infer duplicate field(s) from common Sequelize error shapes
+    const fields: Record<string, unknown> = (sequelizeError && sequelizeError.fields) || {};
+    const firstError = Array.isArray(sequelizeError?.errors) && sequelizeError.errors.length > 0 ? sequelizeError.errors[0] : undefined;
+    const path: string | undefined = (firstError && (firstError.path || firstError.validatorKey)) || undefined;
+    const lowerMsg: string = typeof message === 'string' ? message.toLowerCase() : '';
+    const inferField = (): string | undefined => {
+      const key = Object.keys(fields)[0];
+      if (key) return String(key);
+      if (path) return String(path);
+      if (lowerMsg.includes('username')) return 'username';
+      if (lowerMsg.includes('email')) return 'email';
+      return undefined;
+    };
+    const inferredField = inferField();
+
     switch (name) {
       case 'SequelizeValidationError':
         return new DatabaseError({
           code: 'DATABASE_CONSTRAINT_VIOLATION',
-          message: 'Database validation error',
+          message: 'Validation error',
           statusCode: 400,
           type: 'DATABASE',
           severity: 'MEDIUM',
@@ -212,17 +227,24 @@ export class DatabaseError extends BaseError {
         });
 
       case 'SequelizeUniqueConstraintError':
-        return new DatabaseError({
-          code: 'DATABASE_DUPLICATE_ENTRY',
-          message: 'Duplicate entry',
-          statusCode: 409,
-          type: 'DATABASE',
-          severity: 'MEDIUM',
-          table,
-          column,
-          constraint,
-          details: { originalError: message }
-        });
+        // Craft a more helpful message when the field is known (helps tests assert substring)
+        {
+          let userMessage = 'Duplicate entry';
+          if (inferredField) {
+            userMessage = `${inferredField} already exists`;
+          }
+          return new DatabaseError({
+            code: 'DATABASE_DUPLICATE_ENTRY',
+            message: userMessage,
+            statusCode: 409,
+            type: 'DATABASE',
+            severity: 'MEDIUM',
+            table,
+            column: (column || inferredField),
+            constraint,
+            details: { originalError: message, fields }
+          });
+        }
 
       case 'SequelizeForeignKeyConstraintError':
         return new DatabaseError({

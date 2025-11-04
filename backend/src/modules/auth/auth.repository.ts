@@ -1,9 +1,9 @@
-type UserInstance = any;
-import { UserRepository as BaseUserRepository } from '@repositories/user.repository';
-import logger from '@utils/logger.util';
+import User from '../../models/user.model';
+import { UserInstance, UserCreationAttributes } from '../../types/model.types';
+import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
 import { RegisterData } from './auth.types';
-// Local require shims to avoid pulling full model graph
-declare const require: any;
+import logger from '../../utils/logger.util';
+import { hashPassword } from '../../utils';
 
 export class AuthRepository extends BaseUserRepository {
   constructor() {
@@ -11,45 +11,37 @@ export class AuthRepository extends BaseUserRepository {
   }
 
   /**
-   * Find user by username for authentication (LMS login)
+   * Find user by username for authentication/registration checks
    */
-  async findUserForAuth(username: string): Promise<UserInstance | null> {
+  async findByUsername(username: string): Promise<UserInstance | null> {
     try {
-      logger.debug('Finding user for authentication', { username });
-      
-      const user = await this.findByUsername(username);
-      
-      if (user) {
-        logger.debug('User found for authentication', { username });
-      } else {
-        logger.debug('User not found for authentication', { username });
-      }
-      
+      logger.debug('Finding user by username', { username });
+      const user = await this.findOne({ where: { username } });
       return user;
-    } catch (error) {
-      logger.error('Error finding user for authentication:', error);
+    } catch (error: unknown) {
+      logger.error('Error finding user by username:', error);
       throw error;
     }
   }
 
   /**
-   * Find user by email for authentication (legacy support)
+   * Find user by email for authentication
    */
-  async findUserByEmailForAuth(email: string): Promise<UserInstance | null> {
+  async findUserForAuth(email: string): Promise<UserInstance | null> {
     try {
-      logger.debug('Finding user by email for authentication', { email });
+      logger.debug('Finding user for authentication', { email });
       
       const user = await this.findByEmail(email);
       
       if (user) {
-        logger.debug('User found by email for authentication', { email });
+        logger.debug('User found for authentication', { email });
       } else {
-        logger.debug('User not found by email for authentication', { email });
+        logger.debug('User not found for authentication', { email });
       }
       
       return user;
-    } catch (error) {
-      logger.error('Error finding user by email for authentication:', error);
+    } catch (error: unknown) {
+      logger.error('Error finding user for authentication:', error);
       throw error;
     }
   }
@@ -60,13 +52,64 @@ export class AuthRepository extends BaseUserRepository {
   async createUserForAuth(userData: RegisterData): Promise<UserInstance> {
     try {
       logger.debug('Creating user for authentication', { email: userData.email });
-      
-      const user = await this.create(userData);
-      
+
+      const creation: UserCreationAttributes = {
+        email: userData.email.toLowerCase(),
+        username: userData.username,
+        password_hash: await hashPassword(userData.password),
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        phone: userData.phone,
+        role: userData.role ?? 'student',
+        status: 'pending'
+      };
+
+      const user = await this.create(creation);
+
       logger.debug('User created for authentication', { email: userData.email, userId: user.id });
       return user;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error creating user for authentication:', error);
+      
+      // Handle unique/validation constraint violations with field-specific messages for tests
+      const name = error?.name || error?.constructor?.name || '';
+      const lowerName = String(name).toLowerCase();
+      const isUniqueOrValidation = lowerName.includes('uniqueconstrainterror') || lowerName.includes('validationerror');
+      if (isUniqueOrValidation) {
+        // Common Sequelize shapes:
+        // - error.fields: { username: 'dup' }
+        // - error.errors: [{ path: 'username', type: 'unique violation' }]
+        const fields = (error && error.fields) || {};
+        const firstError = Array.isArray(error?.errors) && error.errors.length > 0 ? error.errors[0] : undefined;
+        const firstPath = firstError?.path;
+        const field = Object.keys(fields)[0] || firstPath;
+
+        const ApiErrorMod = await import('../../errors/api.error');
+        const ApiError = ApiErrorMod.ApiError;
+
+        if (field) {
+          const f = String(field).toLowerCase();
+          if (f.includes('username')) {
+            throw ApiError.badRequest('username already exists');
+          }
+          if (f.includes('email')) {
+            throw ApiError.badRequest('email already exists');
+          }
+        }
+
+        // Try to infer from message if no explicit field is present
+        const msg: string = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+        if (msg.includes('username')) {
+          throw ApiError.badRequest('username already exists');
+        }
+        if (msg.includes('email')) {
+          throw ApiError.badRequest('email already exists');
+        }
+
+        // Fall back to a generic but descriptive message covering both fields
+        throw ApiError.badRequest('username or email already exists');
+      }
+      
       throw error;
     }
   }
@@ -79,13 +122,13 @@ export class AuthRepository extends BaseUserRepository {
       logger.debug('Updating user password', { userId });
       
       const user = await this.update(userId, {
-        password: passwordHash,
+        password_hash: passwordHash,
         token_version: tokenVersion
       });
       
       logger.debug('User password updated', { userId });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user password:', error);
       throw error;
     }
@@ -105,7 +148,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('Email verification updated', { userId, isVerified });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating email verification:', error);
       throw error;
     }
@@ -124,12 +167,12 @@ export class AuthRepository extends BaseUserRepository {
       }
       
       const updatedUser = await this.update(userId, {
-        token_version: (user as any).token_version + 1
+        token_version: user.token_version + 1
       });
       
       logger.debug('Token version updated', { userId });
       return updatedUser;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating token version:', error);
       throw error;
     }
@@ -148,7 +191,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('Last login updated', { userId });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating last login:', error);
       throw error;
     }
@@ -160,12 +203,12 @@ export class AuthRepository extends BaseUserRepository {
   async userExistsByEmail(email: string): Promise<boolean> {
     try {
       logger.debug('Checking if user exists by email', { email });
-      
-      const exists = await this.exists(email);
-      
-      logger.debug('User existence check completed', { email, exists });
-      return exists;
-    } catch (error) {
+      // Correctly check by email field instead of primary key
+      const user = await this.findByEmail(email);
+      const exists = !!user;
+      logger.debug('User existence check completed', { email, exists, userId: user?.id });
+      return !!user;
+    } catch (error: unknown) {
       logger.error('Error checking user existence by email:', error);
       throw error;
     }
@@ -187,7 +230,7 @@ export class AuthRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user for authentication:', error);
       throw error;
     }
@@ -209,7 +252,7 @@ export class AuthRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user profile:', error);
       throw error;
     }
@@ -226,7 +269,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User status updated', { userId, status });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user status:', error);
       throw error;
     }
@@ -257,7 +300,7 @@ export class AuthRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user with 2FA settings:', error);
       throw error;
     }
@@ -279,7 +322,7 @@ export class AuthRepository extends BaseUserRepository {
       });
       
       logger.debug('2FA settings updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating 2FA settings:', error);
       throw error;
     }
@@ -302,7 +345,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User login attempts retrieved', { userId, count: attempts.length });
       return attempts;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user login attempts:', error);
       throw error;
     }
@@ -320,7 +363,7 @@ export class AuthRepository extends BaseUserRepository {
       await LoginAttempt.create(attemptData);
       
       logger.debug('Login attempt record created', { userId: attemptData.user_id });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating login attempt record:', error);
       throw error;
     }
@@ -342,7 +385,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User sessions retrieved', { userId, count: sessions.length });
       return sessions;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user sessions:', error);
       throw error;
     }
@@ -361,7 +404,7 @@ export class AuthRepository extends BaseUserRepository {
       
       logger.debug('User session created', { userId: sessionData.user_id, sessionId: session.id });
       return session;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating user session:', error);
       throw error;
     }
@@ -381,7 +424,7 @@ export class AuthRepository extends BaseUserRepository {
       });
       
       logger.debug('User session updated', { sessionId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user session:', error);
       throw error;
     }
@@ -401,7 +444,7 @@ export class AuthRepository extends BaseUserRepository {
       });
       
       logger.debug('User session deleted', { sessionId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deleting user session:', error);
       throw error;
     }
@@ -421,9 +464,10 @@ export class AuthRepository extends BaseUserRepository {
       });
       
       logger.debug('All user sessions deleted', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deleting all user sessions:', error);
       throw error;
     }
   }
 }
+

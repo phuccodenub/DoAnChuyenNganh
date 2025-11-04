@@ -1,0 +1,293 @@
+### User Controller Refactoring - Admin Endpoints Testing
+### Base URL: http://localhost:3000/api/v1
+
+@baseUrl = http://localhost:3000/api/v1
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+@instructorToken = YOUR_INSTRUCTOR_TOKEN_HERE
+@studentToken = YOUR_STUDENT_TOKEN_HERE
+
+################################################################################
+# ADMIN USER ENDPOINTS
+################################################################################
+
+### 1. Get User Statistics (Admin/Super Admin only)
+GET {{baseUrl}}/admin/users/stats
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+### 2. Get All Users with Pagination (Admin/Instructor)
+GET {{baseUrl}}/admin/users?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+### 3. Get All Users with Filters
+GET {{baseUrl}}/admin/users?page=1&limit=10&role=student&status=active&search=john
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+### 4. Get Users by Role (Admin/Instructor)
+GET {{baseUrl}}/admin/users/role/student
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+### 5. Search User by Email (Admin/Instructor)
+GET {{baseUrl}}/admin/users/email/search?email=test@example.com
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+### 6. Get User by ID (All authenticated users)
+GET {{baseUrl}}/admin/users/123e4567-e89b-12d3-a456-426614174000
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+###
+
+### 7. Create New User (Admin/Super Admin only)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "password": "SecurePass123!",
+  "first_name": "John",
+  "last_name": "Doe",
+  "phone": "+84912345678",
+  "role": "student",
+  "bio": "New student",
+  "student_id": "STU2024001",
+  "class": "K19",
+  "major": "Computer Science",
+  "year": 2024
+}
+
+###
+
+### 8. Update User (Admin/Super Admin only)
+PATCH {{baseUrl}}/admin/users/123e4567-e89b-12d3-a456-426614174000
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "first_name": "John Updated",
+  "last_name": "Doe Updated",
+  "bio": "Updated bio",
+  "phone": "+84987654321"
+}
+
+###
+
+### 9. Change User Status (Admin/Super Admin only)
+PATCH {{baseUrl}}/admin/users/123e4567-e89b-12d3-a456-426614174000/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "suspended"
+}
+
+###
+
+### 10. Delete User (Admin/Super Admin only)
+DELETE {{baseUrl}}/admin/users/123e4567-e89b-12d3-a456-426614174000
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+################################################################################
+# USER SELF-SERVICE ENDPOINTS (For comparison)
+################################################################################
+
+### 11. Get Own Profile (Any authenticated user)
+GET {{baseUrl}}/users/profile
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+###
+
+### 12. Update Own Profile (Any authenticated user)
+PUT {{baseUrl}}/users/profile
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "bio": "I am a student",
+  "phone": "+84911111111"
+}
+
+###
+
+### 13. Upload Avatar (Any authenticated user)
+POST {{baseUrl}}/users/avatar
+Authorization: Bearer {{studentToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="avatar"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./test-avatar.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+
+### 14. Update Preferences (Any authenticated user)
+PATCH {{baseUrl}}/users/preferences
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "theme": "dark",
+  "language": "vi",
+  "notifications": {
+    "email": {
+      "course_updates": true,
+      "announcements": true
+    }
+  }
+}
+
+###
+
+### 15. Get Active Sessions (Any authenticated user)
+GET {{baseUrl}}/users/sessions
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+###
+
+### 16. Logout All Devices (Any authenticated user)
+POST {{baseUrl}}/users/logout-all
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+###
+
+################################################################################
+# AUTHORIZATION TESTS
+################################################################################
+
+### 17. Test: Student trying to access admin endpoint (Should FAIL)
+GET {{baseUrl}}/admin/users/stats
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+###
+
+### 18. Test: Instructor accessing user list (Should SUCCEED)
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{instructorToken}}
+Content-Type: application/json
+
+###
+
+### 19. Test: Student trying to create user (Should FAIL)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "Test123!",
+  "first_name": "Test",
+  "last_name": "User",
+  "role": "student"
+}
+
+###
+
+### 20. Test: Unauthenticated request (Should FAIL)
+GET {{baseUrl}}/admin/users
+Content-Type: application/json
+
+###
+
+################################################################################
+# EDGE CASES & VALIDATION TESTS
+################################################################################
+
+### 21. Test: Create user with invalid email (Should FAIL)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "password": "SecurePass123!",
+  "first_name": "John",
+  "last_name": "Doe",
+  "role": "student"
+}
+
+###
+
+### 22. Test: Create user with weak password (Should FAIL)
+POST {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "123",
+  "first_name": "John",
+  "last_name": "Doe",
+  "role": "student"
+}
+
+###
+
+### 23. Test: Update user with invalid status (Should FAIL)
+PATCH {{baseUrl}}/admin/users/123e4567-e89b-12d3-a456-426614174000/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "invalid_status"
+}
+
+###
+
+### 24. Test: Get users with invalid pagination (Should handle gracefully)
+GET {{baseUrl}}/admin/users?page=-1&limit=999999
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+### 25. Test: Search non-existent user
+GET {{baseUrl}}/admin/users/email/search?email=nonexistent@example.com
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+################################################################################
+# PERFORMANCE TESTS
+################################################################################
+
+### 26. Test: Get large user list
+GET {{baseUrl}}/admin/users?page=1&limit=100
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###
+
+### 27. Test: Complex search query
+GET {{baseUrl}}/admin/users?search=john&role=student&status=active&page=1&limit=20
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+###

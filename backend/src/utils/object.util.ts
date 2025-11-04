@@ -13,99 +13,82 @@ export const objectUtils = {
     }
 
     if (obj instanceof Date) {
-      return new Date(obj.getTime()) as T;
+      return new Date(obj.getTime()) as unknown as T;
     }
 
-    if (obj instanceof Array) {
-      return obj.map(item => this.deepClone(item)) as T;
+    if (Array.isArray(obj)) {
+      return (obj as unknown as Array<unknown>).map((item) => this.deepClone(item)) as unknown as T;
     }
 
-    if (typeof obj === 'object') {
-      const clonedObj = {} as T;
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          clonedObj[key] = this.deepClone(obj[key]);
-        }
-      }
-      return clonedObj;
+    const clonedObj: Record<string, unknown> = {};
+    for (const key of Object.keys(obj as unknown as Record<string, unknown>)) {
+      clonedObj[key] = this.deepClone((obj as unknown as Record<string, unknown>)[key]);
     }
-
-    return obj;
+    return clonedObj as unknown as T;
   },
 
-  // Merge objects
-  merge<T extends Record<string, any>>(target: T, ...sources: Partial<T>[]): T {
-     const result = { ...target } as any;
-    
+  // Merge objects (shallow)
+  merge<T extends Record<string, unknown>>(target: T, ...sources: Array<Partial<T>>): T {
+    const result: Record<string, unknown> = { ...(target as Record<string, unknown>) };
     for (const source of sources) {
-      for (const key in source) {
-        if (source.hasOwnProperty(key)) {
-          if (this.isObject(result[key]) && this.isObject(source[key])) {
-            result[key] = this.merge(result[key], source[key]);
-          } else {
-            result[key] = source[key] as any;
-          }
+      if (!source) continue;
+      for (const key of Object.keys(source as Record<string, unknown>)) {
+        const sVal = (source as Record<string, unknown>)[key];
+        const rVal = result[key];
+        if (this.isObject(rVal) && this.isObject(sVal)) {
+          result[key] = this.merge(rVal as Record<string, unknown>, sVal as Record<string, unknown>) as unknown;
+        } else {
+          result[key] = sVal as unknown;
         }
       }
     }
-    
-    return result;
+    return result as T;
   },
 
   // Deep merge objects
-  deepMerge<T extends Record<string, any>>(target: T, ...sources: Partial<T>[]): T {
-    const result = this.deepClone(target);
-    
+  deepMerge<T extends Record<string, unknown>>(target: T, ...sources: Array<Partial<T>>): T {
+    const result: Record<string, unknown> = this.deepClone(target) as unknown as Record<string, unknown>;
     for (const source of sources) {
-      for (const key in source) {
-        if (source.hasOwnProperty(key)) {
-          if (this.isObject(result[key]) && this.isObject(source[key])) {
-            result[key] = this.deepMerge(result[key], source[key] as any);
-          } else {
-            result[key] = source[key] as any;
-          }
+      if (!source) continue;
+      for (const key of Object.keys(source as Record<string, unknown>)) {
+        const sVal = (source as Record<string, unknown>)[key];
+        const rVal = result[key];
+        if (this.isObject(rVal) && this.isObject(sVal)) {
+          result[key] = this.deepMerge(rVal as Record<string, unknown>, sVal as Record<string, unknown>) as unknown;
+        } else {
+          result[key] = sVal as unknown;
         }
       }
     }
-    
-    return result;
+    return result as T;
   },
 
-  // Check if value is object
-  isObject(value: any): value is Record<string, any> {
+  // Check if value is plain object (not array)
+  isObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   },
 
   // Check if object is empty
-  isEmpty(obj: any): boolean {
+  isEmpty(obj: unknown): boolean {
     if (obj === null || obj === undefined) return true;
     if (Array.isArray(obj)) return obj.length === 0;
-    if (typeof obj === 'object') return Object.keys(obj).length === 0;
+    if (this.isObject(obj)) return Object.keys(obj).length === 0;
     return false;
   },
 
   // Check if object is not empty
-  isNotEmpty(obj: any): boolean {
+  isNotEmpty(obj: unknown): boolean {
     return !this.isEmpty(obj);
   },
 
   // Get object keys
-  getKeys(obj: any, options: ObjectOptions = {}): string[] {
+  getKeys(obj: unknown, options: ObjectOptions = {}): string[] {
     if (!this.isObject(obj)) return [];
-    
-    let keys: string[] = [];
-    
-    if (options.includePrototype) {
-      keys = Object.getOwnPropertyNames(obj);
-    } else {
-      keys = Object.keys(obj);
-    }
-    
+    const base = options.includePrototype ? Object.getOwnPropertyNames(obj) : Object.keys(obj);
     if (options.sortKeys) {
-      keys.sort();
+      base.sort();
     }
-    
-    return keys;
+    return base;
   },
 
   // Get object values
@@ -115,11 +98,11 @@ export const objectUtils = {
 
   // Get object entries
   getEntries<T>(obj: Record<string, T>): [string, T][] {
-    return Object.entries(obj);
+    return Object.entries(obj) as [string, T][];
   },
 
   // Pick properties from object
-  pick<T extends Record<string, any>, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
+  pick<T extends Record<string, unknown>, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
     const result = {} as Pick<T, K>;
     for (const key of keys) {
       if (key in obj) {
@@ -130,287 +113,235 @@ export const objectUtils = {
   },
 
   // Omit properties from object
-  omit<T extends Record<string, any>, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
+  omit<T extends Record<string, unknown>, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
     const result = { ...obj };
     for (const key of keys) {
-      delete result[key];
+      delete (result as Record<string, unknown>)[key as string];
     }
     return result;
   },
 
   // Get nested property value
-  get(obj: any, path: string, defaultValue?: any): any {
+  get(obj: unknown, path: string, defaultValue?: unknown): unknown {
     const keys = path.split('.');
-    let result = obj;
-    
+    let current: unknown = obj as unknown;
     for (const key of keys) {
-      if (result === null || result === undefined || !(key in result)) {
+      if (current === null || current === undefined) {
         return defaultValue;
       }
-      result = result[key];
+      if (!this.isObject(current)) {
+        return defaultValue;
+      }
+      const rec = current as Record<string, unknown>;
+      if (!(key in rec)) {
+        return defaultValue;
+      }
+      current = rec[key];
     }
-    
-    return result;
+    return current === undefined ? defaultValue : current;
   },
 
   // Set nested property value
-  set(obj: any, path: string, value: any): any {
+  set(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
     const keys = path.split('.');
-    let current = obj;
-    
+    let current: Record<string, unknown> = obj;
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
-      if (!(key in current) || !this.isObject(current[key])) {
+      const nextVal = current[key];
+      if (!this.isObject(nextVal)) {
         current[key] = {};
       }
-      current = current[key];
+      current = current[key] as Record<string, unknown>;
     }
-    
     current[keys[keys.length - 1]] = value;
     return obj;
   },
 
   // Check if object has property
-  has(obj: any, path: string): boolean {
+  has(obj: unknown, path: string): boolean {
     const keys = path.split('.');
-    let current = obj;
-    
+    let current: unknown = obj;
     for (const key of keys) {
-      if (current === null || current === undefined || !(key in current)) {
-        return false;
-      }
-      current = current[key];
+      if (current === null || current === undefined) return false;
+      if (!this.isObject(current)) return false;
+      const rec = current as Record<string, unknown>;
+      if (!(key in rec)) return false;
+      current = rec[key];
     }
-    
     return true;
   },
 
   // Remove property from object
-  unset(obj: any, path: string): boolean {
+  unset(obj: Record<string, unknown>, path: string): boolean {
     const keys = path.split('.');
-    let current = obj;
-    
+    let current: Record<string, unknown> = obj;
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
-      if (current === null || current === undefined || !(key in current)) {
+      const nextVal = current[key];
+      if (!this.isObject(nextVal)) {
         return false;
       }
-      current = current[key];
+      current = nextVal as Record<string, unknown>;
     }
-    
     const lastKey = keys[keys.length - 1];
-    if (current !== null && current !== undefined && lastKey in current) {
+    if (lastKey in current) {
       delete current[lastKey];
       return true;
     }
-    
     return false;
   },
 
   // Transform object keys
-  transformKeys<T extends Record<string, any>>(
-    obj: T,
-    transformer: (key: string) => string
-  ): Record<string, any> {
-    const result: Record<string, any> = {};
-    
-    for (const [key, value] of Object.entries(obj)) {
+  transformKeys<T extends Record<string, unknown>>(obj: T, transformer: (key: string) => string): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       result[transformer(key)] = value;
     }
-    
     return result;
   },
 
   // Transform object values
-  transformValues<T extends Record<string, any>, U>(
-    obj: T,
-    transformer: (value: any, key: string) => U
-  ): Record<string, U> {
+  transformValues<T extends Record<string, unknown>, U>(obj: T, transformer: (value: unknown, key: string) => U): Record<string, U> {
     const result: Record<string, U> = {};
-    
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       result[key] = transformer(value, key);
     }
-    
     return result;
   },
 
   // Filter object properties
-  filter<T extends Record<string, any>>(
-    obj: T,
-    predicate: (value: any, key: string) => boolean
-  ): Partial<T> {
+  filter<T extends Record<string, unknown>>(obj: T, predicate: (value: unknown, key: string) => boolean): Partial<T> {
     const result: Partial<T> = {};
-    
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (predicate(value, key)) {
-        result[key as keyof T] = value;
+        (result as Record<string, unknown>)[key] = value as unknown;
       }
     }
-    
     return result;
   },
 
   // Map object properties
-  map<T extends Record<string, any>, U>(
-    obj: T,
-    mapper: (value: any, key: string) => U
-  ): Record<string, U> {
+  map<T extends Record<string, unknown>, U>(obj: T, mapper: (value: unknown, key: string) => U): Record<string, U> {
     const result: Record<string, U> = {};
-    
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       result[key] = mapper(value, key);
     }
-    
     return result;
   },
 
   // Reduce object
-  reduce<T extends Record<string, any>, U>(
-    obj: T,
-    reducer: (acc: U, value: any, key: string) => U,
-    initialValue: U
-  ): U {
-    let result = initialValue;
-    
-    for (const [key, value] of Object.entries(obj)) {
-      result = reducer(result, value, key);
+  reduce<T extends Record<string, unknown>, U>(obj: T, reducer: (acc: U, value: unknown, key: string) => U, initialValue: U): U {
+    let acc = initialValue;
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      acc = reducer(acc, value, key);
     }
-    
-    return result;
+    return acc;
   },
 
   // Find key by value
-  findKey<T extends Record<string, any>>(
-    obj: T,
-    predicate: (value: any, key: string) => boolean
-  ): string | undefined {
-    for (const [key, value] of Object.entries(obj)) {
-      if (predicate(value, key)) {
-        return key;
-      }
+  findKey<T extends Record<string, unknown>>(obj: T, predicate: (value: unknown, key: string) => boolean): string | undefined {
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (predicate(value, key)) return key;
     }
     return undefined;
   },
 
   // Find value by predicate
-  findValue<T extends Record<string, any>>(
-    obj: T,
-    predicate: (value: any, key: string) => boolean
-  ): any {
-    for (const [key, value] of Object.entries(obj)) {
-      if (predicate(value, key)) {
-        return value;
-      }
+  findValue<T extends Record<string, unknown>>(obj: T, predicate: (value: unknown, key: string) => boolean): unknown {
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (predicate(value, key)) return value;
     }
     return undefined;
   },
 
   // Group array by key
   groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
-    return array.reduce((groups, item) => {
+    return array.reduce<Record<string, T[]>>((groups, item) => {
       const groupKey = String(item[key]);
       if (!groups[groupKey]) {
         groups[groupKey] = [];
       }
       groups[groupKey].push(item);
       return groups;
-    }, {} as Record<string, T[]>);
+    }, {});
   },
 
   // Sort object by keys
-  sortByKeys<T extends Record<string, any>>(obj: T): T {
-    const sortedKeys = Object.keys(obj).sort();
-    const result = {} as T;
-    
+  sortByKeys<T extends Record<string, unknown>>(obj: T): T {
+    const sortedKeys = Object.keys(obj as Record<string, unknown>).sort();
+    const result = {} as Record<string, unknown>;
     for (const key of sortedKeys) {
-      (result as any)[key] = obj[key];
+      result[key] = (obj as Record<string, unknown>)[key];
     }
-    
-    return result;
+    return result as T;
   },
 
   // Sort object by values
-  sortByValues<T extends Record<string, any>>(
-    obj: T,
-    compareFn?: (a: any, b: any) => number
-  ): Record<string, any> {
-    const entries = Object.entries(obj);
+  sortByValues<T extends Record<string, unknown>>(obj: T, compareFn?: (a: unknown, b: unknown) => number): Record<string, unknown> {
+    const entries = Object.entries(obj as Record<string, unknown>);
     entries.sort(([, a], [, b]) => {
-      if (compareFn) {
-        return compareFn(a, b);
-      }
-      if (typeof a === 'string' && typeof b === 'string') {
-        return a.localeCompare(b);
-      }
-      return a < b ? -1 : a > b ? 1 : 0;
+      if (compareFn) return compareFn(a, b);
+      if (typeof a === 'string' && typeof b === 'string') return a.localeCompare(b);
+      if (typeof a === 'number' && typeof b === 'number') return a - b;
+      return 0;
     });
-    
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const [key, value] of entries) {
       result[key] = value;
     }
-    
     return result;
   },
 
   // Flatten object
-  flatten(obj: any, prefix: string = '', result: Record<string, any> = {}): Record<string, any> {
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        const newKey = prefix ? `${prefix}.${key}` : key;
-        
-        if (this.isObject(obj[key])) {
-          this.flatten(obj[key], newKey, result);
-        } else {
-          result[newKey] = obj[key];
-        }
+  flatten(obj: unknown, prefix = '', result: Record<string, unknown> = {}): Record<string, unknown> {
+    if (!this.isObject(obj)) return result;
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      const newKey = prefix ? `${prefix}.${key}` : key;
+      if (this.isObject(value)) {
+        this.flatten(value, newKey, result);
+      } else {
+        result[newKey] = value as unknown;
       }
     }
-    
     return result;
   },
 
   // Unflatten object
-  unflatten(obj: Record<string, any>): any {
-    const result: any = {};
-    
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        this.set(result, key, obj[key]);
-      }
+  unflatten(obj: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(obj)) {
+      this.set(result, key, obj[key]);
     }
-    
     return result;
   },
 
-  // Compare objects
-  isEqual(obj1: any, obj2: any): boolean {
+  // Compare objects (deep)
+  isEqual(obj1: unknown, obj2: unknown): boolean {
     if (obj1 === obj2) return true;
-    
     if (obj1 == null || obj2 == null) return false;
-    
     if (typeof obj1 !== typeof obj2) return false;
-    
-    if (typeof obj1 !== 'object') return false;
-    
-    if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
-    
-    const keys1 = Object.keys(obj1);
-    const keys2 = Object.keys(obj2);
-    
+    if (!this.isObject(obj1) || !this.isObject(obj2)) return false;
+    const a = obj1 as Record<string, unknown>;
+    const b = obj2 as Record<string, unknown>;
+    const keys1 = Object.keys(a);
+    const keys2 = Object.keys(b);
     if (keys1.length !== keys2.length) return false;
-    
     for (const key of keys1) {
       if (!keys2.includes(key)) return false;
-      if (!this.isEqual(obj1[key], obj2[key])) return false;
+      const v1 = a[key];
+      const v2 = b[key];
+      const bothObjects = this.isObject(v1) && this.isObject(v2);
+      if (bothObjects) {
+        if (!this.isEqual(v1, v2)) return false;
+      } else if (v1 !== v2) {
+        return false;
+      }
     }
-    
     return true;
   },
 
   // Get object size
-  getSize(obj: any): number {
+  getSize(obj: unknown): number {
     if (Array.isArray(obj)) return obj.length;
     if (this.isObject(obj)) return Object.keys(obj).length;
     return 0;
@@ -431,8 +362,8 @@ export const objectUtils = {
   },
 
   // Create object from keys and values
-  fromPairs(pairs: [string, any][]): Record<string, any> {
-    const result: Record<string, any> = {};
+  fromPairs(pairs: Array<[string, unknown]>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
     for (const [key, value] of pairs) {
       result[key] = value;
     }
@@ -440,7 +371,7 @@ export const objectUtils = {
   },
 
   // Convert object to pairs
-  toPairs(obj: Record<string, any>): [string, any][] {
-    return Object.entries(obj);
+  toPairs(obj: Record<string, unknown>): Array<[string, unknown]> {
+    return Object.entries(obj) as Array<[string, unknown]>;
   }
 };
