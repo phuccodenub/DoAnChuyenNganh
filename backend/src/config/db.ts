@@ -4,6 +4,23 @@ let sequelize: Sequelize | null = null;
 
 export function getSequelize(): Sequelize {
   if (!sequelize) {
+    // Prefer SQLite when explicitly requested (CI/seed scripts)
+    const preferSqlite = (
+      process.env.DB_DIALECT === 'sqlite' ||
+      process.env.SQLITE === 'true' ||
+      typeof process.env.SQLITE_PATH !== 'undefined' ||
+      (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('sqlite'))
+    );
+
+    if (preferSqlite) {
+      sequelize = new Sequelize({
+        dialect: 'sqlite',
+        storage: process.env.SQLITE_PATH || (process.env.NODE_ENV === 'test' ? ':memory:' : './.tmp/dev.sqlite'),
+        logging: false
+      } as any);
+      return sequelize;
+    }
+
     // Prefer DATABASE_URL if provided; fallback to discrete DB_* variables
     const baseOptions = {
       dialect: 'postgres',
