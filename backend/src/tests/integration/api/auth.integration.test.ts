@@ -9,7 +9,15 @@ import { Sequelize } from 'sequelize';
 import { createTestDatabase, generateUUID } from '../../utils/test.utils';
 import { UserFactory } from '../../factories/user.factory';
 
-describe('Auth API Integration Tests', () => {
+// Skip when running with SQLite but native sqlite3 module is not available
+const wantsSqlite = process.env.DB_DIALECT === 'sqlite' || process.env.SQLITE === 'true';
+let sqliteAvailable = true;
+if (wantsSqlite) {
+  try { require('sqlite3'); } catch { sqliteAvailable = false; }
+}
+const maybeDescribe: jest.Describe = (wantsSqlite && !sqliteAvailable) ? (describe.skip as any) : (describe as any);
+
+maybeDescribe('Auth API Integration Tests', () => {
   let app: Express;
   let sequelize: Sequelize;
   let testUser: any;

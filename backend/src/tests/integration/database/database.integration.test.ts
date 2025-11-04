@@ -9,7 +9,15 @@ import { createTestDatabase, generateUUID } from '../../utils/test.utils';
 import { UserFactory } from '../../factories/user.factory';
 import { CourseFactory } from '../../factories/course.factory';
 
-describe('Database Integration Tests', () => {
+// Skip DB integration tests if running with SQLite but sqlite3 native module is not installed
+const wantsSqlite = process.env.DB_DIALECT === 'sqlite' || process.env.SQLITE === 'true';
+let sqliteAvailable = true;
+if (wantsSqlite) {
+  try { require('sqlite3'); } catch { sqliteAvailable = false; }
+}
+const maybeDescribe: jest.Describe = (wantsSqlite && !sqliteAvailable) ? (describe.skip as any) : (describe as any);
+
+maybeDescribe('Database Integration Tests', () => {
   let sequelize: Sequelize;
 
   beforeAll(async () => {

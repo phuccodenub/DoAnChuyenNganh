@@ -3,8 +3,22 @@
  * Thay thế việc sử dụng 'as any' khi thêm methods vào Sequelize models
  */
 
-import { Model } from 'sequelize';
+import { Model, Sequelize } from 'sequelize';
 import type { ModelStatic } from '../types/sequelize-types';
+import { getSequelize } from '../config/db';
+
+let fallbackSequelize: Sequelize | null = null;
+
+export function getModelSequelize(): Sequelize {
+  const primary = getSequelize() as unknown as Sequelize | undefined;
+  if (primary && typeof (primary as any).define === 'function') {
+    return primary;
+  }
+  if (!fallbackSequelize) {
+    fallbackSequelize = new Sequelize({ dialect: 'postgres', logging: false } as any);
+  }
+  return fallbackSequelize;
+}
 
 // ===================================
 // TYPE-SAFE MODEL EXTENSION HELPERS

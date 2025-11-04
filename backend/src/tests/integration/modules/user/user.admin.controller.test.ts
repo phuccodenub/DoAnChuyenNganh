@@ -9,7 +9,14 @@ import app from '../../../../app';
 import { jwtUtils } from '../../../../utils/jwt.util';
 import { UserRole } from '../../../../constants/roles.enum';
 
-describe('User Admin Controller - Integration Tests', () => {
+const wantsSqlite = process.env.DB_DIALECT === 'sqlite' || process.env.SQLITE === 'true';
+let sqliteAvailable = true;
+if (wantsSqlite) {
+  try { require('sqlite3'); } catch { sqliteAvailable = false; }
+}
+const maybeDescribe: jest.Describe = (wantsSqlite && !sqliteAvailable) ? (describe.skip as any) : (describe as any);
+
+maybeDescribe('User Admin Controller - Integration Tests', () => {
   let adminToken: string;
   let instructorToken: string;
   let studentToken: string;

@@ -1,10 +1,9 @@
 import { DataTypes } from 'sequelize';
 import type { ModelStatic } from '../types/sequelize-types';
-import { getSequelize } from '../config/db';
 import { LessonProgressInstance, LessonInstance } from '../types/model.types';
-import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
+import { exportModel, addInstanceMethods, addStaticMethods, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 /**
  * LessonProgress Model
@@ -182,11 +181,11 @@ addStaticMethods(LessonProgressModel, {
   },
   async getUserCourseProgress(this: ModelStatic<LessonProgressInstance>, userId: string, courseId: string) {
     // Lấy danh sách bài học thuộc course bằng include Section (alias 'section') để tránh truy cập any
-    const lessons = await sequelize.models.Lesson.findAll({
+    const lessons = await (sequelize.models as any).Lesson.findAll({
       attributes: ['id'],
       include: [
         {
-          model: sequelize.models.Section,
+          model: (sequelize.models as any).Section,
           as: 'section',
           attributes: [],
           where: { course_id: courseId }

@@ -1,10 +1,9 @@
 import { DataTypes } from 'sequelize';
 import type { ModelStatic } from '../types/sequelize-types';
-import { getSequelize } from '../config/db';
 import { UserActivityLogInstance } from '../types/model.types';
-import { exportModel } from '../utils/model-extension.util';
+import { exportModel, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 const UserActivityLog = sequelize.define('UserActivityLog', {
   id: {

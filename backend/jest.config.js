@@ -35,6 +35,7 @@ module.exports = {
     '!src/migrations/**',
     '!src/seeders/**'
   ],
+  setupFiles: ['<rootDir>/src/tests/jest.env.ts'],
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

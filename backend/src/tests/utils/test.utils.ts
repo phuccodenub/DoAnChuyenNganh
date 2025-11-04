@@ -134,28 +134,35 @@ export function applySequelizeSqlShim(): void {
 }
 
 export function createTestDatabase(): Sequelize {
-  const db = new Sequelize({
-    dialect: 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    database: process.env.DB_NAME_TEST || 'lms_db_test',
-    username: process.env.DB_USER || 'lms_user',
-    password: process.env.DB_PASSWORD || '123456',
-    logging: false,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    },
-    define: {
-      underscored: true,
-      freezeTableName: true,
-      timestamps: true,
-      paranoid: false
-    },
-    timezone: '+00:00'
-  });
+  const useSqlite = (process.env.DB_DIALECT === 'sqlite' || process.env.SQLITE === 'true');
+  const db = useSqlite
+    ? new Sequelize({
+        dialect: 'sqlite',
+        storage: process.env.SQLITE_PATH || ':memory:',
+        logging: false,
+      } as any)
+    : new Sequelize({
+        dialect: 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        database: process.env.DB_NAME_TEST || 'lms_db_test',
+        username: process.env.DB_USER || 'lms_user',
+        password: process.env.DB_PASSWORD || '123456',
+        logging: false,
+        pool: {
+          max: 5,
+          min: 0,
+          acquire: 30000,
+          idle: 10000
+        },
+        define: {
+          underscored: true,
+          freezeTableName: true,
+          timestamps: true,
+          paranoid: false
+        },
+        timezone: '+00:00'
+      });
 
   // Ensure shim is applied before any query usage
   applySequelizeSqlShim();

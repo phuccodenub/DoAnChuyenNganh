@@ -1,12 +1,11 @@
 import { DataTypes, Op } from 'sequelize';
 import type { ModelStatic } from '../types/sequelize-types';
-import { getSequelize } from '../config/db';
 import { NotificationRecipientAttributes, NotificationRecipientCreationAttributes, NotificationRecipientInstance } from '../types/model.types';
 import Notification from './notification.model';
 import User from './user.model';
-import { addInstanceMethods, addStaticMethods, exportModel } from '../utils/model-extension.util';
+import { addInstanceMethods, addStaticMethods, exportModel, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 /**
  * NotificationRecipient Model

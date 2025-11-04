@@ -1,10 +1,9 @@
 import { DataTypes } from 'sequelize';
 import type { ModelStatic } from '../types/sequelize-types';
-import { getSequelize } from '../config/db';
 import { LessonMaterialInstance } from '../types/model.types';
-import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
+import { exportModel, addInstanceMethods, addStaticMethods, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 /**
  * LessonMaterial Model
