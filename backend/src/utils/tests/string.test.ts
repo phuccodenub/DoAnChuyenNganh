@@ -91,9 +91,10 @@ describe('String Utils', () => {
 
   describe('cryptoUtils', () => {
     test('hashSHA256 should hash string with SHA256', () => {
-      const hash = stringUtils.hashSHA256('hello');
+  const hash = stringUtils.hashSHA256('hello');
       expect(hash).toMatch(/^[a-f0-9]{64}$/);
-      expect(hash).toBe('2cf24dba4fb21a877212075765bdf0c4dde29366ab37b5c61e9a311c5e61b3c59');
+  // Known SHA256 of 'hello'
+  expect(hash).toBe('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
     });
 
     test('hashSHA512 should hash string with SHA512', () => {

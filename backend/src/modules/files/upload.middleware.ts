@@ -10,16 +10,22 @@ import { Request } from 'express';
 import { FILE_CATEGORIES, FileErrorCodes } from './files.types';
 import logger from '../../utils/logger.util';
 
-// Ensure upload directory exists
+// Determine storage mode
+const storageType = (process.env.STORAGE_TYPE || 'local').toLowerCase();
+const isCloudStorage = storageType === 'google_cloud' || storageType === 'aws_s3' || storageType === 'azure_blob';
+
+// Ensure upload directory exists for local storage only
 const uploadDir = process.env.UPLOAD_PATH || './uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+if (!isCloudStorage) {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 }
 
 /**
  * Configure storage
  */
-const storage = multer.diskStorage({
+const localDiskStorage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb) => {
     // Get folder from request or use default
     const folder = (req.body.folder as string) || 'misc';
@@ -51,6 +57,9 @@ const storage = multer.diskStorage({
     cb(null, filename);
   }
 });
+
+// Dynamic storage selection: memory for cloud storage, disk for local
+const storage = isCloudStorage ? multer.memoryStorage() : localDiskStorage;
 
 /**
  * File filter function

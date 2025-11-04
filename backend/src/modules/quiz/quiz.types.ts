@@ -55,9 +55,8 @@ export interface CreateOptionDto {
 
 export interface QuizAnswerDto {
   question_id: string;
-  selected_option_id?: string;
-  selected_option_ids?: string[];
-  text_answer?: string;
+  selected_option_id?: string; // for single_choice/true_false
+  selected_options?: string[]; // for multiple_choice
 }
 
 export interface SubmitQuizDto {

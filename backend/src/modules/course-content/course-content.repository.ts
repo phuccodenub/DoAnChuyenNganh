@@ -1,4 +1,9 @@
 import { Section, Lesson, LessonMaterial, LessonProgress, Course } from '../../models';
+import type { 
+  SectionInstance, 
+  LessonInstance, 
+  LessonProgressInstance 
+} from '../../types/model.types';
 import { Op } from 'sequelize';
 import { getSequelize } from '../../config/db';
 
@@ -6,6 +11,35 @@ import { getSequelize } from '../../config/db';
  * Course Content Repository
  * Data access layer for course content management
  */
+type CreateLessonMaterialDTO = {
+  file_name: string;
+  file_url: string;
+  file_type?: string | null;
+  file_size?: number;
+  file_extension?: string | null;
+  description?: string | null;
+  is_downloadable?: boolean;
+  order_index?: number;
+};
+
+// DTOs for progress calculations
+interface SectionProgressDTO {
+  section_id: string;
+  section_title: string;
+  total_lessons: number;
+  completed_lessons: number;
+  completion_percentage: number;
+}
+
+interface CourseProgressDTO {
+  total_lessons: number;
+  completed_lessons: number;
+  completion_percentage: number;
+  total_time_spent_seconds: number;
+  last_accessed_at?: Date;
+  sections: SectionProgressDTO[];
+}
+
 export class CourseContentRepository {
   private sequelize = getSequelize();
 
@@ -13,7 +47,7 @@ export class CourseContentRepository {
   // SECTION OPERATIONS
   // ===================================
 
-  async createSection(courseId: string, data: any) {
+  async createSection<TData extends object>(courseId: string, data: TData) {
     return await Section.create({
       course_id: courseId,
       ...data
@@ -33,7 +67,7 @@ export class CourseContentRepository {
   }
 
   async findSectionsByCourse(courseId: string, includeUnpublished: boolean = false) {
-    const where: any = { course_id: courseId };
+    const where: Record<string, unknown> = { course_id: courseId };
     if (!includeUnpublished) {
       where.is_published = true;
     }
@@ -63,7 +97,7 @@ export class CourseContentRepository {
     });
   }
 
-  async updateSection(sectionId: string, data: any) {
+  async updateSection<TData extends object>(sectionId: string, data: TData) {
     const section = await Section.findByPk(sectionId);
     if (!section) return null;
     return await section.update(data);
@@ -100,7 +134,7 @@ export class CourseContentRepository {
   // LESSON OPERATIONS
   // ===================================
 
-  async createLesson(sectionId: string, data: any) {
+  async createLesson<TData extends object>(sectionId: string, data: TData) {
     return await Lesson.create({
       section_id: sectionId,
       ...data
@@ -131,7 +165,7 @@ export class CourseContentRepository {
   }
 
   async findLessonsBySection(sectionId: string, includeUnpublished: boolean = false) {
-    const where: any = { section_id: sectionId };
+    const where: Record<string, unknown> = { section_id: sectionId };
     if (!includeUnpublished) {
       where.is_published = true;
     }
@@ -149,7 +183,7 @@ export class CourseContentRepository {
     });
   }
 
-  async updateLesson(lessonId: string, data: any) {
+  async updateLesson<TData extends object>(lessonId: string, data: TData) {
     const lesson = await Lesson.findByPk(lessonId);
     if (!lesson) return null;
     return await lesson.update(data);
@@ -186,12 +220,22 @@ export class CourseContentRepository {
   // LESSON MATERIAL OPERATIONS
   // ===================================
 
-  async createMaterial(lessonId: string, uploadedBy: string, data: any) {
-    return await LessonMaterial.create({
+
+  async createMaterial(lessonId: string, uploadedBy: string, data: CreateLessonMaterialDTO) {
+    const payload = {
       lesson_id: lessonId,
       uploaded_by: uploadedBy,
-      ...data
-    });
+      file_name: data.file_name,
+      file_url: data.file_url,
+      file_type: data.file_type ?? null,
+      file_size: data.file_size,
+      file_extension: data.file_extension ?? null,
+      description: data.description ?? null,
+      is_downloadable: data.is_downloadable ?? true,
+      order_index: data.order_index ?? 0,
+      download_count: 0,
+    };
+    return await LessonMaterial.create(payload);
   }
 
   async findMaterialById(materialId: string) {
@@ -205,24 +249,24 @@ export class CourseContentRepository {
     });
   }
 
-  async updateMaterial(materialId: string, data: any) {
+  async updateMaterial<TData extends object>(materialId: string, data: TData) {
     const material = await LessonMaterial.findByPk(materialId);
     if (!material) return null;
-    return await material.update(data);
+    return await (material as any).update(data);
   }
 
   async deleteMaterial(materialId: string) {
     const material = await LessonMaterial.findByPk(materialId);
     if (!material) return false;
-    await material.destroy();
+    await (material as any).destroy();
     return true;
   }
 
   async incrementDownloadCount(materialId: string) {
     const material = await LessonMaterial.findByPk(materialId);
     if (!material) return null;
-    material.download_count += 1;
-    await material.save();
+    material.download_count = (material.download_count ?? 0) + 1;
+    await (material as any).save();
     return material;
   }
 
@@ -231,9 +275,11 @@ export class CourseContentRepository {
   // ===================================
 
   async findOrCreateProgress(userId: string, lessonId: string) {
-    const [progress, created] = await LessonProgress.findOrCreate({
+    const [progress, created] = await (LessonProgress as any).findOrCreate({
       where: { user_id: userId, lesson_id: lessonId },
       defaults: {
+        user_id: userId,
+        lesson_id: lessonId,
         started_at: new Date(),
         last_accessed_at: new Date()
       }
@@ -241,13 +287,23 @@ export class CourseContentRepository {
 
     if (!created && !progress.started_at) {
       progress.started_at = new Date();
-      await progress.save();
+      await (progress as any).save();
     }
 
     return progress;
   }
 
-  async updateProgress(userId: string, lessonId: string, data: any) {
+  async updateProgress(
+    userId: string,
+    lessonId: string,
+    data: Partial<{
+      last_position: number;
+      completion_percentage: number;
+      time_spent_seconds: number;
+      notes: string;
+      bookmarked: boolean;
+    }>
+  ) {
     const progress = await this.findOrCreateProgress(userId, lessonId);
     
     if (data.last_position !== undefined) {
@@ -293,7 +349,7 @@ export class CourseContentRepository {
     });
   }
 
-  async getUserCourseProgress(userId: string, courseId: string) {
+  async getUserCourseProgress(userId: string, courseId: string): Promise<CourseProgressDTO> {
     // Get all sections and lessons for the course
     const sections = await Section.findAll({
       where: { course_id: courseId },
@@ -306,10 +362,10 @@ export class CourseContentRepository {
         }
       ],
       order: [['order_index', 'ASC']]
-    });
+    }) as (SectionInstance & { lessons: LessonInstance[] })[];
 
-    const lessonIds = sections.flatMap((section: any) => 
-      section.lessons.map((lesson: any) => lesson.id)
+    const lessonIds = sections.flatMap((section) => 
+      section.lessons.map((lesson) => lesson.id)
     );
 
     if (lessonIds.length === 0) {
@@ -328,17 +384,17 @@ export class CourseContentRepository {
         user_id: userId,
         lesson_id: lessonIds
       }
-    });
+    }) as LessonProgressInstance[];
 
-    const progressMap = new Map(
-      progressRecords.map((p: any) => [p.lesson_id, p])
+    const progressMap = new Map<string, LessonProgressInstance>(
+      progressRecords.map((p) => [p.lesson_id, p])
     );
 
     // Calculate section-level progress
-    const sectionProgress = sections.map((section: any) => {
+    const sectionProgress: SectionProgressDTO[] = sections.map((section) => {
       const sectionLessons = section.lessons;
-      const completedInSection = sectionLessons.filter((lesson: any) => {
-        const p = progressMap.get(lesson.id) as any;
+      const completedInSection = sectionLessons.filter((lesson) => {
+        const p = progressMap.get(lesson.id);
         return p?.completed;
       }).length;
 
@@ -353,13 +409,13 @@ export class CourseContentRepository {
       };
     });
 
-    const completedTotal = progressRecords.filter((p: any) => p.completed).length;
+    const completedTotal = progressRecords.filter((p) => p.completed).length;
     const totalTimeSpent = progressRecords.reduce(
-      (sum: number, p: any) => sum + (p.time_spent_seconds || 0), 
+      (sum: number, p) => sum + (p.time_spent_seconds || 0), 
       0
     );
     const lastAccessed = progressRecords.length > 0
-      ? new Date(Math.max(...progressRecords.map((p: any) => p.last_accessed_at?.getTime() || 0)))
+      ? new Date(Math.max(...progressRecords.map((p) => p.last_accessed_at?.getTime() || 0)))
       : undefined;
 
     return {

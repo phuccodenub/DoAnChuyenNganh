@@ -1,86 +1,67 @@
 import { DataTypes } from 'sequelize';
-import { getSequelize } from '@config/db';
+import type { ModelStatic } from '../types/sequelize-types';
+import { GradeInstance } from '../types/model.types';
+import { exportModel, getModelSequelize } from '../utils/model-extension.util';
 
-const { Model } = require('sequelize');
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
-class Grade extends Model {
-  declare id: string;
-  declare user_id: string;
-  declare course_id: string;
-  declare component_id: string | null;
-  declare score: number;
-  declare max_score: number;
-  declare graded_by: string | null;
-  declare graded_at: Date;
-  declare notes: string | null;
-  declare created_at: Date | null;
-  declare updated_at: Date | null;
-}
-
-(Grade as any).init(
-  {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
-    },
-    user_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'users', key: 'id' }
-    },
-    course_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'courses', key: 'id' }
-    },
-    component_id: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: 'grade_components', key: 'id' }
-    },
-    score: {
-      type: DataTypes.DECIMAL(5, 2),
-      allowNull: false
-    },
-    max_score: {
-      type: DataTypes.DECIMAL(5, 2),
-      allowNull: false
-    },
-    graded_by: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: 'users', key: 'id' }
-    },
-    graded_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    notes: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    }
+const Grade = sequelize.define('Grade', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
   },
-  {
-    sequelize,
-    tableName: 'grades',
-    underscored: true,
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
-  }
-);
+  user_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'users', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  course_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'courses', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  component_id: {
+    type: DataTypes.UUID,
+    references: { model: 'grade_components', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  score: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: false
+  },
+  max_score: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: false
+  },
+  graded_by: {
+    type: DataTypes.UUID,
+    references: { model: 'users', key: 'id' }
+  },
+  graded_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  notes: DataTypes.TEXT
+}, {
+  tableName: 'grades',
+  timestamps: true,
+  underscored: true,
+  indexes: [
+    { fields: ['user_id'] },
+    { fields: ['course_id'] },
+    { fields: ['component_id'] }
+  ]
+});
 
-export default Grade;
+const GradeModel = Grade as unknown as ModelStatic<GradeInstance>;
+export default exportModel(GradeModel);
+
+
+
+
+
+
+

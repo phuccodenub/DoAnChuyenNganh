@@ -37,14 +37,14 @@ export class CourseService {
     try {
       logger.info('Getting all courses', options);
 
-      const result = await this.courseRepository.findAllWithPagination(options);
+      const result = await (this.courseRepository as any).findAllWithPagination(options as any);
       
       logger.info('All courses retrieved successfully', { 
-        count: result.courses.length, 
+        count: (result.data || []).length, 
         total: result.pagination.total 
       });
       
-      return result;
+      return { courses: result.data, pagination: result.pagination };
     } catch (error) {
       logger.error('Error getting all courses:', error);
       throw error;
@@ -137,7 +137,7 @@ export class CourseService {
           max_attempts: 3,
           ...courseData.settings
         }
-      });
+      } as any);
 
       // Clear cache
       await globalServices.cache.deleteWithPattern(`courses:*`);

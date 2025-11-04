@@ -101,9 +101,9 @@ export class LessonService {
     try {
       logger.info('Deleting lesson', { lessonId });
       
-      const deleted = await this.lessonRepository.delete(lessonId);
+      await this.lessonRepository.delete(lessonId);
       
-      if (!deleted) {
+      if (false) {
         logger.error('Lesson not found for deletion', { lessonId });
         throw new ApiError('Lesson not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }

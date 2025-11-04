@@ -1,8 +1,9 @@
-import { DataTypes, Model } from 'sequelize';
-import { getSequelize } from '../config/db';
-import { CategoryAttributes, CategoryCreationAttributes, CategoryInstance, CategoryModelStatic } from '../types/model.types';
+import { DataTypes } from 'sequelize';
+import type { WhereOptions, ModelStatic } from '../types/sequelize-types';
+import { CategoryAttributes, CategoryInstance } from '../types/model.types';
+import { addInstanceMethods, addStaticMethods, exportModel, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 /**
  * Category Model
@@ -98,68 +99,69 @@ const Category = sequelize.define('Category', {
   ]
 });
 
+// Typed Model bridge
+const CategoryModel = Category as unknown as ModelStatic<CategoryInstance>;
+
 // Instance Methods
-;(Category as any).prototype.isRootCategory = function(): boolean {
-  return this.parent_id === null;
-};
+addInstanceMethods(CategoryModel, {
+  isRootCategory(this: CategoryInstance): boolean {
+    return this.parent_id === null;
+  },
+});
 
-// Class Methods
-;(Category as any).findActiveCategories = async function(includeSubcategories: boolean = false) {
-  const where: any = { is_active: true };
-  
-  if (!includeSubcategories) {
-    where.parent_id = null; // Chỉ lấy danh mục gốc
-  }
+// Static/Class Methods
+addStaticMethods(CategoryModel, {
+  async findActiveCategories(this: ModelStatic<CategoryInstance>, includeSubcategories: boolean = false) {
+    const where: WhereOptions<CategoryAttributes> = { is_active: true };
+    if (!includeSubcategories) {
+      Object.assign(where, { parent_id: null }); // Chỉ lấy danh mục gốc
+    }
 
-  return await this.findAll({
-    where,
-    order: [['order_index', 'ASC'], ['name', 'ASC']],
-    include: includeSubcategories ? [{
-      model: this,
-      as: 'subcategories',
-      where: { is_active: true },
-      required: false
-    }] : []
-  });
-};
+    return this.findAll({
+      where,
+      order: [['order_index', 'ASC'], ['name', 'ASC']],
+      include: includeSubcategories
+        ? [{
+            model: this,
+            as: 'subcategories',
+            where: { is_active: true },
+            required: false,
+          }]
+        : [],
+    });
+  },
 
-;(Category as any).findBySlug = async function(slug: string) {
-  return await this.findOne({
-    where: { slug, is_active: true },
-    include: [
-      {
-        model: this,
-        as: 'subcategories',
-        where: { is_active: true },
-        required: false
-      },
-      {
-        model: this,
-        as: 'parent',
-        required: false
-      }
-    ]
-  });
-};
+  async findBySlug(this: ModelStatic<CategoryInstance>, slug: string) {
+    return this.findOne({
+      where: { slug, is_active: true },
+      include: [
+        {
+          model: this,
+          as: 'subcategories',
+          where: { is_active: true },
+          required: false,
+        },
+        {
+          model: this,
+          as: 'parent',
+          required: false,
+        },
+      ],
+    });
+  },
 
-;(Category as any).updateCourseCount = async function(categoryId: string) {
-  const count = await sequelize.models.Course.count({
-    where: { category_id: categoryId }
-  });
-  
-  await this.update(
-    { course_count: count },
-    { where: { id: categoryId } }
-  );
-  
-  return count;
-};
+  async updateCourseCount(this: ModelStatic<CategoryInstance>, categoryId: string) {
+    const count = await sequelize.models.Course.count({
+      where: { category_id: categoryId },
+    });
 
-export default Category as any;
+    await this.update(
+      { course_count: count },
+      { where: { id: categoryId } },
+    );
 
+    return count;
+  },
+});
 
-
-
-
-
-
+export default exportModel(CategoryModel);

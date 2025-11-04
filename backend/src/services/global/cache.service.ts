@@ -1,12 +1,26 @@
 import { redisHelpers } from '../../config/redis.config';
 import { APP_CONSTANTS } from '@constants/app.constants';
 import logger from '@utils/logger.util';
+// Avoid importing heavy model types in hard-fail builds; use generics instead
+
+// Session data interface for type safety
+export interface SessionData {
+  userId: string;
+  email: string;
+  role: 'student' | 'instructor' | 'admin' | 'super_admin';
+  loginTime: Date;
+  tokenVersion: number;
+  sessionId: string;
+  [key: string]: unknown; // Allow additional properties for flexibility
+}
 
 export class CacheService {
-  // Set cache with TTL
-  async set(key: string, value: any, ttl: number = APP_CONSTANTS.SYSTEM.CACHE_TTL.MEDIUM): Promise<void> {
+  private readonly disabled: boolean = (process.env.DISABLE_CACHE || '').toLowerCase() === 'true';
+
+  // Set cache with TTL - now generic
+  async set<T>(key: string, value: T, ttl: number = APP_CONSTANTS.SYSTEM.CACHE_TTL.MEDIUM): Promise<void> {
     try {
-      if (process.env.NODE_ENV === 'test') return; // disable redis in tests
+      if (this.disabled) return; // no-op when cache disabled
       const serializedValue = JSON.stringify(value);
       await redisHelpers.set(key, serializedValue, ttl);
     } catch (error: unknown) {
@@ -18,9 +32,11 @@ export class CacheService {
   // Get cache
   async get<T>(key: string): Promise<T | null> {
     try {
-      if (process.env.NODE_ENV === 'test') return null; // disable redis in tests
+      if (this.disabled) return null; // bypass when disabled
       const value = await redisHelpers.get(key);
-      return value ? JSON.parse(value) : null;
+      if (!value) return null;
+      const json = typeof value === 'string' ? value : value.toString();
+      return JSON.parse(json) as T;
     } catch (error: unknown) {
       logger.error('Cache get error:', error);
       throw error;
@@ -30,7 +46,7 @@ export class CacheService {
   // Delete cache
   async delete(key: string): Promise<void> {
     try {
-      if (process.env.NODE_ENV === 'test') return; // disable redis in tests
+      if (this.disabled) return; // no-op
       await redisHelpers.del(key);
     } catch (error: unknown) {
       logger.error('Cache delete error:', error);
@@ -41,7 +57,7 @@ export class CacheService {
   // Check if key exists
   async exists(key: string): Promise<boolean> {
     try {
-      if (process.env.NODE_ENV === 'test') return false; // disable redis in tests
+      if (this.disabled) return false;
       return await redisHelpers.exists(key);
     } catch (error: unknown) {
       logger.error('Cache exists error:', error);
@@ -50,7 +66,7 @@ export class CacheService {
   }
 
   // Set cache with pattern
-  async setWithPattern(pattern: string, value: any, ttl?: number): Promise<void> {
+  async setWithPattern<T>(pattern: string, value: T, ttl?: number): Promise<void> {
     try {
       const key = this.generateCacheKey(pattern);
       await this.set(key, value, ttl);
@@ -83,7 +99,7 @@ export class CacheService {
   }
 
   // Cache user data
-  async cacheUser(userId: string, userData: any): Promise<void> {
+  async cacheUser(userId: string, userData: unknown): Promise<void> {
     try {
       const key = `user:${userId}`;
       await this.set(key, userData, APP_CONSTANTS.SYSTEM.CACHE_TTL.LONG);
@@ -94,10 +110,10 @@ export class CacheService {
   }
 
   // Get cached user
-  async getCachedUser(userId: string): Promise<any> {
+  async getCachedUser<T = unknown>(userId: string): Promise<T | null> {
     try {
       const key = `user:${userId}`;
-      return await this.get(key);
+      return await this.get<T>(key);
     } catch (error: unknown) {
       logger.error('Get cached user error:', error);
       throw error;
@@ -105,7 +121,7 @@ export class CacheService {
   }
 
   // Cache course data
-  async cacheCourse(courseId: string, courseData: any): Promise<void> {
+  async cacheCourse(courseId: string, courseData: unknown): Promise<void> {
     try {
       const key = `course:${courseId}`;
       await this.set(key, courseData, APP_CONSTANTS.SYSTEM.CACHE_TTL.LONG);
@@ -116,10 +132,10 @@ export class CacheService {
   }
 
   // Get cached course
-  async getCachedCourse(courseId: string): Promise<any> {
+  async getCachedCourse<T = unknown>(courseId: string): Promise<T | null> {
     try {
       const key = `course:${courseId}`;
-      return await this.get(key);
+      return await this.get<T>(key);
     } catch (error: unknown) {
       logger.error('Get cached course error:', error);
       throw error;
@@ -127,7 +143,7 @@ export class CacheService {
   }
 
   // Cache session
-  async cacheSession(sessionId: string, sessionData: any): Promise<void> {
+  async cacheSession(sessionId: string, sessionData: SessionData): Promise<void> {
     try {
       const key = `session:${sessionId}`;
       await this.set(key, sessionData, APP_CONSTANTS.SYSTEM.CACHE_TTL.SHORT);
@@ -138,10 +154,10 @@ export class CacheService {
   }
 
   // Get cached session
-  async getCachedSession(sessionId: string): Promise<any> {
+  async getCachedSession(sessionId: string): Promise<SessionData | null> {
     try {
       const key = `session:${sessionId}`;
-      return await this.get(key);
+      return await this.get<SessionData>(key);
     } catch (error: unknown) {
       logger.error('Get cached session error:', error);
       throw error;
@@ -158,6 +174,10 @@ export class CacheService {
     try {
       // In a real implementation, you would use Redis FLUSHDB or FLUSHALL
       // For now, we'll just log it
+      if (this.disabled) {
+        logger.info('Cache disabled - skip clearing');
+        return;
+      }
       logger.info('Clearing all cache');
     } catch (error: unknown) {
       logger.error('Clear all cache error:', error);

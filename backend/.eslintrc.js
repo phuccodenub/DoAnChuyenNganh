@@ -21,7 +21,6 @@ module.exports = {
     // ===================================
     // STRICT TYPE SAFETY RULES
     // ===================================
-    '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/no-unsafe-assignment': 'warn',
     '@typescript-eslint/no-unsafe-member-access': 'warn',
     '@typescript-eslint/no-unsafe-call': 'warn',
@@ -51,4 +50,12 @@ module.exports = {
       fixToUnknown: true,
     }],
   },
+  overrides: [
+    {
+      files: ['src/utils/model-extension.util.ts', 'src/types/sequelize.d.ts', 'src/**/*.test.ts'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off'
+      }
+    }
+  ]
 };

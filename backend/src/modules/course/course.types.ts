@@ -208,4 +208,84 @@ export namespace CourseTypes {
     grades: any[];
     analytics: CourseAnalytics;
   }
+
+  // Repository helper option/response types expected by repositories
+  export interface GetCoursesOptions {
+    page: number;
+    limit: number;
+    status?: CourseStatus;
+    instructor_id?: string;
+    search?: string;
+  }
+
+  export interface GetCoursesByInstructorOptions {
+    page: number;
+    limit: number;
+    status?: CourseStatus;
+  }
+
+  export interface GetEnrolledCoursesOptions {
+    page: number;
+    limit: number;
+    status?: CourseStatus;
+  }
+
+  export interface CoursesResponse {
+    data: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }
 }
+
+// Top-level exports for repository usage
+export interface GetCoursesOptions {
+  page: number;
+  limit: number;
+  status?: CourseTypes.CourseStatus;
+  instructor_id?: string;
+  search?: string;
+}
+
+export interface GetCoursesByInstructorOptions {
+  page: number;
+  limit: number;
+  status?: CourseTypes.CourseStatus;
+}
+
+export interface GetEnrolledCoursesOptions {
+  page: number;
+  limit: number;
+  status?: CourseTypes.CourseStatus;
+}
+
+export interface GetCourseStudentsOptions {
+  page: number;
+  limit: number;
+}
+
+export interface CoursesResponse {
+  data: any[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface StudentsResponse {
+  data: any[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// Aliases to support namespace-qualified imports elsewhere
+export type CourseSearchFilters = CourseTypes.CourseSearchFilters;

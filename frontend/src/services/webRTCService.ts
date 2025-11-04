@@ -2,6 +2,35 @@
  * WebRTC Service for Live Streaming
  * Handles video calls and live streaming without database dependencies
  */
+import type { SocketEvents } from './socketService'
+
+// Tối thiểu hóa API socket cần dùng trong WebRTCService
+type SocketApi = {
+  on<K extends keyof SocketEvents>(event: K, callback: (data: SocketEvents[K]) => void): void
+  emit<K extends keyof SocketEvents>(event: K, data: SocketEvents[K]): void
+  off?<K extends keyof SocketEvents>(event: K, callback: (data: SocketEvents[K]) => void): void
+}
+
+// Nội bộ: định nghĩa typed events cho UI/WebRTCService
+type StreamAddedPayload = { stream: MediaStream; participantId: string; isLocal: boolean }
+type StreamRemovedPayload = { participantId: string }
+type StreamStartedPayload =
+  | { courseId?: string }
+  | SocketEvents['livestream-started']
+type StreamEndedPayload =
+  | { courseId?: string }
+  | SocketEvents['livestream-ended']
+type ParticipantJoinedPayload = SocketEvents['participant-joined-stream']
+type ParticipantLeftPayload = SocketEvents['participant-left-stream']
+
+type InternalEvents = {
+  'stream-added': StreamAddedPayload
+  'stream-removed': StreamRemovedPayload
+  'stream-started': StreamStartedPayload
+  'stream-ended': StreamEndedPayload
+  'participant-joined': ParticipantJoinedPayload
+  'participant-left': ParticipantLeftPayload
+}
 
 export interface StreamParticipant {
   id: string
@@ -23,10 +52,10 @@ export interface LiveStreamState {
 class WebRTCService {
   private localStream?: MediaStream
   private peerConnections: Map<string, RTCPeerConnection> = new Map()
-  private socketService: any = null
+  private socketService: SocketApi | null = null
   private currentCourseId?: string
   private isInstructor: boolean = false
-  private callbacks: Map<string, Function[]> = new Map()
+  private callbacks: Map<keyof InternalEvents, Array<(data: InternalEvents[keyof InternalEvents]) => void>> = new Map()
 
   // WebRTC configuration
   private config: RTCConfiguration = {
@@ -47,7 +76,7 @@ class WebRTCService {
   }
 
   // Initialize with socket service
-  initialize(socketService: any, courseId: string, userRole: string) {
+  initialize(socketService: SocketApi, courseId: string, userRole: string) {
     this.socketService = socketService
     this.currentCourseId = courseId
     this.isInstructor = userRole === 'instructor'
@@ -317,31 +346,37 @@ class WebRTCService {
     if (!this.socketService) return
 
     // Handle WebRTC offers
-    this.socketService.on('webrtc-offer', (data: any) => {
-      this.handleOffer(data.from, data.offer)
+    this.socketService.on('webrtc-offer', (data: SocketEvents['webrtc-offer']) => {
+      if (data.from) {
+        this.handleOffer(data.from, data.offer)
+      }
     })
 
     // Handle WebRTC answers
-    this.socketService.on('webrtc-answer', (data: any) => {
-      this.handleAnswer(data.from, data.answer)
+    this.socketService.on('webrtc-answer', (data: SocketEvents['webrtc-answer']) => {
+      if (data.from) {
+        this.handleAnswer(data.from, data.answer)
+      }
     })
 
     // Handle ICE candidates
-    this.socketService.on('ice-candidate', (data: any) => {
-      this.handleIceCandidate(data.from, data.candidate)
+    this.socketService.on('ice-candidate', (data: SocketEvents['ice-candidate']) => {
+      if (data.from) {
+        this.handleIceCandidate(data.from, data.candidate)
+      }
     })
 
     // Handle livestream events
-    this.socketService.on('livestream-started', (data: any) => {
+    this.socketService.on('livestream-started', (data: SocketEvents['livestream-started']) => {
       this.emit('stream-started', data)
     })
 
-    this.socketService.on('livestream-ended', (data: any) => {
+    this.socketService.on('livestream-ended', (data: SocketEvents['livestream-ended']) => {
       this.emit('stream-ended', data)
     })
 
     // Handle participant events
-    this.socketService.on('participant-joined-stream', (data: any) => {
+    this.socketService.on('participant-joined-stream', (data: SocketEvents['participant-joined-stream']) => {
       this.emit('participant-joined', data)
       // Instructor creates offer for new participant
       if (this.isInstructor) {
@@ -349,37 +384,37 @@ class WebRTCService {
       }
     })
 
-    this.socketService.on('participant-left-stream', (data: any) => {
+    this.socketService.on('participant-left-stream', (data: SocketEvents['participant-left-stream']) => {
       this.removePeerConnection(data.participantId)
       this.emit('participant-left', data)
     })
   }
 
   // Event handling
-  on(event: string, callback: Function): void {
+  on<K extends keyof InternalEvents>(event: K, callback: (data: InternalEvents[K]) => void): void {
     if (!this.callbacks.has(event)) {
       this.callbacks.set(event, [])
     }
-    this.callbacks.get(event)!.push(callback)
+    this.callbacks.get(event)!.push(callback as unknown as (data: InternalEvents[keyof InternalEvents]) => void)
   }
 
-  off(event: string, callback: Function): void {
+  off<K extends keyof InternalEvents>(event: K, callback: (data: InternalEvents[K]) => void): void {
     if (this.callbacks.has(event)) {
       const callbacks = this.callbacks.get(event)!
-      const index = callbacks.indexOf(callback)
+      const index = callbacks.indexOf(callback as unknown as (data: InternalEvents[keyof InternalEvents]) => void)
       if (index > -1) {
         callbacks.splice(index, 1)
       }
     }
   }
 
-  private emit(event: string, data: any): void {
+  private emit<K extends keyof InternalEvents>(event: K, data: InternalEvents[K]): void {
     if (this.callbacks.has(event)) {
       this.callbacks.get(event)!.forEach(callback => {
         try {
-          callback(data)
+          ;(callback as (d: InternalEvents[K]) => void)(data)
         } catch (error) {
-          console.error(`Error in ${event} callback:`, error)
+          console.error(`Error in ${String(event)} callback:`, error)
         }
       })
     }
@@ -393,7 +428,7 @@ class WebRTCService {
   }
 
   // Get connection statistics
-  async getConnectionStats(participantId: string): Promise<any> {
+  async getConnectionStats(participantId: string): Promise<RTCStatsReport | null> {
     const peerConnection = this.peerConnections.get(participantId)
     if (peerConnection) {
       return await peerConnection.getStats()

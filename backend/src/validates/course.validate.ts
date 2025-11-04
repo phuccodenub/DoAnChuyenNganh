@@ -111,7 +111,7 @@ export const courseValidateHelpers = {
   },
   
   // Sanitize course input
-  sanitizeCourseInput: (input: any) => {
+  sanitizeCourseInput: (input: unknown) => {
     if (typeof input === 'string') {
       return input.trim().replace(/[<>]/g, '');
     }

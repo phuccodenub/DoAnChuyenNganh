@@ -8,7 +8,15 @@ import { app } from '../../app';
 import { getSequelize } from '../../config/db';
 import logger from '../../utils/logger.util';
 
-describe('Course Registration E2E', () => {
+// Skip if sqlite3 unavailable and running with sqlite mode
+const wantsSqlite = process.env.DB_DIALECT === 'sqlite' || process.env.SQLITE === 'true';
+let sqliteAvailable = true;
+if (wantsSqlite) {
+  try { require('sqlite3'); } catch { sqliteAvailable = false; }
+}
+const maybeDescribe: jest.Describe = (wantsSqlite && !sqliteAvailable) ? (describe.skip as any) : (describe as any);
+
+maybeDescribe('Course Registration E2E', () => {
   let authToken: string;
   let userId: string;
   let courseId: string;

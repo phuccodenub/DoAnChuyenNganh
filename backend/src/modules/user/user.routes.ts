@@ -1,13 +1,16 @@
-import express, { Request, Response, NextFunction } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { UserModuleController } from './user.controller';
+import { AuthController } from '../auth/auth.controller';
+import { authSchemas } from '../../validates/auth.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { UserRole } from '../../constants/roles.enum';
 import { validateBody, validateQuery } from '../../middlewares/validate.middleware';
-import { userSchemas } from '../../validates/user.validate';
+import { userValidation as userSchemas } from '../../validates/user.validate';
 import multer from 'multer';
 
-const router = express.Router();
+const router = Router();
 const userModuleController = new UserModuleController();
+const authController = new AuthController();
 
 // Configure multer for file uploads
 const upload = multer({
@@ -27,57 +30,32 @@ const upload = multer({
 // All routes require authentication
 router.use(authMiddleware);
 
-// ===== USER MANAGEMENT ROUTES =====
-
-// Get all users (Admin/Instructor only)
-router.get(
-  '/',
-  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
-  validateQuery(userSchemas.userQuery),
-  (req: Request, res: Response, next: NextFunction) => userModuleController.getAllUsers(req, res, next)
-);
-
 // ===== NGHIỆP VỤ RIÊNG CỦA USER =====
 
-// Get user profile (authenticated users only) - MUST be before /:id route
+// Get user profile (authenticated users only)
 router.get(
   '/profile',
+  (req: Request, _res: Response, next: NextFunction) => {
+    // Temporary info log to verify route match during tests
+     
+    const logger = require('../../utils/logger.util').default;
+    logger.info('Matched route GET /users/profile', { baseUrl: req.baseUrl, url: req.url });
+    next();
+  },
   (req: Request, res: Response, next: NextFunction) => userModuleController.getProfile(req, res, next)
-);
-
-// Get user by ID (All authenticated users) - MUST be after specific routes
-router.get(
-  '/:id',
-  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]),
-  (req: Request, res: Response, next: NextFunction) => userModuleController.getUserById(req, res, next)
-);
-
-// Update user status (Admin/Super Admin only)
-router.patch(
-  '/:id/status',
-  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
-  validateBody(userSchemas.updateUserStatus),
-  (req: Request, res: Response, next: NextFunction) => userModuleController.updateUserStatus(req, res, next)
-);
-
-// Get user enrollments (All authenticated users)
-router.get(
-  '/:id/enrollments',
-  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]),
-  (req: Request, res: Response, next: NextFunction) => userModuleController.getUserEnrollments(req, res, next)
-);
-
-// Get user progress (All authenticated users)
-router.get(
-  '/:id/progress',
-  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]),
-  (req: Request, res: Response, next: NextFunction) => userModuleController.getUserProgress(req, res, next)
 );
 
 // Update user profile (authenticated users only)
 router.put(
   '/profile',
   validateBody(userSchemas.updateProfile),
+  (req: Request, _res: Response, next: NextFunction) => {
+    // Temporary info log to verify route match during tests
+     
+    const logger = require('../../utils/logger.util').default;
+    logger.info('Matched route PUT /users/profile', { baseUrl: req.baseUrl, url: req.url });
+    next();
+  },
   (req: Request, res: Response, next: NextFunction) => userModuleController.updateProfile(req, res, next)
 );
 
@@ -91,7 +69,7 @@ router.post(
 // Update user preferences (authenticated users only)
 router.patch(
   '/preferences',
-  validateBody((userSchemas as any).updatePreferences),
+  validateBody(userSchemas.updatePreferences),
   (req: Request, res: Response, next: NextFunction) => userModuleController.updatePreferences(req, res, next)
 );
 
@@ -105,6 +83,14 @@ router.get(
 router.post(
   '/logout-all',
   (req: Request, res: Response, next: NextFunction) => userModuleController.logoutAllDevices(req, res, next)
+);
+
+// Backward-compatible alias: some clients/tests expect change-password under /api/users
+// Delegate to AuthController to keep single implementation
+router.put(
+  '/change-password',
+  validateBody(authSchemas.changePassword),
+  (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next)
 );
 
 // Two-factor authentication (authenticated users only)
@@ -121,7 +107,7 @@ router.post(
 // Social account linking (authenticated users only)
 router.post(
   '/social/link',
-  validateBody((userSchemas as any).linkSocialAccount),
+  validateBody(userSchemas.linkSocialAccount),
   (req: Request, res: Response, next: NextFunction) => userModuleController.linkSocialAccount(req, res, next)
 );
 
@@ -134,15 +120,16 @@ router.get(
 // Notification settings (authenticated users only)
 router.patch(
   '/notifications',
-  validateBody((userSchemas as any).notificationSettings),
+  validateBody(userSchemas.updateNotificationSettings),
   (req: Request, res: Response, next: NextFunction) => userModuleController.updateNotificationSettings(req, res, next)
 );
 
 // Privacy settings (authenticated users only)
 router.patch(
   '/privacy',
-  validateBody((userSchemas as any).privacySettings),
+  validateBody(userSchemas.updatePrivacySettings),
   (req: Request, res: Response, next: NextFunction) => userModuleController.updatePrivacySettings(req, res, next)
 );
 
 export default router;
+

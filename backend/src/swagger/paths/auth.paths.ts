@@ -1,5 +1,5 @@
 export const authPaths = {
-  '/auth/register': {
+  '/api/auth/register': {
     post: {
       summary: 'Register a new user',
       description: 'Create a new user account with role-based fields',
@@ -16,14 +16,13 @@ export const authPaths = {
               student: {
                 summary: 'Student registration',
                 value: {
-                  username: '2021001234',
                   email: 'student@example.com',
                   password: 'password123',
                   first_name: 'Nguyen',
                   last_name: 'Van A',
                   phone: '0123456789',
                   role: 'student',
-                  student_id: '2021001234',
+                  student_id: 'SV001',
                   class: 'CNTT-K62',
                   major: 'Công nghệ thông tin',
                   year: 2021,
@@ -35,7 +34,6 @@ export const authPaths = {
               instructor: {
                 summary: 'Instructor registration',
                 value: {
-                  username: 'GV001',
                   email: 'instructor@example.com',
                   password: 'password123',
                   first_name: 'Tran',
@@ -111,7 +109,7 @@ export const authPaths = {
     }
   },
 
-  '/auth/login': {
+  '/api/auth/login': {
     post: {
       summary: 'Login user',
       description: 'Authenticate user and return access tokens',
@@ -125,8 +123,8 @@ export const authPaths = {
               $ref: '#/components/schemas/LoginRequest'
             },
             example: {
-              username: '2021001234',
-              password: 'Student123!'
+              email: 'student@example.com',
+              password: 'password123'
             }
           }
         }
@@ -145,14 +143,13 @@ export const authPaths = {
                 data: {
                   user: {
                     id: '123e4567-e89b-12d3-a456-426614174000',
-                    username: '2021001234',
                     email: 'student@example.com',
                     first_name: 'Nguyen',
                     last_name: 'Van A',
                     role: 'student',
                     status: 'active',
                     email_verified: true,
-                    student_id: '2021001234',
+                    student_id: 'SV001',
                     class: 'CNTT-K62',
                     major: 'Công nghệ thông tin',
                     year: 2021,
@@ -241,7 +238,7 @@ export const authPaths = {
     }
   },
 
-  '/auth/logout': {
+  '/api/auth/logout': {
     post: {
       summary: 'Logout user',
       description: 'Invalidate user session and clear tokens',
@@ -301,7 +298,7 @@ export const authPaths = {
     }
   },
 
-  '/auth/verify': {
+  '/api/auth/verify': {
     get: {
       summary: 'Verify JWT token',
       description: 'Check if the provided JWT token is valid and return user info',
@@ -365,7 +362,7 @@ export const authPaths = {
     }
   },
 
-  '/auth/change-password': {
+  '/api/auth/change-password': {
     post: {
       summary: 'Change user password',
       description: 'Change the current user\'s password',

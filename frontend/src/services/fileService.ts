@@ -1,28 +1,226 @@
 /**
- * File Management Service
- * Handles file uploads, content management using browser storage and IndexedDB
+ * File Service - REST API Integration
+ * Handles file uploads, downloads, and management via backend API
  */
 
-export interface CourseFile {
+import { apiClient } from './apiClient'
+
+export interface FileItem {
   id: string
-  name: string
-  originalName: string
-  type: string
+  filename: string
+  original_name: string
+  mime_type: string
   size: number
-  courseId: string
-  uploadedBy: number
-  uploadedAt: string
-  category: 'lecture' | 'assignment' | 'resource' | 'video' | 'document' | 'image'
-  description?: string
-  isPublic: boolean
-  downloadCount: number
-  data?: string // Base64 encoded file data for demo
-  url?: string // For external URLs or generated blob URLs
+  folder: string
+  uploaded_by: number
+  uploaded_at: string
+  download_count: number
+  file_path: string
+  is_public: boolean
 }
 
-export interface Assignment {
-  id: string
-  title: string
+export interface FileUploadResponse {
+  success: boolean
+  message: string
+  data: {
+    file: FileItem
+    url: string
+  }
+}
+
+export interface FileListResponse {
+  success: boolean
+  message: string
+  data: {
+    files: FileItem[]
+    total_size: number
+  }
+}
+
+export interface SignedUrlResponse {
+  success: boolean
+  message: string
+  data: {
+    url: string
+    expires_at: string
+  }
+}
+
+export interface ApiResponse<T> {
+  success: boolean
+  message: string
+  data: T
+}
+
+export const fileService = {
+  /**
+   * Upload single file
+   */
+  async uploadSingle(file: File, folder: string = 'general'): Promise<FileUploadResponse> {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', folder)
+
+    const response = await apiClient.post<FileUploadResponse>('/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  /**
+   * Upload multiple files
+   */
+  async uploadMultiple(files: File[], folder: string = 'general'): Promise<FileUploadResponse[]> {
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+    formData.append('folder', folder)
+
+    const response = await apiClient.post<{ success: boolean; message: string; data: FileUploadResponse[] }>('/files/upload/multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data.data
+  },
+
+  /**
+   * Download file
+   */
+  async downloadFile(folder: string, filename: string): Promise<Blob> {
+    const response = await apiClient.get(`/files/download/${folder}/${filename}`, {
+      responseType: 'blob',
+    })
+    return response.data
+  },
+
+  /**
+   * View file inline (for images, PDFs, etc.)
+   */
+  getViewUrl(folder: string, filename: string): string {
+    return `${apiClient.defaults.baseURL}/files/view/${folder}/${filename}`
+  },
+
+  /**
+   * Get file information
+   */
+  async getFileInfo(folder: string, filename: string): Promise<ApiResponse<FileItem>> {
+    const response = await apiClient.get<ApiResponse<FileItem>>(`/files/info/${folder}/${filename}`)
+    return response.data
+  },
+
+  /**
+   * Delete file
+   */
+  async deleteFile(folder: string, filename: string): Promise<ApiResponse<null>> {
+    const response = await apiClient.delete<ApiResponse<null>>(`/files/${folder}/${filename}`)
+    return response.data
+  },
+
+  /**
+   * List all files in a folder
+   */
+  async listFiles(folder: string): Promise<FileListResponse> {
+    const response = await apiClient.get<FileListResponse>(`/files/list/${folder}`)
+    return response.data
+  },
+
+  /**
+   * Get total size of files in folder
+   */
+  async getFolderSize(folder: string): Promise<ApiResponse<{ total_size: number; file_count: number }>> {
+    const response = await apiClient.get<ApiResponse<{ total_size: number; file_count: number }>>(`/files/folder-size/${folder}`)
+    return response.data
+  },
+
+  /**
+   * Generate signed URL for temporary file access
+   */
+  async generateSignedUrl(folder: string, filename: string, expiresIn: number = 3600): Promise<SignedUrlResponse> {
+    const response = await apiClient.post<SignedUrlResponse>('/files/signed-url', {
+      folder,
+      filename,
+      expires_in: expiresIn
+    })
+    return response.data
+  },
+
+  /**
+   * Utility: Format file size
+   */
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  },
+
+  /**
+   * Utility: Get file icon based on mime type
+   */
+  getFileIcon(mimeType: string): string {
+    if (mimeType.startsWith('image/')) return '🖼️'
+    if (mimeType.startsWith('video/')) return '🎥'
+    if (mimeType.startsWith('audio/')) return '🎵'
+    if (mimeType.includes('pdf')) return '📄'
+    if (mimeType.includes('word') || mimeType.includes('document')) return '📝'
+    if (mimeType.includes('sheet') || mimeType.includes('excel')) return '📊'
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return '📋'
+    if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return '🗜️'
+    if (mimeType.startsWith('text/')) return '📄'
+    return '📎'
+  },
+
+  /**
+   * Utility: Check if file type is supported for preview
+   */
+  isPreviewable(mimeType: string): boolean {
+    return mimeType.startsWith('image/') || 
+           mimeType.startsWith('text/') || 
+           mimeType.includes('pdf') ||
+           mimeType.startsWith('video/') ||
+           mimeType.startsWith('audio/')
+  },
+
+  /**
+   * Utility: Validate file type
+   */
+  isValidFileType(file: File, allowedTypes: string[] = []): boolean {
+    if (allowedTypes.length === 0) return true
+    return allowedTypes.some(type => file.type.includes(type))
+  },
+
+  /**
+   * Utility: Validate file size
+   */
+  isValidFileSize(file: File, maxSizeBytes: number): boolean {
+    return file.size <= maxSizeBytes
+  },
+
+  /**
+   * Download file and trigger browser download
+   */
+  async triggerDownload(folder: string, filename: string, displayName?: string): Promise<void> {
+    try {
+      const blob = await this.downloadFile(folder, filename)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = displayName || filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Download failed:', error)
+      throw error
+    }
+  }
+}
   description: string
   courseId: string
   createdBy: number

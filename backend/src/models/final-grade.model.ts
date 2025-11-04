@@ -1,69 +1,51 @@
 import { DataTypes } from 'sequelize';
-import { getSequelize } from '@config/db';
+import type { ModelStatic } from '../types/sequelize-types';
+import { FinalGradeInstance } from '../types/model.types';
+import { exportModel, getModelSequelize } from '../utils/model-extension.util';
 
-const { Model } = require('sequelize');
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
-class FinalGrade extends Model {
-  declare id: string;
-  declare user_id: string;
-  declare course_id: string;
-  declare total_score: number | null;
-  declare letter_grade: string | null;
-  declare calculated_at: Date;
-  declare created_at: Date | null;
-  declare updated_at: Date | null;
-}
-
-(FinalGrade as any).init(
-  {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
-    },
-    user_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'users', key: 'id' }
-    },
-    course_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'courses', key: 'id' }
-    },
-    total_score: {
-      type: DataTypes.DECIMAL(5, 2),
-      allowNull: true
-    },
-    letter_grade: {
-      type: DataTypes.STRING(2),
-      allowNull: true
-    },
-    calculated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    }
+const FinalGrade = sequelize.define('FinalGrade', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
   },
-  {
-    sequelize,
-    tableName: 'final_grades',
-    underscored: true,
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
+  user_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'users', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  course_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'courses', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  total_score: DataTypes.DECIMAL(5, 2),
+  letter_grade: DataTypes.STRING(2),
+  calculated_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
-);
+}, {
+  tableName: 'final_grades',
+  timestamps: true,
+  underscored: true,
+  indexes: [
+    { fields: ['user_id'] },
+    { fields: ['course_id'] },
+    { unique: true, fields: ['user_id', 'course_id'] }
+  ]
+});
 
-export default FinalGrade;
+const FinalGradeModel = FinalGrade as unknown as ModelStatic<FinalGradeInstance>;
+export default exportModel(FinalGradeModel);
+
+
+
+
+
+
+

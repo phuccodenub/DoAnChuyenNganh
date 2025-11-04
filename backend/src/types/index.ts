@@ -51,7 +51,17 @@ export type {
   LessonModelInstance,
   LessonModelStatic,
   
-  // Type utilities
+  // Type definitions
+  TypedFindOptions,
+  TypedUpdateOptions,
+  TypedCreateOptions,
+  TypedBulkCreateOptions,
+  ConnectionPoolInfo,
+  DatabaseConnection
+} from './sequelize.d';
+
+// Utilities (value exports)
+export {
   isModelInstance,
   hasMethod,
   safeCallMethod,
@@ -60,14 +70,6 @@ export type {
   addInstanceMethods,
   addStaticMethods,
   exportModel,
-  
-  // Type definitions
-  TypedFindOptions,
-  TypedUpdateOptions,
-  TypedCreateOptions,
-  TypedBulkCreateOptions,
-  ConnectionPoolInfo,
-  DatabaseConnection
 } from './sequelize.d';
 
 // ===================================

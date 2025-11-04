@@ -1,5 +1,6 @@
 import type { User } from '@/stores/authStore'
 import { getMockUser, getMockUserById, mockUsers } from './mockData'
+import { authService } from './authService'
 
 // Simulate API delay
 const delay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms))
@@ -8,6 +9,8 @@ const delay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, m
 const generateMockToken = (user: User): string => {
   return btoa(JSON.stringify({ userId: user.id, email: user.email, role: user.role, name: user.full_name }))
 }
+
+const DEMO_MODE = (import.meta as any).env?.VITE_DEMO_MODE === 'true'
 
 export interface MockAuthResponse {
   success: boolean
@@ -31,6 +34,9 @@ export const mockAuthService = {
    * Mock login - uses predefined users with password 'demo123'
    */
   async login(email: string, password: string): Promise<MockAuthResponse> {
+    if (!DEMO_MODE) {
+      return (await authService.login(email, password)) as unknown as MockAuthResponse
+    }
     await delay(800) // Simulate network delay
     
     const user = getMockUser(email, password)
@@ -60,6 +66,9 @@ export const mockAuthService = {
     full_name: string
     role?: 'student' | 'instructor'
   }): Promise<MockAuthResponse> {
+    if (!DEMO_MODE) {
+      return (await authService.register(data)) as unknown as MockAuthResponse
+    }
     await delay(1000) // Simulate network delay
     
     // Check if user already exists
@@ -101,6 +110,10 @@ export const mockAuthService = {
    * Mock logout
    */
   async logout(): Promise<void> {
+    if (!DEMO_MODE) {
+      await authService.logout()
+      return
+    }
     await delay(200)
     // In a real app, you might invalidate the token on the server
     return
@@ -110,6 +123,9 @@ export const mockAuthService = {
    * Mock get profile
    */
   async getProfile(): Promise<MockProfileResponse> {
+    if (!DEMO_MODE) {
+      return (await authService.getProfile()) as unknown as MockProfileResponse
+    }
     await delay(300)
     
     // Get current user from token (stored in localStorage)
@@ -157,6 +173,9 @@ export const mockAuthService = {
    * Mock update profile
    */
   async updateProfile(data: Partial<User>): Promise<MockProfileResponse> {
+    if (!DEMO_MODE) {
+      return (await authService.updateProfile(data)) as unknown as MockProfileResponse
+    }
     await delay(600)
     
     // Get current user
@@ -211,6 +230,9 @@ export const mockAuthService = {
    * Mock verify token
    */
   async verifyToken(): Promise<{ success: boolean; message: string; data?: { userId: number; userRole: string } }> {
+    if (!DEMO_MODE) {
+      return (await authService.verifyToken()) as unknown as { success: boolean; message: string; data?: { userId: number; userRole: string } }
+    }
     await delay(200)
     
     const authStorage = localStorage.getItem('auth-storage')

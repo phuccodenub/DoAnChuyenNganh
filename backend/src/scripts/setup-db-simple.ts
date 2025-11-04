@@ -2,6 +2,18 @@ import { Client } from 'pg';
 import logger from '../utils/logger.util';
 
 async function setupDatabase() {
+  // Skip when using SQLite (CI)
+  const preferSqlite = (
+    process.env.DB_DIALECT === 'sqlite' ||
+    process.env.SQLITE === 'true' ||
+    typeof process.env.SQLITE_PATH !== 'undefined' ||
+    (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('sqlite')) ||
+    process.env.CI === 'true'
+  );
+  if (preferSqlite) {
+    logger.info('Skipping Postgres setup: SQLite mode');
+    return;
+  }
   const adminClient = new Client({
     host: 'localhost',
     port: 5432,

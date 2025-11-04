@@ -96,7 +96,7 @@ export const validatorsUtils = {
    */
   isStudentId(studentId: string): boolean {
     if (!studentId || typeof studentId !== 'string') return false;
-    return REGEX_PATTERNS.STUDENT_ID.test(studentId.trim().toUpperCase());
+    return /^[A-Z]{2}\d{8}$/.test(studentId.trim().toUpperCase());
   },
 
   /**
@@ -106,7 +106,7 @@ export const validatorsUtils = {
    */
   isInstructorId(instructorId: string): boolean {
     if (!instructorId || typeof instructorId !== 'string') return false;
-    return REGEX_PATTERNS.INSTRUCTOR_ID.test(instructorId.trim().toUpperCase());
+    return /^[A-Z]{2}\d{6}$/.test(instructorId.trim().toUpperCase());
   },
 
   // ===== PASSWORD VALIDATION =====
@@ -164,7 +164,8 @@ export const validatorsUtils = {
    */
   isVietnameseName(name: string): boolean {
     if (!name || typeof name !== 'string') return false;
-    return REGEX_PATTERNS.VIETNAMESE_NAME.test(name.trim());
+    // Allow any Unicode letters and spaces
+    return /^[\p{L} ]+$/u.test(name.trim());
   },
 
   /**
@@ -253,7 +254,14 @@ export const validatorsUtils = {
    */
   isISODate(date: string): boolean {
     if (!date || typeof date !== 'string') return false;
-    return REGEX_PATTERNS.DATE_ISO.test(date.trim());
+    const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(date.trim());
+    if (!m) return false;
+    const year = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const day = parseInt(m[3], 10);
+    if (month < 1 || month > 12) return false;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    return day >= 1 && day <= daysInMonth;
   },
 
   /**
@@ -303,7 +311,7 @@ export const validatorsUtils = {
    * @param value - Value to check
    * @returns True if value is null or undefined
    */
-  isNullOrUndefined(value: any): boolean {
+  isNullOrUndefined(value: unknown): boolean {
     return value === null || value === undefined;
   },
 
@@ -312,7 +320,7 @@ export const validatorsUtils = {
    * @param value - Value to check
    * @returns True if value is a valid number
    */
-  isNumber(value: any): boolean {
+  isNumber(value: unknown): boolean {
     return typeof value === 'number' && !isNaN(value) && isFinite(value);
   },
 
@@ -321,7 +329,7 @@ export const validatorsUtils = {
    * @param value - Value to check
    * @returns True if value is a valid integer
    */
-  isInteger(value: any): boolean {
+  isInteger(value: unknown): boolean {
     return this.isNumber(value) && Number.isInteger(value);
   },
 
@@ -330,8 +338,8 @@ export const validatorsUtils = {
    * @param value - Value to check
    * @returns True if value is a valid positive number
    */
-  isPositiveNumber(value: any): boolean {
-    return this.isNumber(value) && value > 0;
+  isPositiveNumber(value: unknown): boolean {
+    return this.isNumber(value) && (value as number) > 0;
   },
 
   /**
@@ -341,8 +349,8 @@ export const validatorsUtils = {
    * @param max - Maximum value
    * @returns True if value is within range
    */
-  isInRange(value: any, min: number, max: number): boolean {
-    return this.isNumber(value) && value >= min && value <= max;
+  isInRange(value: unknown, min: number, max: number): boolean {
+    return this.isNumber(value) && (value as number) >= min && (value as number) <= max;
   }
 };
 

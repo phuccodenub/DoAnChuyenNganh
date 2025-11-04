@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useTranslation } from 'react-i18next'
-import { mockCourses } from '@/services/mockData'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import ChatInterface from '@/components/Chat/ChatInterface'
@@ -9,7 +8,8 @@ import QuizInterface from '@/components/Quiz/QuizInterface'
 import FileManager from '@/components/Files/FileManager'
 import RecommendationPanel from '@/components/ui/RecommendationPanel'
 import ChatbotAssistant from '@/components/ui/ChatbotAssistant'
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
+import { useCourseById } from '@/hooks/useCourses'
 
 function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>()
@@ -18,21 +18,24 @@ function CourseDetail() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'chat' | 'quizzes' | 'files'>('overview')
 
-  const course = useMemo(() => 
-    mockCourses.find(c => c.id === courseId), 
-    [courseId]
-  )
+  const { data: course, isLoading } = useCourseById(courseId)
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-12 text-gray-600">{t('common.loading')}</div>
+    )
+  }
 
   if (!course) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-semibold text-gray-900">Không tìm thấy khóa học</h2>
-        <p className="text-gray-600 mt-2">Khóa học bạn đang tìm kiếm không tồn tại.</p>
+        <h2 className="text-2xl font-semibold text-gray-900">{t('liveStream.notFoundTitle')}</h2>
+        <p className="text-gray-600 mt-2">{t('liveStream.notFoundDescription')}</p>
         <Button
           onClick={() => navigate('/dashboard')}
           className="mt-4"
         >
-          Về trang chủ
+          {t('home.goToDashboard')}
         </Button>
       </div>
     )
@@ -42,11 +45,11 @@ function CourseDetail() {
   const isEnrolled = user?.role === 'student' // For demo, assume all students can see any course
 
   const tabs = [
-    { id: 'overview', name: 'Tổng quan', icon: '📋' },
-    { id: 'content', name: 'Nội dung', icon: '📚' },
-    { id: 'files', name: 'Tệp tin', icon: '📁' },
-    { id: 'quizzes', name: 'Bài kiểm tra', icon: '📝' },
-    { id: 'chat', name: 'Thảo luận', icon: '💬' },
+    { id: 'overview', name: t('courses.detail.tabs.overview'), icon: '📋' },
+    { id: 'content', name: t('courses.detail.tabs.content'), icon: '📚' },
+    { id: 'files', name: t('courses.detail.tabs.files'), icon: '📁' },
+    { id: 'quizzes', name: t('courses.detail.tabs.quizzes'), icon: '📝' },
+    { id: 'chat', name: t('courses.detail.tabs.chat'), icon: '💬' },
   ] as const
 
   const mockLessons = [
@@ -56,6 +59,9 @@ function CourseDetail() {
     { id: '4', title: 'Chủ đề nâng cao', type: 'video', duration: '45 phút', completed: false },
     { id: '5', title: 'Dự án cuối khóa', type: 'assignment', duration: '1 tuần', completed: false },
   ]
+
+  const completedLessons = mockLessons.filter(l => l.completed).length
+  const totalLessons = mockLessons.length
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -81,8 +87,8 @@ function CourseDetail() {
             <p className="text-blue-100 text-lg mb-4">{course.description}</p>
             <div className="flex items-center space-x-6 text-sm">
               <span>📅 {course.schedule}</span>
-              <span>⭐ {course.credits} Credits</span>
-              <span>👥 {course.enrolled_count || 0} Students</span>
+              <span>⭐ {course.credits} {t('courses.detail.credits')}</span>
+              <span>👥 {course.enrolled_count || 0} {t('courses.detail.students')}</span>
             </div>
           </div>
           {isInstructor && (
@@ -92,7 +98,7 @@ function CourseDetail() {
                 className="bg-white text-blue-600 hover:bg-gray-100"
               >
                 <span className="text-lg mr-2">⚙️</span>
-                Edit Course
+                {t('courses.detail.editCourse')}
               </Button>
             </div>
           )}
@@ -125,19 +131,19 @@ function CourseDetail() {
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
               <Card className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Thông tin khóa học</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">{t('courses.detail.courseInfo')}</h3>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Mô tả</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">{t('courses.detail.description')}</h4>
                     <p className="text-gray-600">{course.description}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Lịch học</h4>
+                      <h4 className="font-medium text-gray-900 mb-1">{t('courses.detail.schedule')}</h4>
                       <p className="text-gray-600">{course.schedule}</p>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Tín chỉ</h4>
+                      <h4 className="font-medium text-gray-900 mb-1">{t('courses.detail.credits')}</h4>
                       <p className="text-gray-600">{course.credits}</p>
                     </div>
                   </div>
@@ -145,23 +151,23 @@ function CourseDetail() {
               </Card>
 
               <Card className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Mục tiêu học tập</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">{t('courses.detail.learningObjectives')}</h3>
                 <ul className="space-y-2 text-gray-600">
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2">✓</span>
-                    Hiểu các khái niệm và nguyên tắc cơ bản
+                    {t('courses.detail.learningObjective1')}
                   </li>
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2">✓</span>
-                    Áp dụng kiến thức lý thuyết vào các tình huống thực tế
+                    {t('courses.detail.learningObjective2')}
                   </li>
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2">✓</span>
-                    Phát triển tư duy phản biện và kỹ năng giải quyết vấn đề
+                    {t('courses.detail.learningObjective3')}
                   </li>
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2">✓</span>
-                    Hoàn thành các dự án thực hành và bài tập
+                    {t('courses.detail.learningObjective4')}
                   </li>
                 </ul>
               </Card>
@@ -169,11 +175,11 @@ function CourseDetail() {
 
             <div className="space-y-6">
               <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Progress</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('courses.detail.progress')}</h3>
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Course Progress</span>
+                      <span className="text-gray-600">{t('courses.detail.courseProgress')}</span>
                       <span className="font-medium">40%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -181,20 +187,20 @@ function CourseDetail() {
                     </div>
                   </div>
                   <div className="text-sm text-gray-600">
-                    <p>2 trong 5 bài học đã hoàn thành</p>
+                    <p>{t('courses.detail.lessonsCompleted', { completed: completedLessons, total: totalLessons })}</p>
                   </div>
                 </div>
               </Card>
 
               <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('courses.detail.quickActions')}</h3>
                 <div className="space-y-3">
                   <Button 
                     className="w-full justify-start" 
                     onClick={() => setActiveTab('content')}
                   >
                     <span className="text-lg mr-2">📚</span>
-                    Xem nội dung khóa học
+                    {t('courses.detail.viewCourseContent')}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -202,7 +208,7 @@ function CourseDetail() {
                     onClick={() => setActiveTab('chat')}
                   >
                     <span className="text-lg mr-2">💬</span>
-                    Join Discussion
+                    {t('courses.detail.joinDiscussion')}
                   </Button>
                 </div>
               </Card>
@@ -210,19 +216,19 @@ function CourseDetail() {
               <RecommendationPanel courseId={course.id} />
               
               <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Phiên trực tiếp</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('courses.detail.liveSession')}</h3>
                 <div className="space-y-3">
                   <Button 
                     className="w-full justify-start"
                     onClick={() => navigate(`/course/${courseId}/live`)}
                   >
                     <span className="text-lg mr-2">📹</span>
-                    {isInstructor ? 'Bắt đầu phát trực tiếp' : 'Tham gia phát trực tiếp'}
+                    {isInstructor ? t('courses.detail.startLiveSession') : t('courses.detail.joinLiveSession')}
                   </Button>
                   {isInstructor && (
                     <Button variant="outline" className="w-full justify-start">
                       <span className="text-lg mr-2">👥</span>
-                      Quản lý học sinh
+                      {t('courses.detail.manageStudents')}
                     </Button>
                   )}
                 </div>
@@ -234,11 +240,11 @@ function CourseDetail() {
         {activeTab === 'content' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Nội dung khóa học</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('courses.detail.courseContent')}</h2>
               {isInstructor && (
                 <Button className="bg-green-600 hover:bg-green-700">
                   <span className="text-lg mr-2">➕</span>
-                  Thêm nội dung
+                  {t('courses.detail.addContent')}
                 </Button>
               )}
             </div>
@@ -259,9 +265,9 @@ function CourseDetail() {
                         <h3 className="font-medium text-gray-900">{lesson.title}</h3>
                         <div className="flex items-center space-x-3 text-sm text-gray-500">
                           <span className="capitalize">
-                            {lesson.type === 'video' ? 'Video' :
-                             lesson.type === 'reading' ? 'Đọc' :
-                             lesson.type === 'assignment' ? 'Bài tập' : lesson.type}
+                            {lesson.type === 'video' ? t('courses.detail.video') :
+                             lesson.type === 'reading' ? t('courses.detail.reading') :
+                             lesson.type === 'assignment' ? t('courses.detail.assignment') : lesson.type}
                           </span>
                           <span>•</span>
                           <span>{lesson.duration}</span>
@@ -276,7 +282,7 @@ function CourseDetail() {
                         variant={lesson.completed ? 'outline' : 'default'}
                         size="sm"
                       >
-                        {lesson.completed ? 'Ôn tập' : 'Bắt đầu'}
+                        {lesson.completed ? t('courses.detail.review') : t('courses.detail.start')}
                       </Button>
                     </div>
                   </div>
@@ -289,9 +295,9 @@ function CourseDetail() {
         {activeTab === 'chat' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Course Discussion</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('courses.detail.discussion')}</h2>
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Real-time messaging</span>
+                <span className="text-sm text-gray-600">{t('courses.detail.realtimeMessaging')}</span>
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               </div>
             </div>

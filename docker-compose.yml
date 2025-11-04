@@ -48,14 +48,22 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://lms_user:123456@postgres:5432/lms_db
+      # Separate DB environment variables for Sequelize
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=lms_db
+      - DB_USER=lms_user
+      - DB_PASSWORD=123456
+      # Redis configuration
       - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # JWT and other configs
       - JWT_SECRET=your_super_secret_jwt_key_here_make_it_long_and_random
       - PORT=3000
       - LOG_LEVEL=info
       - FRONTEND_URL=http://localhost:3001
     volumes:
-      - ./backend:/app
-      - /app/node_modules
       - ./backend/logs:/app/logs
     ports:
       - "3000:3000"

@@ -16,13 +16,9 @@ import { addIndexesToUsersTable } from './005-add-indexes-to-users-table';
 import { addIndexesToCoursesTable } from './006-add-indexes-to-courses-table';
 import { addIndexesToEnrollmentsTable } from './007-add-indexes-to-enrollments-table';
 import { addIndexesToChatMessagesTable } from './008-add-indexes-to-chat-messages-table';
-import { up as addInstructorStudentFields, down as removeInstructorStudentFields } from './010-add-instructor-student-fields';
-import { up as addCoreIndexes, down as removeCoreIndexes } from './011-add-core-indexes-and-constraints';
-import { up as createAssignmentsTable, down as dropAssignmentsTable } from './012-create-assignments-table';
-import { up as createSubmissionsTable, down as dropSubmissionsTable } from './013-create-submissions-table';
-import { up as createGradeTables, down as dropGradeTables } from './014-create-grade-components-and-final-grades';
-import { up as createRubricTables, down as dropRubricTables } from './015-create-rubric-tables';
-import { up as fixQuizConstraint, down as restoreQuizConstraint } from './016-fix-quiz-attempts-constraint';
+import { createExtendedLmsTables, dropExtendedLmsTables } from './009-create-extended-lms-tables';
+import { addEmailVerifiedAt, removeEmailVerifiedAt } from './010-add-email-verified-at';
+import { addUserProfileColumns, removeUserProfileColumns } from './011-add-user-profile-columns';
 
 // Migration interface
 export interface Migration {
@@ -113,53 +109,27 @@ export const migrations: Migration[] = [
       await queryInterface.removeIndex('chat_messages', 'idx_chat_messages_user_id');
       await queryInterface.removeIndex('chat_messages', 'idx_chat_messages_created_at');
     }
-  },
+  }
+  ,
+  {
+    version: '009',
+    description: 'Create extended LMS tables and alter existing ones',
+    up: createExtendedLmsTables,
+    down: dropExtendedLmsTables
+  }
+  ,
   {
     version: '010',
-    description: 'Add instructor and student fields to users table',
-    up: addInstructorStudentFields,
-    down: removeInstructorStudentFields
+    description: 'Add email_verified_at column and index to users',
+    up: addEmailVerifiedAt,
+    down: removeEmailVerifiedAt
   }
   ,
   {
     version: '011',
-    description: 'Add core indexes and constraints',
-    up: addCoreIndexes,
-    down: removeCoreIndexes
-  }
-  ,
-  {
-    version: '012',
-    description: 'Create assignments table',
-    up: createAssignmentsTable,
-    down: dropAssignmentsTable
-  }
-  ,
-  {
-    version: '013',
-    description: 'Create submissions table with unique constraint',
-    up: createSubmissionsTable,
-    down: dropSubmissionsTable
-  }
-  ,
-  {
-    version: '014',
-    description: 'Create grade components and final grades tables',
-    up: createGradeTables,
-    down: dropGradeTables
-  }
-  ,
-  {
-    version: '015',
-    description: 'Create rubric templates and items tables',
-    up: createRubricTables,
-    down: dropRubricTables
-  },
-  {
-    version: '016',
-    description: 'Fix quiz attempts unique constraint',
-    up: fixQuizConstraint,
-    down: restoreQuizConstraint
+    description: 'Add missing user profile columns to users table',
+    up: addUserProfileColumns,
+    down: removeUserProfileColumns
   }
 ];
 
@@ -201,7 +171,7 @@ export class MigrationManager {
       });
 
       logger.info('Migration tracking table created');
-    } catch (error) {
+    } catch (error: unknown) {
       // Table might already exist
       logger.info('Migration tracking table already exists');
     }
@@ -216,7 +186,7 @@ export class MigrationManager {
         'SELECT version FROM migrations ORDER BY version'
       );
       return (results as any[]).map(row => row.version);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting executed migrations:', error);
       return [];
     }
@@ -272,7 +242,7 @@ export class MigrationManager {
         await this.markMigrationExecuted(migration.version, migration.description);
         
         logger.info(`Migration ${migration.version} completed successfully`);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Migration ${migration.version} failed:`, error);
         throw error;
       }
@@ -307,7 +277,7 @@ export class MigrationManager {
       await this.unmarkMigrationExecuted(migration.version);
       
       logger.info(`Migration ${migration.version} rolled back successfully`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Rollback of migration ${migration.version} failed:`, error);
       throw error;
     }
@@ -343,7 +313,7 @@ export class MigrationManager {
         await this.unmarkMigrationExecuted(migration.version);
         
         logger.info(`Migration ${migration.version} rolled back successfully`);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Rollback of migration ${migration.version} failed:`, error);
         throw error;
       }
@@ -376,3 +346,4 @@ export class MigrationManager {
     };
   }
 }
+

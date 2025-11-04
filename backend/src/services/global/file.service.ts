@@ -1,5 +1,31 @@
 import logger from '../../utils/logger.util';
 
+// Multer file type (Express.Multer.File)
+export interface UploadedFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination?: string;
+  filename?: string;
+  path?: string;
+  buffer?: Buffer;
+}
+
+export interface UploadOptions {
+  folder: string;
+  userId: string;
+  allowedTypes?: string[];
+  maxSize?: number;
+}
+
+export interface FileMetadata {
+  url: string;
+  filename: string;
+  size: number;
+}
+
 /**
  * Global File Service
  * Handles file operations like upload, download, delete
@@ -12,12 +38,7 @@ export class FileService {
   /**
    * Upload file
    */
-  async uploadFile(file: any, options: {
-    folder: string;
-    userId: string;
-    allowedTypes?: string[];
-    maxSize?: number;
-  }): Promise<{ url: string; filename: string; size: number }> {
+  async uploadFile(file: UploadedFile, options: UploadOptions): Promise<FileMetadata> {
     try {
       logger.info('Uploading file', { 
         filename: file.originalname, 

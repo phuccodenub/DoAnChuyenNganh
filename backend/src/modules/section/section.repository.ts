@@ -1,10 +1,16 @@
 import { BaseRepository } from '../../repositories/base.repository';
 import Section from '../../models/section.model';
+import type { ModelStatic } from '../../types/sequelize-types';
+import type { SectionInstance } from '../../types/model.types';
 import logger from '../../utils/logger.util';
 
-export class SectionRepository extends BaseRepository<Section> {
+export class SectionRepository extends BaseRepository<SectionInstance> {
   constructor() {
-    super(Section);
+    super('Section');
+  }
+
+  protected getModel(): ModelStatic<SectionInstance> {
+    return Section as unknown as ModelStatic<SectionInstance>;
   }
 
   /**

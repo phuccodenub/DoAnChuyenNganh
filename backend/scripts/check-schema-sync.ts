@@ -1,6 +1,7 @@
 import { getSequelize } from '../src/config/db';
-import * as fs from 'fs';
-import * as path from 'path';
+import { QueryTypes } from 'sequelize';
+import fs from 'fs';
+import path from 'path';
 
 interface ColumnInfo {
   column_name: string;
@@ -31,7 +32,7 @@ async function checkSchemaSync(): Promise<void> {
       WHERE schemaname = 'public' 
       AND tablename NOT IN ('SequelizeMeta', 'migrations')
       ORDER BY tablename
-    `) as any;
+    `, { type: sequelize.QueryTypes.SELECT }) as any;
     
     const results: ComparisonResult[] = [];
     let totalSync = 0;
@@ -51,7 +52,7 @@ async function checkSchemaSync(): Promise<void> {
         FROM information_schema.columns 
         WHERE table_name = '${tableName}'
         ORDER BY ordinal_position
-      `) as any;
+      `, { type: QueryTypes.SELECT }) as any;
       
       if (!dbColumns || dbColumns.length === 0) {
         continue;

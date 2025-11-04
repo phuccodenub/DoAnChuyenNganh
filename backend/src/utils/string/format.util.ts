@@ -11,11 +11,11 @@ export const formatUtils = {
    * @returns camelCase string
    */
   toCamelCase(text: string): string {
+    if (!text) return text as unknown as string;
     return text
-      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
-        return index === 0 ? word.toLowerCase() : word.toUpperCase();
-      })
-      .replace(/\s+/g, '');
+      .trim()
+      .replace(/[-_\s]+(.)?/g, (_, chr) => (chr ? chr.toUpperCase() : ''))
+      .replace(/^(.)/, (m) => m.toLowerCase());
   },
 
   /**
@@ -48,11 +48,11 @@ export const formatUtils = {
    * @returns PascalCase string
    */
   toPascalCase(text: string): string {
+    if (!text) return text as unknown as string;
     return text
-      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word) => {
-        return word.toUpperCase();
-      })
-      .replace(/\s+/g, '');
+      .trim()
+      .replace(/(^\w|[A-Z]|\b\w|[-_\s]+\w)/g, (match) => match.replace(/[-_\s]+/, '').toUpperCase())
+      .replace(/[-_\s]/g, '');
   },
 
   /**

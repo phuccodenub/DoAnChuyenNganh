@@ -13,10 +13,21 @@ export const maskUtils = {
     if (!email || !email.includes('@')) return email;
     
     const [localPart, domain] = email.split('@');
-    const maskedLocal = this.maskString(localPart, visibleChars);
-    const maskedDomain = this.maskString(domain, visibleChars);
+    const lastDot = domain.lastIndexOf('.');
+    const domainName = lastDot !== -1 ? domain.substring(0, lastDot) : domain;
+    const tld = lastDot !== -1 ? domain.substring(lastDot) : '';
+
+    // For email masking, use exactly 2 mask characters for clarity
+    const localPrefix = localPart.substring(0, visibleChars);
+    const localStars = visibleChars === 1 ? 3 : 2;
+    const maskedLocal = `${localPrefix}${'*'.repeat(localStars)}`;
+
+  const domainPrefix = domainName.substring(0, visibleChars);
+  const domainSuffix = domainName.substring(Math.max(domainName.length - visibleChars, visibleChars));
+  const domainStars = visibleChars === 1 ? 4 : 2;
+  const maskedDomainName = `${domainPrefix}${'*'.repeat(domainStars)}${domainSuffix}`;
     
-    return `${maskedLocal}@${maskedDomain}`;
+    return `${maskedLocal}@${maskedDomainName}${tld}`;
   },
 
   /**
@@ -27,7 +38,7 @@ export const maskUtils = {
    */
   maskPhone(phone: string, visibleChars: number = 3): string {
     if (!phone) return phone;
-    return this.maskString(phone, visibleChars);
+    return this.maskString(phone, visibleChars, visibleChars);
   },
 
   /**
@@ -50,14 +61,18 @@ export const maskUtils = {
    * @param maskChar - Character to use for masking
    * @returns Masked string
    */
-  maskString(str: string, startVisible: number = 2, endVisible: number = 2, maskChar: string = '*'): string {
-    if (!str || str.length <= startVisible + endVisible) {
-      return maskChar.repeat(str.length);
+  maskString(str: string, startVisible: number = 2, endVisible: number = 2, maskChar: string = '*', minMasked: number = 3): string {
+    if (!str) return str;
+    if (str.length <= startVisible + endVisible) {
+      const start = str.substring(0, startVisible);
+      const masked = maskChar.repeat(Math.max(minMasked, str.length - startVisible));
+      return `${start}${masked}`;
     }
 
     const start = str.substring(0, startVisible);
     const end = str.substring(str.length - endVisible);
-    const middle = maskChar.repeat(str.length - startVisible - endVisible);
+  const middleLen = Math.max(minMasked, str.length - startVisible - endVisible);
+    const middle = maskChar.repeat(middleLen);
 
     return `${start}${middle}${end}`;
   },

@@ -1,109 +1,65 @@
 import { DataTypes } from 'sequelize';
-import { getSequelize } from '@config/db';
+import type { ModelStatic } from '../types/sequelize-types';
+import { LiveSessionInstance } from '../types/model.types';
+import { exportModel, getModelSequelize } from '../utils/model-extension.util';
 
-const { Model } = require('sequelize');
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
-class LiveSession extends Model {
-  declare id: string;
-  declare course_id: string;
-  declare instructor_id: string;
-  declare title: string;
-  declare description: string | null;
-  declare scheduled_at: Date;
-  declare duration_minutes: number | null;
-  declare meeting_url: string | null;
-  declare meeting_id: string | null;
-  declare meeting_password: string | null;
-  declare status: 'scheduled' | 'live' | 'ended' | 'cancelled';
-  declare recording_url: string | null;
-  declare started_at: Date | null;
-  declare ended_at: Date | null;
-  declare created_at: Date | null;
-  declare updated_at: Date | null;
-}
-
-(LiveSession as any).init(
-  {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
-    },
-    course_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'courses', key: 'id' }
-    },
-    instructor_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'users', key: 'id' }
-    },
-    title: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    scheduled_at: {
-      type: DataTypes.DATE,
-      allowNull: false
-    },
-    duration_minutes: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
-    meeting_url: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    meeting_id: {
-      type: DataTypes.STRING(100),
-      allowNull: true
-    },
-    meeting_password: {
-      type: DataTypes.STRING(100),
-      allowNull: true
-    },
-    status: {
-      type: DataTypes.ENUM('scheduled', 'live', 'ended', 'cancelled'),
-      allowNull: false,
-      defaultValue: 'scheduled'
-    },
-    recording_url: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    started_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    ended_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    }
+const LiveSession = sequelize.define('LiveSession', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
   },
-  {
-    sequelize,
-    tableName: 'live_sessions',
-    underscored: true,
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
-  }
-);
+  course_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'courses', key: 'id' },
+    onDelete: 'CASCADE'
+  },
+  instructor_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'users', key: 'id' }
+  },
+  title: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  description: DataTypes.TEXT,
+  scheduled_at: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  duration_minutes: DataTypes.INTEGER,
+  meeting_url: DataTypes.TEXT,
+  meeting_id: DataTypes.STRING(100),
+  meeting_password: DataTypes.STRING(100),
+  status: {
+    type: DataTypes.ENUM('scheduled', 'live', 'ended', 'cancelled'),
+    defaultValue: 'scheduled'
+  },
+  recording_url: DataTypes.TEXT,
+  started_at: DataTypes.DATE,
+  ended_at: DataTypes.DATE
+}, {
+  tableName: 'live_sessions',
+  timestamps: true,
+  underscored: true,
+  indexes: [
+    { fields: ['course_id'] },
+    { fields: ['instructor_id'] },
+    { fields: ['scheduled_at'] },
+    { fields: ['status'] }
+  ]
+});
 
-export default LiveSession;
+const LiveSessionModel = LiveSession as unknown as ModelStatic<LiveSessionInstance>;
+export default exportModel(LiveSessionModel);
+
+
+
+
+
+
+
