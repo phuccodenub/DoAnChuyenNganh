@@ -1,7 +1,5 @@
-// Ensure runtime alias resolution for compiled JS
- 
-require('module-alias/register');
-import 'module-alias/register';
+// Ensure runtime alias resolution for compiled JS (optional in tests/CI)
+try { require('module-alias/register'); } catch { /* no-op for CI */ }
 import express from 'express';
 import { corsMiddleware } from './config/cors.config';
 import helmet from 'helmet';

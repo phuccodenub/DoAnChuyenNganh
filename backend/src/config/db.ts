@@ -5,12 +5,16 @@ let sequelize: Sequelize | null = null;
 export function getSequelize(): Sequelize {
   if (!sequelize) {
     // Prefer SQLite when explicitly requested (CI/seed scripts)
-    const preferSqlite = (
+    let preferSqlite = (
       process.env.DB_DIALECT === 'sqlite' ||
       process.env.SQLITE === 'true' ||
       typeof process.env.SQLITE_PATH !== 'undefined' ||
       (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('sqlite'))
     );
+    // In Jest test environment or when sqlite3 module is unavailable, do not use sqlite
+    if (typeof process.env.JEST_WORKER_ID !== 'undefined' || process.env.NODE_ENV === 'test') {
+      try { require('sqlite3'); } catch { preferSqlite = false; }
+    }
 
     if (preferSqlite) {
       sequelize = new Sequelize({

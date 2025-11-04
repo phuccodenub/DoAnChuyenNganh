@@ -1,10 +1,9 @@
 import { DataTypes } from 'sequelize';
 import type { WhereOptions, ModelStatic } from '../types/sequelize-types';
-import { getSequelize } from '../config/db';
 import { CategoryAttributes, CategoryInstance } from '../types/model.types';
-import { addInstanceMethods, addStaticMethods, exportModel } from '../utils/model-extension.util';
+import { addInstanceMethods, addStaticMethods, exportModel, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 /**
  * Category Model

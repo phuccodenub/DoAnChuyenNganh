@@ -1,9 +1,8 @@
 import { DataTypes, Model } from 'sequelize';
-import { getSequelize } from '../config/db';
 import { SectionAttributes, SectionCreationAttributes, SectionInstance } from '../types/model.types';
-import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
+import { exportModel, addInstanceMethods, addStaticMethods, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 /**
  * Section Model

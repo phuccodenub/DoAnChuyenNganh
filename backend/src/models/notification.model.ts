@@ -1,10 +1,9 @@
 import { DataTypes, Model, Op } from 'sequelize';
 import type { ModelStatic } from '../types/sequelize-types';
-import { getSequelize } from '../config/db';
 import { NotificationAttributes, NotificationCreationAttributes, NotificationInstance } from '../types/model.types';
-import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
+import { exportModel, addInstanceMethods, addStaticMethods, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 /**
  * Notification Model
@@ -172,7 +171,7 @@ addStaticMethods(NotificationModel, {
       limit,
       include: [
         {
-          model: sequelize.models.User,
+          model: (sequelize.models as any).User,
           as: 'sender',
           attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
         }
@@ -200,7 +199,7 @@ addStaticMethods(NotificationModel, {
     });
   },
   async updateReadCount(this: ModelStatic<NotificationInstance>, notificationId: string) {
-    const count = await sequelize.models.NotificationRecipient.count({
+    const count = await (sequelize.models as any).NotificationRecipient.count({
       where: {
         notification_id: notificationId,
         is_read: true

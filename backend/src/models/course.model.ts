@@ -1,9 +1,8 @@
 import { DataTypes, Model } from 'sequelize';
-import { getSequelize } from '../config/db';
 import { CourseAttributes, CourseCreationAttributes, CourseInstance } from '../types/model.types';
-import { exportModel } from '../utils/model-extension.util';
+import { exportModel, getModelSequelize } from '../utils/model-extension.util';
 
-const sequelize = getSequelize();
+const sequelize = getModelSequelize();
 
 const Course = sequelize.define('Course', {
   id: {
