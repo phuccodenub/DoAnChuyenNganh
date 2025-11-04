@@ -1,10 +1,10 @@
-import { Storage, Bucket, File as GCSFile } from '@google-cloud/storage';
+import { Storage } from '@google-cloud/storage';
 import { FileUploadOptions, UploadedFileInfo } from '../../modules/files/files.types';
 import logger from '../../utils/logger.util';
 
 export class GCSStorageService {
   private storage: Storage;
-  private bucket: Bucket;
+  private bucket: any;
   private publicUrl: string;
 
   constructor() {
@@ -29,7 +29,7 @@ export class GCSStorageService {
     const safeName = this.sanitizeFilename(file.originalname);
     const objectPath = `${folder}/${Date.now()}_${safeName}`;
 
-    const gcsFile: GCSFile = this.bucket.file(objectPath);
+    const gcsFile: any = this.bucket.file(objectPath);
 
     await new Promise<void>((resolve, reject) => {
       const stream = gcsFile.createWriteStream({

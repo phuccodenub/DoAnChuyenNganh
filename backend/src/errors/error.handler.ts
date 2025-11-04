@@ -48,7 +48,7 @@ export class ErrorHandler {
 
       // Log error if necessary
       if (ErrorUtils.shouldLog(baseError)) {
-        logger.error('Error occurred:', ErrorUtils.formatForLogging(baseError, {
+        logger.error('Error occurred:', ErrorUtils.formatForLogging(baseError as any, {
           url: req.url,
           method: req.method,
           ip: req.ip,
@@ -65,7 +65,7 @@ export class ErrorHandler {
       logger.error('Error handler failed:', {
         originalError: error.message,
         handlerError: handlerError instanceof Error ? handlerError.message : 'Unknown error'
-      });
+      } as any);
 
       responseUtils.sendError(res, 'Internal server error', 500);
     }
@@ -89,7 +89,7 @@ export class ErrorHandler {
       requestId: objectUtils.get(req, 'requestId')
     });
 
-    logger.warn('Validation error:', ErrorUtils.formatForLogging(validationError));
+    logger.logWarning('Validation error:', ErrorUtils.formatForLogging(validationError));
 
     ErrorHandler.sendErrorResponse(res, validationError);
   }
@@ -112,7 +112,7 @@ export class ErrorHandler {
       requestId: objectUtils.get(req, 'requestId')
     });
 
-    logger.error('Database error:', ErrorUtils.formatForLogging(databaseError));
+    logger.logError('Database error:', ErrorUtils.formatForLogging(databaseError as any) as any);
 
     ErrorHandler.sendErrorResponse(res, databaseError);
   }
@@ -132,7 +132,7 @@ export class ErrorHandler {
       userAgent: req.get('User-Agent')
     });
 
-    logger.warn('Route not found:', ErrorUtils.formatForLogging(notFoundError));
+    logger.logWarning('Route not found:', ErrorUtils.formatForLogging(notFoundError));
 
     ErrorHandler.sendErrorResponse(res, notFoundError);
   }
@@ -149,7 +149,7 @@ export class ErrorHandler {
 
     // Send appropriate response based on error type
     if (error instanceof ValidationError) {
-      responseUtils.sendValidationError(res, (error as Error).message, error.validationErrors || []);
+      responseUtils.sendValidationError(res, error.message, error.validationErrors || []);
     } else if (error instanceof AuthenticationError) {
       responseUtils.sendError(res, ErrorUtils.getUserMessage(error), error.statusCode);
     } else if (error instanceof AuthorizationError) {
@@ -186,7 +186,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     });
 
-    logger.error('Uncaught exception:', ErrorUtils.formatForLogging(baseError));
+    logger.logError('Uncaught exception:', ErrorUtils.formatForLogging(baseError as any) as any);
 
     // Exit process for critical errors
     if (ErrorUtils.isCritical(baseError)) {
@@ -205,7 +205,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     });
 
-    logger.error('Unhandled rejection:', ErrorUtils.formatForLogging(baseError));
+    logger.logError('Unhandled rejection:', ErrorUtils.formatForLogging(baseError as any) as any);
 
     // Exit process for critical errors
     if (ErrorUtils.isCritical(baseError)) {
@@ -228,4 +228,3 @@ export const zodErrorHandler = ErrorHandler.handleZodError;
 export const sequelizeErrorHandler = ErrorHandler.handleSequelizeError;
 export const notFoundHandler = ErrorHandler.handleNotFound;
 export const asyncHandler = ErrorHandler.asyncHandler;
-

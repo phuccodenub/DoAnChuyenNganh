@@ -5,7 +5,7 @@ import { UserInstance } from '../../types/user.types';
 const mockUser: any = {
   id: '123e4567-e89b-12d3-a456-426614174000',
   email: 'test@example.com',
-  password_hash: 'hashed_password',
+  password: 'hashed_password',
   first_name: 'Nguyễn',
   last_name: 'Văn A',
   phone: '0123456789',
@@ -72,7 +72,7 @@ describe('User Utils', () => {
       expect(profile.instructor_id).toBeUndefined();
       
       // Should not include sensitive data
-      expect((profile as any).password_hash).toBeUndefined();
+      expect((profile as any).password).toBeUndefined();
     });
 
     test('should return instructor profile with instructor fields', () => {
@@ -270,7 +270,7 @@ describe('User Utils', () => {
       expect(sanitized.last_name).toBe(mockUser.last_name);
       
       // Should not include sensitive data
-      expect((sanitized as any).password_hash).toBeUndefined();
+      expect((sanitized as any).password).toBeUndefined();
     });
   });
 

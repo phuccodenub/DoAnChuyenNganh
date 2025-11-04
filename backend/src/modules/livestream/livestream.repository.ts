@@ -18,7 +18,7 @@ export class LiveStreamRepository {
   async updateSession(id: string, data: Partial<LiveSessionCreationAttributes>): Promise<LiveSessionInstance | null> {
     const session = await LiveSession.findByPk(id) as LiveSessionInstance | null;
     if (!session) return null;
-    return await session.update(data) as LiveSessionInstance;
+    return await (session as any).update(data) as LiveSessionInstance;
   }
 
   async trackAttendance(
@@ -26,7 +26,7 @@ export class LiveStreamRepository {
     userId: string, 
     data: Partial<LiveSessionAttendanceCreationAttributes>
   ): Promise<LiveSessionAttendanceInstance> {
-    const [row] = await LiveSessionAttendance.findOrCreate({
+    const [row] = await (LiveSessionAttendance as any).findOrCreate({
       where: { session_id: sessionId, user_id: userId },
       defaults: { 
         session_id: sessionId,

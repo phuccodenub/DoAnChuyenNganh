@@ -134,7 +134,7 @@ export class HealthService {
       status: 'healthy',
       timestamp: dateUtils.formatDate(new Date()),
       uptime,
-      version: process.env.npm_package_version || '1.0.0',
+      version: (await import('../../config/env.config')).default.api.defaultVersion,
       environment: process.env.NODE_ENV || 'development'
     };
   }
@@ -171,7 +171,7 @@ export class HealthService {
       status: overallStatus,
       timestamp: dateUtils.formatDate(new Date()),
       uptime: Date.now() - this.startTime,
-      version: process.env.npm_package_version || '1.0.0',
+      version: (await import('../../config/env.config')).default.api.defaultVersion,
       environment: process.env.NODE_ENV || 'development',
       services: {
         database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : { status: 'unhealthy', error: 'Failed to check database health' },
@@ -226,10 +226,11 @@ export class HealthService {
     
     try {
       // Test database connection
-      await getSequelize().authenticate();
+      const db = getSequelize();
+      await db.authenticate();
       
       // Get connection pool info
-      const pool = (getSequelize() as any).connectionManager.pool;
+      const pool = (db as any).connectionManager.pool;
       const connectionPool = {
         total: pool.size,
         used: pool.used,
@@ -250,12 +251,13 @@ export class HealthService {
         connectionPool,
         queries
       };
-    } catch (error: unknown) {
-      logger.error('Database health check failed', { error: (error as Error).message });
+    } catch (error) {
+      const err = error as Error;
+      logger.error('Database health check failed', { error: err.message });
       
       return {
         status: 'unhealthy',
-        error: (error as Error).message,
+        error: err.message,
         connectionPool: { total: 0, used: 0, idle: 0 },
         queries: { total: 0, active: 0 }
       };
@@ -285,12 +287,13 @@ export class HealthService {
         clients: memoryInfo.clients,
         keyspace: memoryInfo.keyspace
       };
-    } catch (error: unknown) {
-      logger.error('Redis health check failed', { error: (error as Error).message });
+    } catch (error) {
+      const err = error as Error;
+      logger.error('Redis health check failed', { error: err.message });
       
       return {
         status: 'unhealthy',
-        error: (error as Error).message,
+        error: err.message,
         memory: { used: 0, peak: 0, fragmentation: 0 },
         clients: { connected: 0, blocked: 0 },
         keyspace: { keys: 0, expires: 0 }
@@ -353,10 +356,12 @@ export class HealthService {
    */
   private async checkDatabaseConnection(): Promise<boolean> {
     try {
-      await getSequelize().authenticate();
+      const db = getSequelize();
+      await db.authenticate();
       return true;
-    } catch (error: unknown) {
-      logger.error('Database connection check failed', { error: (error as Error).message });
+    } catch (error) {
+      const err = error as Error;
+      logger.error('Database connection check failed', { error: err.message });
       return false;
     }
   }
@@ -366,10 +371,17 @@ export class HealthService {
    */
   private async checkRedisConnection(): Promise<boolean> {
     try {
+      // Check if Redis client is open before pinging
+      if (!redisClient.isOpen) {
+        logger.warn('Redis client is not open');
+        return false;
+      }
+      
       await redisClient.ping();
       return true;
-    } catch (error: unknown) {
-      logger.error('Redis connection check failed', { error: (error as Error).message });
+    } catch (error) {
+      const err = error as Error;
+      logger.error('Redis connection check failed', { error: err.message });
       return false;
     }
   }
@@ -420,4 +432,3 @@ export class HealthService {
     return result;
   }
 }
-

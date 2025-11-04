@@ -1,11 +1,28 @@
-import { Sequelize, Options } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 let sequelize: Sequelize | null = null;
 
 export function getSequelize(): Sequelize {
   if (!sequelize) {
+    // Prefer SQLite when explicitly requested (CI/seed scripts)
+    const preferSqlite = (
+      process.env.DB_DIALECT === 'sqlite' ||
+      process.env.SQLITE === 'true' ||
+      typeof process.env.SQLITE_PATH !== 'undefined' ||
+      (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('sqlite'))
+    );
+
+    if (preferSqlite) {
+      sequelize = new Sequelize({
+        dialect: 'sqlite',
+        storage: process.env.SQLITE_PATH || (process.env.NODE_ENV === 'test' ? ':memory:' : './.tmp/dev.sqlite'),
+        logging: false
+      } as any);
+      return sequelize;
+    }
+
     // Prefer DATABASE_URL if provided; fallback to discrete DB_* variables
-    const baseOptions: Options = {
+    const baseOptions = {
       dialect: 'postgres',
       logging: false,
       pool: {
@@ -25,7 +42,7 @@ export function getSequelize(): Sequelize {
 
     const databaseUrl = process.env.DATABASE_URL;
     if (databaseUrl && databaseUrl.trim().length > 0) {
-      sequelize = new Sequelize(databaseUrl, baseOptions);
+      sequelize = new Sequelize(databaseUrl, baseOptions as any);
     } else {
       // Detect test environment (Jest sets JEST_WORKER_ID). Prefer explicit NODE_ENV==='test' as well
       const isTestEnv = process.env.NODE_ENV === 'test' || typeof process.env.JEST_WORKER_ID !== 'undefined';
@@ -43,11 +60,11 @@ export function getSequelize(): Sequelize {
         ? (process.env.DB_PASSWORD_TEST || process.env.DB_PASSWORD || '123456')
         : (process.env.DB_PASSWORD || 'lms_password');
 
-      const connectionOptions: Options = {
+      const connectionOptions = {
         ...baseOptions,
         host: dbHost,
         port: parseInt(dbPort)
-      };
+      } as any;
 
       sequelize = new Sequelize(dbName, dbUser, dbPassword, connectionOptions);
     }

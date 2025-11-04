@@ -1,4 +1,5 @@
-import { DataTypes, ModelStatic } from 'sequelize';
+import { DataTypes } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
 import { getSequelize } from '../config/db';
 import { QuizAnswerInstance } from '../types/model.types';
 import { exportModel } from '../utils/model-extension.util';

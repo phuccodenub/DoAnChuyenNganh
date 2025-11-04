@@ -1,52 +1,251 @@
-import { CourseInstance, UserInstance, EnrollmentInstance } from '../../types/model.types';
-
 /**
- * Course-related TypeScript types and interfaces
+ * Course Module Types
+ * Defines TypeScript interfaces for course-related data structures
  */
 
-// ===== COURSE DATA TYPES =====
+export namespace CourseTypes {
+  // Course status enum
+  export type CourseStatus = 'draft' | 'published' | 'archived';
 
-export interface CreateCourseData {
-  title: string;
-  description: string;
-  instructor_id: string;
-  category?: string;
-  level?: 'beginner' | 'intermediate' | 'advanced';
-  duration?: number; // in hours
-  price?: number;
-  thumbnail?: string;
-  status?: 'draft' | 'published' | 'archived';
-  start_date?: Date;
-  end_date?: Date;
-  max_students?: number;
-  prerequisites?: string[];
-  learning_objectives?: string[];
-  course_materials?: string[];
+  // Course difficulty levels
+  export type CourseLevel = 'beginner' | 'intermediate' | 'advanced';
+
+  // Course categories
+  export type CourseCategory = 'programming' | 'design' | 'business' | 'marketing' | 'data-science' | 'other';
+
+  // Base course interface
+  export interface Course {
+    id: string;
+    title: string;
+    description?: string;
+    instructor_id: string;
+    status: CourseStatus;
+    start_date?: Date;
+    end_date?: Date;
+    max_students: number;
+    thumbnail_url?: string;
+    tags: string[];
+    settings: CourseSettings;
+    created_at: Date;
+    updated_at: Date;
+  }
+
+  // Course settings interface
+  export interface CourseSettings {
+    allow_enrollment?: boolean;
+    require_approval?: boolean;
+    enable_discussions?: boolean;
+    enable_assignments?: boolean;
+    enable_quizzes?: boolean;
+    enable_certificates?: boolean;
+    grading_policy?: 'pass_fail' | 'letter_grade' | 'percentage';
+    passing_score?: number;
+    max_attempts?: number;
+    time_limit?: number; // in minutes
+    prerequisites?: string[];
+    learning_objectives?: string[];
+    course_materials?: CourseMaterial[];
+  }
+
+  // Course material interface
+  export interface CourseMaterial {
+    id: string;
+    title: string;
+    type: 'video' | 'document' | 'link' | 'quiz' | 'assignment';
+    url?: string;
+    content?: string;
+    duration?: number; // in minutes
+    order: number;
+    is_required: boolean;
+  }
+
+  // Course creation request
+  export interface CreateCourseRequest {
+    title: string;
+    description?: string;
+    instructor_id: string;
+    start_date?: Date;
+    end_date?: Date;
+    max_students?: number;
+    thumbnail_url?: string;
+    tags?: string[];
+    settings?: Partial<CourseSettings>;
+  }
+
+  // Course update request
+  export interface UpdateCourseRequest {
+    title?: string;
+    description?: string;
+    start_date?: Date;
+    end_date?: Date;
+    max_students?: number;
+    thumbnail_url?: string;
+    tags?: string[];
+    settings?: Partial<CourseSettings>;
+  }
+
+  // Course query parameters
+  export interface CourseQuery {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: CourseStatus;
+    instructor_id?: string;
+    category?: CourseCategory;
+    level?: CourseLevel;
+    tags?: string[];
+    sort?: string;
+    order?: 'ASC' | 'DESC';
+  }
+
+  // Course list response
+  export interface CourseListResponse {
+    courses: Course[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }
+
+  // Course statistics
+  export interface CourseStats {
+    total_enrollments: number;
+    active_enrollments: number;
+    completed_enrollments: number;
+    average_rating: number;
+    total_ratings: number;
+    completion_rate: number;
+    last_activity: Date;
+  }
+
+  // Course with instructor details
+  export interface CourseWithInstructor extends Course {
+    instructor: {
+      id: string;
+      username: string;
+      first_name: string;
+      last_name: string;
+      avatar?: string;
+      bio?: string;
+    };
+    stats?: CourseStats;
+  }
+
+  // Course enrollment info
+  export interface CourseEnrollmentInfo {
+    is_enrolled: boolean;
+    enrollment_date?: Date;
+    enrollment_status?: 'active' | 'completed' | 'dropped';
+    progress_percentage?: number;
+    last_accessed?: Date;
+  }
+
+  // Course with enrollment info
+  export interface CourseWithEnrollment extends CourseWithInstructor {
+    enrollment_info?: CourseEnrollmentInfo;
+  }
+
+  // Course analytics
+  export interface CourseAnalytics {
+    enrollment_trends: {
+      date: string;
+      enrollments: number;
+    }[];
+    completion_rates: {
+      week: string;
+      rate: number;
+    }[];
+    student_engagement: {
+      date: string;
+      active_students: number;
+      time_spent: number;
+    }[];
+    popular_content: {
+      material_id: string;
+      title: string;
+      views: number;
+      completion_rate: number;
+    }[];
+  }
+
+  // Course search filters
+  export interface CourseSearchFilters {
+    query?: string;
+    status?: CourseStatus[];
+    instructor_id?: string[];
+    category?: CourseCategory[];
+    level?: CourseLevel[];
+    tags?: string[];
+    price_range?: {
+      min?: number;
+      max?: number;
+    };
+    duration_range?: {
+      min?: number; // in days
+      max?: number;
+    };
+    rating_min?: number;
+    enrollment_min?: number;
+  }
+
+  // Course recommendation
+  export interface CourseRecommendation {
+    course: CourseWithInstructor;
+    score: number;
+    reasons: string[];
+  }
+
+  // Course export data
+  export interface CourseExportData {
+    course: Course;
+    enrollments: any[];
+    assignments: any[];
+    submissions: any[];
+    grades: any[];
+    analytics: CourseAnalytics;
+  }
+
+  // Repository helper option/response types expected by repositories
+  export interface GetCoursesOptions {
+    page: number;
+    limit: number;
+    status?: CourseStatus;
+    instructor_id?: string;
+    search?: string;
+  }
+
+  export interface GetCoursesByInstructorOptions {
+    page: number;
+    limit: number;
+    status?: CourseStatus;
+  }
+
+  export interface GetEnrolledCoursesOptions {
+    page: number;
+    limit: number;
+    status?: CourseStatus;
+  }
+
+  export interface CoursesResponse {
+    data: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }
 }
 
-export interface UpdateCourseData {
-  title?: string;
-  description?: string;
-  category?: string;
-  level?: 'beginner' | 'intermediate' | 'advanced';
-  duration?: number;
-  price?: number;
-  thumbnail?: string;
-  status?: 'draft' | 'published' | 'archived';
-  start_date?: Date;
-  end_date?: Date;
-  max_students?: number;
-  prerequisites?: string[];
-  learning_objectives?: string[];
-  course_materials?: string[];
-}
-
-// ===== QUERY OPTIONS =====
-
+// Top-level exports for repository usage
 export interface GetCoursesOptions {
   page: number;
   limit: number;
-  status?: string;
+  status?: CourseTypes.CourseStatus;
   instructor_id?: string;
   search?: string;
 }
@@ -54,13 +253,13 @@ export interface GetCoursesOptions {
 export interface GetCoursesByInstructorOptions {
   page: number;
   limit: number;
-  status?: string;
+  status?: CourseTypes.CourseStatus;
 }
 
 export interface GetEnrolledCoursesOptions {
   page: number;
   limit: number;
-  status?: string;
+  status?: CourseTypes.CourseStatus;
 }
 
 export interface GetCourseStudentsOptions {
@@ -68,10 +267,8 @@ export interface GetCourseStudentsOptions {
   limit: number;
 }
 
-// ===== RESPONSE TYPES =====
-
 export interface CoursesResponse {
-  data: CourseInstance[];
+  data: any[];
   pagination: {
     page: number;
     limit: number;
@@ -81,7 +278,7 @@ export interface CoursesResponse {
 }
 
 export interface StudentsResponse {
-  data: UserInstance[];
+  data: any[];
   pagination: {
     page: number;
     limit: number;
@@ -90,150 +287,5 @@ export interface StudentsResponse {
   };
 }
 
-// ===== COURSE WITH RELATIONS =====
-
-export interface CourseWithInstructor extends CourseInstance {
-  instructor: Pick<UserInstance, 'id' | 'first_name' | 'last_name' | 'email'>;
-}
-
-export interface CourseWithEnrollments extends CourseInstance {
-  enrollments: Pick<EnrollmentInstance, 'id' | 'created_at' | 'status'>[];
-  instructor: Pick<UserInstance, 'id' | 'first_name' | 'last_name' | 'email'>;
-}
-
-export interface UserWithEnrollments extends UserInstance {
-  enrollments: Pick<EnrollmentInstance, 'id' | 'created_at' | 'status'>[];
-}
-
-// ===== COURSE STATISTICS =====
-
-export interface CourseStats {
-  totalCourses: number;
-  publishedCourses: number;
-  draftCourses: number;
-  archivedCourses: number;
-  totalEnrollments: number;
-  averageRating?: number;
-  totalStudents: number;
-}
-
-export interface InstructorStats {
-  totalCourses: number;
-  publishedCourses: number;
-  totalStudents: number;
-  totalEnrollments: number;
-  averageRating?: number;
-}
-
-// ===== COURSE FILTERS =====
-
-export interface CourseFilters {
-  status?: 'draft' | 'published' | 'archived';
-  category?: string;
-  level?: 'beginner' | 'intermediate' | 'advanced';
-  instructor_id?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  minDuration?: number;
-  maxDuration?: number;
-  hasEnrollments?: boolean;
-  search?: string;
-}
-
-// ===== COURSE SORT OPTIONS =====
-
-export type CourseSortField = 'title' | 'created_at' | 'updated_at' | 'price' | 'duration' | 'enrollment_count';
-export type SortOrder = 'ASC' | 'DESC';
-
-export interface CourseSortOptions {
-  field: CourseSortField;
-  order: SortOrder;
-}
-
-// ===== COURSE VALIDATION =====
-
-export interface CourseValidationRules {
-  title: {
-    required: boolean;
-    minLength: number;
-    maxLength: number;
-  };
-  description: {
-    required: boolean;
-    minLength: number;
-    maxLength: number;
-  };
-  instructor_id: {
-    required: boolean;
-  };
-  category: {
-    required: boolean;
-    allowedValues: string[];
-  };
-  level: {
-    required: boolean;
-    allowedValues: ('beginner' | 'intermediate' | 'advanced')[];
-  };
-  duration: {
-    min: number;
-    max: number;
-  };
-  price: {
-    min: number;
-    max: number;
-  };
-  max_students: {
-    min: number;
-    max: number;
-  };
-}
-
-// ===== COURSE PERMISSIONS =====
-
-export interface CoursePermissions {
-  canView: boolean;
-  canEdit: boolean;
-  canDelete: boolean;
-  canEnroll: boolean;
-  canUnenroll: boolean;
-  canViewStudents: boolean;
-  canManageStudents: boolean;
-}
-
-// ===== COURSE EVENTS =====
-
-export interface CourseEvent {
-  type: 'created' | 'updated' | 'deleted' | 'published' | 'archived' | 'enrolled' | 'unenrolled';
-  courseId: string;
-  userId?: string;
-  timestamp: Date;
-  data?: any;
-}
-
-// ===== COURSE SEARCH =====
-
-export interface CourseSearchOptions {
-  query: string;
-  filters?: CourseFilters;
-  sort?: CourseSortOptions;
-  pagination: {
-    page: number;
-    limit: number;
-  };
-}
-
-export interface CourseSearchResult {
-  courses: CourseInstance[];
-  total: number;
-  pagination: {
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-  facets?: {
-    categories: { [key: string]: number };
-    levels: { [key: string]: number };
-    instructors: { [key: string]: number };
-  };
-}
-
+// Aliases to support namespace-qualified imports elsewhere
+export type CourseSearchFilters = CourseTypes.CourseSearchFilters;

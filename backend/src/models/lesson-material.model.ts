@@ -1,4 +1,5 @@
-import { DataTypes, ModelStatic } from 'sequelize';
+import { DataTypes } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
 import { getSequelize } from '../config/db';
 import { LessonMaterialInstance } from '../types/model.types';
 import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
@@ -113,7 +114,7 @@ addInstanceMethods(LessonMaterialModel, {
  },
  async incrementDownloadCount(this: LessonMaterialInstance) {
    this.download_count += 1;
-   await this.save();
+   await (this as any).save();
    return this.download_count;
  }
 });

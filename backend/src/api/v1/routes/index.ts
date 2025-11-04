@@ -3,9 +3,15 @@
  * Centralized exports for v1 API routes
  */
 
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
+import courseRoutes from './course.routes';
+import enrollmentRoutes from './enrollment.routes';
+import lessonRoutes from './lesson.routes';
+import sectionRoutes from './section.routes';
+import assignmentRoutes from './assignment.routes';
+import quizRoutes from './quiz.routes';
 import { userAdminRoutes, UserModuleController } from '../../../modules/user';
 import { AuthController } from '../../../modules/auth/auth.controller';
 import { authMiddleware } from '../../../middlewares/auth.middleware';
@@ -14,8 +20,6 @@ import { userValidation as userSchemas } from '../../../validates/user.validate'
 import { authSchemas } from '../../../validates/auth.validate';
 import { default as courseContentRoutes } from '../../../modules/course-content/course-content.routes';
 import { default as notificationsRoutes } from '../../../modules/notifications/notifications.routes';
-import { default as quizRoutes } from '../../../modules/quiz/quiz.routes';
-import { default as assignmentRoutes } from '../../../modules/assignment/assignment.routes';
 import { default as gradeRoutes } from '../../../modules/grade/grade.routes';
 import { default as liveStreamRoutes } from '../../../modules/livestream/livestream.routes';
 import { default as analyticsRoutes } from '../../../modules/analytics/analytics.routes';
@@ -31,9 +35,9 @@ router.use('/auth', authRoutes);
 const userController = new UserModuleController();
 const authController = new AuthController();
 
-router.get('/users/profile', authMiddleware, (req, res, next) => userController.getProfile(req, res, next));
-router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req, res, next) => userController.updateProfile(req, res, next));
-router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req, res, next) => authController.changePassword(req, res, next));
+router.get('/users/profile', authMiddleware, (req: Request, res: Response, next: NextFunction) => userController.getProfile(req, res, next));
+router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req: Request, res: Response, next: NextFunction) => userController.updateProfile(req, res, next));
+router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next));
 
 // User self-service routes should come BEFORE admin alias to avoid /users/profile matching admin dynamic routes
 logger.info('Registering v1 user self-service at /users');
@@ -47,13 +51,22 @@ router.use('/admin/users', userAdminRoutes);
 // Mount admin routes under /users as well (order after self-service to avoid conflicts)
 logger.info('Registering v1 admin alias at /users (after self-service)');
 router.use('/users', userAdminRoutes);
+
+// Course and enrollment routes (from HEAD)
+router.use('/courses', courseRoutes);
+router.use('/enrollments', enrollmentRoutes);
+router.use('/lessons', lessonRoutes);
+router.use('/sections', sectionRoutes);
+
+// Module-based routes (from refactor)
 router.use('/course-content', courseContentRoutes);
 router.use('/notifications', notificationsRoutes);
-router.use('/quizzes', quizRoutes);
-router.use('/assignments', assignmentRoutes);
 router.use('/grades', gradeRoutes);
-router.use('/livestreams', liveStreamRoutes);
+router.use('/livestream', liveStreamRoutes);
 router.use('/analytics', analyticsRoutes);
 
-export default router;
+// Assignment and quiz routes
+router.use('/assignments', assignmentRoutes);
+router.use('/quizzes', quizRoutes);
 
+export default router;

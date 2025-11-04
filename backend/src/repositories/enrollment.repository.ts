@@ -1,4 +1,4 @@
-import { ModelStatic, FindOptions } from 'sequelize';
+import type { ModelStatic, FindOptions } from '../types/sequelize-types';
 import Enrollment from '../models/enrollment.model';
 import { EnrollmentInstance, EnrollmentAttributes, EnrollmentStatus, EnrollmentCreationAttributes } from '../types/model.types';
 import { BaseRepository } from './base.repository';

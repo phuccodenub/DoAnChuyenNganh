@@ -195,8 +195,8 @@ export class QuizRepository {
       where: {
         quiz_id: quizId,
         user_id: userId,
-        [Op.and]: QuizAttempt.sequelize!.where(
-          QuizAttempt.sequelize!.col('submitted_at'),
+        [Op.and]: (QuizAttempt as any).sequelize!.where(
+          (QuizAttempt as any).sequelize!.col('submitted_at'),
           { [Op.is]: null }
         )
       }
@@ -305,8 +305,8 @@ export class QuizRepository {
     const totalAttempts = await QuizAttempt.count({
       where: {
         quiz_id: quizId,
-        [Op.and]: QuizAttempt.sequelize!.where(
-          QuizAttempt.sequelize!.col('submitted_at'),
+        [Op.and]: (QuizAttempt as any).sequelize!.where(
+          (QuizAttempt as any).sequelize!.col('submitted_at'),
           { [Op.not]: null }
         )
       }
@@ -316,18 +316,18 @@ export class QuizRepository {
       where: {
         quiz_id: quizId,
         [Op.and]: [
-          QuizAttempt.sequelize!.where(
-            QuizAttempt.sequelize!.col('submitted_at'),
+          (QuizAttempt as any).sequelize!.where(
+            (QuizAttempt as any).sequelize!.col('submitted_at'),
             { [Op.not]: null }
           ),
-          QuizAttempt.sequelize!.where(
-            QuizAttempt.sequelize!.col('score'),
+          (QuizAttempt as any).sequelize!.where(
+            (QuizAttempt as any).sequelize!.col('score'),
             { [Op.not]: null }
           )
         ]
       },
       attributes: [
-        [Quiz.sequelize!.fn('AVG', Quiz.sequelize!.col('score')), 'average_score']
+        [(Quiz as any).sequelize!.fn('AVG', (Quiz as any).sequelize!.col('score')), 'average_score']
       ],
       raw: true
     });
@@ -339,11 +339,11 @@ export class QuizRepository {
     const completionRow = await QuizAttempt.findOne({
       where: { quiz_id: quizId },
       attributes: [
-        [Quiz.sequelize!.fn('COUNT', Quiz.sequelize!.col('id')), 'total_started'],
+        [(Quiz as any).sequelize!.fn('COUNT', (Quiz as any).sequelize!.col('id')), 'total_started'],
         [
-          Quiz.sequelize!.fn('COUNT',
-            Quiz.sequelize!.where(
-              Quiz.sequelize!.col('submitted_at'),
+          (Quiz as any).sequelize!.fn('COUNT',
+            (Quiz as any).sequelize!.where(
+              (Quiz as any).sequelize!.col('submitted_at'),
               { [Op.not]: null }
             )
           ),
@@ -369,7 +369,7 @@ export class QuizRepository {
   async getQuizAttempts(quizId: string, page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
     
-    return await QuizAttempt.findAndCountAll({
+    return await (QuizAttempt as any).findAndCountAll({
       where: { quiz_id: quizId },
       include: [
         {

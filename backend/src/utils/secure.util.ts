@@ -22,7 +22,7 @@ export const secureUtils = {
       }
       
       return result;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Secure token generation failed:', error);
       throw new Error('Failed to generate secure token');
     }
@@ -35,7 +35,7 @@ export const secureUtils = {
   generateUUIDv4(): string {
     try {
       return crypto.randomUUID();
-    } catch (error: unknown) {
+    } catch (error) {
       logger.warn('crypto.randomUUID failed, using fallback:', error);
       // Fallback for older Node.js versions
       return this.generateUUIDv4Fallback();
@@ -53,7 +53,7 @@ export const secureUtils = {
         const v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
       });
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('UUID v4 fallback generation failed:', error);
       throw new Error('Failed to generate UUID');
     }
@@ -71,7 +71,7 @@ export const secureUtils = {
       const randomBytes = crypto.randomBytes(4);
       const randomValue = randomBytes.readUInt32BE(0);
       return min + (randomValue % range);
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Random number generation failed:', error);
       // Fallback to Math.random
       return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -101,7 +101,7 @@ export const secureUtils = {
       }
       
       return otp;
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('OTP generation failed:', error);
       // Fallback
       return Math.floor(Math.random() * Math.pow(10, length)).toString().padStart(length, '0');
@@ -115,8 +115,8 @@ export const secureUtils = {
    */
   generateRandomBytes(length: number): Buffer {
     try {
-      return crypto.randomBytes(length);
-    } catch (error: unknown) {
+      return crypto.randomBytes(length) as any;
+    } catch (error) {
       logger.error('Random bytes generation failed:', error);
       throw new Error('Failed to generate random bytes');
     }
@@ -130,7 +130,7 @@ export const secureUtils = {
   generateRandomHex(length: number): string {
     try {
       return crypto.randomBytes(length).toString('hex');
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Random hex generation failed:', error);
       throw new Error('Failed to generate random hex');
     }
@@ -144,10 +144,9 @@ export const secureUtils = {
   generateRandomBase64(length: number): string {
     try {
       return crypto.randomBytes(length).toString('base64');
-    } catch (error: unknown) {
+    } catch (error) {
       logger.error('Random base64 generation failed:', error);
       throw new Error('Failed to generate random base64');
     }
   }
 };
-

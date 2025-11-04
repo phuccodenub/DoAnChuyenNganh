@@ -8,7 +8,8 @@
  * 3. Export typed models thay vì 'as any'
  */
 
-import { Model, ModelStatic, Optional, CreationOptional, InferAttributes, InferCreationAttributes, Transaction } from 'sequelize';
+import { Model, CreationOptional, InferAttributes, InferCreationAttributes, Transaction } from 'sequelize';
+import type { ModelStatic, Optional, WhereOptions, Attributes, CreationAttributes, BulkCreateOptions } from './sequelize-types';
 
 // Base model interface với common fields
 export interface BaseModelAttributes {

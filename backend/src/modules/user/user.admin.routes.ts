@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { UserAdminController } from './user.admin.controller';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { UserRole } from '../../constants/roles.enum';
@@ -25,8 +25,8 @@ router.use(authMiddleware);
  */
 router.get(
   '/stats',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  (req, res, next) => userAdminController.getUserStats(req, res, next)
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  (req: Request, res: Response, next: NextFunction) => userAdminController.getUserStats(req, res, next)
 );
 
 /**
@@ -37,8 +37,8 @@ router.get(
  */
 router.get(
   '/email/search',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
-  (req, res, next) => userAdminController.getUserByEmail(req, res, next)
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
+  (req: Request, res: Response, next: NextFunction) => userAdminController.getUserByEmail(req, res, next)
 );
 
 /**
@@ -49,8 +49,8 @@ router.get(
  */
 router.get(
   '/role/:role',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
-  (req, res, next) => userAdminController.getUsersByRole(req, res, next)
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
+  (req: Request, res: Response, next: NextFunction) => userAdminController.getUsersByRole(req, res, next)
 );
 
 /**
@@ -60,9 +60,9 @@ router.get(
  */
 router.get(
   '/',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateQuery(userValidation.userQuery),
-  (req, res, next) => userAdminController.getAllUsers(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userAdminController.getAllUsers(req, res, next)
 );
 
 /**
@@ -72,9 +72,9 @@ router.get(
  */
 router.post(
   '/',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateBody(userValidation.createUser),
-  (req, res, next) => userAdminController.createUser(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userAdminController.createUser(req, res, next)
 );
 
 // ===== DYNAMIC ROUTES (MUST COME LAST) =====
@@ -88,15 +88,15 @@ router.post(
 // Dynamic authorization: broader access on true admin mount, admin-only on alias mount
 router.get(
   '/:id',
-  (req, res, next) => {
+  (req: Request, res: Response, next: NextFunction) => {
     const isAlias = req.baseUrl?.endsWith('/users') && !req.baseUrl.includes('/admin/users');
     const mw = isAlias
-      ? authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-      : authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT);
+      ? authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN])
+      : authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]);
     return mw(req, res, next);
   },
   validateParams(userValidation.userId),
-  (req, res, next) => userAdminController.getUserInfo(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userAdminController.getUserInfo(req, res, next)
 );
 
 /**
@@ -106,10 +106,10 @@ router.get(
  */
 router.patch(
   '/:id',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(userValidation.userId),
   validateBody(userValidation.updateUser),
-  (req, res, next) => userAdminController.updateUser(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userAdminController.updateUser(req, res, next)
 );
 
 /**
@@ -119,9 +119,9 @@ router.patch(
  */
 router.delete(
   '/:id',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(userValidation.userId),
-  (req, res, next) => userAdminController.deleteUser(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userAdminController.deleteUser(req, res, next)
 );
 
 /**
@@ -131,28 +131,28 @@ router.delete(
  */
 router.patch(
   '/:id/status',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(userValidation.userId),
-  validateBody(userValidation.updateStatus),
-  (req, res, next) => userAdminController.changeUserStatus(req, res, next)
+  validateBody(userValidation.updateUserStatus),
+  (req: Request, res: Response, next: NextFunction) => userAdminController.changeUserStatus(req, res, next)
 );
 
 // Alias route to support PUT method for status updates (test expectations)
 router.put(
   '/:id/status',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(userValidation.userId),
-  validateBody(userValidation.updateStatus),
-  (req, res, next) => userAdminController.changeUserStatus(req, res, next)
+  validateBody(userValidation.updateUserStatus),
+  (req: Request, res: Response, next: NextFunction) => userAdminController.changeUserStatus(req, res, next)
 );
 
 // Update user role (alias route expected by tests)
 router.put(
   '/:id/role',
-  authorizeRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateParams(userValidation.userId),
   validateBody(userValidation.updateRole),
-  (req, res, next) => userAdminController.updateUser(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userAdminController.updateUser(req, res, next)
 );
 
 export default router;

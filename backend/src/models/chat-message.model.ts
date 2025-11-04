@@ -1,4 +1,5 @@
-import { DataTypes, ModelStatic, Op } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
 import { getSequelize } from '../config/db';
 import { ChatMessageInstance } from '../types/model.types';
 import { exportModel, addStaticMethods } from '../utils/model-extension.util';

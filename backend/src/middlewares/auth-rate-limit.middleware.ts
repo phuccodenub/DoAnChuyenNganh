@@ -1,4 +1,11 @@
 import rateLimit from 'express-rate-limit';
+import { Request } from 'express';
+
+// Helper function để handle IPv6 addresses properly
+const getClientIP = (req: Request): string => {
+  // Use express-rate-limit's built-in IP detection
+  return req.ip || req.socket.remoteAddress || 'unknown';
+};
 
 const disabled = process.env.DISABLE_RATE_LIMIT === 'true' || process.env.NODE_ENV === 'test';
 const passthrough = (_req: any, _res: any, next: any) => next();
@@ -14,6 +21,12 @@ export const authRateLimit = disabled ? passthrough : rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Chỉ đếm failed attempts
+  keyGenerator: (req: Request) => {
+    // Use proper IP detection for IPv6 compatibility
+    const ip = getClientIP(req);
+    const userAgent = req.get('User-Agent') || 'unknown';
+    return `${ip}-${userAgent}`;
+  }
 });
 
 // Rate limiting cho password reset
@@ -39,5 +52,3 @@ export const registrationRateLimit = disabled ? passthrough : rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-

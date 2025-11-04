@@ -1,4 +1,5 @@
-import { ModelStatic, Op, WhereOptions } from 'sequelize';
+import { Op } from 'sequelize';
+import type { ModelStatic, WhereOptions } from '../../types/sequelize-types';
 import Notification from '../../models/notification.model';
 import NotificationRecipient from '../../models/notification-recipient.model';
 import User from '../../models/user.model';

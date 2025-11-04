@@ -80,27 +80,38 @@ services:
       timeout: 10s
       retries: 5
 
-  # Frontend React App
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
     restart: unless-stopped
-    environment:
-      - NODE_ENV=development
-      - REACT_APP_API_URL=http://localhost:3000/api
-      - REACT_APP_WS_URL=http://localhost:3000
+    ports:
+      - "9090:9090"
+    networks:
+      - lms-network
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+
+  # Grafana
+  grafana:
+    image: grafana/grafana-oss:latest
+    restart: unless-stopped
     ports:
       - "3001:3000"
     networks:
       - lms-network
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
-      - backend
-    stdin_open: true
-    tty: true
+      - prometheus
 
 volumes:
   postgres_data:

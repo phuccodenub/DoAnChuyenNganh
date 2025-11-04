@@ -246,7 +246,7 @@ export class UserAdminController {
       }
 
       // Validate status via schema
-      const statusSchema = userValidation.updateStatus.safeParse(req.body);
+      const statusSchema = userValidation.updateUserStatus.safeParse(req.body);
       if (!statusSchema.success) {
         return responseUtils.sendValidationError(res, 'Validation failed');
       }

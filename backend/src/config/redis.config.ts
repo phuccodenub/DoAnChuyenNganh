@@ -54,7 +54,7 @@ export const redisHelpers = {
     }
   },
 
-  async get(key: string): Promise<string | null> {
+  async get(key: string): Promise<string | Buffer | null> {
     try {
       return await redisClient.get(key);
     } catch (error: unknown) {

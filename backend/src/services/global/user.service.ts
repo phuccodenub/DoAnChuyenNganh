@@ -1,7 +1,8 @@
 import * as userRepository from '../../repositories/user.repository';
 import { CacheService } from './cache.service';
 import logger from '../../utils/logger.util';
-import type { UserInstance, UserCreationAttributes, UserAttributes } from '@/types/model.types';
+// Use lightweight user types for hard-fail users build
+import type { UserInstance, UserCreationAttributes, UserAttributes } from '../../types/model.types';
 
 // DTOs for user operations
 export interface UserUpdateDTO {
@@ -78,7 +79,7 @@ export class GlobalUserService {
   async getUserById(userId: string): Promise<UserInstance | null> {
     try {
       // Try cache first
-      const cachedUser = await this.cacheService.getCachedUser(userId);
+      const cachedUser = await this.cacheService.getCachedUser<UserInstance>(userId);
       if (cachedUser) {
         return cachedUser;
       }
@@ -252,6 +253,11 @@ export class GlobalUserService {
         const hashed = await hashPassword(plain);
         delete (dataToCreate as any).password;
         (dataToCreate as any).password_hash = hashed;
+      }
+
+      // Normalize date_of_birth to Date if provided as string
+      if (typeof (dataToCreate as any).date_of_birth === 'string') {
+        (dataToCreate as any).date_of_birth = new Date((dataToCreate as any).date_of_birth);
       }
 
       const user = await userRepository.createUser(dataToCreate as UserCreationAttributes);

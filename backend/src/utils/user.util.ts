@@ -1,5 +1,4 @@
-import { UserInstance } from '../types/model.types';
-import { UserPublicProfile } from '../types/user.types';
+import { UserInstance, UserPublicProfile } from '../types/user.types';
 import { comparePassword } from './hash.util';
 import { stringUtils } from './string';
 import { validatorsUtils } from './validators.util';
@@ -287,7 +286,7 @@ export const userUtils = {
   async comparePassword(user: UserInstance, candidatePassword: string): Promise<boolean> {
     try {
       return await comparePassword(candidatePassword, user.password_hash);
-    } catch (error: unknown) {
+    } catch (error) {
       throw new Error('Password comparison failed');
     }
   },
@@ -329,7 +328,7 @@ export const userUtils = {
       'emergency_phone'
     ];
 
-    const sanitized: Partial<UserInstance> = {};
+    const sanitized: any = {};
     publicFields.forEach(field => {
       const value = user[field];
       if (value !== undefined) {

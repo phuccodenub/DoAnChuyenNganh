@@ -4,47 +4,57 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: [
     '**/__tests__/**/*.ts',
-    '**/?(*.)+(spec|test).ts'
+    '**/?(*.)+(spec|test).ts',
+    '**/e2e/**/*.test.ts'
   ],
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
     '<rootDir>/dist/',
     '<rootDir>/src/swagger/',
-    // Do not ignore integration tests; they are run via npm scripts or full test runs
   ],
+  verbose: false,
+  testTimeout: 20000,
   transform: {
-    '^.+\\.ts$': 'ts-jest'
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: '<rootDir>/tsconfig.json',
+      diagnostics: false,
+    }],
   },
+  collectCoverage: false,
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html', 'json'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
+    '!src/**/*.test.ts',
+    '!src/**/*.spec.ts',
+    '!src/tests/**',
     '!src/server.ts',
     '!src/app.ts',
+    '!src/scripts/**',
     '!src/migrations/**',
-    '!src/seeders/**',
-    '!src/scripts/**'
+    '!src/seeders/**'
   ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
-  testTimeout: 10000,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@config/(.*)$': '<rootDir>/src/config/$1',
-    '^@constants/(.*)$': '<rootDir>/src/constants/$1',
-    '^@controllers/(.*)$': '<rootDir>/src/controllers/$1',
     '^@middlewares/(.*)$': '<rootDir>/src/middlewares/$1',
+    '^@constants/(.*)$': '<rootDir>/src/constants/$1',
+    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@config/(.*)$': '<rootDir>/src/config/$1',
     '^@models/(.*)$': '<rootDir>/src/models/$1',
     '^@modules/(.*)$': '<rootDir>/src/modules/$1',
+    '^@monitoring/(.*)$': '<rootDir>/src/monitoring/$1',
+    '^@services/(.*)$': '<rootDir>/src/services/$1',
     '^@repositories/(.*)$': '<rootDir>/src/repositories/$1',
     '^@routes/(.*)$': '<rootDir>/src/routes/$1',
-    '^@services/(.*)$': '<rootDir>/src/services/$1',
-    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@controllers/(.*)$': '<rootDir>/src/controllers/$1',
+    '^@errors/(.*)$': '<rootDir>/src/errors/$1',
+    '^@api/(.*)$': '<rootDir>/src/api/$1',
+    '^@cache/(.*)$': '<rootDir>/src/cache/$1',
+    '^@shared/(.*)$': '<rootDir>/src/shared/$1',
+    '^@validates/(.*)$': '<rootDir>/src/validates/$1',
+    '^@tracing/(.*)$': '<rootDir>/src/tracing/$1',
     '^@types/(.*)$': '<rootDir>/src/types/$1'
-  },
-  transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: 'tsconfig.json'
-    }]
   }
 };

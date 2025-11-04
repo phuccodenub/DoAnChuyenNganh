@@ -33,17 +33,17 @@ export async function createEnrollmentsTable(queryInterface: QueryInterface): Pr
       onDelete: 'CASCADE'
     },
     status: {
-      type: DataTypes.ENUM('pending', 'active', 'completed', 'cancelled', 'suspended'),
+      type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'pending'
     },
     enrollment_type: {
-      type: DataTypes.ENUM('free', 'paid', 'gift', 'scholarship'),
+      type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'free'
     },
     payment_status: {
-      type: DataTypes.ENUM('pending', 'paid', 'failed', 'refunded'),
+      type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'pending'
     },

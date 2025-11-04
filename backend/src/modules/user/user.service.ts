@@ -33,7 +33,7 @@ export class UserModuleService {
         throw new ApiError('User not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }
 
-      const profile = userUtils.getPublicProfile(user) as UserTypes.UserProfile;
+      const profile = userUtils.getPublicProfile(user as any) as UserTypes.UserProfile;
       
       logger.info('User profile retrieved successfully', { userId });
       return profile;
@@ -62,7 +62,7 @@ export class UserModuleService {
       // Clear cache
       await globalServices.user.clearUserCache(userId);
       
-      const profile = userUtils.getPublicProfile(updatedUser) as UserTypes.UserProfile;
+      const profile = userUtils.getPublicProfile(updatedUser as any) as UserTypes.UserProfile;
       
       logger.info('User profile updated successfully', { userId });
       return profile;
@@ -418,7 +418,7 @@ export class UserModuleService {
         forum_posts: forumPosts,
         profile_views: profileViews,
         account_age_days: Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)),
-        profile_completion: userUtils.getProfileCompletionPercentage(user)
+        profile_completion: userUtils.getProfileCompletionPercentage(user as any)
       };
 
       logger.info('User statistics retrieved successfully', { userId });

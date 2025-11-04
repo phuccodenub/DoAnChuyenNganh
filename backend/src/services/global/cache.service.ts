@@ -1,8 +1,7 @@
 import { redisHelpers } from '../../config/redis.config';
 import { APP_CONSTANTS } from '@constants/app.constants';
 import logger from '@utils/logger.util';
-import type { UserInstance } from '@/types/model.types';
-import type { CourseInstance } from '@/types/model.types';
+// Avoid importing heavy model types in hard-fail builds; use generics instead
 
 // Session data interface for type safety
 export interface SessionData {
@@ -35,7 +34,9 @@ export class CacheService {
     try {
       if (this.disabled) return null; // bypass when disabled
       const value = await redisHelpers.get(key);
-      return value ? JSON.parse(value) : null;
+      if (!value) return null;
+      const json = typeof value === 'string' ? value : value.toString();
+      return JSON.parse(json) as T;
     } catch (error: unknown) {
       logger.error('Cache get error:', error);
       throw error;
@@ -98,7 +99,7 @@ export class CacheService {
   }
 
   // Cache user data
-  async cacheUser(userId: string, userData: UserInstance): Promise<void> {
+  async cacheUser(userId: string, userData: unknown): Promise<void> {
     try {
       const key = `user:${userId}`;
       await this.set(key, userData, APP_CONSTANTS.SYSTEM.CACHE_TTL.LONG);
@@ -109,10 +110,10 @@ export class CacheService {
   }
 
   // Get cached user
-  async getCachedUser(userId: string): Promise<UserInstance | null> {
+  async getCachedUser<T = unknown>(userId: string): Promise<T | null> {
     try {
       const key = `user:${userId}`;
-      return await this.get<UserInstance>(key);
+      return await this.get<T>(key);
     } catch (error: unknown) {
       logger.error('Get cached user error:', error);
       throw error;
@@ -120,7 +121,7 @@ export class CacheService {
   }
 
   // Cache course data
-  async cacheCourse(courseId: string, courseData: CourseInstance): Promise<void> {
+  async cacheCourse(courseId: string, courseData: unknown): Promise<void> {
     try {
       const key = `course:${courseId}`;
       await this.set(key, courseData, APP_CONSTANTS.SYSTEM.CACHE_TTL.LONG);
@@ -131,10 +132,10 @@ export class CacheService {
   }
 
   // Get cached course
-  async getCachedCourse(courseId: string): Promise<CourseInstance | null> {
+  async getCachedCourse<T = unknown>(courseId: string): Promise<T | null> {
     try {
       const key = `course:${courseId}`;
-      return await this.get<CourseInstance>(key);
+      return await this.get<T>(key);
     } catch (error: unknown) {
       logger.error('Get cached course error:', error);
       throw error;

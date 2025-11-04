@@ -4,9 +4,9 @@ import logger from '../utils/logger.util';
 async function resetDatabase() {
   try {
     logger.info('Starting database reset...');
+    const sequelize = getSequelize();
     
     // Drop all tables
-    const sequelize = getSequelize();
     await sequelize.drop();
     logger.info('All tables dropped');
     

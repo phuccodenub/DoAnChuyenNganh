@@ -252,13 +252,13 @@ export class CourseContentRepository {
   async updateMaterial<TData extends object>(materialId: string, data: TData) {
     const material = await LessonMaterial.findByPk(materialId);
     if (!material) return null;
-    return await material.update(data);
+    return await (material as any).update(data);
   }
 
   async deleteMaterial(materialId: string) {
     const material = await LessonMaterial.findByPk(materialId);
     if (!material) return false;
-    await material.destroy();
+    await (material as any).destroy();
     return true;
   }
 
@@ -266,7 +266,7 @@ export class CourseContentRepository {
     const material = await LessonMaterial.findByPk(materialId);
     if (!material) return null;
     material.download_count = (material.download_count ?? 0) + 1;
-    await material.save();
+    await (material as any).save();
     return material;
   }
 
@@ -275,7 +275,7 @@ export class CourseContentRepository {
   // ===================================
 
   async findOrCreateProgress(userId: string, lessonId: string) {
-    const [progress, created] = await LessonProgress.findOrCreate({
+    const [progress, created] = await (LessonProgress as any).findOrCreate({
       where: { user_id: userId, lesson_id: lessonId },
       defaults: {
         user_id: userId,
@@ -287,7 +287,7 @@ export class CourseContentRepository {
 
     if (!created && !progress.started_at) {
       progress.started_at = new Date();
-      await progress.save();
+      await (progress as any).save();
     }
 
     return progress;

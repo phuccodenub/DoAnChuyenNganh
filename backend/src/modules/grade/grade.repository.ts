@@ -1,5 +1,5 @@
 import { Grade, FinalGrade } from '../../models';
-import type { WhereOptions, ModelStatic } from 'sequelize';
+import type { WhereOptions, ModelStatic } from '../../types/sequelize-types';
 import type {
   GradeInstance,
   GradeCreationAttributes,
@@ -20,12 +20,12 @@ export class GradeRepository {
   private readonly FinalGradeModel = FinalGrade as unknown as ModelStatic<FinalGradeInstance>;
 
   async upsertGrade(data: GradeCreationAttributes): Promise<GradeInstance> {
-    const [row] = await this.GradeModel.upsert(data, { returning: true });
+    const [row] = await (this.GradeModel as any).upsert(data, { returning: true });
     return row;
   }
 
   async upsertFinalGrade(data: FinalGradeCreationAttributes): Promise<FinalGradeInstance> {
-    const [row] = await this.FinalGradeModel.upsert(data, { returning: true });
+    const [row] = await (this.FinalGradeModel as any).upsert(data, { returning: true });
     return row;
   }
 

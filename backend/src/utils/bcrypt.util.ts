@@ -96,7 +96,7 @@ export const bcryptUtils = {
   hashPasswordWithCrypto(password: string): string {
     try {
       const salt = crypto.randomBytes(16).toString('hex');
-      const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+      const hash = (crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512') as any).toString('hex');
       return `crypto:${salt}:${hash}`;
     } catch (error: unknown) {
       logger.error('Crypto native hashing failed:', error);
@@ -122,7 +122,7 @@ export const bcryptUtils = {
       }
 
       const [, salt, hash] = parts;
-      const testHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+      const testHash = (crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512') as any).toString('hex');
       
       return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(testHash, 'hex'));
     } catch (error: unknown) {

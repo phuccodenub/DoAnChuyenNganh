@@ -113,13 +113,14 @@ export const responseUtils = {
     data: T[],
     pagination: Pagination,
     message: string = 'Success',
-    statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.OK
+    statusCode: number = RESPONSE_CONSTANTS.STATUS_CODE.OK,
+    dataKey?: string
   ): void {
-    const response: PaginatedResponse<T> = {
+    const response: any = {
       success: true,
       message,
-      data,
-      pagination
+      data: dataKey ? { [dataKey]: data, pagination } : data,
+      ...(dataKey ? {} : { pagination })
     };
 
     res.status(statusCode).json(response);

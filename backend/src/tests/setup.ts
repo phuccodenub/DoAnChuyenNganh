@@ -7,7 +7,7 @@ import 'dotenv-flow/config';
 import path from 'path';
 import dotenv from 'dotenv';
 import { applySequelizeSqlShim } from './utils/test.utils';
-import { Sequelize, Options } from 'sequelize';
+import { Sequelize } from 'sequelize';
 import { getSequelize } from '../config/db';
 import { MigrationManager } from '../migrations';
 
@@ -77,7 +77,7 @@ if (isIntegration) {
       const port = parseInt(process.env.DB_PORT || '5432');
       const user = process.env.DB_USER_TEST || process.env.DB_USER || 'lms_user';
       const password = process.env.DB_PASSWORD_TEST || process.env.DB_PASSWORD || '123456';
-      const adminOptions: Options = {
+      const adminOptions: any = {
         dialect: 'postgres',
         host,
         port,

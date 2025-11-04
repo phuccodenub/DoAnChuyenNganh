@@ -1,4 +1,5 @@
-import { DataTypes, ModelStatic } from 'sequelize';
+import { DataTypes } from 'sequelize';
+import type { ModelStatic } from '../types/sequelize-types';
 import { getSequelize } from '../config/db';
 import { LessonProgressInstance, LessonInstance } from '../types/model.types';
 import { exportModel, addInstanceMethods, addStaticMethods } from '../utils/model-extension.util';
@@ -128,7 +129,7 @@ addInstanceMethods(LessonProgressModel, {
     this.completed = true;
     this.completion_percentage = 100;
     this.completed_at = new Date();
-    await this.save();
+    await (this as any).save();
     return this;
   },
   async updateProgress(this: LessonProgressInstance, data: {
@@ -152,7 +153,7 @@ addInstanceMethods(LessonProgressModel, {
     if (this.completion_percentage >= 100 && !this.completed) {
       await this.markAsCompleted();
     } else {
-      await this.save();
+      await (this as any).save();
     }
     
     return this;
@@ -162,7 +163,7 @@ addInstanceMethods(LessonProgressModel, {
 // Static Methods (type-safe)
 addStaticMethods(LessonProgressModel, {
   async findOrCreateProgress(this: ModelStatic<LessonProgressInstance>, userId: string, lessonId: string) {
-    const [progress, created] = await this.findOrCreate({
+    const [progress, created] = await (this as any).findOrCreate({
       where: { user_id: userId, lesson_id: lessonId },
       defaults: {
         user_id: userId,
@@ -193,7 +194,7 @@ addStaticMethods(LessonProgressModel, {
       ]
     });
 
-    const lessonIds = lessons.map((l) => (l as unknown as LessonInstance).id);
+    const lessonIds = lessons.map((l: any) => (l as unknown as LessonInstance).id);
 
     if (lessonIds.length === 0) {
       return { total: 0, completed: 0, percentage: 0 };

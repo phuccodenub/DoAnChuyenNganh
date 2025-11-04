@@ -3,10 +3,11 @@
  * Handles versioned API routing
  */
 
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { versionManager, versionRoutes } from './versioning';
 import { v1Routes } from './v1';
 import { v2Routes } from './v2';
+import env from '../config/env.config';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { validateBody } from '../middlewares/validate.middleware';
 import { userValidation as userSchemas } from '../validates/user.validate';
@@ -19,13 +20,13 @@ const router = Router();
 // Fast-path explicit endpoints to ensure tests resolve even if nested mounts change
 const userController = new UserModuleController();
 const authController = new AuthController();
-router.get('/users/profile', authMiddleware, (req, res, next) => userController.getProfile(req, res, next));
-router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req, res, next) => userController.updateProfile(req, res, next));
-router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req, res, next) => authController.changePassword(req, res, next));
+router.get('/users/profile', authMiddleware, (req: Request, res: Response, next: NextFunction) => userController.getProfile(req, res, next));
+router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req: Request, res: Response, next: NextFunction) => userController.updateProfile(req, res, next));
+router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next));
 
 // Temporary route debug to verify registered paths during tests
 // Note: keep lightweight and non-sensitive; remove when routes stabilize
-router.get('/__routes_debug', (req, res) => {
+router.get('/__routes_debug', (req: Request, res: Response) => {
 	try {
 		// @ts-ignore accessing internal stack for debug only
 		const stack = (router as any).stack || [];
@@ -49,9 +50,11 @@ router.get('/__routes_debug', (req, res) => {
 });
 
 // Mount version routes
+router.use('/v1', v1Routes); // explicit alias for tests and clients using /v1
 router.use('/v1.0.0', v1Routes);
 router.use('/v1.1.0', v1Routes);
 router.use('/v1.2.0', v1Routes);
+router.use('/v1.3.0', v1Routes);
 router.use('/v2.0.0', v2Routes);
 
 // Backward-compatible alias for /v1 prefix used in some tests
@@ -60,10 +63,25 @@ router.use('/v1', v1Routes);
 // Mount version information routes
 router.use('/versions', versionManager.versionMiddleware, versionRoutes);
 
-// Default route (latest stable version)
-// Mount v1 routes at root as the fallback to ensure paths like /users/profile resolve correctly
-// Note: explicit versioned mounts above still take precedence when used
-router.use('/', v1Routes);
+// Default route (dispatch based on resolved version)
+// This allows version-based routing while also supporting fast-path endpoints
+router.use('/', versionManager.versionMiddleware, (req: Request, res: Response, next: NextFunction) => {
+  const version = (req as any).apiVersion || env.api.defaultVersion;
+
+  // Route to major version router
+  if (version.startsWith('v1.')) {
+    (req as any).url = `/${version}${req.url}`;
+    return v1Routes(req, res, next);
+  }
+  if (version.startsWith('v2.')) {
+    (req as any).url = `/${version}${req.url}`;
+    return v2Routes(req, res, next);
+  }
+
+  // Fallback to default
+  (req as any).url = `/${env.api.defaultVersion}${req.url}`;
+  return v1Routes(req, res, next);
+});
 
 export default router;
 

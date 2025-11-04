@@ -476,7 +476,8 @@ async function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
+declare const require: any; declare const module: any;
+if ((require as any).main === module) {
   main();
 }
 

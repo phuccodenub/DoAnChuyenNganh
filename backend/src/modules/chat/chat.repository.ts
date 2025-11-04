@@ -8,7 +8,8 @@ import User from '../../models/user.model';
 import Course from '../../models/course.model';
 import { GetMessagesOptions, SearchMessagesOptions } from './chat.types';
 import logger from '../../utils/logger.util';
-import { Op, WhereOptions } from 'sequelize';
+import { Op } from 'sequelize';
+import type { WhereOptions } from '../../types/sequelize-types';
 import type { 
   ChatMessageInstance, 
   ChatMessageAttributes, 
@@ -139,7 +140,7 @@ export class ChatRepository {
 
       const offset = (page - 1) * limit;
 
-      const { rows: messages, count } = await ChatMessage.findAndCountAll({
+      const { rows: messages, count } = await (ChatMessage as any).findAndCountAll({
         where,
         include: [
           {
@@ -196,7 +197,7 @@ export class ChatRepository {
         return null;
       }
 
-      await message.update({
+      await (message as any).update({
         message: newMessage,
         is_edited: true,
         edited_at: new Date()
@@ -226,7 +227,7 @@ export class ChatRepository {
         return null;
       }
 
-      await message.update({
+      await (message as any).update({
         is_deleted: true,
         deleted_at: new Date()
       });
@@ -354,7 +355,7 @@ export class ChatRepository {
         },
         attributes: [
           'message_type',
-          [ChatMessage.sequelize!.fn('COUNT', ChatMessage.sequelize!.col('id')), 'count']
+          [(ChatMessage as any).sequelize!.fn('COUNT', (ChatMessage as any).sequelize!.col('id')), 'count']
         ],
         group: ['message_type']
       }) as Array<ChatMessageInstance & { getDataValue: (key: string) => any }>;
