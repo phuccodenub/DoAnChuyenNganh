@@ -25,87 +25,19 @@ export class UserModuleController {
     return userId;
   }
 
-  // ===== USER MANAGEMENT ROUTES =====
-
-  // Get all users with pagination
-  async getAllUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      // Use validated query if available, otherwise use raw query
-      const queryData = (req as any).validatedQuery || req.query;
-      
-      const options = {
-        page: parseInt(queryData.page as string) || 1,
-        limit: parseInt(queryData.limit as string) || 10,
-        role: queryData.role as string,
-        status: queryData.status as string,
-        search: queryData.search as string,
-        sortBy: (queryData.sort as string) || 'created_at',
-        sortOrder: (queryData.order as string) || 'DESC'
-      };
-      
-      const result = await this.userModuleService.getAllUsers(options);
-      responseUtils.sendPaginated(res, result.users, result.pagination, 'Users retrieved successfully');
-    } catch (error) {
-      logger.error('Error getting all users:', error);
-      next(error);
-    }
-  }
-
-  // Get user by ID
-  async getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = req.params.id;
-      const user = await this.userModuleService.getUserById(userId);
-      responseUtils.sendSuccess(res, 'User retrieved successfully', user);
-    } catch (error) {
-      logger.error('Error getting user by ID:', error);
-      next(error);
-    }
-  }
-
-  async updateUserStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = req.params.id;
-      const { status } = req.body;
-      const user = await this.userModuleService.updateUserStatus(userId, status);
-      responseUtils.sendSuccess(res, 'User status updated successfully', user);
-    } catch (error) {
-      logger.error('Error updating user status:', error);
-      next(error);
-    }
-  }
-
-  async getUserEnrollments(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = req.params.id;
-      const enrollments = await this.userModuleService.getUserEnrollments(userId);
-      responseUtils.sendSuccess(res, 'User enrollments retrieved successfully', enrollments);
-    } catch (error) {
-      logger.error('Error getting user enrollments:', error);
-      next(error);
-    }
-  }
-
-  async getUserProgress(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = req.params.id;
-      const progress = await this.userModuleService.getUserProgress(userId);
-      responseUtils.sendSuccess(res, 'User progress retrieved successfully', progress);
-    } catch (error) {
-      logger.error('Error getting user progress:', error);
-      next(error);
-    }
-  }
-
   // ===== NGHIỆP VỤ RIÊNG CỦA USER =====
 
   // Get user profile
   async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
+      // Temporary debug: trace which userId is being fetched
+  // Elevate to info for better visibility in CI logs
+  logger.info('User getProfile called', { userIdFromToken: userId });
       const profile = await this.userModuleService.getProfile(userId);
-      responseUtils.sendSuccess(res, 'Profile retrieved successfully', profile);
-    } catch (error) {
+      // Wrap under { user } to match test expectations
+      responseUtils.sendSuccess(res, 'Profile retrieved successfully', { user: profile });
+    } catch (error: unknown) {
       if ((error as Error).message === 'User ID not found in request') {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
         return;
@@ -119,11 +51,13 @@ export class UserModuleController {
   async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-
+      // Temporary debug: trace update profile caller id
+  logger.info('User updateProfile called', { userIdFromToken: userId });
       const userData = req.body;
       const updatedProfile = await this.userModuleService.updateProfile(userId, userData);
-      responseUtils.sendSuccess(res, 'Profile updated successfully', updatedProfile);
-    } catch (error) {
+      // Wrap under { user } to match test expectations
+      responseUtils.sendSuccess(res, 'Profile updated successfully', { user: updatedProfile });
+    } catch (error: unknown) {
       logger.error('Error updating profile:', error);
       next(error);
     }
@@ -146,7 +80,7 @@ export class UserModuleController {
 
       const result = await this.userModuleService.uploadAvatar(userId!, file);
       responseUtils.sendSuccess(res, 'Avatar uploaded successfully', result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error uploading avatar:', error);
       next(error);
     }
@@ -160,7 +94,7 @@ export class UserModuleController {
       
       const updatedPreferences = await this.userModuleService.updatePreferences(userId, preferences);
       responseUtils.sendSuccess(res, 'Preferences updated successfully', updatedPreferences);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating preferences:', error);
       next(error);
     }
@@ -173,7 +107,7 @@ export class UserModuleController {
       const sessions = await this.userModuleService.getActiveSessions(userId);
       
       responseUtils.sendSuccess(res, 'Active sessions retrieved', sessions);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting active sessions:', error);
       next(error);
     }
@@ -186,7 +120,7 @@ export class UserModuleController {
       await this.userModuleService.logoutAllDevices(userId);
       
       responseUtils.sendSuccess(res, 'Logged out from all devices', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error logging out all devices:', error);
       next(error);
     }
@@ -199,7 +133,7 @@ export class UserModuleController {
       const result = await this.userModuleService.enableTwoFactor(userId);
       
       responseUtils.sendSuccess(res, 'Two-factor authentication enabled', result);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error enabling 2FA:', error);
       next(error);
     }
@@ -209,15 +143,11 @@ export class UserModuleController {
   async disableTwoFactor(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-      const code = (req.body && (req.body.code as string)) || '';
-      if (!code) {
-        res.status(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST).json({ success: false, message: 'Verification code is required' });
-        return;
-      }
+      const { code } = req.body as { code: string };
       await this.userModuleService.disableTwoFactor(userId, code);
       
       responseUtils.sendSuccess(res, 'Two-factor authentication disabled', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error disabling 2FA:', error);
       next(error);
     }
@@ -231,7 +161,7 @@ export class UserModuleController {
       
       await this.userModuleService.linkSocialAccount(userId, provider, socialId);
       responseUtils.sendSuccess(res, 'Social account linked successfully', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error linking social account:', error);
       next(error);
     }
@@ -244,7 +174,7 @@ export class UserModuleController {
       const analytics = await this.userModuleService.getUserAnalytics(userId);
       
       responseUtils.sendSuccess(res, 'User analytics retrieved', analytics);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user analytics:', error);
       next(error);
     }
@@ -258,7 +188,7 @@ export class UserModuleController {
       
       await this.userModuleService.updateNotificationSettings(userId, settings);
       responseUtils.sendSuccess(res, 'Notification settings updated', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating notification settings:', error);
       next(error);
     }
@@ -272,9 +202,10 @@ export class UserModuleController {
       
       await this.userModuleService.updatePrivacySettings(userId, settings);
       responseUtils.sendSuccess(res, 'Privacy settings updated', null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating privacy settings:', error);
       next(error);
     }
   }
 }
+

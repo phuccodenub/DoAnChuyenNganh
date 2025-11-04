@@ -1,4 +1,4 @@
-name: CI
+name: CI Quality Gates
 
 on:
   push:
@@ -12,7 +12,6 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -218,4 +217,3 @@ jobs:
         if: always()
         run: |
           echo "Soft type-check completed. Any errors are for visibility only and do not block merge."
-

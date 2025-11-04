@@ -1,91 +1,54 @@
 import User from '../../models/user.model';
-// Local lightweight typing to avoid pulling full type graph
-type UserInstance = any;
-import { UserRepository as BaseUserRepository } from '@repositories/user.repository';
-// Temporary shim types; replace with real types in types/user.types
-declare namespace UserTypes {
-  type UserPreferences = any;
-  type UserSession = any;
-  type UserAnalytics = any;
-  type NotificationSettings = any;
-  type PrivacySettings = any;
-}
+import { UserInstance } from '../../types/model.types';
+import { UserRepository as BaseUserRepository } from '../../repositories/user.repository';
+import * as UserTypes from './user.types';
 import logger from '../../utils/logger.util';
-import { Op } from 'sequelize';
-declare const require: any;
+import type { Model } from 'sequelize';
+
+// Extended instance types for user-related entities
+export interface UserSessionInstance extends Model {
+  id: string;
+  user_id: string;
+  device: string;
+  location?: string;
+  ip_address: string;
+  user_agent: string;
+  is_active: boolean;
+  last_activity: Date;
+  started_at: Date;
+  ended_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface SocialAccountInstance extends Model {
+  id: string;
+  user_id: string;
+  provider: 'google' | 'facebook' | 'github' | 'twitter';
+  social_id: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+  linked_at: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface UserSessionCreationData {
+  user_id: string;
+  device: string;
+  location?: string;
+  ip_address: string;
+  user_agent: string;
+  is_active?: boolean;
+  started_at?: Date;
+  last_activity?: Date;
+}
 
 export class UserModuleRepository extends BaseUserRepository {
-  constructor() { super(); }
-
-  // ===== USER MANAGEMENT METHODS =====
-
-  /**
-   * Find all users with pagination and filtering
-   */
-  async findAllWithPagination(options: {
-    page: number;
-    limit: number;
-    role?: string;
-    status?: string;
-    search?: string;
-    sortBy: string;
-    sortOrder: string;
-  }): Promise<{ users: any[]; pagination: any }> {
-    try {
-      logger.debug('Finding all users with pagination', options);
-
-      const { page, limit, role, status, search, sortBy, sortOrder } = options;
-      const offset = (page - 1) * limit;
-
-      // Build where clause
-      const whereClause: any = {};
-      if (role) whereClause.role = role;
-      if (status) whereClause.status = status;
-      if (search) {
-        whereClause[Op.or] = [
-          { username: { [Op.iLike]: `%${search}%` } },
-          { email: { [Op.iLike]: `%${search}%` } },
-          { first_name: { [Op.iLike]: `%${search}%` } },
-          { last_name: { [Op.iLike]: `%${search}%` } }
-        ];
-      }
-
-      // Get total count
-      const total = await this.count({ where: whereClause });
-
-      // Get users
-      const users = await this.findAll({
-        where: whereClause,
-        limit,
-        offset,
-        order: [[sortBy, sortOrder.toUpperCase()]],
-        attributes: { exclude: ['password'] } // Exclude password from results
-      });
-
-      const pagination = {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page < Math.ceil(total / limit),
-        hasPrev: page > 1
-      };
-
-      logger.debug('Users with pagination retrieved', { 
-        count: users.length, 
-        total, 
-        page, 
-        limit 
-      });
-
-      return { users, pagination };
-    } catch (error) {
-      logger.error('Error finding all users with pagination:', error);
-      throw error;
-    }
+  constructor() {
+    super();
   }
-
-  // ===== USER PROFILE METHODS =====
 
   /**
    * Find user with preferences
@@ -112,7 +75,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with preferences:', error);
       throw error;
     }
@@ -144,7 +107,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with sessions:', error);
       throw error;
     }
@@ -175,7 +138,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with social accounts:', error);
       throw error;
     }
@@ -206,7 +169,7 @@ export class UserModuleRepository extends BaseUserRepository {
       }
       
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error finding user with analytics:', error);
       throw error;
     }
@@ -228,7 +191,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('User preferences updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user preferences:', error);
       throw error;
     }
@@ -254,7 +217,7 @@ export class UserModuleRepository extends BaseUserRepository {
         logger.debug('User preferences not found', { userId });
         return null;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user preferences:', error);
       throw error;
     }
@@ -263,17 +226,17 @@ export class UserModuleRepository extends BaseUserRepository {
   /**
    * Create user session
    */
-  async createSession(sessionData: UserTypes.UserSession): Promise<any> {
+  async createSession(sessionData: UserSessionCreationData): Promise<UserSessionInstance> {
     try {
       logger.debug('Creating user session', { userId: sessionData.user_id });
       
       const { UserSession } = require('../../models');
       
-      const session = await UserSession.create(sessionData);
+      const session = await UserSession.create(sessionData) as UserSessionInstance;
       
       logger.debug('User session created', { userId: sessionData.user_id, sessionId: session.id });
       return session;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error creating user session:', error);
       throw error;
     }
@@ -282,7 +245,7 @@ export class UserModuleRepository extends BaseUserRepository {
   /**
    * Get active sessions
    */
-  async getActiveSessions(userId: string): Promise<any[]> {
+  async getActiveSessions(userId: string): Promise<UserSessionInstance[]> {
     try {
       logger.debug('Getting active sessions', { userId });
       
@@ -294,11 +257,11 @@ export class UserModuleRepository extends BaseUserRepository {
           is_active: true
         },
         order: [['last_activity', 'DESC']]
-      });
+      }) as UserSessionInstance[];
       
       logger.debug('Active sessions retrieved', { userId, count: sessions.length });
       return sessions;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting active sessions:', error);
       throw error;
     }
@@ -319,7 +282,7 @@ export class UserModuleRepository extends BaseUserRepository {
       );
       
       logger.debug('Session deactivated', { sessionId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deactivating session:', error);
       throw error;
     }
@@ -340,7 +303,7 @@ export class UserModuleRepository extends BaseUserRepository {
       );
       
       logger.debug('All sessions deactivated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error deactivating all sessions:', error);
       throw error;
     }
@@ -361,7 +324,7 @@ export class UserModuleRepository extends BaseUserRepository {
       );
       
       logger.debug('Session activity updated', { sessionId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating session activity:', error);
       throw error;
     }
@@ -384,7 +347,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('Social account linked', { userId, provider, socialId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error linking social account:', error);
       throw error;
     }
@@ -404,7 +367,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('Social account unlinked', { userId, provider });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error unlinking social account:', error);
       throw error;
     }
@@ -413,7 +376,7 @@ export class UserModuleRepository extends BaseUserRepository {
   /**
    * Get social accounts
    */
-  async getSocialAccounts(userId: string): Promise<any[]> {
+  async getSocialAccounts(userId: string): Promise<SocialAccountInstance[]> {
     try {
       logger.debug('Getting social accounts', { userId });
       
@@ -421,11 +384,11 @@ export class UserModuleRepository extends BaseUserRepository {
       
       const accounts = await SocialAccount.findAll({
         where: { user_id: userId }
-      });
+      }) as SocialAccountInstance[];
       
       logger.debug('Social accounts retrieved', { userId, count: accounts.length });
       return accounts;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting social accounts:', error);
       throw error;
     }
@@ -447,7 +410,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('User analytics updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating user analytics:', error);
       throw error;
     }
@@ -473,7 +436,7 @@ export class UserModuleRepository extends BaseUserRepository {
         logger.debug('User analytics not found', { userId });
         return null;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error getting user analytics:', error);
       throw error;
     }
@@ -495,7 +458,7 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('Notification settings updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating notification settings:', error);
       throw error;
     }
@@ -517,83 +480,10 @@ export class UserModuleRepository extends BaseUserRepository {
       });
       
       logger.debug('Privacy settings updated', { userId });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error updating privacy settings:', error);
       throw error;
     }
   }
-
-  /**
-   * Get user enrollments
-   */
-  async getUserEnrollments(userId: string): Promise<any[]> {
-    try {
-      logger.debug('Getting user enrollments', { userId });
-      
-      const { Enrollment, Course } = require('../../models');
-      
-      const enrollments = await Enrollment.findAll({
-        where: { user_id: userId },
-        include: [
-          {
-            model: Course,
-            as: 'course',
-            attributes: ['id', 'title', 'description', 'instructor_id', 'status', 'created_at']
-          }
-        ],
-        // enrolled_at cột không tồn tại trong model; dùng created_at
-        order: [['created_at', 'DESC']]
-      });
-      
-      logger.debug('User enrollments retrieved', { userId, count: enrollments.length });
-      return enrollments;
-    } catch (error) {
-      logger.error('Error getting user enrollments:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get user progress
-   */
-  async getUserProgress(userId: string): Promise<any> {
-    try {
-      logger.debug('Getting user progress', { userId });
-      
-      const { Enrollment } = require('../../models');
-      
-      // Get enrollment statistics
-      const totalEnrollments = await Enrollment.count({
-        where: { user_id: userId }
-      });
-      
-      const completedEnrollments = await Enrollment.count({
-        where: { 
-          user_id: userId,
-          status: 'completed'
-        }
-      });
-      
-      const inProgressEnrollments = await Enrollment.count({
-        where: { 
-          user_id: userId,
-          status: 'active'
-        }
-      });
-      
-      const progress = {
-        total_enrollments: totalEnrollments,
-        completed_enrollments: completedEnrollments,
-        in_progress_enrollments: inProgressEnrollments,
-        completion_rate: totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0,
-        last_activity: new Date() // TODO: Get actual last activity from enrollments
-      };
-      
-      logger.debug('User progress retrieved', { userId, progress });
-      return progress;
-    } catch (error) {
-      logger.error('Error getting user progress:', error);
-      throw error;
-    }
-  }
 }
+

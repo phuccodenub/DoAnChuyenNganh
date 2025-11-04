@@ -1,5 +1,6 @@
 import { NotificationsRepository } from './notifications.repository';
 import { CreateNotificationDto, QueryNotificationsDto } from './notifications.types';
+import { NotificationInstance } from '../../types/model.types';
 
 export class NotificationsService {
   private repo: NotificationsRepository;
@@ -8,13 +9,13 @@ export class NotificationsService {
     this.repo = new NotificationsRepository();
   }
 
-  async create(senderId: string | null, dto: CreateNotificationDto) {
+  async create(senderId: string | null, dto: CreateNotificationDto): Promise<NotificationInstance> {
     const { recipient_ids = [], ...notifData } = dto;
     const notification = await this.repo.createNotification(senderId, notifData);
 
     if (!dto.is_broadcast && recipient_ids.length > 0) {
       await this.repo.bulkCreateRecipients(notification.id, recipient_ids);
-      notification.total_recipients = recipient_ids.length as any;
+      notification.total_recipients = recipient_ids.length;
       await (notification as any).save();
     }
 
@@ -43,6 +44,19 @@ export class NotificationsService {
     return await this.repo.archiveOld(userId, days);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,10 +1,16 @@
 import { BaseRepository } from '../../repositories/base.repository';
 import Lesson from '../../models/lesson.model';
+import type { ModelStatic } from '../../types/sequelize-types';
+import type { LessonInstance } from '../../types/model.types';
 import logger from '../../utils/logger.util';
 
-export class LessonRepository extends BaseRepository<Lesson> {
+export class LessonRepository extends BaseRepository<LessonInstance> {
   constructor() {
-    super(Lesson);
+    super('Lesson');
+  }
+
+  protected getModel(): ModelStatic<LessonInstance> {
+    return Lesson as unknown as ModelStatic<LessonInstance>;
   }
 
   /**

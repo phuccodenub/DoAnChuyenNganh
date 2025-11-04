@@ -88,14 +88,8 @@ export const normalizeUtils = {
    */
   removeAccents(str: string): string {
     if (!str) return str;
-    
-    const accents = 'ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠưăâêôơ';
-    const withoutAccents = 'AAAAEEEIIOOOOUUADIUOaaaaeeeiioooouuadiuouaaeooouaaeoo';
-    
-    return str.split('').map(char => {
-      const index = accents.indexOf(char);
-      return index !== -1 ? withoutAccents[index] : char;
-    }).join('');
+    // Use Unicode normalization to strip diacritics comprehensively
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   },
 
   /**

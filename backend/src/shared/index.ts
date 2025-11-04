@@ -1,10 +1,9 @@
-// Chỉ re-export phần an toàn trong phạm vi shared
+// Minimal shared barrel to satisfy monitoring build without path alias complexities
 
 // Constants
 export * from '../constants/app.constants';
 export * from '../constants/response.constants';
-export * from '../constants/user.constants';
 export * from '../constants/roles.enum';
 
-// Base classes
-export * from './base/base.controller';
+// Keep shared extremely minimal to avoid cross-package compile issues
+

@@ -16,6 +16,7 @@ import {
   FileErrorCodes
 } from './files.types';
 import logger from '../../utils/logger.util';
+import { GCSStorageService } from '../../services/storage/gcs.service';
 
 const unlinkAsync = promisify(fs.unlink);
 const statAsync = promisify(fs.stat);
@@ -25,15 +26,21 @@ export class FilesService {
   private uploadDir: string;
   private storageType: StorageType;
   private publicUrl: string;
+  private gcs?: GCSStorageService;
 
   constructor() {
     this.uploadDir = process.env.UPLOAD_PATH || './uploads';
     this.storageType = (process.env.STORAGE_TYPE as StorageType) || StorageType.LOCAL;
     this.publicUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
 
-    // Ensure upload directory exists
-    if (!fs.existsSync(this.uploadDir)) {
-      fs.mkdirSync(this.uploadDir, { recursive: true });
+    // Initialize cloud storage clients if needed
+    if (this.storageType === StorageType.GOOGLE_CLOUD) {
+      this.gcs = new GCSStorageService();
+    } else {
+      // Ensure upload directory exists for local storage
+      if (!fs.existsSync(this.uploadDir)) {
+        fs.mkdirSync(this.uploadDir, { recursive: true });
+      }
     }
   }
 
@@ -45,6 +52,17 @@ export class FilesService {
     options: FileUploadOptions
   ): Promise<UploadedFileInfo> {
     try {
+      // Cloud storage path
+      if (this.storageType === StorageType.GOOGLE_CLOUD) {
+        if (!this.gcs) throw new Error('GCS service not initialized');
+        // Expect memory storage providing file.buffer
+        if (!(file as any).buffer) {
+          throw new Error('Memory storage required for cloud uploads (file.buffer missing)');
+        }
+        const result = await this.gcs.uploadFile(file, options);
+        return result;
+      }
+
       const fileInfo: UploadedFileInfo = {
         filename: file.filename,
         originalName: file.originalname,
@@ -168,17 +186,19 @@ export class FilesService {
     expiresIn: number = 3600
   ): Promise<string> {
     try {
-      // For local storage, return regular URL
+      // Local storage -> regular URL
       if (this.storageType === StorageType.LOCAL) {
         return this.generateFileUrl(folder, filename);
       }
 
-      // For cloud storage, implement signed URL generation
-      // TODO: Implement AWS S3, Azure Blob, or Google Cloud Storage signed URLs
-      
-      const url = `${this.generateFileUrl(folder, filename)}?expires=${Date.now() + expiresIn * 1000}`;
-      
-      return url;
+      if (this.storageType === StorageType.GOOGLE_CLOUD) {
+        if (!this.gcs) throw new Error('GCS service not initialized');
+        const objectPath = `${folder}/${filename}`;
+        return await this.gcs.generateSignedUrl(objectPath, expiresIn);
+      }
+
+      // Fallback for other cloud types (not implemented)
+      return `${this.generateFileUrl(folder, filename)}?expires=${Date.now() + expiresIn * 1000}`;
     } catch (error: unknown) {
       logger.error('Error generating signed URL:', error);
       throw error;

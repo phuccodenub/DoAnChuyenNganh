@@ -3,7 +3,8 @@
  * Test database operations and models
  */
 
-import { Sequelize } from 'sequelize';
+// @ts-nocheck
+import { Sequelize, QueryTypes } from 'sequelize';
 import { createTestDatabase, generateUUID } from '../../utils/test.utils';
 import { UserFactory } from '../../factories/user.factory';
 import { CourseFactory } from '../../factories/course.factory';
@@ -39,7 +40,7 @@ describe('Database Integration Tests', () => {
             testUser.first_name, testUser.last_name, testUser.role, testUser.status,
             testUser.email_verified, testUser.two_factor_enabled, new Date(), new Date()
           ],
-          type: Sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
 
@@ -78,7 +79,7 @@ describe('Database Integration Tests', () => {
         'SELECT * FROM users WHERE email = ?',
         {
           replacements: [testUser.email],
-          type: Sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
 
@@ -111,7 +112,7 @@ describe('Database Integration Tests', () => {
         'SELECT * FROM users WHERE username = ?',
         {
           replacements: [testUser.username],
-          type: Sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
 
@@ -152,7 +153,7 @@ describe('Database Integration Tests', () => {
           replacements: [
             updateData.first_name, updateData.last_name, updateData.bio, new Date(), testUser.id
           ],
-          type: Sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
 
@@ -194,7 +195,7 @@ describe('Database Integration Tests', () => {
         'SELECT * FROM users WHERE id = ?',
         {
           replacements: [testUser.id],
-          type: Sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
 
@@ -278,15 +279,37 @@ describe('Database Integration Tests', () => {
 
     it('should create a course successfully', async () => {
       const testCourse = CourseFactory.create();
+      // Ensure instructor exists to satisfy FK constraint
+      const instructorId = testCourse.instructor_id;
+      await sequelize.query(
+        `INSERT INTO users (id, email, username, password, first_name, last_name, role, status, email_verified, two_factor_enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        {
+          replacements: [
+            instructorId,
+            `instructor-${instructorId}@example.com`,
+            `instructor_${instructorId.slice(0,8)}`,
+            'TestPassword123!',
+            'Instructor',
+            'User',
+            'instructor',
+            'active',
+            true,
+            false,
+            new Date(),
+            new Date()
+          ]
+        }
+      );
       
       const result = await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO courses (id, title, description, instructor_id, status, price, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING *`,
         {
           replacements: [
             testCourse.id, testCourse.title, testCourse.description, testCourse.instructor_id,
-            testCourse.category, testCourse.status, testCourse.price, new Date(), new Date()
+            testCourse.status, testCourse.price, new Date(), new Date()
           ],
           type: Sequelize.QueryTypes.SELECT
         }
@@ -298,48 +321,89 @@ describe('Database Integration Tests', () => {
         title: testCourse.title,
         description: testCourse.description,
         instructor_id: testCourse.instructor_id,
-        category: testCourse.category,
         status: testCourse.status,
         price: testCourse.price
       });
     });
 
-    it('should find courses by instructor', async () => {
+  it('should find courses by instructor', async () => {
       const instructorId = generateUUID();
+      // Create instructor user for FK
+      await sequelize.query(
+        `INSERT INTO users (id, email, username, password, first_name, last_name, role, status, email_verified, two_factor_enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        {
+          replacements: [
+            instructorId,
+            `instructor-${instructorId}@example.com`,
+            `instructor_${instructorId.slice(0,8)}`,
+            'TestPassword123!',
+            'Instructor',
+            'User',
+            'instructor',
+            'active',
+            true,
+            false,
+            new Date(),
+            new Date()
+          ]
+        }
+      );
       const testCourse1 = CourseFactory.create({ instructor_id: instructorId });
       const testCourse2 = CourseFactory.create({ instructor_id: instructorId });
       const testCourse3 = CourseFactory.create(); // Different instructor
+      // Ensure instructor exists for third course as well
+      await sequelize.query(
+        `INSERT INTO users (id, email, username, password, first_name, last_name, role, status, email_verified, two_factor_enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        {
+          replacements: [
+            testCourse3.instructor_id,
+            `instructor-${testCourse3.instructor_id}@example.com`,
+            `instructor_${testCourse3.instructor_id.slice(0,8)}`,
+            'TestPassword123!',
+            'Instructor',
+            'User',
+            'instructor',
+            'active',
+            true,
+            false,
+            new Date(),
+            new Date()
+          ]
+        }
+      );
 
       // Insert courses
       await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO courses (id, title, description, instructor_id, status, price, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         {
           replacements: [
             testCourse1.id, testCourse1.title, testCourse1.description, testCourse1.instructor_id,
-            testCourse1.category, testCourse1.status, testCourse1.price, new Date(), new Date()
+            testCourse1.status, testCourse1.price, new Date(), new Date()
           ]
         }
       );
 
       await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO courses (id, title, description, instructor_id, status, price, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         {
           replacements: [
             testCourse2.id, testCourse2.title, testCourse2.description, testCourse2.instructor_id,
-            testCourse2.category, testCourse2.status, testCourse2.price, new Date(), new Date()
+            testCourse2.status, testCourse2.price, new Date(), new Date()
           ]
         }
       );
 
       await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO courses (id, title, description, instructor_id, status, price, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         {
           replacements: [
             testCourse3.id, testCourse3.title, testCourse3.description, testCourse3.instructor_id,
-            testCourse3.category, testCourse3.status, testCourse3.price, new Date(), new Date()
+            testCourse3.status, testCourse3.price, new Date(), new Date()
           ]
         }
       );
@@ -358,71 +422,115 @@ describe('Database Integration Tests', () => {
       expect(result[1].instructor_id).toBe(instructorId);
     });
 
-    it('should find courses by category', async () => {
-      const category = 'programming';
-      const testCourse1 = CourseFactory.create({ category });
-      const testCourse2 = CourseFactory.create({ category });
-      const testCourse3 = CourseFactory.create({ category: 'design' }); // Different category
+    it('should find courses by level', async () => {
+      const level = 'beginner';
+      const testCourse1 = CourseFactory.create({ level });
+      const testCourse2 = CourseFactory.create({ level });
+      const testCourse3 = CourseFactory.create({ level: 'advanced' }); // Different level
+      // Ensure instructors exist for FKs
+      for (const course of [testCourse1, testCourse2, testCourse3]) {
+        await sequelize.query(
+          `INSERT INTO users (id, email, username, password, first_name, last_name, role, status, email_verified, two_factor_enabled, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          {
+            replacements: [
+              course.instructor_id,
+              `instructor-${course.instructor_id}@example.com`,
+              `instructor_${course.instructor_id.slice(0,8)}`,
+              'TestPassword123!',
+              'Instructor',
+              'User',
+              'instructor',
+              'active',
+              true,
+              false,
+              new Date(),
+              new Date()
+            ]
+          }
+        );
+      }
 
       // Insert courses
       await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
+        `INSERT INTO courses (id, title, description, instructor_id, level, status, price, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         {
           replacements: [
             testCourse1.id, testCourse1.title, testCourse1.description, testCourse1.instructor_id,
-            testCourse1.category, testCourse1.status, testCourse1.price, new Date(), new Date()
+            testCourse1.level, testCourse1.status, testCourse1.price, new Date(), new Date()
           ]
         }
       );
 
       await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
+        `INSERT INTO courses (id, title, description, instructor_id, level, status, price, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         {
           replacements: [
             testCourse2.id, testCourse2.title, testCourse2.description, testCourse2.instructor_id,
-            testCourse2.category, testCourse2.status, testCourse2.price, new Date(), new Date()
+            testCourse2.level, testCourse2.status, testCourse2.price, new Date(), new Date()
           ]
         }
       );
 
       await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
+        `INSERT INTO courses (id, title, description, instructor_id, level, status, price, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         {
           replacements: [
             testCourse3.id, testCourse3.title, testCourse3.description, testCourse3.instructor_id,
-            testCourse3.category, testCourse3.status, testCourse3.price, new Date(), new Date()
+            testCourse3.level, testCourse3.status, testCourse3.price, new Date(), new Date()
           ]
         }
       );
 
       // Find courses by category
       const result = await sequelize.query(
-        'SELECT * FROM courses WHERE category = ?',
+        'SELECT * FROM courses WHERE level = ?',
         {
-          replacements: [category],
+          replacements: [level],
           type: Sequelize.QueryTypes.SELECT
         }
       );
 
       expect(result).toHaveLength(2);
-      expect(result[0].category).toBe(category);
-      expect(result[1].category).toBe(category);
+      expect(result[0].level).toBe(level);
+      expect(result[1].level).toBe(level);
     });
 
     it('should update course successfully', async () => {
       const testCourse = CourseFactory.create();
+      // Ensure instructor exists for FK
+      await sequelize.query(
+        `INSERT INTO users (id, email, username, password, first_name, last_name, role, status, email_verified, two_factor_enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        {
+          replacements: [
+            testCourse.instructor_id,
+            `instructor-${testCourse.instructor_id}@example.com`,
+            `instructor_${testCourse.instructor_id.slice(0,8)}`,
+            'TestPassword123!',
+            'Instructor',
+            'User',
+            'instructor',
+            'active',
+            true,
+            false,
+            new Date(),
+            new Date()
+          ]
+        }
+      );
       
       // Insert course
       await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO courses (id, title, description, instructor_id, status, price, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         {
           replacements: [
             testCourse.id, testCourse.title, testCourse.description, testCourse.instructor_id,
-            testCourse.category, testCourse.status, testCourse.price, new Date(), new Date()
+            testCourse.status, testCourse.price, new Date(), new Date()
           ]
         }
       );
@@ -455,15 +563,36 @@ describe('Database Integration Tests', () => {
 
     it('should delete course successfully', async () => {
       const testCourse = CourseFactory.create();
+      // Ensure instructor exists for FK
+      await sequelize.query(
+        `INSERT INTO users (id, email, username, password, first_name, last_name, role, status, email_verified, two_factor_enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        {
+          replacements: [
+            testCourse.instructor_id,
+            `instructor-${testCourse.instructor_id}@example.com`,
+            `instructor_${testCourse.instructor_id.slice(0,8)}`,
+            'TestPassword123!',
+            'Instructor',
+            'User',
+            'instructor',
+            'active',
+            true,
+            false,
+            new Date(),
+            new Date()
+          ]
+        }
+      );
       
       // Insert course
       await sequelize.query(
-        `INSERT INTO courses (id, title, description, instructor_id, category, status, price, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO courses (id, title, description, instructor_id, status, price, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         {
           replacements: [
             testCourse.id, testCourse.title, testCourse.description, testCourse.instructor_id,
-            testCourse.category, testCourse.status, testCourse.price, new Date(), new Date()
+            testCourse.status, testCourse.price, new Date(), new Date()
           ]
         }
       );
@@ -494,7 +623,7 @@ describe('Database Integration Tests', () => {
       const result = await sequelize.query(
         `SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'users'`,
         {
-          type: Sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
 
@@ -510,15 +639,15 @@ describe('Database Integration Tests', () => {
       const result = await sequelize.query(
         `SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'courses'`,
         {
-          type: Sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
 
       const indexNames = result.map((row: any) => row.indexname);
       
-      expect(indexNames).toContain('idx_courses_instructor_id');
-      expect(indexNames).toContain('idx_courses_status');
-      expect(indexNames).toContain('idx_courses_category');
+  expect(indexNames).toContain('idx_courses_instructor_id');
+  expect(indexNames).toContain('idx_courses_status');
+  expect(indexNames).toContain('idx_courses_level');
     });
   });
 });

@@ -290,7 +290,25 @@ export class MetricsMiddleware {
 }
 
 // Export singleton instance
-export const metricsMiddleware = new MetricsMiddleware(new MetricsService());
+// In test environments, export a no-op middleware to avoid timers/open handles
+const disableMetrics = process.env.DISABLE_METRICS === 'true' || process.env.NODE_ENV === 'test';
+
+class NoopMetricsMiddleware {
+  public collectHttpMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+  public collectDatabaseMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+  public collectRedisMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+  public collectMemoryMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+  public collectCpuMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+  public collectUptimeMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+  public collectErrorMetrics = (_err: unknown, _req: Request, _res: Response, next: NextFunction) => next();
+  public collectAuthMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+  public collectUserMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+  public collectCourseMetrics = (_req: Request, _res: Response, next: NextFunction) => next();
+}
+
+export const metricsMiddleware = disableMetrics
+  ? (new NoopMetricsMiddleware() as unknown as MetricsMiddleware)
+  : new MetricsMiddleware(new MetricsService());
 
 // Helpers
 function normalizeRoute(req: Request): string {

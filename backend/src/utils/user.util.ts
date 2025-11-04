@@ -11,6 +11,7 @@ type PublicUserFields = Pick<
   UserInstance,
   | 'id'
   | 'email'
+  | 'username'
   | 'first_name'
   | 'last_name'
   | 'phone'
@@ -53,6 +54,7 @@ export const userUtils = {
     const {
       id,
       email,
+      username,
       first_name,
       last_name,
       phone,
@@ -83,6 +85,7 @@ export const userUtils = {
     return {
       id,
       email,
+      username,
       first_name,
       last_name,
       phone,
@@ -140,9 +143,11 @@ export const userUtils = {
   getInitials(user: UserInstance): string {
     const firstName = user.first_name || '';
     const lastName = user.last_name || '';
-    const firstInitial = firstName.charAt(0).toUpperCase();
-    const lastInitial = lastName.charAt(0).toUpperCase();
-    return `${firstInitial}${lastInitial}`;
+    const firstInitial = firstName.trim().charAt(0).toUpperCase();
+    const lastWord = lastName.trim().split(/\s+/).pop() || '';
+    const lastInitial = lastWord.charAt(0).toUpperCase();
+    const initials = `${firstInitial}${lastInitial}`;
+    return initials.trim();
   },
 
   /**
@@ -155,7 +160,7 @@ export const userUtils = {
   },
 
   /**
-   * Check if user email is verified
+   * Check if user's email is verified
    * @param user - User instance
    * @returns True if email is verified
    */
@@ -280,7 +285,7 @@ export const userUtils = {
    */
   async comparePassword(user: UserInstance, candidatePassword: string): Promise<boolean> {
     try {
-      return await comparePassword(candidatePassword, user.password);
+      return await comparePassword(candidatePassword, user.password_hash);
     } catch (error) {
       throw new Error('Password comparison failed');
     }
@@ -295,6 +300,7 @@ export const userUtils = {
     const publicFields: (keyof UserInstance)[] = [
       'id',
       'email',
+      'username',
       'first_name',
       'last_name',
       'phone',
@@ -322,11 +328,11 @@ export const userUtils = {
       'emergency_phone'
     ];
 
-    const sanitized: Partial<UserInstance> = {};
+    const sanitized: any = {};
     publicFields.forEach(field => {
       const value = user[field];
       if (value !== undefined) {
-        (sanitized as any)[field] = value;
+        sanitized[field] = value as any;
       }
     });
 

@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '../constants/roles.enum';
 import { JWTPayload } from '../config/jwt.config';
 
@@ -8,21 +8,33 @@ export interface AuthenticatedRequest extends Request {
 }
 
 // Common API response types
-export interface ApiResponse<T> {
+export type ApiErrorItem = {
+  message: string;
+  code?: string;
+  field?: string;
+  value?: unknown;
+};
+
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
-  data: T | null;
-  errors?: any;
+  data?: T;
+  meta?: Record<string, unknown>;
+  errors?: ApiErrorItem[];
 }
 
 export interface Pagination {
   page: number;
   limit: number;
-  totalItems: number;
+  total: number;
   totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+  nextPage?: number;
+  prevPage?: number;
 }
 
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T[]> {
   pagination: Pagination;
 }
 
@@ -39,35 +51,35 @@ export interface Timestamps {
 }
 
 // Common service interfaces
-export interface BaseService<T, CreateDto, UpdateDto> {
+export interface BaseService<T, CreateDto, UpdateDto, Options extends object = SearchOptions> {
   create(data: CreateDto): Promise<T>;
   findById(id: string): Promise<T | null>;
-  findAll(options?: any): Promise<T[]>;
+  findAll(options?: Options): Promise<T[]>;
   update(id: string, data: UpdateDto): Promise<T | null>;
   delete(id: string): Promise<boolean>;
 }
 
 // Common controller interfaces
 export interface BaseController<T, CreateDto, UpdateDto> {
-  create(req: any, res: any, next: any): Promise<void>;
-  findById(req: any, res: any, next: any): Promise<void>;
-  findAll(req: any, res: any, next: any): Promise<void>;
-  update(req: any, res: any, next: any): Promise<void>;
-  delete(req: any, res: any, next: any): Promise<void>;
+  create(req: Request, res: Response, next: NextFunction): Promise<void>;
+  findById(req: Request, res: Response, next: NextFunction): Promise<void>;
+  findAll(req: Request, res: Response, next: NextFunction): Promise<void>;
+  update(req: Request, res: Response, next: NextFunction): Promise<void>;
+  delete(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
 
 // Common validation schemas
-export interface ValidationSchema {
-  body?: any;
-  query?: any;
-  params?: any;
+export interface ValidationSchema<TBody = unknown, TQuery = unknown, TParams = unknown> {
+  body?: TBody;
+  query?: TQuery;
+  params?: TParams;
 }
 
 // Common error types
 export interface ServiceError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 // Common pagination options
@@ -81,7 +93,7 @@ export interface PaginationOptions {
 // Common search options
 export interface SearchOptions extends PaginationOptions {
   search?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 // Configuration interfaces
@@ -143,7 +155,7 @@ export interface EmailOptions {
   subject: string;
   html?: string;
   text?: string;
-  attachments?: any[];
+  attachments?: unknown[];
 }
 
 // Cache interfaces

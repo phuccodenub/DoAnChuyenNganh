@@ -1,4 +1,4 @@
-import { tokenUtils } from '../../utils/token.util';
+import { jwtUtils, TokenUserInput } from '../../utils/jwt.util';
 import { comparePassword, hashPassword } from '../../utils';
 import logger from '../../utils/logger.util';
 
@@ -6,30 +6,30 @@ export class GlobalAuthService {
   // ===== JWT UTILITIES (Shared across modules) =====
 
   // Generate tokens for any user
-  async generateTokens(user: any): Promise<{ accessToken: string; refreshToken: string }> {
+  async generateTokens(user: TokenUserInput): Promise<{ accessToken: string; refreshToken: string }> {
     try {
-      return tokenUtils.jwt.generateTokenPair(user);
-    } catch (error) {
+      return jwtUtils.generateTokenPair(user);
+    } catch (error: unknown) {
       logger.error('Error generating tokens:', error);
       throw error;
     }
   }
 
   // Verify access token
-  async verifyAccessToken(token: string): Promise<any> {
+  async verifyAccessToken(token: string): Promise<{ userId: string; email: string; role: string }> {
     try {
-      return await tokenUtils.jwt.verifyAccessToken(token);
-    } catch (error) {
+      return await jwtUtils.verifyAccessToken(token);
+    } catch (error: unknown) {
       logger.error('Error verifying access token:', error);
       throw error;
     }
   }
 
   // Verify refresh token
-  async verifyRefreshToken(token: string): Promise<any> {
+  async verifyRefreshToken(token: string): Promise<{ userId: string; tokenVersion: number }> {
     try {
-      return await tokenUtils.jwt.verifyRefreshToken(token);
-    } catch (error) {
+      return await jwtUtils.verifyRefreshToken(token);
+    } catch (error: unknown) {
       logger.error('Error verifying refresh token:', error);
       throw error;
     }
@@ -41,7 +41,7 @@ export class GlobalAuthService {
   async hashPassword(password: string): Promise<string> {
     try {
       return await hashPassword(password);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error hashing password:', error);
       throw error;
     }
@@ -51,7 +51,7 @@ export class GlobalAuthService {
   async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
     try {
       return await comparePassword(plainPassword, hashedPassword);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error comparing password:', error);
       return false;
     }
@@ -64,18 +64,19 @@ export class GlobalAuthService {
     try {
       const parts = token.split('.');
       return parts.length === 3;
-    } catch (error) {
+    } catch (error: unknown) {
       return false;
     }
   }
 
   // Decode JWT token (without verification)
-  decodeToken(token: string): any {
+  decodeToken(token: string): unknown {
     try {
-      return (tokenUtils.jwt as any).isTokenExpired(token) ? null : { valid: true };
-    } catch (error) {
+      return jwtUtils.decodeToken(token);
+    } catch (error: unknown) {
       logger.error('Error decoding token:', error);
       return null;
     }
   }
 }
+

@@ -18,7 +18,57 @@
     "sort": "Sắp xếp",
     "view": "Xem",
     "download": "Tải xuống",
-    "upload": "Tải lên"
+    "upload": "Tải lên",
+    "create": "Tạo",
+    "update": "Cập nhật",
+    "refresh": "Làm mới",
+    "settings": "Cài đặt",
+    "profile": "Hồ sơ",
+    "logout": "Đăng xuất",
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "confirm": "Xác nhận",
+    "yes": "Có",
+    "no": "Không"
+  },
+  "myCourses": {
+    "accessDeniedTitle": "Từ chối truy cập",
+    "accessDeniedDescription": "Trang này chỉ dành cho giảng viên.",
+    "subtitle": "Quản lý khóa học và nội dung của bạn",
+    "createNew": "Tạo khóa học mới",
+    "labels": {
+      "enrolledStudents": "Học sinh đã đăng ký"
+    },
+    "archiveCourse": "Lưu trữ khóa học",
+    "restoreCourse": "Khôi phục khóa học",
+    "empty": {
+      "title": "Chưa có khóa học nào",
+      "subtitle": "Tạo khóa học đầu tiên của bạn để bắt đầu giảng dạy.",
+      "createFirst": "Tạo khóa học đầu tiên"
+    },
+    "quickStats": {
+      "title": "Thống kê nhanh",
+      "activeCourses": "Khóa học đang hoạt động",
+      "totalStudents": "Tổng học sinh",
+      "totalCredits": "Tổng tín chỉ",
+      "archived": "Đã lưu trữ"
+    }
+  },
+  "liveStream": {
+    "authRequiredTitle": "Yêu cầu xác thực",
+    "authRequiredDescription": "Vui lòng đăng nhập để truy cập phát trực tiếp.",
+    "notFoundTitle": "Không tìm thấy khóa học",
+    "notFoundDescription": "Khóa học bạn đang tìm kiếm không tồn tại.",
+    "backToCourse": "Về khóa học"
+  },
+  "errors": {
+    "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    "accessDenied": "Từ chối truy cập. Bạn không có quyền thực hiện thao tác này.",
+    "validation": "Dữ liệu không hợp lệ. Vui lòng kiểm tra và thử lại.",
+    "tooManyRequests": "Thao tác quá nhanh. Vui lòng thử lại sau.",
+    "server": "Lỗi máy chủ. Vui lòng thử lại sau.",
+    "unexpected": "Đã xảy ra lỗi không mong muốn.",
+    "network": "Lỗi mạng. Vui lòng kiểm tra kết nối của bạn."
   },
   "auth": {
     "login": {
@@ -53,6 +103,15 @@
       "submit": "Tạo tài khoản",
       "haveAccount": "Đã có tài khoản?",
       "signIn": "Đăng nhập"
+    },
+    "messages": {
+      "loginSuccess": "Đăng nhập thành công!",
+      "loginFailed": "Đăng nhập thất bại",
+      "registerSuccess": "Đăng ký thành công!",
+      "registerFailed": "Đăng ký thất bại",
+      "logoutSuccess": "Đã đăng xuất thành công",
+      "updateProfileSuccess": "Cập nhật hồ sơ thành công!",
+      "updateProfileFailed": "Cập nhật hồ sơ thất bại"
     }
   },
   "home": {
@@ -102,7 +161,32 @@
     "upcomingEvents": "Sự kiện sắp tới",
     "progress": "Tiến trình",
     "notifications": "Thông báo",
-    "quickActions": "Hành động nhanh"
+    "quickActions": "Hành động nhanh",
+    "welcomeBackTitle": "Chào mừng trở lại, {{name}}!",
+    "welcomeSubtitleInstructor": "Quản lý khóa học và tương tác với học sinh",
+    "welcomeSubtitleStudent": "Tiếp tục hành trình học tập của bạn",
+    "stats": {
+      "instructorCourses": "Khóa học đang giảng dạy",
+      "enrolledCourses": "Khóa học đã đăng ký"
+    },
+    "analytics": {
+      "title": "Phân tích học tập của bạn"
+    },
+    "yourCourses": "Khóa học của bạn",
+    "empty": {
+      "instructorTitle": "Chưa tạo khóa học nào",
+      "instructorSubtitle": "Bắt đầu bằng việc tạo khóa học đầu tiên của bạn",
+      "studentTitle": "Chưa đăng ký khóa học nào",
+      "studentSubtitle": "Duyệt các khóa học có sẵn để bắt đầu học tập"
+    },
+    "demo": {
+      "notificationsTitle": "Thông báo thời gian thực",
+      "notificationsDescription": "Kiểm tra cập nhật trực tiếp, cảnh báo toast và thông báo trình duyệt.",
+      "tryNotification": "Thử thông báo",
+      "aiTitle": "Trợ lý AI",
+      "aiDescription": "Nhận trợ giúp về khóa học, đặt câu hỏi và nhận hỗ trợ học tập.",
+      "aiHint": "Tìm nút trợ lý AI nổi ở góc dưới bên phải!"
+    }
   },
   "courses": {
     "title": "Khóa học",
@@ -116,12 +200,64 @@
     "sort": "Sắp xếp theo",
     "enroll": "Đăng ký",
     "unenroll": "Hủy đăng ký",
-    "viewDetails": "Xem chi tiết"
+    "viewDetails": "Xem chi tiết",
+    "available": "Khóa học có sẵn",
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Không hoạt động",
+      "archived": "Đã lưu trữ"
+    },
+    "labels": {
+      "students": "học sinh",
+      "startedAgo": "Bắt đầu {{time}} trước"
+    },
+    "enrollNow": "Đăng ký ngay",
+    "viewCourse": "Xem khóa học",
+    "detail": {
+      "courseInfo": "Thông tin khóa học",
+      "description": "Mô tả",
+      "schedule": "Lịch học",
+      "credits": "Tín chỉ",
+      "students": "Học sinh",
+      "learningObjectives": "Mục tiêu học tập",
+      "learningObjective1": "Hiểu các khái niệm và nguyên tắc cơ bản",
+      "learningObjective2": "Áp dụng kiến thức lý thuyết vào các tình huống thực tế",
+      "learningObjective3": "Phát triển tư duy phản biện và kỹ năng giải quyết vấn đề",
+      "learningObjective4": "Hoàn thành các dự án thực hành và bài tập",
+      "progress": "Tiến độ",
+      "courseProgress": "Tiến độ khóa học",
+      "quickActions": "Hành động nhanh",
+      "viewCourseContent": "Xem nội dung khóa học",
+      "joinDiscussion": "Tham gia thảo luận",
+      "liveSession": "Phiên trực tiếp",
+      "startLiveSession": "Bắt đầu phát trực tiếp",
+      "joinLiveSession": "Tham gia phát trực tiếp",
+      "manageStudents": "Quản lý học sinh",
+      "courseContent": "Nội dung khóa học",
+      "addContent": "Thêm nội dung",
+      "video": "Video",
+      "reading": "Đọc",
+      "assignment": "Bài tập",
+      "review": "Ôn tập",
+      "start": "Bắt đầu",
+      "editCourse": "Chỉnh sửa khóa học",
+      "discussion": "Thảo luận khóa học",
+      "realtimeMessaging": "Nhắn tin thời gian thực",
+      "tabs": {
+        "overview": "Tổng quan",
+        "content": "Nội dung",
+        "files": "Tệp tin",
+        "quizzes": "Bài kiểm tra",
+        "chat": "Thảo luận"
+      },
+      "lessonsCompleted": "{{completed}} trong {{total}} bài học đã hoàn thành"
+    }
   },
   "demo": {
     "mode": "Chế độ Demo",
     "demoMode": "Chế độ Demo",
     "demoModeActive": "Chế độ Demo đang hoạt động",
+    "demoModeInfo": "Bạn đang sử dụng phiên bản demo với dữ liệu giả lập. Tất cả các tương tác đều được mô phỏng và dữ liệu sẽ không được lưu trữ sau khi làm mới trang. Hãy chuyển đổi giữa các tài khoản demo khác nhau để trải nghiệm các vai trò người dùng khác nhau.",
     "demoNotice": "Chế độ Demo",
     "connected": "Đã kết nối",
     "demoModeShort": "Demo",
@@ -179,6 +315,150 @@
       "instructions": {
         "title": "Cách kiểm tra:"
       }
+    }
+  }
+  ,
+  "coursePage": {
+    "title": "Khóa học {{id}}",
+    "description": "Nội dung khóa học sẽ được triển khai sau khi thiết lập cơ sở dữ liệu. Điều này sẽ bao gồm:",
+    "items": {
+      "materials": "Tài liệu và tài nguyên khóa học",
+      "realtimeChat": "Chat thời gian thực với bạn học",
+      "assignments": "Nộp bài tập",
+      "liveSessions": "Truy cập phiên học trực tiếp"
+    }
+  },
+  "chat": {
+    "title": "Trò chuyện",
+    "sendMessage": "Gửi tin nhắn",
+    "placeholder": "Nhập tin nhắn...",
+    "fileUpload": "Tải lên tệp",
+    "onlineUsers": "Người dùng trực tuyến",
+    "typing": "đang gõ...",
+    "searchMessages": "Tìm kiếm tin nhắn",
+    "noMessages": "Chưa có tin nhắn nào",
+    "messageTypes": {
+      "text": "Văn bản",
+      "file": "Tệp",
+      "image": "Hình ảnh"
+    },
+    "actions": {
+      "edit": "Chỉnh sửa",
+      "delete": "Xóa",
+      "reply": "Trả lời"
+    }
+  },
+  "quiz": {
+    "title": "Bài kiểm tra",
+    "create": "Tạo bài kiểm tra",
+    "start": "Bắt đầu",
+    "submit": "Nộp bài",
+    "results": "Kết quả",
+    "timeRemaining": "Thời gian còn lại",
+    "questions": "Câu hỏi",
+    "attempts": "Lần thử",
+    "score": "Điểm số",
+    "status": {
+      "draft": "Bản nháp",
+      "published": "Đã xuất bản",
+      "completed": "Đã hoàn thành",
+      "in_progress": "Đang thực hiện"
+    },
+    "types": {
+      "multiple_choice": "Trắc nghiệm",
+      "true_false": "Đúng/Sai",
+      "short_answer": "Câu trả lời ngắn",
+      "essay": "Tự luận"
+    },
+    "instructor": {
+      "createQuiz": "Tạo bài kiểm tra mới",
+      "addQuestion": "Thêm câu hỏi",
+      "viewAttempts": "Xem bài làm",
+      "statistics": "Thống kê"
+    },
+    "student": {
+      "takeQuiz": "Làm bài kiểm tra",
+      "viewResults": "Xem kết quả",
+      "retakeQuiz": "Làm lại"
+    }
+  },
+  "files": {
+    "title": "Tệp tin",
+    "upload": "Tải lên",
+    "download": "Tải xuống",
+    "delete": "Xóa",
+    "preview": "Xem trước",
+    "maxSize": "Kích thước tối đa",
+    "allowedTypes": "Loại tệp được phép",
+    "uploadProgress": "Tiến trình tải lên",
+    "folders": {
+      "general": "Chung",
+      "assignments": "Bài tập",
+      "lectures": "Bài giảng",
+      "resources": "Tài nguyên"
+    },
+    "actions": {
+      "selectFiles": "Chọn tệp",
+      "dragDrop": "Kéo thả tệp vào đây",
+      "viewDetails": "Xem chi tiết",
+      "generateLink": "Tạo liên kết"
+    },
+    "errors": {
+      "fileTooLarge": "Tệp quá lớn",
+      "invalidType": "Loại tệp không hợp lệ",
+      "uploadFailed": "Tải lên thất bại"
+    }
+  },
+  "livestream": {
+    "title": "Phát trực tiếp",
+    "start": "Bắt đầu phát",
+    "join": "Tham gia",
+    "end": "Kết thúc",
+    "viewers": "Người xem",
+    "chat": "Trò chuyện trực tiếp",
+    "settings": "Cài đặt phát sóng",
+    "status": {
+      "scheduled": "Đã lên lịch",
+      "live": "Đang phát trực tiếp",
+      "ended": "Đã kết thúc"
+    },
+    "controls": {
+      "camera": "Camera",
+      "microphone": "Microphone",
+      "screen": "Chia sẻ màn hình",
+      "record": "Ghi hình"
+    },
+    "instructor": {
+      "createSession": "Tạo phiên phát sóng",
+      "manageViewers": "Quản lý người xem",
+      "viewStatistics": "Xem thống kê"
+    },
+    "student": {
+      "joinSession": "Tham gia phiên",
+      "askQuestion": "Đặt câu hỏi",
+      "raiseHand": "Giơ tay"
+    }
+  },
+  "notifications": {
+    "title": "Thông báo",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "noNotifications": "Không có thông báo",
+    "unreadCount": "{{count}} chưa đọc",
+    "types": {
+      "info": "Thông tin",
+      "success": "Thành công",
+      "warning": "Cảnh báo",
+      "error": "Lỗi",
+      "chat": "Tin nhắn",
+      "quiz": "Bài kiểm tra",
+      "assignment": "Bài tập",
+      "livestream": "Phát trực tiếp",
+      "course": "Khóa học"
+    },
+    "actions": {
+      "markAsRead": "Đánh dấu đã đọc",
+      "delete": "Xóa",
+      "viewDetails": "Xem chi tiết"
     }
   }
 }

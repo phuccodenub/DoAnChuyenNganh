@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { bcryptUtils } from './bcrypt.util';
 import { tokenUtils } from './token.util';
+import type { TokenUserInput } from './jwt.util';
 import { secureUtils } from './secure.util';
 import logger from './logger.util';
 
@@ -284,7 +285,7 @@ export const hashUtils = {
      * @param user - User object
      * @returns Object with accessToken and refreshToken
      */
-    generateTokenPair(user: any): { accessToken: string; refreshToken: string } {
+    generateTokenPair(user: TokenUserInput): { accessToken: string; refreshToken: string } {
       return tokenUtils.jwt.generateTokenPair(user);
     },
 

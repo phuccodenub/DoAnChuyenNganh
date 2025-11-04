@@ -347,13 +347,29 @@ async function invalidateCachePatterns(patterns: string[], req: Request): Promis
 }
 
 // Export singleton instance
-export const cacheMiddleware = new CacheMiddleware(
-  new CacheManager({
-    defaultStrategy: 'hybrid',
-    strategies: {
-      redis: { ttl: 3600 },
-      memory: { maxSize: 1000, ttl: 300 },
-      hybrid: { memorySize: 1000, memoryTTL: 300, redisTTL: 3600 }
-    }
-  })
-);
+const disableCache = process.env.DISABLE_CACHE === 'true' || process.env.NODE_ENV === 'test';
+
+let cacheMiddlewareInstance: CacheMiddleware;
+if (disableCache) {
+  // Build a no-op middleware to avoid initializing cache strategies/timers in tests
+  const noop = {
+    cacheGet: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    cachePost: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    cacheUserData: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    invalidateCache: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+  } as unknown as CacheMiddleware;
+  cacheMiddlewareInstance = noop;
+} else {
+  cacheMiddlewareInstance = new CacheMiddleware(
+    new CacheManager({
+      defaultStrategy: 'hybrid',
+      strategies: {
+        redis: { ttl: 3600 },
+        memory: { maxSize: 1000, ttl: 300 },
+        hybrid: { memorySize: 1000, memoryTTL: 300, redisTTL: 3600 }
+      }
+    })
+  );
+}
+
+export const cacheMiddleware = cacheMiddlewareInstance;

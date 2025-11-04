@@ -1,6 +1,8 @@
-import { DataTypes, Model, Op } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
+import type { WhereOptions, ModelStatic } from '../types/sequelize-types';
 import { getSequelize } from '../config/db';
-import { PasswordResetTokenAttributes, PasswordResetTokenCreationAttributes, PasswordResetTokenInstance } from '../types/model.types';
+import { PasswordResetTokenAttributes, PasswordResetTokenInstance } from '../types/model.types';
+import { addInstanceMethods, addStaticMethods, exportModel } from '../utils/model-extension.util';
 
 const sequelize = getSequelize();
 
@@ -15,8 +17,8 @@ const sequelize = getSequelize();
  */
 const PasswordResetToken = sequelize.define('PasswordResetToken', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true,
   },
   user_id: {
@@ -24,10 +26,10 @@ const PasswordResetToken = sequelize.define('PasswordResetToken', {
     allowNull: false,
     references: {
       model: 'users',
-      key: 'id'
+      key: 'id',
     },
     onDelete: 'CASCADE', // Khi user bị xóa, tất cả token liên quan cũng bị xóa
-    comment: 'ID của người dùng yêu cầu đặt lại mật khẩu'
+    comment: 'ID của người dùng yêu cầu đặt lại mật khẩu',
   },
   token: {
     type: DataTypes.STRING(255),
@@ -76,45 +78,43 @@ const PasswordResetToken = sequelize.define('PasswordResetToken', {
   ]
 });
 
+// Typed Model bridge
+const PasswordResetTokenModel = PasswordResetToken as unknown as ModelStatic<PasswordResetTokenInstance>;
+
 // Instance Methods
-;(PasswordResetToken as any).prototype.isExpired = function(): boolean {
-  return new Date() > this.expires_at;
-};
+addInstanceMethods(PasswordResetTokenModel, {
+  isExpired(this: PasswordResetTokenInstance): boolean {
+    return new Date() > this.expires_at;
+  },
 
-;(PasswordResetToken as any).prototype.isValid = function(): boolean {
-  return !this.used && !this.isExpired();
-};
+  isValid(this: PasswordResetTokenInstance): boolean {
+    return !this.used && new Date() <= this.expires_at;
+  },
+});
 
-// Class Methods
-;(PasswordResetToken as any).findValidToken = async function(token: string) {
-  return await this.findOne({
-    where: {
-      token,
-      used: false,
-    },
-    include: [{
-      model: sequelize.models.User,
-      as: 'user',
-      attributes: ['id', 'email', 'first_name', 'last_name']
-    }]
-  });
-};
+// Static/Class Methods
+addStaticMethods(PasswordResetTokenModel, {
+  async findValidToken(this: ModelStatic<PasswordResetTokenInstance>, token: string) {
+    const where: WhereOptions<PasswordResetTokenAttributes> = { token, used: false };
+    return this.findOne({
+      where,
+      include: [{
+        model: sequelize.models.User,
+        as: 'user',
+        attributes: ['id', 'email', 'first_name', 'last_name'],
+      }],
+    });
+  },
 
-;(PasswordResetToken as any).cleanupExpiredTokens = async function() {
-  return await this.destroy({
-    where: {
-      expires_at: {
-        [Op.lt]: new Date()
-      }
-    }
-  });
-};
+  async cleanupExpiredTokens(this: ModelStatic<PasswordResetTokenInstance>) {
+    return this.destroy({
+      where: {
+        expires_at: {
+          [Op.lt]: new Date(),
+        },
+      },
+    });
+  },
+});
 
-export default PasswordResetToken as any;
-
-
-
-
-
-
-
+export default exportModel(PasswordResetTokenModel);

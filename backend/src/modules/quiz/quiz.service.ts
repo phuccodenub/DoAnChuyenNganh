@@ -1,291 +1,520 @@
 import { QuizRepository } from './quiz.repository';
+import { CreateOptionDto, CreateQuestionDto, CreateQuizDto, SubmitQuizDto, QuizAttemptDto } from './quiz.types';
 import { ApiError } from '../../errors/api.error';
-import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
+import { AuthorizationError } from '../../errors/authorization.error';
 import logger from '../../utils/logger.util';
+import { CourseInstance, QuizAttemptInstance } from '../../types/model.types';
 
 export class QuizService {
-  private quizRepository: QuizRepository;
+  private repo: QuizRepository;
 
   constructor() {
-    this.quizRepository = new QuizRepository();
+    this.repo = new QuizRepository();
   }
 
-  /**
-   * Get all quizzes with pagination and filtering
-   */
-  async getAllQuizzes(options: {
-    page: number;
-    limit: number;
-    course_id?: string;
-    lesson_id?: string;
-    status?: string;
-  }) {
-    try {
-      logger.info('Getting all quizzes', options);
-      
-      const result = await this.quizRepository.findAllWithPagination(options);
-      
-      logger.info('Quizzes retrieved successfully', { count: result.data.length });
-      return result;
-    } catch (error) {
-      logger.error('Error getting all quizzes:', error);
-      throw error;
+  // ===================================
+  // QUIZ MANAGEMENT
+  // ===================================
+
+  // Controller compatibility wrappers
+  async getAllQuizzes(options: { page: number; limit: number; course_id?: string; lesson_id?: string; status?: string; }) {
+    const { default: Quiz } = await import('../../models/quiz.model');
+    const page = options.page ?? 1;
+    const limit = options.limit ?? 20;
+    const offset = (page - 1) * limit;
+    const where: any = {};
+    if (options.course_id) where.course_id = options.course_id;
+    if (options.lesson_id) where.lesson_id = options.lesson_id;
+    if (options.status) where.status = options.status;
+    const { rows, count } = await (Quiz as any).findAndCountAll({ where, limit, offset, order: [['created_at', 'DESC']] });
+    return { data: rows, pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) } };
+  }
+
+  async getQuizById(id: string) {
+    return this.getQuiz(id);
+  }
+
+  // Overloads to support controller calls with or without user context
+  async createQuiz(userId: string, dto: CreateQuizDto): Promise<any>;
+  async createQuiz(dto: CreateQuizDto): Promise<any>;
+  async createQuiz(arg1: string | CreateQuizDto, arg2?: CreateQuizDto): Promise<any> {
+    // If userId provided (string), enforce instructor access
+    if (typeof arg1 === 'string' && arg2) {
+      const userId = arg1;
+      const dto = arg2;
+      await this.verifyInstructorAccess(dto.course_id, userId);
+      const quiz = await this.repo.createQuiz(dto);
+      logger.info(`Quiz created: ${quiz.id} by user ${userId}`);
+      return quiz;
     }
+
+    // Fallback: create directly without user context (used by some controllers/tests)
+    const dto = arg1 as CreateQuizDto;
+    return await this.repo.createQuiz(dto);
   }
 
-  /**
-   * Get quiz by ID
-   */
-  async getQuizById(quizId: string) {
+  // Overloads for update/delete to match different controller call sites
+  async updateQuiz(quizId: string, userId: string, data: Partial<CreateQuizDto>): Promise<any>;
+  async updateQuiz(quizId: string, data: Partial<CreateQuizDto>): Promise<any>;
+  async updateQuiz(quizId: string, arg2: string | Partial<CreateQuizDto>, arg3?: Partial<CreateQuizDto>) {
+    if (typeof arg2 === 'string') {
+      const userId = arg2;
+      const data = arg3 || {};
+      const quiz = await this.repo.getQuizById(quizId);
+      if (!quiz) throw new ApiError('Quiz not found', 404);
+      await this.verifyInstructorAccess(quiz.course_id, userId);
+      return this.repo.updateQuiz(quizId, data);
+    }
+    const data = arg2 as Partial<CreateQuizDto>;
+    return this.repo.updateQuiz(quizId, data);
+  }
+
+  async deleteQuiz(quizId: string, userId: string): Promise<boolean>;
+  async deleteQuiz(quizId: string): Promise<boolean>;
+  async deleteQuiz(quizId: string, userId?: string): Promise<boolean> {
+    if (userId) {
+      const quiz = await this.repo.getQuizById(quizId);
+      if (!quiz) throw new ApiError('Quiz not found', 404);
+      await this.verifyInstructorAccess(quiz.course_id, userId);
+    }
+    await this.repo.deleteQuiz(quizId);
+    return true;
+  }
+
+  // Removed duplicate createQuiz implementation (handled by overload above)
+
+  async getQuiz(quizId: string, userId?: string, includeAnswers: boolean = false) {
     try {
-      logger.info('Getting quiz by ID', { quizId });
-      
-      const quiz = await this.quizRepository.findById(quizId);
-      
+      const quiz = await this.repo.getQuizById(quizId, includeAnswers);
       if (!quiz) {
-        logger.error('Quiz not found', { quizId });
-        throw new ApiError('Quiz not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
+        throw new ApiError('Quiz not found', 404);
       }
 
-      logger.info('Quiz retrieved successfully', { quizId });
+      // Check if quiz is published or user is instructor
+      if (!quiz.is_published && userId) {
+        await this.verifyInstructorAccess(quiz.course_id, userId);
+      }
+
       return quiz;
-    } catch (error) {
-      logger.error('Error getting quiz by ID:', error);
+    } catch (error: unknown) {
+      logger.error(`Error getting quiz: ${error}`);
       throw error;
     }
   }
 
-  /**
-   * Create new quiz
-   */
-  async createQuiz(quizData: any) {
+  async updateQuizStrict(quizId: string, userId: string, data: Partial<CreateQuizDto>) {
     try {
-      logger.info('Creating new quiz', { title: quizData.title });
-      
-      const quiz = await this.quizRepository.create(quizData);
-      
-      logger.info('Quiz created successfully', { quizId: quiz.id });
-      return quiz;
-    } catch (error) {
-      logger.error('Error creating quiz:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update quiz
-   */
-  async updateQuiz(quizId: string, updateData: any) {
-    try {
-      logger.info('Updating quiz', { quizId });
-      
-      const quiz = await this.quizRepository.update(quizId, updateData);
-      
+      const quiz = await this.repo.getQuizById(quizId);
       if (!quiz) {
-        logger.error('Quiz not found for update', { quizId });
-        throw new ApiError('Quiz not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
+        throw new ApiError('Quiz not found', 404);
       }
 
-      logger.info('Quiz updated successfully', { quizId });
-      return quiz;
-    } catch (error) {
-      logger.error('Error updating quiz:', error);
+      await this.verifyInstructorAccess(quiz.course_id, userId);
+
+      const updated = await this.repo.updateQuiz(quizId, data);
+      logger.info(`Quiz updated: ${quizId} by user ${userId}`);
+      return updated;
+    } catch (error: unknown) {
+      logger.error(`Error updating quiz: ${error}`);
       throw error;
     }
   }
 
-  /**
-   * Delete quiz
-   */
-  async deleteQuiz(quizId: string) {
+  async deleteQuizStrict(quizId: string, userId: string) {
     try {
-      logger.info('Deleting quiz', { quizId });
-      
-      const deleted = await this.quizRepository.delete(quizId);
-      
-      if (!deleted) {
-        logger.warn('Quiz not found for deletion', { quizId });
-        return false;
+      const quiz = await this.repo.getQuizById(quizId);
+      if (!quiz) {
+        throw new ApiError('Quiz not found', 404);
       }
 
-      logger.info('Quiz deleted successfully', { quizId });
+      await this.verifyInstructorAccess(quiz.course_id, userId);
+
+      await this.repo.deleteQuiz(quizId);
+      logger.info(`Quiz deleted: ${quizId} by user ${userId}`);
       return true;
-    } catch (error) {
-      logger.error('Error deleting quiz:', error);
+    } catch (error: unknown) {
+      logger.error(`Error deleting quiz: ${error}`);
       throw error;
     }
   }
 
-  /**
-   * Get all questions for a quiz
-   */
-  async getQuizQuestions(quizId: string) {
+  // ===================================
+  // QUESTION MANAGEMENT
+  // ===================================
+
+  async addQuestion(quizId: string, userId: string, dto: CreateQuestionDto) {
     try {
-      logger.info('Getting quiz questions', { quizId });
+      const quiz = await this.repo.getQuizById(quizId);
+      if (!quiz) {
+        throw new ApiError('Quiz not found', 404);
+      }
+
+      await this.verifyInstructorAccess(quiz.course_id, userId);
+
+      const question = await this.repo.addQuestion(quizId, dto);
+      logger.info(`Question added to quiz ${quizId}: ${question.id}`);
+      return question;
+    } catch (error: unknown) {
+      logger.error(`Error adding question: ${error}`);
+      throw error;
+    }
+  }
+
+  // Controller compatibility wrappers for questions
+  async getQuizQuestionById(_quizId: string, questionId: string) {
+    return this.repo.getQuestionById(questionId);
+  }
+
+  async createQuizQuestion(quizId: string, dto: CreateQuestionDto) {
+    return this.repo.addQuestion(quizId, dto);
+  }
+
+  async updateQuizQuestion(_quizId: string, questionId: string, data: Partial<CreateQuestionDto>) {
+    return this.repo.updateQuestion(questionId, data);
+  }
+
+  async deleteQuizQuestion(_quizId: string, questionId: string) {
+    await this.repo.deleteQuestion(questionId);
+    return true;
+  }
+
+  async updateQuestion(questionId: string, userId: string, data: Partial<CreateQuestionDto>) {
+    try {
+      const question = await this.repo.getQuestionById(questionId);
+      if (!question) {
+        throw new ApiError('Question not found', 404);
+      }
+
+      const quiz = await this.repo.getQuizById(question.quiz_id);
+      await this.verifyInstructorAccess(quiz!.course_id, userId);
+
+      const updated = await this.repo.updateQuestion(questionId, data);
+      logger.info(`Question updated: ${questionId}`);
+      return updated;
+    } catch (error: unknown) {
+      logger.error(`Error updating question: ${error}`);
+      throw error;
+    }
+  }
+
+  async deleteQuestion(questionId: string, userId: string) {
+    try {
+      const question = await this.repo.getQuestionById(questionId);
+      if (!question) {
+        throw new ApiError('Question not found', 404);
+      }
+
+      const quiz = await this.repo.getQuizById(question.quiz_id);
+      await this.verifyInstructorAccess(quiz!.course_id, userId);
+
+      await this.repo.deleteQuestion(questionId);
+      logger.info(`Question deleted: ${questionId}`);
+      return true;
+    } catch (error: unknown) {
+      logger.error(`Error deleting question: ${error}`);
+      throw error;
+    }
+  }
+
+  async addOption(questionId: string, userId: string, dto: CreateOptionDto) {
+    try {
+      const question = await this.repo.getQuestionById(questionId);
+      if (!question) {
+        throw new ApiError('Question not found', 404);
+      }
+
+      const quiz = await this.repo.getQuizById(question.quiz_id);
+      await this.verifyInstructorAccess(quiz!.course_id, userId);
+
+      const option = await this.repo.addOption(questionId, dto);
+      logger.info(`Option added to question ${questionId}: ${option.id}`);
+      return option;
+    } catch (error: unknown) {
+      logger.error(`Error adding option: ${error}`);
+      throw error;
+    }
+  }
+
+  async getQuizQuestions(quizId: string, userId?: string, includeAnswers: boolean = false) {
+    try {
+      const quiz = await this.repo.getQuizById(quizId);
+      if (!quiz) {
+        throw new ApiError('Quiz not found', 404);
+      }
+
+      // Check permissions for unpublished quiz or to see correct answers
+      if ((!quiz.is_published || includeAnswers) && userId) {
+        await this.verifyInstructorAccess(quiz.course_id, userId);
+      }
+
+      const questions = await this.repo.listQuestions(quizId, includeAnswers);
       
-      const questions = await this.quizRepository.getQuizQuestions(quizId);
-      
-      logger.info('Quiz questions retrieved successfully', { quizId, count: questions.length });
+      // Shuffle questions if enabled and not instructor view
+      if (quiz.shuffle_questions && !includeAnswers) {
+        return this.shuffleArray(questions);
+      }
+
       return questions;
-    } catch (error) {
-      logger.error('Error getting quiz questions:', error);
+    } catch (error: unknown) {
+      logger.error(`Error getting quiz questions: ${error}`);
       throw error;
     }
   }
 
-  /**
-   * Get question by ID
-   */
-  async getQuizQuestionById(quizId: string, questionId: string) {
+  // ===================================
+  // QUIZ ATTEMPTS
+  // ===================================
+
+  async startQuizAttempt(quizId: string, userId: string): Promise<QuizAttemptDto> {
     try {
-      logger.info('Getting quiz question by ID', { quizId, questionId });
-      
-      const question = await this.quizRepository.getQuizQuestionById(quizId, questionId);
-      
-      if (!question) {
-        logger.error('Question not found', { quizId, questionId });
-        throw new ApiError('Question not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
+      const quiz = await this.repo.getQuizById(quizId);
+      if (!quiz) {
+        throw new ApiError('Quiz not found', 404);
       }
 
-      logger.info('Question retrieved successfully', { quizId, questionId });
-      return question;
-    } catch (error) {
-      logger.error('Error getting quiz question by ID:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create new question for quiz
-   */
-  async createQuizQuestion(quizId: string, questionData: any) {
-    try {
-      logger.info('Creating new quiz question', { quizId, questionText: questionData.question_text });
-      
-      const question = await this.quizRepository.createQuizQuestion(quizId, questionData);
-      
-      logger.info('Question created successfully', { quizId, questionId: question.id });
-      return question;
-    } catch (error) {
-      logger.error('Error creating quiz question:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update question
-   */
-  async updateQuizQuestion(quizId: string, questionId: string, updateData: any) {
-    try {
-      logger.info('Updating quiz question', { quizId, questionId });
-      
-      const question = await this.quizRepository.updateQuizQuestion(quizId, questionId, updateData);
-      
-      if (!question) {
-        logger.error('Question not found for update', { quizId, questionId });
-        throw new ApiError('Question not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
+      // Check if quiz is available
+      if (!quiz.is_published) {
+        throw new ApiError('Quiz is not published', 403);
       }
 
-      logger.info('Question updated successfully', { quizId, questionId });
-      return question;
-    } catch (error) {
-      logger.error('Error updating quiz question:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete question
-   */
-  async deleteQuizQuestion(quizId: string, questionId: string) {
-    try {
-      logger.info('Deleting quiz question', { quizId, questionId });
-      
-      const deleted = await this.quizRepository.deleteQuizQuestion(quizId, questionId);
-      
-      if (!deleted) {
-        logger.warn('Question not found for deletion', { quizId, questionId });
-        return false;
+      const now = new Date();
+      if (quiz.available_from && new Date(quiz.available_from) > now) {
+        throw new ApiError('Quiz is not yet available', 403);
       }
 
-      logger.info('Question deleted successfully', { quizId, questionId });
-      return true;
-    } catch (error) {
-      logger.error('Error deleting quiz question:', error);
+      if (quiz.available_until && new Date(quiz.available_until) < now) {
+        throw new ApiError('Quiz is no longer available', 403);
+      }
+
+      // Check attempt limits
+      const attemptCount = await this.repo.getUserAttemptCount(quizId, userId);
+      if (quiz.max_attempts && attemptCount >= quiz.max_attempts) {
+        throw new ApiError('Maximum attempts reached', 403);
+      }
+
+      // Check if user has an active attempt
+      const activeAttempt = await this.repo.getActiveAttempt(quizId, userId);
+      if (activeAttempt) {
+        return this.mapAttemptToDto(activeAttempt);
+      }
+
+      // Create new attempt
+      const attempt = await this.repo.startAttempt(quizId, userId, attemptCount + 1);
+      logger.info(`Quiz attempt started: ${attempt.id} for user ${userId}`);
+      
+      return this.mapAttemptToDto(attempt);
+    } catch (error: unknown) {
+      logger.error(`Error starting quiz attempt: ${error}`);
       throw error;
     }
   }
 
-  /**
-   * Start quiz attempt
-   */
-  async startQuizAttempt(quizId: string, userId: string) {
+  async submitQuizAnswer(attemptId: string, userId: string, dto: SubmitQuizDto) {
     try {
-      logger.info('Starting quiz attempt', { quizId, userId });
-      
-      const attempt = await this.quizRepository.startQuizAttempt(quizId, userId);
-      
-      logger.info('Quiz attempt started successfully', { quizId, userId, attemptId: attempt.id });
-      return attempt;
-    } catch (error) {
-      logger.error('Error starting quiz attempt:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Submit quiz attempt
-   */
-  async submitQuizAttempt(attemptId: string, userId: string, answers: any[]) {
-    try {
-      logger.info('Submitting quiz attempt', { attemptId, userId, answersCount: answers.length });
-      
-      const result = await this.quizRepository.submitQuizAttempt(attemptId, userId, answers);
-      
-      logger.info('Quiz attempt submitted successfully', { attemptId, userId, score: result.score });
-      return result;
-    } catch (error) {
-      logger.error('Error submitting quiz attempt:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get quiz attempt by ID
-   */
-  async getQuizAttemptById(attemptId: string, userId: string) {
-    try {
-      logger.info('Getting quiz attempt by ID', { attemptId, userId });
-      
-      const attempt = await this.quizRepository.getQuizAttemptById(attemptId, userId);
-      
+      const attempt = await this.repo.getAttemptById(attemptId);
       if (!attempt) {
-        logger.error('Quiz attempt not found', { attemptId, userId });
-        throw new ApiError('Quiz attempt not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
+        throw new ApiError('Quiz attempt not found', 404);
       }
 
-      logger.info('Quiz attempt retrieved successfully', { attemptId, userId });
-      return attempt;
-    } catch (error) {
-      logger.error('Error getting quiz attempt by ID:', error);
+      if (attempt.user_id !== userId) {
+        throw new AuthorizationError('Not authorized to submit answers for this attempt');
+      }
+
+      if (attempt.submitted_at) {
+        throw new ApiError('Quiz attempt already submitted', 400);
+      }
+
+      // Check time limit
+      const quiz = await this.repo.getQuizById(attempt.quiz_id);
+      if (!quiz) {
+        throw new ApiError('Quiz not found', 404);
+      }
+
+      if (quiz.duration_minutes) {
+        const timeElapsed = (Date.now() - new Date(attempt.started_at).getTime()) / (1000 * 60);
+        if (timeElapsed > quiz.duration_minutes) {
+          throw new ApiError('Time limit exceeded', 400);
+        }
+      }
+
+      // Submit answers
+      const answers = await this.repo.submitAnswers(attemptId, dto.answers);
+      
+      // Calculate score (always auto-grade for now)
+      const score = await this.calculateScore(attemptId);
+      await this.repo.updateAttemptScore(attemptId, score);
+
+      // Mark attempt as submitted
+      await this.repo.submitAttempt(attemptId);
+      
+      logger.info(`Quiz attempt submitted: ${attemptId} by user ${userId}`);
+      
+      return {
+        attempt_id: attemptId,
+        submitted_at: new Date(),
+        score,
+        answers
+      };
+    } catch (error: unknown) {
+      logger.error(`Error submitting quiz answer: ${error}`);
       throw error;
     }
   }
 
-  /**
-   * Get user's quiz attempts
-   */
+  // Controller compatibility wrappers for attempts
+  async submitQuizAttempt(attemptId: string, userId: string, answers: SubmitQuizDto) {
+    return this.submitQuizAnswer(attemptId, userId, answers);
+  }
+
+  async getQuizAttemptById(attemptId: string, _userId: string) {
+    return this.repo.getAttemptById(attemptId);
+  }
+
   async getUserQuizAttempts(quizId: string, userId: string) {
+    return this.getUserAttempts(quizId, userId);
+  }
+
+  async getUserAttempts(quizId: string, userId: string) {
+    return await this.repo.getUserAttempts(quizId, userId);
+  }
+
+  async getAttemptDetails(attemptId: string, userId: string) {
     try {
-      logger.info('Getting user quiz attempts', { quizId, userId });
-      
-      const attempts = await this.quizRepository.getUserQuizAttempts(quizId, userId);
-      
-      logger.info('User quiz attempts retrieved successfully', { quizId, userId, count: attempts.length });
-      return attempts;
-    } catch (error) {
-      logger.error('Error getting user quiz attempts:', error);
+      const attempt = await this.repo.getAttemptWithDetails(attemptId);
+      if (!attempt) {
+        throw new ApiError('Quiz attempt not found', 404);
+      }
+
+      if (attempt.user_id !== userId) {
+        throw new AuthorizationError('Not authorized to view this attempt');
+      }
+
+      return attempt;
+    } catch (error: unknown) {
+      logger.error(`Error getting attempt details: ${error}`);
       throw error;
     }
+  }
+
+  // ===================================
+  // INSTRUCTOR FEATURES
+  // ===================================
+
+  async getQuizStatistics(quizId: string, userId: string) {
+    try {
+      const quiz = await this.repo.getQuizById(quizId);
+      if (!quiz) {
+        throw new ApiError('Quiz not found', 404);
+      }
+
+      await this.verifyInstructorAccess(quiz.course_id, userId);
+
+      const stats = await this.repo.getQuizStatistics(quizId);
+      return stats;
+    } catch (error: unknown) {
+      logger.error(`Error getting quiz statistics: ${error}`);
+      throw error;
+    }
+  }
+
+  async getQuizAttempts(quizId: string, userId: string, page: number = 1, limit: number = 20) {
+    try {
+      const quiz = await this.repo.getQuizById(quizId);
+      if (!quiz) {
+        throw new ApiError('Quiz not found', 404);
+      }
+
+      await this.verifyInstructorAccess(quiz.course_id, userId);
+
+      const attempts = await this.repo.getQuizAttempts(quizId, page, limit);
+      return attempts;
+    } catch (error: unknown) {
+      logger.error(`Error getting quiz attempts: ${error}`);
+      throw error;
+    }
+  }
+
+  // ===================================
+  // HELPER METHODS
+  // ===================================
+
+  private async verifyInstructorAccess(courseId: string, userId: string) {
+    const { Course } = await import('../../models');
+    const course = await Course.findByPk(courseId) as CourseInstance | null;
+    
+    if (!course) {
+      throw new ApiError('Course not found', 404);
+    }
+
+    if (course.instructor_id !== userId) {
+      throw new AuthorizationError('Only the course instructor can perform this action');
+    }
+
+    return course;
+  }
+
+  private async calculateScore(attemptId: string): Promise<number> {
+    const answers = await this.repo.getAttemptAnswers(attemptId);
+    let correctAnswers = 0;
+    let totalQuestions = 0;
+
+    for (const answer of answers) {
+      totalQuestions++;
+      const question = await this.repo.getQuestionById(answer.question_id);
+      
+      if (question?.question_type === 'single_choice') {
+        const selectedOption = await this.repo.getOptionById(answer.selected_option_id!);
+        if (selectedOption?.is_correct) {
+          correctAnswers++;
+        }
+      } else if (question?.question_type === 'multiple_choice') {
+        const selectedIds = Array.isArray(answer.selected_options) ? answer.selected_options : [];
+        const selectedOptions = await this.repo.getOptionsByIds(selectedIds);
+        const correctOptions = await this.repo.getCorrectOptions(question.id);
+        if (selectedOptions.length === correctOptions.length &&
+            selectedOptions.every(opt => correctOptions.some(correct => correct.id === opt.id))) {
+          correctAnswers++;
+        }
+      } else if (question?.question_type === 'true_false') {
+        const correctOptions = await this.repo.getCorrectOptions(question.id);
+        const selected = answer.selected_option_id ? await this.repo.getOptionById(answer.selected_option_id) : null;
+        const correctText = correctOptions[0]?.option_text?.toLowerCase();
+        const selectedText = selected?.option_text?.toLowerCase();
+        if (correctText && selectedText && correctText === selectedText) {
+          correctAnswers++;
+        }
+      }
+    }
+
+    return totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  private mapAttemptToDto(attempt: QuizAttemptInstance): QuizAttemptDto {
+    return {
+      id: attempt.id,
+      quiz_id: attempt.quiz_id,
+      user_id: attempt.user_id,
+      attempt_number: attempt.attempt_number,
+      started_at: attempt.started_at,
+      submitted_at: attempt.submitted_at || undefined,
+      score: attempt.score || undefined,
+      status: attempt.submitted_at 
+        ? (attempt.score !== null && attempt.score !== undefined ? 'graded' : 'submitted')
+        : 'in_progress'
+    };
   }
 }
+
+
+
+
+

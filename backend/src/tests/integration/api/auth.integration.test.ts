@@ -20,8 +20,8 @@ describe('Auth API Integration Tests', () => {
     await sequelize.authenticate();
     
     // Import app after database setup
-    const { default: createApp } = await import('../../app');
-    app = createApp();
+    const { default: appInstance } = await import('@/app');
+    app = appInstance;
   });
 
   beforeEach(async () => {
@@ -37,6 +37,20 @@ describe('Auth API Integration Tests', () => {
           testUser.id, testUser.email, testUser.username, testUser.password,
           testUser.first_name, testUser.last_name, testUser.role, testUser.status,
           testUser.email_verified, testUser.two_factor_enabled, new Date(), new Date()
+        ]
+      }
+    );
+
+    // Ensure deterministic state for fixed test credentials used below
+    // Some suites intentionally keep users table between tests; clean potential leftovers
+    await sequelize.query(
+      `DELETE FROM users WHERE email IN (?, ?) OR username IN (?, ?)`,
+      {
+        replacements: [
+          'newuser@test.com',
+          'different@test.com',
+          'newuser',
+          'differentuser'
         ]
       }
     );

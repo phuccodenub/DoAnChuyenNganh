@@ -2,7 +2,8 @@
  * Repository Types - Type definitions for repository layer
  */
 
-import { FindOptions, WhereOptions, Includeable } from 'sequelize';
+import type { FindOptions } from './sequelize-types';
+import type { WhereOptions } from './sequelize-types';
 
 // ===================================
 // SEQUELIZE QUERY OPTIONS
@@ -10,7 +11,7 @@ import { FindOptions, WhereOptions, Includeable } from 'sequelize';
 
 export interface BaseQueryOptions {
   attributes?: string[];
-  include?: Includeable[];
+  include?: any[];
   order?: Array<[string, 'ASC' | 'DESC']>;
   limit?: number;
   offset?: number;

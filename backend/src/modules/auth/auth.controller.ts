@@ -16,9 +16,8 @@ export class AuthController {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userData: RegisterData = req.body;
-      const newUser = await this.authService.register(userData);
-      
-      responseUtils.sendCreated(res, RESPONSE_CONSTANTS.MESSAGE.CREATED, newUser);
+      const result = await this.authService.register(userData);
+      responseUtils.sendCreated(res, RESPONSE_CONSTANTS.MESSAGE.CREATED, result);
     } catch (error: unknown) {
       logger.error('Error during registration:', error);
       next(error);
@@ -49,7 +48,7 @@ export class AuthController {
       const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown IP';
       const userAgent = req.headers['user-agent'] || 'Unknown User Agent';
 
-      const credentials: LoginCredentials = { username, password };
+      const credentials: LoginCredentials = { email: username, password };
       const result = await this.authService.loginWith2FA(credentials, code, device, ipAddress, userAgent);
       responseUtils.sendSuccess(res, 'Login with 2FA successful', result);
     } catch (error: unknown) {
@@ -63,7 +62,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -80,7 +79,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -98,7 +97,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
 
@@ -116,8 +115,8 @@ export class AuthController {
     try {
       const { refreshToken } = req.body;
       const tokens = await this.authService.refreshToken(refreshToken);
-      
-      responseUtils.sendSuccess(res, 'Token refreshed successfully', tokens);
+      // Wrap tokens in an object to match tests expecting data.tokens.{accessToken,refreshToken}
+      responseUtils.sendSuccess(res, 'Token refreshed successfully', { tokens });
     } catch (error: unknown) {
       logger.error('Error refreshing token:', error);
       next(error);
@@ -129,7 +128,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
       
@@ -146,7 +145,7 @@ export class AuthController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        responseUtils.sendError(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
       

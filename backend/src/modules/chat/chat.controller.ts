@@ -6,7 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ChatService } from './chat.service';
 import { GetMessagesOptions, SearchMessagesOptions } from './chat.types';
-import { sendSuccessResponse, sendErrorResponse } from '../../utils/response.util';
+import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
 
 export class ChatController {
@@ -44,7 +44,7 @@ export class ChatController {
 
       const result = await this.chatService.getMessages(options);
 
-      sendSuccessResponse(res, 'Messages retrieved successfully', result);
+      responseUtils.sendSuccess(res, 'Messages retrieved successfully', result);
     } catch (error: unknown) {
       logger.error('Error in getMessages:', error);
       next(error);
@@ -72,7 +72,7 @@ export class ChatController {
         reply_to
       });
 
-      sendSuccessResponse(res, 'Message sent successfully', result);
+      responseUtils.sendSuccess(res, 'Message sent successfully', result);
     } catch (error: unknown) {
       logger.error('Error in sendMessage:', error);
       next(error);
@@ -91,7 +91,7 @@ export class ChatController {
 
       const result = await this.chatService.updateMessage(messageId, userId, { message });
 
-      sendSuccessResponse(res, 'Message updated successfully', result);
+      responseUtils.sendSuccess(res, 'Message updated successfully', result);
     } catch (error: unknown) {
       logger.error('Error in updateMessage:', error);
       next(error);
@@ -109,7 +109,7 @@ export class ChatController {
 
       await this.chatService.deleteMessage(messageId, userId);
 
-      sendSuccessResponse(res, 'Message deleted successfully', null);
+      responseUtils.sendSuccess(res, 'Message deleted successfully', null);
     } catch (error: unknown) {
       logger.error('Error in deleteMessage:', error);
       next(error);
@@ -126,7 +126,7 @@ export class ChatController {
       const { searchTerm, page = 1, limit = 50 } = req.query;
 
       if (!searchTerm) {
-        sendErrorResponse(res, 'Search term is required', 400);
+        responseUtils.sendError(res, 'Search term is required', 400);
         return;
       }
 
@@ -139,7 +139,7 @@ export class ChatController {
 
       const result = await this.chatService.searchMessages(options);
 
-      sendSuccessResponse(res, 'Search completed successfully', result);
+      responseUtils.sendSuccess(res, 'Search completed successfully', result);
     } catch (error: unknown) {
       logger.error('Error in searchMessages:', error);
       next(error);
@@ -156,7 +156,7 @@ export class ChatController {
 
       const result = await this.chatService.getChatStatistics(courseId);
 
-      sendSuccessResponse(res, 'Statistics retrieved successfully', result);
+      responseUtils.sendSuccess(res, 'Statistics retrieved successfully', result);
     } catch (error: unknown) {
       logger.error('Error in getStatistics:', error);
       next(error);
@@ -173,7 +173,7 @@ export class ChatController {
 
       const result = await this.chatService.getMessagesByType(courseId, messageType);
 
-      sendSuccessResponse(res, 'Messages retrieved successfully', result);
+      responseUtils.sendSuccess(res, 'Messages retrieved successfully', result);
     } catch (error: unknown) {
       logger.error('Error in getMessagesByType:', error);
       next(error);

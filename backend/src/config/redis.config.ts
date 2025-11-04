@@ -1,11 +1,17 @@
 import { createClient } from 'redis';
 import logger from '@utils/logger.util';
 
-// Redis client configuration
+// Get Redis configuration from environment variables
+const redisHost = process.env.REDIS_HOST || 'localhost';
+const redisPort = parseInt(process.env.REDIS_PORT || '6379');
+
+// Redis client configuration - use host/port directly instead of URL
 const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
   socket: {
-    reconnectStrategy: (retries) => Math.min(retries * 50, 1000)
+    host: redisHost,
+    port: redisPort,
+    reconnectStrategy: (retries) => Math.min(retries * 50, 1000),
+    family: 4 // Force IPv4
   }
 });
 
@@ -48,7 +54,7 @@ export const redisHelpers = {
     }
   },
 
-  async get(key: string): Promise<string | null> {
+  async get(key: string): Promise<string | Buffer | null> {
     try {
       return await redisClient.get(key);
     } catch (error: unknown) {

@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/authStore'
 import { useTranslation } from 'react-i18next'
-import { getMockCourses, getMockUserCourses, isUserEnrolled, type Course } from '@/services/mockData'
+import type { Course } from '@/services/courseService'
+import { useAvailableCourses, useInstructorCourses, useStudentEnrolledCourses } from '@/hooks/useCourses'
 import { Button } from '@/components/ui/Button'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow, parseISO } from 'date-fns'
@@ -14,10 +15,10 @@ function DashboardPage() {
   
   if (!user) return null
   
-  const userCourses = getMockUserCourses(user.id, user.role)
-  const availableCourses = user.role === 'student' ? getMockCourses().filter(course => 
-    !isUserEnrolled(user.id, parseInt(course.id))
-  ) : []
+  const { data: instructorCourses = [] } = useInstructorCourses(user.id, { enabled: user.role === 'instructor' })
+  const { data: enrolledCourses = [] } = useStudentEnrolledCourses(user.id, { enabled: user.role === 'student' })
+  const userCourses: Course[] = user.role === 'instructor' ? instructorCourses : enrolledCourses
+  const { data: availableCourses = [] } = useAvailableCourses(user.id, { enabled: user.role === 'student' })
   
   const handleLogout = () => {
     logout()
@@ -34,9 +35,9 @@ function DashboardPage() {
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg p-6 text-white">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Chào mừng trở lại, {user.full_name}!</h1>
+            <h1 className="text-3xl font-bold mb-2">{t('dashboard.welcomeBackTitle', { name: user.full_name })}</h1>
             <p className="text-blue-100">
-              {user.role === 'instructor' ? 'Quản lý khóa học và tương tác với học sinh' : 'Tiếp tục hành trình học tập của bạn'}
+              {user.role === 'instructor' ? t('dashboard.welcomeSubtitleInstructor') : t('dashboard.welcomeSubtitleStudent')}
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -44,7 +45,7 @@ function DashboardPage() {
               <span className="text-xl">{user.role === 'instructor' ? '👨‍🏫' : '🎓'}</span>
             </div>
             <Button variant="outline" onClick={handleLogout} className="text-white border-white/30 hover:bg-white/10">
-              Đăng xuất
+              {t('navigation.logout')}
             </Button>
           </div>
         </div>
@@ -59,7 +60,7 @@ function DashboardPage() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">
-                {user.role === 'instructor' ? 'Khóa học đang giảng dạy' : 'Khóa học đã đăng ký'}
+                {user.role === 'instructor' ? t('dashboard.stats.instructorCourses') : t('dashboard.stats.enrolledCourses')}
               </p>
               <p className="text-2xl font-bold text-gray-900">{userCourses.length}</p>
             </div>
@@ -73,7 +74,7 @@ function DashboardPage() {
                 <span className="text-2xl">✅</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Khóa học có sẵn</p>
+                <p className="text-sm font-medium text-gray-600">{t('courses.available')}</p>
                 <p className="text-2xl font-bold text-gray-900">{availableCourses.length}</p>
               </div>
             </div>
@@ -95,7 +96,7 @@ function DashboardPage() {
 
       {/* Learning Analytics */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Phân tích học tập của bạn</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('dashboard.analytics.title')}</h2>
         <div className="grid grid-cols-1">
           <LearningAnalytics />
         </div>
@@ -104,7 +105,7 @@ function DashboardPage() {
       {/* My Courses Section */}
       <div>
         <h2 className="text-xl font-semibold mb-4">
-          {user.role === 'instructor' ? 'Khóa học của bạn' : 'Khóa học của tôi'}
+          {user.role === 'instructor' ? t('dashboard.yourCourses') : t('courses.myCourses')}
         </h2>
         
         {userCourses.length > 0 ? (
@@ -117,12 +118,12 @@ function DashboardPage() {
           <div className="bg-white p-8 rounded-lg shadow text-center">
             <span className="text-6xl mb-4 block">📚</span>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {user.role === 'instructor' ? 'Chưa tạo khóa học nào' : 'Chưa đăng ký khóa học nào'}
+              {user.role === 'instructor' ? t('dashboard.empty.instructorTitle') : t('dashboard.empty.studentTitle')}
             </h3>
             <p className="text-gray-600 mb-4">
               {user.role === 'instructor'
-                ? 'Bắt đầu bằng việc tạo khóa học đầu tiên của bạn'
-                : 'Duyệt các khóa học có sẵn để bắt đầu học tập'
+                ? t('dashboard.empty.instructorSubtitle')
+                : t('dashboard.empty.studentSubtitle')
               }
             </p>
           </div>
@@ -132,7 +133,7 @@ function DashboardPage() {
       {/* Available Courses Section (Students only) */}
       {user.role === 'student' && availableCourses.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-4">Khóa học có sẵn</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('courses.available')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {availableCourses.map((course) => (
               <CourseCard key={course.id} course={course} userRole={user.role} isAvailable />
@@ -148,9 +149,9 @@ function DashboardPage() {
             <div className="flex items-center">
               <span className="text-blue-600 text-2xl mr-3">🔔</span>
               <div>
-                <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">Thông báo thời gian thực</h3>
+                <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">{t('dashboard.demo.notificationsTitle')}</h3>
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Kiểm tra cập nhật trực tiếp, cảnh báo toast và thông báo trình duyệt.
+                  {t('dashboard.demo.notificationsDescription')}
                 </p>
               </div>
             </div>
@@ -159,7 +160,7 @@ function DashboardPage() {
             onClick={() => navigate('/notifications-demo')}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
-            Thử thông báo
+            {t('dashboard.demo.tryNotification')}
           </Button>
         </div>
 
@@ -168,15 +169,15 @@ function DashboardPage() {
             <div className="flex items-center">
               <span className="text-purple-600 text-2xl mr-3">🤖</span>
               <div>
-                <h3 className="font-semibold text-purple-800 dark:text-purple-200 mb-1">Trợ lý AI</h3>
+                <h3 className="font-semibold text-purple-800 dark:text-purple-200 mb-1">{t('dashboard.demo.aiTitle')}</h3>
                 <p className="text-sm text-purple-700 dark:text-purple-300">
-                  Nhận trợ giúp về khóa học, đặt câu hỏi và nhận hỗ trợ học tập.
+                  {t('dashboard.demo.aiDescription')}
                 </p>
               </div>
             </div>
           </div>
           <div className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-800/30 rounded px-3 py-2">
-            💡 Tìm nút trợ lý AI nổi ở góc dưới bên phải!
+            💡 {t('dashboard.demo.aiHint')}
           </div>
         </div>
       </div>
@@ -188,8 +189,7 @@ function DashboardPage() {
           <div>
             <h3 className="font-semibold text-amber-800 mb-1">{t('demo.demoModeActive')}</h3>
             <p className="text-sm text-amber-700">
-              Bạn đang sử dụng phiên bản demo với dữ liệu giả lập. Tất cả các tương tác đều được mô phỏng và
-              dữ liệu sẽ không được lưu trữ sau khi làm mới trang. Hãy chuyển đổi giữa các tài khoản demo khác nhau để trải nghiệm các vai trò người dùng khác nhau.
+              {t('demo.demoModeInfo')}
             </p>
           </div>
         </div>
@@ -205,6 +205,7 @@ function CourseCard({ course, userRole, isAvailable = false }: {
   isAvailable?: boolean 
 }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   
   const handleViewCourse = () => {
     navigate(`/courses/${course.id}`)
@@ -227,7 +228,7 @@ function CourseCard({ course, userRole, isAvailable = false }: {
               ? 'bg-green-100 text-green-800'
               : 'bg-gray-100 text-gray-800'
           }`}>
-            {course.status === 'active' ? 'Đang hoạt động' : 'Không hoạt động'}
+            {course.status === 'active' ? t('courses.status.active') : t('courses.status.inactive')}
           </span>
         </div>
         
@@ -243,9 +244,9 @@ function CourseCard({ course, userRole, isAvailable = false }: {
         </div>
 
         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-          <span>{course.enrollment_count} học sinh</span>
+          <span>{course.enrollment_count} {t('courses.labels.students')}</span>
           {course.start_date && (
-            <span>Bắt đầu {formatDistanceToNow(parseISO(course.start_date))} trước</span>
+            <span>{t('courses.labels.startedAgo', { time: formatDistanceToNow(parseISO(course.start_date)) })}</span>
           )}
         </div>
 
@@ -254,7 +255,7 @@ function CourseCard({ course, userRole, isAvailable = false }: {
           variant={isAvailable ? "default" : "outline"}
           className="w-full"
         >
-          {isAvailable ? 'Đăng ký ngay' : 'Xem khóa học'}
+          {isAvailable ? t('courses.enrollNow') : t('courses.viewCourse')}
         </Button>
       </div>
     </div>

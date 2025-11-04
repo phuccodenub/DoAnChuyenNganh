@@ -1,9 +1,9 @@
 // User type definitions for type safety
 export interface UserAttributes {
   id: string;
-  username: string;
   email: string;
-  password: string;
+  username?: string;
+  password_hash: string;
   first_name: string;
   last_name: string;
   phone?: string;
@@ -43,9 +43,9 @@ export interface UserAttributes {
 
 export interface UserCreationAttributes {
   id?: string;
-  username: string;
   email: string;
-  password: string;
+  username?: string;
+  password_hash: string;
   first_name: string;
   last_name: string;
   phone?: string;
@@ -85,8 +85,8 @@ export interface UserCreationAttributes {
 
 export interface UserPublicProfile {
   id: string;
-  username: string;
   email: string;
+  username?: string;
   first_name: string;
   last_name: string;
   phone?: string;
