@@ -116,4 +116,4 @@ const User = sequelize.define('User', {
   updatedAt: 'updated_at'
 });
 
-export default exportModel(User);
+export default exportModel(User as any);

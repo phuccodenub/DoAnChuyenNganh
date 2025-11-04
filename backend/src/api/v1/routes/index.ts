@@ -3,7 +3,7 @@
  * Centralized exports for v1 API routes
  */
 
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import courseRoutes from './course.routes';
@@ -35,9 +35,9 @@ router.use('/auth', authRoutes);
 const userController = new UserModuleController();
 const authController = new AuthController();
 
-router.get('/users/profile', authMiddleware, (req, res, next) => userController.getProfile(req, res, next));
-router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req, res, next) => userController.updateProfile(req, res, next));
-router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req, res, next) => authController.changePassword(req, res, next));
+router.get('/users/profile', authMiddleware, (req: Request, res: Response, next: NextFunction) => userController.getProfile(req, res, next));
+router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req: Request, res: Response, next: NextFunction) => userController.updateProfile(req, res, next));
+router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next));
 
 // User self-service routes should come BEFORE admin alias to avoid /users/profile matching admin dynamic routes
 logger.info('Registering v1 user self-service at /users');

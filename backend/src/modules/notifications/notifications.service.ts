@@ -16,7 +16,7 @@ export class NotificationsService {
     if (!dto.is_broadcast && recipient_ids.length > 0) {
       await this.repo.bulkCreateRecipients(notification.id, recipient_ids);
       notification.total_recipients = recipient_ids.length;
-      await notification.save();
+      await (notification as any).save();
     }
 
     return notification;

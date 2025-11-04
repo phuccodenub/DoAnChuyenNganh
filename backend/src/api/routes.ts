@@ -20,13 +20,13 @@ const router = Router();
 // Fast-path explicit endpoints to ensure tests resolve even if nested mounts change
 const userController = new UserModuleController();
 const authController = new AuthController();
-router.get('/users/profile', authMiddleware, (req, res, next) => userController.getProfile(req, res, next));
-router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req, res, next) => userController.updateProfile(req, res, next));
-router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req, res, next) => authController.changePassword(req, res, next));
+router.get('/users/profile', authMiddleware, (req: Request, res: Response, next: NextFunction) => userController.getProfile(req, res, next));
+router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req: Request, res: Response, next: NextFunction) => userController.updateProfile(req, res, next));
+router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next));
 
 // Temporary route debug to verify registered paths during tests
 // Note: keep lightweight and non-sensitive; remove when routes stabilize
-router.get('/__routes_debug', (req, res) => {
+router.get('/__routes_debug', (req: Request, res: Response) => {
 	try {
 		// @ts-ignore accessing internal stack for debug only
 		const stack = (router as any).stack || [];

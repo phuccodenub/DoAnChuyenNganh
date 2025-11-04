@@ -134,6 +134,6 @@ const Enrollment = sequelize.define('Enrollment', {
   ]
 });
 
-export default exportModel(Enrollment);
+export default exportModel(Enrollment as any);
 
 

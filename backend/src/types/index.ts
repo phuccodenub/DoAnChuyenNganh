@@ -23,7 +23,7 @@ export * from './model.types';
 // ===================================
 // SEQUELIZE ENHANCED TYPES
 // ===================================
-export {
+export type {
   // Base interfaces
   BaseModelAttributes,
   EnhancedModel,
@@ -51,7 +51,17 @@ export {
   LessonModelInstance,
   LessonModelStatic,
   
-  // Type utilities
+  // Type definitions
+  TypedFindOptions,
+  TypedUpdateOptions,
+  TypedCreateOptions,
+  TypedBulkCreateOptions,
+  ConnectionPoolInfo,
+  DatabaseConnection
+} from './sequelize.d';
+
+// Utilities (value exports)
+export {
   isModelInstance,
   hasMethod,
   safeCallMethod,
@@ -60,14 +70,6 @@ export {
   addInstanceMethods,
   addStaticMethods,
   exportModel,
-  
-  // Type definitions
-  TypedFindOptions,
-  TypedUpdateOptions,
-  TypedCreateOptions,
-  TypedBulkCreateOptions,
-  ConnectionPoolInfo,
-  DatabaseConnection
 } from './sequelize.d';
 
 // ===================================

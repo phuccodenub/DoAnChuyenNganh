@@ -25,7 +25,7 @@ export function getSequelize(): Sequelize {
 
     const databaseUrl = process.env.DATABASE_URL;
     if (databaseUrl && databaseUrl.trim().length > 0) {
-      sequelize = new Sequelize(databaseUrl, baseOptions);
+      sequelize = new Sequelize(databaseUrl, baseOptions as any);
     } else {
       // Detect test environment (Jest sets JEST_WORKER_ID). Prefer explicit NODE_ENV==='test' as well
       const isTestEnv = process.env.NODE_ENV === 'test' || typeof process.env.JEST_WORKER_ID !== 'undefined';
@@ -47,7 +47,7 @@ export function getSequelize(): Sequelize {
         ...baseOptions,
         host: dbHost,
         port: parseInt(dbPort)
-      };
+      } as any;
 
       sequelize = new Sequelize(dbName, dbUser, dbPassword, connectionOptions);
     }

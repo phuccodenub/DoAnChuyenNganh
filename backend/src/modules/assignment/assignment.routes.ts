@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { AssignmentController } from './assignment.controller';
-import { assignmentValidation } from './assignment.validate';
+import { assignmentSchemas } from './assignment.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
@@ -14,27 +14,18 @@ router.use(authMiddleware);
 router.post(
   '/',
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(assignmentValidation.create),
+  validate([assignmentSchemas.createAssignment]),
   controller.create
 );
 
 // Get assignment
-router.get('/:assignmentId', validate(assignmentValidation.assignmentId), controller.getOne);
+router.get('/:id', validate([assignmentSchemas.assignmentId]), controller.getOne);
 
 // Submit assignment (student)
-router.post(
-  '/:assignmentId/submissions',
-  validate(assignmentValidation.submit),
-  controller.submit
-);
+router.post('/:assignmentId/submissions', controller.submit);
 
 // Grade submission (instructor/admin)
-router.post(
-  '/submissions/:submissionId/grade',
-  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate(assignmentValidation.grade),
-  controller.grade
-);
+router.post('/submissions/:submissionId/grade', authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]), controller.grade);
 
 export default router;
 

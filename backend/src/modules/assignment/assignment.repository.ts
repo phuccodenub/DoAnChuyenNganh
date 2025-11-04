@@ -134,7 +134,7 @@ export class AssignmentRepository {
     const submission = await this.AssignmentSubmissionModel.findByPk(submissionId);
     if (!submission) return null;
 
-    await submission.update({
+    await (submission as any).update({
       score: data.score ?? submission.score,
       feedback: data.feedback ?? submission.feedback,
       graded_by: data.graded_by,
@@ -152,7 +152,7 @@ export class AssignmentRepository {
   async getAssignmentSubmissions(assignmentId: string, page: number = 1, limit: number = 20): Promise<{ rows: AssignmentSubmissionInstance[]; count: number }> {
     const offset = (page - 1) * limit;
     
-    return this.AssignmentSubmissionModel.findAndCountAll({
+    return (this.AssignmentSubmissionModel as any).findAndCountAll({
       where: { assignment_id: assignmentId } as WhereOptions<AssignmentSubmissionAttributes>,
       include: [
         {
@@ -197,7 +197,7 @@ export class AssignmentRepository {
         status: 'graded'
       } as WhereOptions<AssignmentSubmissionAttributes>,
       attributes: [
-        [Assignment.sequelize!.fn('AVG', Assignment.sequelize!.col('score')), 'average_score']
+        [(Assignment as any).sequelize!.fn('AVG', (Assignment as any).sequelize!.col('score')), 'average_score']
       ],
       raw: true
     }) as { average_score: string | null } | null;

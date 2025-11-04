@@ -82,7 +82,7 @@ const Section = sequelize.define('Section', {
 });
 
 // Instance & Static Methods (type-safe helpers)
-addInstanceMethods(Section, {
+addInstanceMethods(Section as any, {
   async getLessonCount(this: Model): Promise<number> {
     const section = this as unknown as SectionInstance;
     return await sequelize.models.Lesson.count({
@@ -102,7 +102,7 @@ addInstanceMethods(Section, {
   }
 });
 
-addStaticMethods(Section, {
+addStaticMethods(Section as any, {
   async findByCourse(this: typeof Section, courseId: string) {
     const model = this as any;
     return await model.findAll({
@@ -136,7 +136,7 @@ addStaticMethods(Section, {
   }
 });
 
-export default exportModel(Section);
+export default exportModel(Section as any);
 
 
 

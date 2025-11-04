@@ -60,7 +60,7 @@ export class WebRTCService {
 
       if (attendance) {
         // Update join time
-        await attendance.update({
+        await (attendance as any).update({
           joined_at: new Date()
         });
       } else {
@@ -92,7 +92,7 @@ export class WebRTCService {
       });
 
       if (attendance) {
-        await attendance.update({
+        await (attendance as any).update({
           left_at: new Date()
         });
       }
@@ -127,7 +127,7 @@ export class WebRTCService {
         throw new Error('Session not found');
       }
 
-      await session.update({ status });
+      await (session as any).update({ status });
 
       logger.info(`Session ${sessionId} status updated to ${status}`);
       return session;

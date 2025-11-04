@@ -14,6 +14,15 @@ export { default as QuizQuestion } from './quiz-question.model';
 export { default as QuizAttempt } from './quiz-attempt.model';
 export { default as QuizAnswer } from './quiz-answer.model';
 export { default as QuizOption } from './quiz-option.model';
+export { default as Assignment } from './assignment.model';
+export { default as AssignmentSubmission } from './assignment-submission.model';
+export { default as CourseStatistics } from './course-statistics.model';
+export { default as UserActivityLog } from './user-activity-log.model';
+export { default as Grade } from './grade.model';
+export { default as FinalGrade } from './final-grade.model';
+export { default as GradeComponent } from './grade-component.model';
+export { default as LiveSession } from './live-session.model';
+export { default as LiveSessionAttendance } from './live-session-attendance.model';
 
 // Import models for associations
 import User from './user.model';

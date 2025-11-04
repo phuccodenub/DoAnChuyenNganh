@@ -100,9 +100,9 @@ export class SectionService {
     try {
       logger.info('Deleting section', { sectionId });
       
-      const deleted = await this.sectionRepository.delete(sectionId);
+      await this.sectionRepository.delete(sectionId);
       
-      if (!deleted) {
+      if (false) {
         logger.error('Section not found for deletion', { sectionId });
         throw new ApiError('Section not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
       }

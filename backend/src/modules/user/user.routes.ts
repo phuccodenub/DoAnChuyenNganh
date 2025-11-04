@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { UserModuleController } from './user.controller';
 import { AuthController } from '../auth/auth.controller';
 import { authSchemas } from '../../validates/auth.validate';
@@ -35,54 +35,54 @@ router.use(authMiddleware);
 // Get user profile (authenticated users only)
 router.get(
   '/profile',
-  (req, _res, next) => {
+  (req: Request, _res: Response, next: NextFunction) => {
     // Temporary info log to verify route match during tests
      
     const logger = require('../../utils/logger.util').default;
     logger.info('Matched route GET /users/profile', { baseUrl: req.baseUrl, url: req.url });
     next();
   },
-  (req, res, next) => userModuleController.getProfile(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.getProfile(req, res, next)
 );
 
 // Update user profile (authenticated users only)
 router.put(
   '/profile',
   validateBody(userSchemas.updateProfile),
-  (req, _res, next) => {
+  (req: Request, _res: Response, next: NextFunction) => {
     // Temporary info log to verify route match during tests
      
     const logger = require('../../utils/logger.util').default;
     logger.info('Matched route PUT /users/profile', { baseUrl: req.baseUrl, url: req.url });
     next();
   },
-  (req, res, next) => userModuleController.updateProfile(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.updateProfile(req, res, next)
 );
 
 // Upload avatar (authenticated users only)
 router.post(
   '/avatar',
   upload.single('avatar'),
-  (req, res, next) => userModuleController.uploadAvatar(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.uploadAvatar(req, res, next)
 );
 
 // Update user preferences (authenticated users only)
 router.patch(
   '/preferences',
   validateBody(userSchemas.updatePreferences),
-  (req, res, next) => userModuleController.updatePreferences(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.updatePreferences(req, res, next)
 );
 
 // Get active sessions (authenticated users only)
 router.get(
   '/sessions',
-  (req, res, next) => userModuleController.getActiveSessions(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.getActiveSessions(req, res, next)
 );
 
 // Logout all devices (authenticated users only)
 router.post(
   '/logout-all',
-  (req, res, next) => userModuleController.logoutAllDevices(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.logoutAllDevices(req, res, next)
 );
 
 // Backward-compatible alias: some clients/tests expect change-password under /api/users
@@ -90,45 +90,45 @@ router.post(
 router.put(
   '/change-password',
   validateBody(authSchemas.changePassword),
-  (req, res, next) => authController.changePassword(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next)
 );
 
 // Two-factor authentication (authenticated users only)
 router.post(
   '/2fa/enable',
-  (req, res, next) => userModuleController.enableTwoFactor(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.enableTwoFactor(req, res, next)
 );
 
 router.post(
   '/2fa/disable',
-  (req, res, next) => userModuleController.disableTwoFactor(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.disableTwoFactor(req, res, next)
 );
 
 // Social account linking (authenticated users only)
 router.post(
   '/social/link',
   validateBody(userSchemas.linkSocialAccount),
-  (req, res, next) => userModuleController.linkSocialAccount(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.linkSocialAccount(req, res, next)
 );
 
 // User analytics (authenticated users only)
 router.get(
   '/analytics',
-  (req, res, next) => userModuleController.getUserAnalytics(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.getUserAnalytics(req, res, next)
 );
 
 // Notification settings (authenticated users only)
 router.patch(
   '/notifications',
   validateBody(userSchemas.updateNotificationSettings),
-  (req, res, next) => userModuleController.updateNotificationSettings(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.updateNotificationSettings(req, res, next)
 );
 
 // Privacy settings (authenticated users only)
 router.patch(
   '/privacy',
   validateBody(userSchemas.updatePrivacySettings),
-  (req, res, next) => userModuleController.updatePrivacySettings(req, res, next)
+  (req: Request, res: Response, next: NextFunction) => userModuleController.updatePrivacySettings(req, res, next)
 );
 
 export default router;

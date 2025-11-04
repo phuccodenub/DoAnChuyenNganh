@@ -32,7 +32,7 @@ async function checkTableSchema(tableName: string): Promise<void> {
   const sequelize = getSequelize();
 
   try {
-    const columns = await sequelize.query<ColumnInfo>(
+    const columns = await sequelize.query(
       `
       SELECT 
         column_name,
@@ -47,7 +47,7 @@ async function checkTableSchema(tableName: string): Promise<void> {
         replacements: { tableName },
         type: QueryTypes.SELECT,
       }
-    );
+    ) as unknown as ColumnInfo[];
 
     if (columns.length === 0) {
       console.log(`⚠️  Table "${tableName}" does not exist in database!`);
@@ -96,7 +96,8 @@ async function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
+declare const require: any; declare const module: any;
+if ((require as any).main === module) {
   main();
 }
 

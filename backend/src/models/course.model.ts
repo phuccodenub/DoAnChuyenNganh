@@ -192,4 +192,4 @@ const Course = sequelize.define('Course', {
   updatedAt: 'updated_at',
 });
 
-export default exportModel(Course);
+export default exportModel(Course as any);

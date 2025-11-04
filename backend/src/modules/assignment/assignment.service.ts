@@ -16,6 +16,27 @@ export class AssignmentService {
   // ASSIGNMENT MANAGEMENT
   // ===================================
 
+  // List assignments with basic filters and pagination (used by controller)
+  async getAllAssignments(options: { page: number; limit: number; course_id?: string; lesson_id?: string; status?: string; }) {
+    const { page = 1, limit = 20, course_id, lesson_id, status } = options || ({} as any);
+    const offset = (page - 1) * limit;
+    try {
+      const { default: AssignmentModel } = await import('../../models/assignment.model');
+      const where: any = {};
+      if (course_id) where.course_id = course_id;
+      if (lesson_id) where.lesson_id = lesson_id;
+      if (status) where.status = status;
+      const { rows, count } = await (AssignmentModel as any).findAndCountAll({ where, limit, offset, order: [['created_at', 'DESC']] });
+      return {
+        data: rows,
+        pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) }
+      };
+    } catch (error: unknown) {
+      logger.error(`Error listing assignments: ${error}`);
+      throw error;
+    }
+  }
+
   async createAssignment(userId: string, dto: CreateAssignmentDto) {
     try {
       // Verify user is instructor of the course
