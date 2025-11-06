@@ -221,12 +221,16 @@ export const fileService = {
     }
   }
 }
+
+export interface Assignment {
+  id: string
+  title: string
   description: string
   courseId: string
   createdBy: number
   dueDate: string
   maxPoints: number
-  attachments: string[] // File IDs
+  attachments: string[]
   submissions: AssignmentSubmission[]
   instructions: string
   createdAt: string
@@ -670,5 +674,3 @@ class FileService {
 }
 
 // Export singleton instance
-export const fileService = new FileService()
-export default fileService
