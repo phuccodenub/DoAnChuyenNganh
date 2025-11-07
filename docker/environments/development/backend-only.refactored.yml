@@ -1,0 +1,184 @@
+# LMS Backend-Only Development Environment  
+# Includes: PostgreSQL + Redis + Backend (API Only)
+# Perfect for: Mobile apps, Flutter, React Native, External integrations
+# Usage: docker-compose -f docker/environments/development/backend-only.refactored.yml up
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NAMING CONVENTION (Unified - Option A)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Service Name = Container Name = Network Hostname
+# Format: lms-{service}-dev
+#
+# Examples:
+#   - PostgreSQL:  lms-postgres-dev  (everywhere!)
+#   - Redis:       lms-redis-dev     (everywhere!)
+#   - Backend:     lms-backend-dev   (everywhere!)
+#
+# Benefits:
+#   ✅ Consistent naming (code, docker ps, docker logs, docker exec)
+#   ✅ Easy to remember: "lms-postgres-dev" works everywhere
+#   ✅ No confusion between service name vs container name
+#   ✅ Clear development environment indicator (-dev suffix)
+#
+# Usage Examples:
+#   docker ps                              → Shows "lms-postgres-dev"
+#   docker logs lms-postgres-dev           → Works!
+#   docker exec lms-postgres-dev psql ...  → Works!
+#   Backend code: DB_HOST=lms-postgres-dev → Works!
+#
+# Migration from old naming:
+#   OLD: service="postgres", container="lms_postgres_api_dev"
+#   NEW: service="lms-postgres-dev", container="lms-postgres-dev"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Shared configuration templates
+x-postgres-base: &postgres-base
+  image: postgres:15
+  restart: unless-stopped
+  environment:
+    POSTGRES_DB: ${POSTGRES_DB:-lms_db}
+    POSTGRES_USER: ${POSTGRES_USER:-lms_user}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms_user} -d ${POSTGRES_DB:-lms_db}"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+
+x-redis-base: &redis-base
+  image: redis:7-alpine
+  restart: unless-stopped
+  command: redis-server --appendonly yes
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+
+services:
+  # ═══════════════════════════════════════════════════════════════════
+  # PostgreSQL Database Service
+  # ═══════════════════════════════════════════════════════════════════
+  # Service name: lms-postgres-dev (use this in backend code)
+  # Container name: lms-postgres-dev (use this in docker commands)
+  # Network hostname: lms-postgres-dev (use this for connections)
+  # ═══════════════════════════════════════════════════════════════════
+  lms-postgres-dev:
+    <<: *postgres-base
+    container_name: lms-postgres-dev
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - lms_postgres_dev_data:/var/lib/postgresql/data
+      - ../../../database/init:/docker-entrypoint-initdb.d
+    networks:
+      - lms-dev-network
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Redis Cache Service
+  # ═══════════════════════════════════════════════════════════════════
+  # Service name: lms-redis-dev (use this in backend code)
+  # Container name: lms-redis-dev (use this in docker commands)
+  # Network hostname: lms-redis-dev (use this for connections)
+  # ═══════════════════════════════════════════════════════════════════
+  lms-redis-dev:
+    <<: *redis-base
+    container_name: lms-redis-dev
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - lms_redis_dev_data:/data
+    networks:
+      - lms-dev-network
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Backend API Service
+  # ═══════════════════════════════════════════════════════════════════
+  # Service name: lms-backend-dev (use this in docker-compose commands)
+  # Container name: lms-backend-dev (use this in docker commands)
+  # Network hostname: lms-backend-dev (for inter-service communication)
+  # ═══════════════════════════════════════════════════════════════════
+  lms-backend-dev:
+    build:
+      context: ../../..
+      dockerfile: docker/dockerfiles/backend.dev.Dockerfile
+    container_name: lms-backend-dev
+    restart: unless-stopped
+    environment:
+      # Database Configuration (using new unified naming)
+      - NODE_ENV=${NODE_ENV:-development}
+      - DB_HOST=lms-postgres-dev
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-lms_db}
+      - DB_USER=${POSTGRES_USER:-lms_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-123456}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-123456}@lms-postgres-dev:5432/${POSTGRES_DB:-lms_db}
+      
+      # Redis Configuration (using new unified naming)
+      - REDIS_HOST=lms-redis-dev
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://lms-redis-dev:6379
+      
+      # Application Configuration
+      - JWT_SECRET=${JWT_SECRET:-your_super_secret_jwt_key_here}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - PORT=3000
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - DISABLE_RATE_LIMIT=${DISABLE_RATE_LIMIT:-true}
+    volumes:
+      - ../../../backend:/app
+      - /app/node_modules
+      - ../../../backend/logs:/app/logs
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    networks:
+      - lms-dev-network
+    depends_on:
+      lms-postgres-dev:
+        condition: service_healthy
+      lms-redis-dev:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    command: sh -c "
+      echo '============================================================' &&
+      echo '  LMS Backend API - Development Environment              ' &&
+      echo '============================================================' &&
+      echo '  PostgreSQL:  lms-postgres-dev:5432                      ' &&
+      echo '  Redis:       lms-redis-dev:6379                         ' &&
+      echo '  Backend:     lms-backend-dev:3000                       ' &&
+      echo '============================================================' &&
+      echo '' &&
+      echo 'Waiting for services to be ready...' &&
+      sleep 10 &&
+      echo 'Setting up database...' &&
+      npm run setup-db-simple || true &&
+      echo 'Seeding database...' &&
+      npm run seed || true &&
+      echo 'Starting API server with hot reload...' &&
+      npm run dev
+      "
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Named Volumes (Data Persistence)
+# ═══════════════════════════════════════════════════════════════════════════════
+volumes:
+  lms_postgres_dev_data:
+    name: lms_postgres_dev_data
+    driver: local
+    
+  lms_redis_dev_data:
+    name: lms_redis_dev_data
+    driver: local
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Networks
+# ═══════════════════════════════════════════════════════════════════════════════
+networks:
+  lms-dev-network:
+    name: lms-dev-network
+    driver: bridge

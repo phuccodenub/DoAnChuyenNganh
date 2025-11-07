@@ -399,7 +399,7 @@ function QuizInterface({ courseId, courseName }: QuizInterfaceProps) {
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
                 👥 {currentSession?.participants || 0} participants • 
-                📝 Responses: {currentSession?.responses.size || 0}
+                📝 Responses: {currentSession?.responses?.size || 0}
               </div>
               <div className="space-x-2">
                 <Button

@@ -1,4 +1,9 @@
-version: '3.8'
+# ⚠️  DEPRECATED: This file is deprecated and will be removed in a future version
+# 🆕 Please use the new optimized Docker configuration:
+#     npm run dev:web      (for full stack development)
+#     npm run dev:api      (for mobile/API development)
+# 📖 Migration guide: ./DOCKER_MIGRATION_GUIDE.md
+# 📚 New docs: ./docker/README.md
 
 services:
   # PostgreSQL Database

@@ -24,8 +24,12 @@ async function startServer() {
     // Connect to database
     await connectDatabase();
     
-    // Connect to Redis
-    await connectRedis();
+    // Connect to Redis (allow disabling in local dev/tests)
+    if (process.env.REDIS_DISABLED === 'true') {
+      logger.info('Redis connection disabled via REDIS_DISABLED=true');
+    } else {
+      await connectRedis();
+    }
     
     // Start server
     app.listen(PORT, () => {

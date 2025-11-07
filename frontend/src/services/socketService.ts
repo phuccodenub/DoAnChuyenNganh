@@ -96,6 +96,8 @@ export type SocketEvents = {
   'webrtc-offer': { offer: RTCSessionDescriptionInit; courseId?: string; to?: string; from?: string };
   'webrtc-answer': { answer: RTCSessionDescriptionInit; courseId?: string; to?: string; from?: string };
   'ice-candidate': { candidate: RTCIceCandidateInit; courseId?: string; to?: string; from?: string };
+  // Alias used by some components
+  'webrtc-ice-candidate': { candidate: RTCIceCandidateInit; courseId?: string; to?: string; from?: string };
 
   // Participant events (incoming)
   'participant-joined-stream': { participantId: string };

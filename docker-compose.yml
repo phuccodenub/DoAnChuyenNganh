@@ -1,4 +1,9 @@
-version: '3.8'
+# ⚠️  DEPRECATED: This file is deprecated and will be removed in a future version
+# 🆕 Please use the new optimized Docker configuration:
+#     npm run dev:web      (for full stack development)
+#     npm run dev:api      (for mobile/API development)
+# 📖 Migration guide: ./DOCKER_MIGRATION_GUIDE.md
+# 📚 New docs: ./docker/README.md
 
 services:
   # PostgreSQL Database
@@ -47,9 +52,10 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://lms_user:123456@postgres:5432/lms_db
+      - DISABLE_RATE_LIMIT=true
+      - DATABASE_URL=postgresql://lms_user:123456@host.docker.internal:5432/lms_db
       # Separate DB environment variables for Sequelize
-      - DB_HOST=postgres
+      - DB_HOST=host.docker.internal
       - DB_PORT=5432
       - DB_NAME=lms_db
       - DB_USER=lms_user
@@ -75,7 +81,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 5

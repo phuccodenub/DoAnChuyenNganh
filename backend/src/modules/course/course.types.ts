@@ -248,6 +248,7 @@ export interface GetCoursesOptions {
   status?: CourseTypes.CourseStatus;
   instructor_id?: string;
   search?: string;
+  category?: string; // Category slug or ID for filtering
 }
 
 export interface GetCoursesByInstructorOptions {

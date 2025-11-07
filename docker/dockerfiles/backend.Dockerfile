@@ -1,4 +1,4 @@
-# Use Node.js 18 Alpine as base image
+# Production Dockerfile for Backend
 FROM node:18-alpine
 
 # Set working directory
@@ -8,13 +8,13 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 # Copy package files
-COPY package*.json ./
+COPY backend/package*.json ./
 
 # Install dependencies
 RUN npm ci --only=production
 
 # Copy source code
-COPY . .
+COPY backend/ .
 
 # Build TypeScript
 RUN npm run build

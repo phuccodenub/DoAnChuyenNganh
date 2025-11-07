@@ -14,15 +14,18 @@ export const courseValidation = {
       .max(2000, 'Course description must be less than 2000 characters'),
     category: z.string()
       .min(2, 'Category must be at least 2 characters')
-      .max(50, 'Category must be less than 50 characters'),
-    level: z.enum(['beginner', 'intermediate', 'advanced']),
+      .max(50, 'Category must be less than 50 characters')
+      .optional(),
+    level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
     duration: z.number()
       .int('Duration must be an integer')
       .min(1, 'Duration must be at least 1 hour')
-      .max(1000, 'Duration must be less than 1000 hours'),
+      .max(1000, 'Duration must be less than 1000 hours')
+      .optional(),
     price: z.number()
       .min(0, 'Price cannot be negative')
-      .max(10000, 'Price must be less than 10000'),
+      .max(10000, 'Price must be less than 10000')
+      .optional(),
     thumbnail: baseValidation.url.optional(),
     isPublished: z.boolean().default(false)
   }),
