@@ -1159,7 +1159,7 @@ async function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if ((require as any).main === module) {
   main();
 }
 

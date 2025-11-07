@@ -38,6 +38,6 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+if ((require as any).main === module) {
   main();
 }

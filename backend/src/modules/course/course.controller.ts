@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { CourseService } from './course.service';
+import { CourseTypes } from './course.types';
 import { AuthenticatedRequest } from '../../types/common.types';
 import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
 import { ApiError } from '../../middlewares/error.middleware';
@@ -41,7 +42,7 @@ export class CourseController {
       const courses = await this.courseService.getAllCourses({
         page: paginationOptions.page,
         limit: paginationOptions.limit,
-        status: req.query.status as string,
+        status: req.query.status as CourseTypes.CourseStatus,
         instructor_id: req.query.instructor_id as string,
         search: req.query.search as string,
         category: req.query.category as string
@@ -124,7 +125,7 @@ export class CourseController {
       const courses = await this.courseService.getCoursesByInstructor(instructorId, {
         page: Number(page),
         limit: Number(limit),
-        status: status as string
+        status: status as CourseTypes.CourseStatus
       });
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.OK).json({
@@ -153,7 +154,7 @@ export class CourseController {
       const courses = await this.courseService.getEnrolledCourses(userId!, {
         page: Number(page),
         limit: Number(limit),
-        status: status as string
+        status: status as CourseTypes.CourseStatus
       });
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.OK).json({
