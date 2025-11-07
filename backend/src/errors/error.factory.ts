@@ -143,8 +143,33 @@ export class ErrorFactory {
    * Create error from unknown error
    */
   static fromUnknownError(error: unknown, context?: Record<string, any>): BaseError {
+    // Check if error is already a BaseError or any of its subclasses
     if (error instanceof BaseError) {
+      // Add context if provided
+      if (context) {
+        (error as BaseError).withContext(context);
+      }
       return error;
+    }
+
+    // Check for known error subclasses by checking properties
+    // This handles cases where instanceof doesn't work due to prototype chain issues
+    if (error && typeof error === 'object') {
+      const err = error as any;
+      // If it has statusCode, code, and type properties, treat it as BaseError
+      if ('statusCode' in err && 'code' in err && 'type' in err) {
+        // Preserve the original error properties
+        const baseError = new BaseError({
+          code: err.code || 'INTERNAL_SERVER_ERROR',
+          message: err.message || 'Unknown error occurred',
+          statusCode: err.statusCode || 500,
+          type: err.type || 'SYSTEM',
+          severity: err.severity || 'HIGH',
+          details: err.details,
+          context: { ...context, ...err.context }
+        });
+        return baseError;
+      }
     }
 
     if (error instanceof Error) {

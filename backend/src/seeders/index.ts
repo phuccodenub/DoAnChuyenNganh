@@ -9,6 +9,7 @@ import { hashUtils } from '../utils/hash.util';
 
 // Import seeder functions
 import { seedUsers } from './001-seed-users';
+import { seedCategories } from './001a-seed-categories';
 import { seedCourses } from './002-seed-courses';
 import { seedEnrollments } from './003-seed-enrollments';
 import { seedChatMessages } from './004-seed-chat-messages';
@@ -29,6 +30,14 @@ export const seeders: Seeder[] = [
     up: seedUsers,
     down: async (sequelize: Sequelize) => {
       await sequelize.query('DELETE FROM users WHERE email LIKE "%@example.com"');
+    }
+  },
+  {
+    version: '001a',
+    description: 'Seed categories',
+    up: seedCategories,
+    down: async (sequelize: Sequelize) => {
+      await sequelize.query("DELETE FROM categories WHERE id in ('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000101','10000000-0000-0000-0000-000000000102','10000000-0000-0000-0000-000000000103','10000000-0000-0000-0000-000000000201','10000000-0000-0000-0000-000000000301')");
     }
   },
   {

@@ -16,9 +16,14 @@ export const baseValidation = {
     .transform(val => val.trim().toLowerCase()),
   
   /**
-   * UUID validation
+   * UUID validation - relaxed for database compatibility
+   * Accepts standard UUIDs and database-friendly formats
    */
-  uuid: z.string().uuid('Invalid UUID format'),
+  uuid: z.string()
+    .regex(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      'Invalid UUID format'
+    ),
   
   /**
    * Email validation

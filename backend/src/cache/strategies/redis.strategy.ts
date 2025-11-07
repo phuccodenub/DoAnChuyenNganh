@@ -78,7 +78,7 @@ export class RedisCacheStrategy implements CacheStrategy {
       const serializedValue = this.serialize(value);
       const cacheTtl = ttl || this.options.ttl!;
       
-      await redisClient.setex(cacheKey, cacheTtl, serializedValue);
+      await redisClient.setEx(cacheKey, cacheTtl, serializedValue);
       
       // Store metadata
       await this.storeMetadata(cacheKey, cacheTtl);
@@ -185,7 +185,7 @@ export class RedisCacheStrategy implements CacheStrategy {
         const serializedValue = this.serialize(value);
         const cacheTtl = ttl || this.options.ttl!;
         
-        pipeline.setex(cacheKey, cacheTtl, serializedValue);
+        pipeline.setEx(cacheKey, cacheTtl, serializedValue);
         this.storeMetadata(cacheKey, cacheTtl);
       }
       
@@ -299,7 +299,7 @@ export class RedisCacheStrategy implements CacheStrategy {
         tags: this.keyOptions.tags || []
       };
       
-      await redisClient.setex(`${key}:meta`, ttl, JSON.stringify(metadata));
+      await redisClient.setEx(`${key}:meta`, ttl, JSON.stringify(metadata));
     } catch (error: unknown) {
       logger.error('Redis cache metadata store error', { key, error: (error as Error).message });
     }
@@ -318,7 +318,7 @@ export class RedisCacheStrategy implements CacheStrategy {
         metadata.accessCount++;
         metadata.lastAccessed = new Date();
         
-        await redisClient.setex(metaKey, await redisClient.ttl(key), JSON.stringify(metadata));
+        await redisClient.setEx(metaKey, await redisClient.ttl(key), JSON.stringify(metadata));
       }
     } catch (error: unknown) {
       logger.error('Redis cache metadata update error', { key, error: (error as Error).message });

@@ -164,6 +164,7 @@ export class CourseService {
   async getEnrolledCourses(userId: string, options: CourseTypes.GetEnrolledCoursesOptions): Promise<CourseTypes.CoursesResponse> {
     try {
       logger.info('Getting enrolled courses', { userId, options });
+      console.log('SERVICE: getEnrolledCourses called for user:', userId);
 
       const courses = await this.courseRepository.findEnrolledByUser(userId, options);
       
@@ -171,6 +172,7 @@ export class CourseService {
       return courses;
     } catch (error: unknown) {
       logger.error('Error getting enrolled courses:', error);
+      console.error('SERVICE ERROR:', error);
       throw error;
     }
   }

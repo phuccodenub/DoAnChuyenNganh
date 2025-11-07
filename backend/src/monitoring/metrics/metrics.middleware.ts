@@ -141,22 +141,25 @@ export class MetricsMiddleware {
    * Middleware to collect error metrics
    */
   public collectErrorMetrics = (error: any, req: Request, res: Response, next: NextFunction): void => {
+    // Extract status code from error object, not response (which is still 200 at this point)
+    const statusCode = (error as any).statusCode || 500;
+    
     // Increment error counter
     this.metricsService.incrementCounter('http_errors_total', {
       method: req.method,
       route: req.route?.path || req.path,
-      status: res.statusCode?.toString() || '500',
+      status: statusCode.toString(),
       error_type: (error as Error).name || 'unknown_error',
       error_message: (error as Error).message || 'unknown_error'
     });
 
-    // Record error details
+    // Record error details with correct status code
     logger.error('HTTP error occurred', {
       error: (error as Error).message,
       stack: (error as Error).stack,
       method: req.method,
       url: req.url,
-      statusCode: res.statusCode,
+      statusCode: statusCode,  // Use extracted status code, not res.statusCode
       userAgent: req.get('User-Agent'),
       ip: req.ip
     });

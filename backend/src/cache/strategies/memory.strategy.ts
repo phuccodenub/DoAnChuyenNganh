@@ -321,6 +321,11 @@ export class MemoryCacheStrategy implements CacheStrategy {
    * Add entry to head of list
    */
   private addToHead(entry: CacheEntry<any>): void {
+    if (!entry) return;
+    
+    entry.prev = undefined;
+    entry.next = undefined;
+    
     if (!this.head) {
       this.head = entry;
       this.tail = entry;
@@ -335,7 +340,7 @@ export class MemoryCacheStrategy implements CacheStrategy {
    * Move entry to head of list
    */
   private moveToHead(entry: CacheEntry<any>): void {
-    if (entry === this.head) {
+    if (!entry || entry === this.head) {
       return;
     }
     
@@ -347,6 +352,8 @@ export class MemoryCacheStrategy implements CacheStrategy {
    * Remove entry from list
    */
   private removeFromList(entry: CacheEntry<any>): void {
+    if (!entry) return;
+    
     if (entry.prev) {
       entry.prev.next = entry.next;
     } else {
@@ -408,8 +415,9 @@ export class MemoryCacheStrategy implements CacheStrategy {
       }
       
       for (const key of expiredKeys) {
+        const node = this.cache.get(key)!;
         this.cache.delete(key);
-        this.removeFromList(this.cache.get(key)!);
+        this.removeFromList(node);
       }
       
       this.stats.size = this.cache.size;

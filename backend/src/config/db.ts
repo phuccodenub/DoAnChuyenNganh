@@ -64,13 +64,17 @@ export async function connectDatabase(): Promise<void> {
     // Setup model associations before sync
     const { setupAssociations } = await import('../models/associations');
     setupAssociations();
+    console.log('✅ Model associations setup completed');
     
     const { setupExtendedAssociations } = await import('../models/associations-extended');
     setupExtendedAssociations();
+    console.log('✅ Extended model associations setup completed');
     
-    // Sync database in development
+    // Sync database - always sync in development to ensure tables exist
+    // In production, use migrations instead
     if (process.env.NODE_ENV !== 'production') {
-      await db.sync({ force: false }); // Disable alter to avoid migration issues
+      //      await db.sync({ alter: true }); // force: false
+      await db.sync({ force: false }); // Use existing tables without altering
       console.log('Database models synchronized');
     }
   } catch (error: unknown) {

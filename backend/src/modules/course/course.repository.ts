@@ -1,13 +1,14 @@
 import Course from '../../models/course.model';
 import User from '../../models/user.model';
 import Enrollment from '../../models/enrollment.model';
+import Category from '../../models/category.model';
 import { CourseInstance, CourseAttributes } from '../../types/model.types';
 import { UserInstance } from '../../types/model.types';
 import { EnrollmentInstance } from '../../types/model.types';
 import * as CourseTypes from './course.types';
 import { BaseRepository } from '../../repositories/base.repository';
 import logger from '../../utils/logger.util';
-import { ModelStatic, WhereOptions } from 'sequelize';
+import { ModelStatic, WhereOptions, QueryTypes, Op } from 'sequelize';
 
 export class CourseRepository extends BaseRepository<CourseInstance> {
   constructor() {
@@ -54,7 +55,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
     try {
       const { Op } = await import('sequelize');
       
-      const { page, limit, status, instructor_id, search } = options;
+      const { page, limit, status, instructor_id, search, category } = options;
       const offset = (page - 1) * limit;
 
       // Build where clause
@@ -76,20 +77,40 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         ];
       }
 
+      // Build include array
+      const includeArray: any[] = [
+        {
+          model: User,
+          as: 'instructor',
+          attributes: ['id', 'first_name', 'last_name', 'email']
+        }
+      ];
+
+      // Add category filter to where clause if provided (using category string field)
+      if (category) {
+        whereClause.category = category;
+      }
+
       const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
+      
+      console.log('=== QUERY DEBUG ===');
+      console.log('Where clause:', JSON.stringify(whereClause, null, 2));
+      console.log('Include:', JSON.stringify(includeArray, null, 2));
+      console.log('Limit:', limit, 'Offset:', offset);
+      
       const { count, rows } = await CourseModel.findAndCountAll({
         where: whereClause,
-        include: [
-          {
-            model: User,
-            as: 'instructor',
-            attributes: ['id', 'first_name', 'last_name', 'email']
-          }
-        ],
+        include: includeArray,
         limit,
         offset,
-        order: [['created_at', 'DESC']]
+        order: [['created_at', 'DESC']],
+        logging: console.log // Enable SQL logging
       });
+
+      console.log('=== SEQUELIZE RESULT ===');
+      console.log('Count returned by Sequelize:', count);
+      console.log('Rows returned:', rows.length);
+      console.log('Row IDs:', rows.map(r => r.id));
 
       return {
         data: rows,
@@ -156,28 +177,38 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
    */
   async findEnrolledByUser(userId: string, options: CourseTypes.GetEnrolledCoursesOptions): Promise<CourseTypes.CoursesResponse> {
     try {
-      const { Course, Enrollment } = await import('../../models');
-      
-      const { page, limit, status } = options;
+      logger.info('findEnrolledByUser called', { userId, options });
+      const { page, limit } = options;
       const offset = (page - 1) * limit;
 
-      const whereClause: WhereOptions<CourseAttributes> = {};
+      // Use simple approach - get course IDs from enrollments
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+      const enrollments = await EnrollmentModel.findAll({
+        where: { user_id: userId },
+        attributes: ['course_id']
+      });
+
+      const courseIds = enrollments.map(e => (e as any).course_id);
       
-      if (status) {
-        whereClause.status = status;
+      if (courseIds.length === 0) {
+        return {
+          data: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0
+          }
+        };
       }
 
+      // Now get courses with instructor info
       const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
       const { count, rows } = await CourseModel.findAndCountAll({
-        where: whereClause,
+        where: {
+          id: { [Op.in]: courseIds }
+        },
         include: [
-          {
-            model: Enrollment,
-            as: 'enrollments',
-            where: { user_id: userId },
-            required: true,
-            attributes: ['id', 'created_at', 'status']
-          },
           {
             model: User,
             as: 'instructor',
@@ -200,6 +231,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       };
     } catch (error: unknown) {
       logger.error('Error finding enrolled courses by user:', error);
+      console.error('DETAILED ERROR:', error);
       throw error;
     }
   }

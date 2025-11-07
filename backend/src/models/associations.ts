@@ -43,7 +43,7 @@ export const setupAssociations = () => {
   });
   Course.belongsTo(Category, {
     foreignKey: 'category_id',
-    as: 'category'
+    as: 'courseCategory'  // Changed from 'category' to avoid naming collision with attribute
   });
 
   // Category (self-referencing) - Parent/Child hierarchy

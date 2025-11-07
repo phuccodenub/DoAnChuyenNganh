@@ -68,6 +68,65 @@ const courseController = new CourseController();
  */
 router.get('/', courseController.getAllCourses);
 
+// ===== STUDENT ROUTES (Must be before /:id route) =====
+
+/**
+ * @swagger
+ * /api/courses/enrolled:
+ *   get:
+ *     summary: Get enrolled courses
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of courses per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published, archived]
+ *         description: Course status filter
+ *     responses:
+ *       200:
+ *         description: Enrolled courses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     courses:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Course'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/enrolled', 
+  authMiddleware, 
+  authorizeRoles(['student', 'instructor', 'admin', 'super_admin']),
+  courseController.getEnrolledCourses
+);
+
 /**
  * @swagger
  * /api/courses/{id}:
@@ -98,7 +157,10 @@ router.get('/', courseController.getAllCourses);
  *       404:
  *         description: Course not found
  */
-router.get('/:id', courseController.getCourseById);
+router.get('/:id', 
+  validateRequest({ params: courseValidation.courseId }),
+  courseController.getCourseById
+);
 
 // ===== PROTECTED ROUTES =====
 
@@ -355,65 +417,6 @@ router.get('/instructor/my-courses',
   authMiddleware, 
   authorizeRoles(['instructor', 'admin', 'super_admin']),
   courseController.getCoursesByInstructor
-);
-
-// ===== STUDENT ROUTES =====
-
-/**
- * @swagger
- * /api/courses/enrolled:
- *   get:
- *     summary: Get enrolled courses
- *     tags: [Courses]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Number of courses per page
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [draft, published, archived]
- *         description: Course status filter
- *     responses:
- *       200:
- *         description: Enrolled courses retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     courses:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Course'
- *                     pagination:
- *                       $ref: '#/components/schemas/Pagination'
- *       401:
- *         description: Unauthorized
- */
-router.get('/enrolled', 
-  authMiddleware, 
-  authorizeRoles(['student', 'instructor', 'admin', 'super_admin']),
-  courseController.getEnrolledCourses
 );
 
 /**

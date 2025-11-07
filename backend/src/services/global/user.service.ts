@@ -164,7 +164,13 @@ export class GlobalUserService {
   // Cache user data
   async cacheUser(userId: string, userData: UserInstance): Promise<void> {
     try {
-      await this.cacheService.cacheUser(userId, userData);
+      // CRITICAL SECURITY: Never cache password_hash!
+      // Create a sanitized copy without sensitive data
+      const sanitizedUser = { ...userData.toJSON() };
+      delete (sanitizedUser as any).password_hash;
+      delete (sanitizedUser as any).password;
+      
+      await this.cacheService.cacheUser(userId, sanitizedUser as UserInstance);
     } catch (error: unknown) {
       logger.error('Error caching user:', error);
       // Don't throw error for cache failures

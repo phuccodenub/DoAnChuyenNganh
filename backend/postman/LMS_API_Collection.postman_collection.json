@@ -1,0 +1,1648 @@
+{
+	"info": {
+		"_postman_id": "lms-api-collection-2025",
+		"name": "LMS API - Complete Collection",
+		"description": "Complete API collection for LMS System with all endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "lms-system"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "courseId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "sectionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "lessonId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "quizId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "questionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "attemptId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "assignmentId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "01. Authentication",
+			"item": [
+				{
+					"name": "Register Student",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.user) {",
+									"        pm.collectionVariables.set('userId', jsonData.data.user.id);",
+									"    }",
+									"    if (jsonData.data && jsonData.data.tokens && jsonData.data.tokens.accessToken) {",
+									"        pm.collectionVariables.set('accessToken', jsonData.data.tokens.accessToken);",
+									"        pm.collectionVariables.set('refreshToken', jsonData.data.tokens.refreshToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"Student\",\n  \"username\": \"teststudent\",\n  \"email\": \"student@test.com\",\n  \"password\": \"Test@123456\",\n  \"role\": \"student\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.tokens) {",
+									"        pm.collectionVariables.set('accessToken', jsonData.data.tokens.accessToken);",
+									"        pm.collectionVariables.set('refreshToken', jsonData.data.tokens.refreshToken);",
+									"    }",
+									"    if (jsonData.data && jsonData.data.user) {",
+									"        pm.collectionVariables.set('userId', jsonData.data.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"student@test.com\",\n  \"password\": \"Test@123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Verify Token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/verify",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "verify"]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.tokens) {",
+									"        pm.collectionVariables.set('accessToken', jsonData.data.tokens.accessToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh-token",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "refresh-token"]
+						}
+					}
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"Test@123456\",\n  \"newPassword\": \"NewTest@123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/change-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "change-password"]
+						}
+					}
+				},
+				{
+					"name": "Enable 2FA",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/2fa/enable",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "2fa", "enable"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "02. User Management",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"Updated Test Student\",\n  \"bio\": \"I am a test student learning LMS\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Update Preferences",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"language\": \"vi\",\n  \"timezone\": \"Asia/Ho_Chi_Minh\",\n  \"theme\": \"dark\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/preferences",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "preferences"]
+						}
+					}
+				},
+				{
+					"name": "Get Active Sessions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/sessions",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "sessions"]
+						}
+					}
+				},
+				{
+					"name": "Get User Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/analytics",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "analytics"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "03. Admin - User Management",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get User By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", "{{userId}}"]
+						}
+					}
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"first_name\": \"New\",\n  \"last_name\": \"Test User\",\n  \"username\": \"newuser\",\n  \"email\": \"newuser@test.com\",\n  \"password\": \"Test@123456\",\n  \"role\": \"student\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users"]
+						}
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"Updated User Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", "{{userId}}"]
+						}
+					}
+				},
+				{
+					"name": "Change User Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/{{userId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", "{{userId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Get User Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", "stats"]
+						}
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", "{{userId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "04. Categories",
+			"item": [
+				{
+					"name": "Get All Categories",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Programming\",\n  \"description\": \"Programming courses\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "05. Courses",
+			"item": [
+				{
+					"name": "Get All Courses",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/courses?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Course",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('courseId', jsonData.data.course_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Introduction to Programming\",\n  \"description\": \"Learn the basics of programming\",\n  \"level\": \"beginner\",\n  \"status\": \"published\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/courses",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses"]
+						}
+					}
+				},
+				{
+					"name": "Get Course By ID",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/courses/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses", "{{courseId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Course",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Course Title\",\n  \"description\": \"Updated description\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/courses/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses", "{{courseId}}"]
+						}
+					}
+				},
+				{
+					"name": "Enroll in Course",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/courses/{{courseId}}/enroll",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses", "{{courseId}}", "enroll"]
+						}
+					}
+				},
+				{
+					"name": "Get Enrolled Courses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/courses/enrolled",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses", "enrolled"]
+						}
+					}
+				},
+				{
+					"name": "Get Course Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/courses/{{courseId}}/students",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses", "{{courseId}}", "students"]
+						}
+					}
+				},
+				{
+					"name": "Unenroll from Course",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/courses/{{courseId}}/unenroll",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses", "{{courseId}}", "unenroll"]
+						}
+					}
+				},
+				{
+					"name": "Delete Course",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/courses/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["courses", "{{courseId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "06. Course Content - Sections",
+			"item": [
+				{
+					"name": "Create Section",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('sectionId', jsonData.data.section_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Section 1: Introduction\",\n  \"description\": \"Introduction to the course\",\n  \"order_index\": 1,\n  \"is_published\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/course-content/courses/{{courseId}}/sections",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "courses", "{{courseId}}", "sections"]
+						}
+					}
+				},
+				{
+					"name": "Get Course Sections",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/course-content/courses/{{courseId}}/sections",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "courses", "{{courseId}}", "sections"]
+						}
+					}
+				},
+				{
+					"name": "Get Section By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/course-content/sections/{{sectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "sections", "{{sectionId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Section",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Section Title\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/course-content/sections/{{sectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "sections", "{{sectionId}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Section",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/course-content/sections/{{sectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "sections", "{{sectionId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "07. Course Content - Lessons",
+			"item": [
+				{
+					"name": "Create Lesson",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('lessonId', jsonData.data.lesson_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Lesson 1: Getting Started\",\n  \"content\": \"Welcome to the first lesson\",\n  \"lesson_type\": \"video\",\n  \"duration\": 600,\n  \"order_index\": 1,\n  \"is_published\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/course-content/sections/{{sectionId}}/lessons",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "sections", "{{sectionId}}", "lessons"]
+						}
+					}
+				},
+				{
+					"name": "Get Lesson",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/course-content/lessons/{{lessonId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "lessons", "{{lessonId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Lesson",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Lesson Title\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/course-content/lessons/{{lessonId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "lessons", "{{lessonId}}"]
+						}
+					}
+				},
+				{
+					"name": "Add Material to Lesson",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Lecture Notes\",\n  \"material_type\": \"document\",\n  \"file_url\": \"https://example.com/notes.pdf\",\n  \"file_size\": 1024000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/course-content/lessons/{{lessonId}}/materials",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "lessons", "{{lessonId}}", "materials"]
+						}
+					}
+				},
+				{
+					"name": "Update Lesson Progress",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"progress_percentage\": 50,\n  \"time_spent\": 300\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/course-content/lessons/{{lessonId}}/progress",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "lessons", "{{lessonId}}", "progress"]
+						}
+					}
+				},
+				{
+					"name": "Mark Lesson as Completed",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/course-content/lessons/{{lessonId}}/complete",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "lessons", "{{lessonId}}", "complete"]
+						}
+					}
+				},
+				{
+					"name": "Get Course Progress",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/course-content/courses/{{courseId}}/progress",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "courses", "{{courseId}}", "progress"]
+						}
+					}
+				},
+				{
+					"name": "Get Recent Activity",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/course-content/users/me/recent-activity?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "users", "me", "recent-activity"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Lesson",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/course-content/lessons/{{lessonId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["course-content", "lessons", "{{lessonId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "08. Quizzes",
+			"item": [
+				{
+					"name": "Create Quiz",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('quizId', jsonData.data.quiz_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"course_id\": \"{{courseId}}\",\n  \"title\": \"Quiz 1: Introduction\",\n  \"description\": \"Test your knowledge\",\n  \"time_limit\": 1800,\n  \"passing_score\": 70,\n  \"max_attempts\": 3,\n  \"is_published\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quizzes",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes"]
+						}
+					}
+				},
+				{
+					"name": "Get Quiz",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/{{quizId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "{{quizId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Quiz",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Quiz Title\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/{{quizId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "{{quizId}}"]
+						}
+					}
+				},
+				{
+					"name": "Add Question",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('questionId', jsonData.data.question_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"question_text\": \"What is 2+2?\",\n  \"question_type\": \"multiple_choice\",\n  \"points\": 10,\n  \"order_index\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/{{quizId}}/questions",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "{{quizId}}", "questions"]
+						}
+					}
+				},
+				{
+					"name": "Add Option to Question",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"option_text\": \"4\",\n  \"is_correct\": true,\n  \"order_index\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/questions/{{questionId}}/options",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "questions", "{{questionId}}", "options"]
+						}
+					}
+				},
+				{
+					"name": "Get Quiz Questions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/{{quizId}}/questions",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "{{quizId}}", "questions"]
+						}
+					}
+				},
+				{
+					"name": "Start Quiz Attempt",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('attemptId', jsonData.data.attempt_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/{{quizId}}/attempts",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "{{quizId}}", "attempts"]
+						}
+					}
+				},
+				{
+					"name": "Submit Quiz Attempt",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{questionId}}\",\n      \"selected_option_id\": \"option-id-here\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/attempts/{{attemptId}}/submit",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "attempts", "{{attemptId}}", "submit"]
+						}
+					}
+				},
+				{
+					"name": "Get My Attempts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/{{quizId}}/my-attempts",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "{{quizId}}", "my-attempts"]
+						}
+					}
+				},
+				{
+					"name": "Get Quiz Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/{{quizId}}/statistics",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "{{quizId}}", "statistics"]
+						}
+					}
+				},
+				{
+					"name": "Delete Quiz",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/quizzes/{{quizId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["quizzes", "{{quizId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "09. Assignments",
+			"item": [
+				{
+					"name": "Create Assignment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('assignmentId', jsonData.data.assignment_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"course_id\": \"{{courseId}}\",\n  \"title\": \"Assignment 1: Introduction Task\",\n  \"description\": \"Complete the exercises\",\n  \"due_date\": \"2025-12-31T23:59:59Z\",\n  \"max_score\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/assignments",
+							"host": ["{{baseUrl}}"],
+							"path": ["assignments"]
+						}
+					}
+				},
+				{
+					"name": "Get Assignment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/assignments/{{assignmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["assignments", "{{assignmentId}}"]
+						}
+					}
+				},
+				{
+					"name": "Submit Assignment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"submission_text\": \"Here is my solution...\",\n  \"attachments\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/assignments/{{assignmentId}}/submissions",
+							"host": ["{{baseUrl}}"],
+							"path": ["assignments", "{{assignmentId}}", "submissions"]
+						}
+					}
+				},
+				{
+					"name": "Grade Submission",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"score\": 85,\n  \"feedback\": \"Good work! Well done.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/assignments/submissions/{{submissionId}}/grade",
+							"host": ["{{baseUrl}}"],
+							"path": ["assignments", "submissions", "{{submissionId}}", "grade"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "10. Grades",
+			"item": [
+				{
+					"name": "Upsert Grade",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"course_id\": \"{{courseId}}\",\n  \"gradeable_type\": \"quiz\",\n  \"gradeable_id\": \"{{quizId}}\",\n  \"score\": 85,\n  \"max_score\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/grades",
+							"host": ["{{baseUrl}}"],
+							"path": ["grades"]
+						}
+					}
+				},
+				{
+					"name": "Upsert Final Grade",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"course_id\": \"{{courseId}}\",\n  \"final_score\": 88.5,\n  \"letter_grade\": \"B+\",\n  \"passed\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/grades/final",
+							"host": ["{{baseUrl}}"],
+							"path": ["grades", "final"]
+						}
+					}
+				},
+				{
+					"name": "Get User Grades",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/grades/users/{{userId}}/courses/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["grades", "users", "{{userId}}", "courses", "{{courseId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "11. Chat",
+			"item": [
+				{
+					"name": "Get Course Messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/chat/courses/{{courseId}}/messages?limit=50&offset=0",
+							"host": ["{{baseUrl}}"],
+							"path": ["chat", "courses", "{{courseId}}", "messages"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message_text\": \"Hello everyone!\",\n  \"message_type\": \"text\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/chat/courses/{{courseId}}/messages",
+							"host": ["{{baseUrl}}"],
+							"path": ["chat", "courses", "{{courseId}}", "messages"]
+						}
+					}
+				},
+				{
+					"name": "Search Messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/chat/courses/{{courseId}}/messages/search?q=hello",
+							"host": ["{{baseUrl}}"],
+							"path": ["chat", "courses", "{{courseId}}", "messages", "search"],
+							"query": [
+								{
+									"key": "q",
+									"value": "hello"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Chat Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/chat/courses/{{courseId}}/statistics",
+							"host": ["{{baseUrl}}"],
+							"path": ["chat", "courses", "{{courseId}}", "statistics"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "12. Livestream",
+			"item": [
+				{
+					"name": "Create Live Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"course_id\": \"{{courseId}}\",\n  \"title\": \"Live Lecture 1\",\n  \"scheduled_start\": \"2025-11-05T10:00:00Z\",\n  \"duration\": 3600\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/livestreams",
+							"host": ["{{baseUrl}}"],
+							"path": ["livestreams"]
+						}
+					}
+				},
+				{
+					"name": "Get Live Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/livestreams/{{sessionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["livestreams", "{{sessionId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Session Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"live\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/livestreams/{{sessionId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["livestreams", "{{sessionId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Join Session",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/livestreams/{{sessionId}}/join",
+							"host": ["{{baseUrl}}"],
+							"path": ["livestreams", "{{sessionId}}", "join"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "13. Notifications",
+			"item": [
+				{
+					"name": "Create Notification",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"New Assignment Posted\",\n  \"message\": \"Assignment 1 is now available\",\n  \"category\": \"assignment\",\n  \"priority\": \"normal\",\n  \"recipient_ids\": [\"{{userId}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/notifications",
+							"host": ["{{baseUrl}}"],
+							"path": ["notifications"]
+						}
+					}
+				},
+				{
+					"name": "Get My Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/notifications/me?limit=20&offset=0",
+							"host": ["{{baseUrl}}"],
+							"path": ["notifications", "me"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Unread Count",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/notifications/me/unread-count",
+							"host": ["{{baseUrl}}"],
+							"path": ["notifications", "me", "unread-count"]
+						}
+					}
+				},
+				{
+					"name": "Mark All as Read",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/notifications/me/mark-all-read",
+							"host": ["{{baseUrl}}"],
+							"path": ["notifications", "me", "mark-all-read"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "14. Analytics",
+			"item": [
+				{
+					"name": "Get Course Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/analytics/courses/{{courseId}}/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["analytics", "courses", "{{courseId}}", "stats"]
+						}
+					}
+				},
+				{
+					"name": "Get User Activities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/analytics/users/{{userId}}/activities",
+							"host": ["{{baseUrl}}"],
+							"path": ["analytics", "users", "{{userId}}", "activities"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "15. Files",
+			"item": [
+				{
+					"name": "Upload Single File",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/files/upload",
+							"host": ["{{baseUrl}}"],
+							"path": ["files", "upload"]
+						}
+					}
+				},
+				{
+					"name": "List Files in Folder",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/files/list/courses",
+							"host": ["{{baseUrl}}"],
+							"path": ["files", "list", "courses"]
+						}
+					}
+				},
+				{
+					"name": "Get File Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/files/info/courses/example.pdf",
+							"host": ["{{baseUrl}}"],
+							"path": ["files", "info", "courses", "example.pdf"]
+						}
+					}
+				},
+				{
+					"name": "Download File",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/files/download/courses/example.pdf",
+							"host": ["{{baseUrl}}"],
+							"path": ["files", "download", "courses", "example.pdf"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "99. Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3000/health",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["health"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

@@ -35,6 +35,10 @@ interface SeedUser {
 
 async function seedUsers() {
   logger.info('Seeding users...');
+  
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
 
   const users: SeedUser[] = [
     // Super Admin
@@ -276,24 +280,32 @@ async function seedUsers() {
       }
 
       const placeholders = fields.map(() => '?').join(', ');
-      const query = `INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders})`;
+      const query = `INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT (id) DO NOTHING`;
 
-      await sequelize.query(query, { replacements: values });
-      logger.info(`✅ Created user: ${user.email} (${user.role})`);
-    } catch (error: any) {
-      if (error.message?.includes('duplicate') || error.message?.includes('unique') || error.name === 'SequelizeUniqueConstraintError') {
-        logger.warn(`⚠️  User ${user.email} already exists, skipping...`);
+      const [results]: any = await sequelize.query(query, { replacements: values });
+      if (results && results.rowCount > 0) {
+        logger.info(`✅ Created user: ${user.email} (${user.role})`);
+        created++;
       } else {
-        logger.error(`❌ Error creating user ${user.email}:`, error.message);
+        logger.warn(`⚠️  User ${user.email} already exists, skipping...`);
+        skipped++;
       }
+    } catch (error: any) {
+      logger.error(`❌ Error creating user ${user.email}:`, error.message);
+      failed++;
     }
   }
 
-  logger.info('✅ Users seeded successfully!');
+  logger.info(`✅ Users seeded: ${created} created, ${skipped} skipped, ${failed} failed`);
+  return { created, skipped, failed };
 }
 
 async function seedCourses() {
   logger.info('Seeding courses...');
+  
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
 
   const courses = [
     {
@@ -365,12 +377,13 @@ async function seedCourses() {
 
   for (const course of courses) {
     try {
-      await sequelize.query(
+      const [results]: any = await sequelize.query(
         `INSERT INTO courses (
           id, title, description, instructor_id, thumbnail,
           level, status, price, duration_hours, language, is_featured,
           created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (id) DO NOTHING`,
         {
           replacements: [
             course.id, course.title, course.description,
@@ -380,22 +393,29 @@ async function seedCourses() {
           ]
         }
       );
-      logger.info(`✅ Created course: ${course.title}`);
-    } catch (error: any) {
-      if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
-        logger.warn(`⚠️  Course ${course.title} already exists, skipping...`);
+      if (results && results.rowCount > 0) {
+        logger.info(`✅ Created course: ${course.title}`);
+        created++;
       } else {
-        console.error(`❌ Error creating course ${course.title}:`, error);
-        logger.error(`❌ Error creating course ${course.title}:`, error.message || error);
+        logger.warn(`⚠️  Course ${course.title} already exists, skipping...`);
+        skipped++;
       }
+    } catch (error: any) {
+      logger.error(`❌ Error creating course ${course.title}:`, error.message || error);
+      failed++;
     }
   }
 
-  logger.info('✅ Courses seeded successfully!');
+  logger.info(`✅ Courses seeded: ${created} created, ${skipped} skipped, ${failed} failed`);
+  return { created, skipped, failed };
 }
 
 async function seedEnrollments() {
   logger.info('Seeding enrollments...');
+  
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
 
   const enrollments = [
     // Student 1 enrollments
@@ -420,10 +440,11 @@ async function seedEnrollments() {
 
   for (const enrollment of enrollments) {
     try {
-      await sequelize.query(
+      const [results]: any = await sequelize.query(
         `INSERT INTO enrollments (
           id, user_id, course_id, status, created_at, updated_at
-        ) VALUES (gen_random_uuid(), ?, ?, ?, ?, ?)`,
+        ) VALUES (gen_random_uuid(), ?, ?, ?, ?, ?)
+        ON CONFLICT (user_id, course_id) DO NOTHING`,
         {
           replacements: [
             enrollment.user_id, enrollment.course_id, enrollment.status,
@@ -431,17 +452,21 @@ async function seedEnrollments() {
           ]
         }
       );
-      logger.info(`✅ Created enrollment for user ${enrollment.user_id.slice(0, 20)}...`);
-    } catch (error: any) {
-      if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
-        logger.warn(`⚠️  Enrollment already exists, skipping...`);
+      if (results && results.rowCount > 0) {
+        logger.info(`✅ Created enrollment for user ${enrollment.user_id.slice(0, 20)}...`);
+        created++;
       } else {
-        logger.error(`❌ Error creating enrollment:`, error.message || error);
+        logger.warn(`⚠️  Enrollment already exists, skipping...`);
+        skipped++;
       }
+    } catch (error: any) {
+      logger.error(`❌ Error creating enrollment:`, error.message || error);
+      failed++;
     }
   }
 
-  logger.info('✅ Enrollments seeded successfully!');
+  logger.info(`✅ Enrollments seeded: ${created} created, ${skipped} skipped, ${failed} failed`);
+  return { created, skipped, failed };
 }
 
 async function main() {
@@ -452,14 +477,34 @@ async function main() {
     // Test database connection
     await sequelize.authenticate();
     logger.info('✅ Database connection established');
+    
+    // Clear Redis cache to prevent stale data issues
+    try {
+      const { redisClient } = await import('../config/redis.config');
+      if (redisClient && redisClient.isOpen) {
+        await redisClient.flushDb();
+        logger.info('🗑️  Redis cache cleared');
+      }
+    } catch (error) {
+      logger.warn('⚠️  Could not clear Redis cache (maybe disabled):', error);
+      // Continue anyway - cache might be disabled
+    }
 
-    // Seed in order
-    await seedUsers();
-    await seedCourses();
-    await seedEnrollments();
+    // Seed in order and collect stats
+    const userStats = await seedUsers();
+    const courseStats = await seedCourses();
+    const enrollmentStats = await seedEnrollments();
+
+    const totalCreated = userStats.created + courseStats.created + enrollmentStats.created;
+    const totalSkipped = userStats.skipped + courseStats.skipped + enrollmentStats.skipped;
+    const totalFailed = userStats.failed + courseStats.failed + enrollmentStats.failed;
 
     logger.info('='.repeat(50));
-    logger.info('🎉 Database seeding completed successfully!');
+    logger.info('🎉 Database seeding completed!');
+    logger.info('📊 Summary:');
+    logger.info(`  ✅ Created: ${totalCreated} records`);
+    logger.info(`  ⚠️  Skipped: ${totalSkipped} records (already exist)`);
+    logger.info(`  ❌ Failed: ${totalFailed} records`);
     logger.info('');
     logger.info('📝 Test Credentials:');
     logger.info('  Super Admin: superadmin@example.com / SuperAdmin123!');
@@ -468,6 +513,12 @@ async function main() {
     logger.info('  Student:     student1@example.com / Student123!');
     logger.info('');
 
+    // Exit with error code if any failures
+    if (totalFailed > 0) {
+      logger.error(`⚠️  Seeding completed with ${totalFailed} failures`);
+      process.exit(1);
+    }
+    
     process.exit(0);
   } catch (error) {
     logger.error('❌ Error seeding database:', error);

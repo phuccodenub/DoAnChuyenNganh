@@ -19,6 +19,9 @@ import { default as assignmentRoutes } from '../../../modules/assignment/assignm
 import { default as gradeRoutes } from '../../../modules/grade/grade.routes';
 import { default as liveStreamRoutes } from '../../../modules/livestream/livestream.routes';
 import { default as analyticsRoutes } from '../../../modules/analytics/analytics.routes';
+import systemSettingsRoutes from '../../../modules/system-settings/system.settings.routes';
+import { courseRoutes } from '../../../modules/course/course.routes';
+import categoryRoutes from '../../../modules/category/category.routes';
 import logger from '../../../utils/logger.util';
 
 const router = Router();
@@ -47,6 +50,8 @@ router.use('/admin/users', userAdminRoutes);
 // Mount admin routes under /users as well (order after self-service to avoid conflicts)
 logger.info('Registering v1 admin alias at /users (after self-service)');
 router.use('/users', userAdminRoutes);
+router.use('/courses', courseRoutes);
+router.use('/categories', categoryRoutes);
 router.use('/course-content', courseContentRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/quizzes', quizRoutes);
@@ -54,6 +59,8 @@ router.use('/assignments', assignmentRoutes);
 router.use('/grades', gradeRoutes);
 router.use('/livestreams', liveStreamRoutes);
 router.use('/analytics', analyticsRoutes);
+// System settings (admin only)
+router.use('/admin/settings', systemSettingsRoutes);
 
 export default router;
 

@@ -42,8 +42,7 @@ const Course = sequelize.define('Course', {
       model: 'categories',
       key: 'id'
     },
-    onDelete: 'SET NULL',
-    comment: 'Danh mục của khóa học (foreign key)'
+    comment: 'Foreign key to categories table'
   },
   
   // ===== COURSE DETAILS =====
@@ -140,7 +139,7 @@ const Course = sequelize.define('Course', {
   
   // ===== STATUS & PUBLISHING =====
   status: {
-    type: DataTypes.ENUM('draft', 'published', 'archived'),
+    type: DataTypes.ENUM('draft', 'published', 'archived', 'suspended'),
     defaultValue: 'draft',
   },
   published_at: {

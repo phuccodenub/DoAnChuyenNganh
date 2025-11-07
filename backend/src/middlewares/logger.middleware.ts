@@ -5,10 +5,10 @@ import logger from '@utils/logger.util';
 export const loggerMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const start = Date.now();
   
-  // Log request
+  // Log request - use originalUrl to capture full path including query strings
   logger.info('Incoming request', {
     method: req.method,
-    url: req.url,
+    url: req.originalUrl || req.url,
     ip: req.ip,
     userAgent: req.get('User-Agent'),
     timestamp: new Date().toISOString()
@@ -21,7 +21,7 @@ export const loggerMiddleware = (req: Request, res: Response, next: NextFunction
     
     logger.info('Request completed', {
       method: req.method,
-      url: req.url,
+      url: req.originalUrl || req.url,
       statusCode: res.statusCode,
       duration: `${duration}ms`,
       ip: req.ip

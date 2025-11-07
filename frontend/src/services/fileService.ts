@@ -17,22 +17,21 @@ export interface FileItem {
   download_count: number
   file_path: string
   is_public: boolean
+  // Optional URL for direct access (used by UI components)
+  url?: string
 }
 
 export interface FileUploadResponse {
   success: boolean
   message: string
-  data: {
-    file: FileItem
-    url: string
-  }
+  data: FileItem
 }
 
 export interface FileListResponse {
   success: boolean
   message: string
   data: {
-    files: FileItem[]
+    files: Array<FileItem>
     total_size: number
   }
 }
@@ -52,184 +51,22 @@ export interface ApiResponse<T> {
   data: T
 }
 
-export const fileService = {
-  /**
-   * Upload single file
-   */
-  async uploadSingle(file: File, folder: string = 'general'): Promise<FileUploadResponse> {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('folder', folder)
-
-    const response = await apiClient.post<FileUploadResponse>('/files/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return response.data
-  },
-
-  /**
-   * Upload multiple files
-   */
-  async uploadMultiple(files: File[], folder: string = 'general'): Promise<FileUploadResponse[]> {
-    const formData = new FormData()
-    files.forEach(file => {
-      formData.append('files', file)
-    })
-    formData.append('folder', folder)
-
-    const response = await apiClient.post<{ success: boolean; message: string; data: FileUploadResponse[] }>('/files/upload/multiple', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return response.data.data
-  },
-
-  /**
-   * Download file
-   */
-  async downloadFile(folder: string, filename: string): Promise<Blob> {
-    const response = await apiClient.get(`/files/download/${folder}/${filename}`, {
-      responseType: 'blob',
-    })
-    return response.data
-  },
-
-  /**
-   * View file inline (for images, PDFs, etc.)
-   */
-  getViewUrl(folder: string, filename: string): string {
-    return `${apiClient.defaults.baseURL}/files/view/${folder}/${filename}`
-  },
-
-  /**
-   * Get file information
-   */
-  async getFileInfo(folder: string, filename: string): Promise<ApiResponse<FileItem>> {
-    const response = await apiClient.get<ApiResponse<FileItem>>(`/files/info/${folder}/${filename}`)
-    return response.data
-  },
-
-  /**
-   * Delete file
-   */
-  async deleteFile(folder: string, filename: string): Promise<ApiResponse<null>> {
-    const response = await apiClient.delete<ApiResponse<null>>(`/files/${folder}/${filename}`)
-    return response.data
-  },
-
-  /**
-   * List all files in a folder
-   */
-  async listFiles(folder: string): Promise<FileListResponse> {
-    const response = await apiClient.get<FileListResponse>(`/files/list/${folder}`)
-    return response.data
-  },
-
-  /**
-   * Get total size of files in folder
-   */
-  async getFolderSize(folder: string): Promise<ApiResponse<{ total_size: number; file_count: number }>> {
-    const response = await apiClient.get<ApiResponse<{ total_size: number; file_count: number }>>(`/files/folder-size/${folder}`)
-    return response.data
-  },
-
-  /**
-   * Generate signed URL for temporary file access
-   */
-  async generateSignedUrl(folder: string, filename: string, expiresIn: number = 3600): Promise<SignedUrlResponse> {
-    const response = await apiClient.post<SignedUrlResponse>('/files/signed-url', {
-      folder,
-      filename,
-      expires_in: expiresIn
-    })
-    return response.data
-  },
-
-  /**
-   * Utility: Format file size
-   */
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  },
-
-  /**
-   * Utility: Get file icon based on mime type
-   */
-  getFileIcon(mimeType: string): string {
-    if (mimeType.startsWith('image/')) return '🖼️'
-    if (mimeType.startsWith('video/')) return '🎥'
-    if (mimeType.startsWith('audio/')) return '🎵'
-    if (mimeType.includes('pdf')) return '📄'
-    if (mimeType.includes('word') || mimeType.includes('document')) return '📝'
-    if (mimeType.includes('sheet') || mimeType.includes('excel')) return '📊'
-    if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return '📋'
-    if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return '🗜️'
-    if (mimeType.startsWith('text/')) return '📄'
-    return '📎'
-  },
-
-  /**
-   * Utility: Check if file type is supported for preview
-   */
-  isPreviewable(mimeType: string): boolean {
-    return mimeType.startsWith('image/') || 
-           mimeType.startsWith('text/') || 
-           mimeType.includes('pdf') ||
-           mimeType.startsWith('video/') ||
-           mimeType.startsWith('audio/')
-  },
-
-  /**
-   * Utility: Validate file type
-   */
-  isValidFileType(file: File, allowedTypes: string[] = []): boolean {
-    if (allowedTypes.length === 0) return true
-    return allowedTypes.some(type => file.type.includes(type))
-  },
-
-  /**
-   * Utility: Validate file size
-   */
-  isValidFileSize(file: File, maxSizeBytes: number): boolean {
-    return file.size <= maxSizeBytes
-  },
-
-  /**
-   * Download file and trigger browser download
-   */
-  async triggerDownload(folder: string, filename: string, displayName?: string): Promise<void> {
-    try {
-      const blob = await this.downloadFile(folder, filename)
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = displayName || filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Download failed:', error)
-      throw error
-    }
-  }
-}
-  description: string
+// Domain models for in-app file management (IndexedDB + UI)
+export interface CourseFile {
+  id: string
+  name: string
+  originalName: string
+  type: string
+  size: number
   courseId: string
-  createdBy: number
-  dueDate: string
-  maxPoints: number
-  attachments: string[] // File IDs
-  submissions: AssignmentSubmission[]
-  instructions: string
-  createdAt: string
+  uploadedBy: number
+  uploadedAt: string
+  category: 'lecture' | 'assignment' | 'video' | 'document' | 'image' | 'resource' | 'other'
+  description?: string
+  isPublic: boolean
+  downloadCount: number
+  data: string
+  url?: string
 }
 
 export interface AssignmentSubmission {
@@ -238,11 +75,25 @@ export interface AssignmentSubmission {
   studentId: number
   studentName: string
   submittedAt: string
-  files: string[] // File IDs
+  files: Array<string> // File IDs
   text?: string
   grade?: number
   feedback?: string
   status: 'draft' | 'submitted' | 'graded'
+}
+
+export interface Assignment {
+  id: string
+  title: string
+  description: string
+  courseId: string
+  createdBy: number
+  dueDate: string
+  maxPoints: number
+  attachments: Array<string>
+  submissions: Array<AssignmentSubmission>
+  instructions: string
+  createdAt: string
 }
 
 class FileService {
@@ -291,8 +142,19 @@ class FileService {
     })
   }
 
-  // File upload handling
-  async uploadFile(file: File, courseId: string, userId: number, category: CourseFile['category'] = 'document', description?: string): Promise<CourseFile> {
+  // File upload handling (overloaded)
+  async uploadFile(formData: FormData, onProgress?: (progress: number) => void): Promise<FileUploadResponse>
+  async uploadFile(file: File, courseId: string, userId: number, category?: CourseFile['category'], description?: string): Promise<CourseFile>
+  async uploadFile(arg1: FormData | File, arg2?: any, arg3?: any, arg4: CourseFile['category'] = 'document', arg5?: string): Promise<any> {
+    if (arg1 instanceof FormData) {
+      const data = await this.uploadFileFormData(arg1, arg2)
+      return { success: true, message: 'Uploaded', data }
+    }
+    const file = arg1 as File
+    const courseId = String(arg2)
+    const userId = Number(arg3)
+    const category = arg4
+    const description = arg5
     try {
       const fileData = await this.fileToBase64(file)
       
@@ -319,6 +181,52 @@ class FileService {
       console.error('File upload failed:', error)
       throw new Error('Failed to upload file')
     }
+  }
+
+  // API-like uploader used by FileUploader component (FormData + progress)
+  async uploadFileFormData(
+    formData: FormData,
+    onProgress?: (progress: number) => void
+  ): Promise<FileItem> {
+    // Extract required fields
+    const file = formData.get('file') as File | null
+    const courseId = (formData.get('courseId') as string) || 'unknown'
+    const folder = (formData.get('folder') as string) || 'general'
+
+    if (!file) {
+      throw new Error('No file provided')
+    }
+
+    // Simulate upload progress for demo/local mode
+    if (onProgress) {
+      for (let p = 0; p <= 90; p += 10) {
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(res => setTimeout(res, 30))
+        onProgress(p)
+      }
+    }
+
+    // Reuse local storage path
+    const userId = 0
+    const stored = await this.uploadFile(file, courseId, userId, 'document')
+    const result: FileItem = {
+      id: stored.id,
+      filename: stored.name,
+      original_name: stored.originalName,
+      mime_type: stored.type,
+      size: stored.size,
+      folder,
+      uploaded_by: stored.uploadedBy,
+      uploaded_at: stored.uploadedAt,
+      download_count: stored.downloadCount,
+      file_path: stored.id,
+      is_public: stored.isPublic,
+      url: stored.url,
+    }
+
+    onProgress?.(100)
+
+    return result
   }
 
   // Convert file to base64 for storage
@@ -374,7 +282,7 @@ class FileService {
   }
 
   // Get files by course
-  async getFilesByCourse(courseId: string): Promise<CourseFile[]> {
+  async getFilesByCourse(courseId: string): Promise<Array<CourseFile>> {
     if (this.db) {
       try {
         const transaction = this.db.transaction(['files'], 'readonly')
@@ -447,18 +355,25 @@ class FileService {
     return updatedFile
   }
 
-  // Download file
-  downloadFile(file: CourseFile): void {
-    if (file.url) {
-      const link = document.createElement('a')
-      link.href = file.url
-      link.download = file.originalName
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      // Increment download count
-      this.updateFile(file.id, { downloadCount: file.downloadCount + 1 })
+  // Download file (overloads for UI convenience)
+  downloadFile(fileOrId: CourseFile | string): void {
+    const doDownload = (file: CourseFile) => {
+      if (file.url) {
+        const link = document.createElement('a')
+        link.href = file.url
+        link.download = file.originalName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        // Increment download count
+        this.updateFile(file.id, { downloadCount: file.downloadCount + 1 })
+      }
+    }
+
+    if (typeof fileOrId === 'string') {
+      this.getFileById(fileOrId).then(f => { if (f) doDownload(f) })
+    } else {
+      doDownload(fileOrId)
     }
   }
 
@@ -493,7 +408,7 @@ class FileService {
     }
   }
 
-  async getAssignmentsByCourse(courseId: string): Promise<Assignment[]> {
+  async getAssignmentsByCourse(courseId: string): Promise<Array<Assignment>> {
     if (this.db) {
       try {
         const transaction = this.db.transaction(['assignments'], 'readonly')
@@ -514,7 +429,7 @@ class FileService {
   }
 
   // Submit assignment
-  async submitAssignment(assignmentId: string, studentId: number, studentName: string, files: string[], text?: string): Promise<AssignmentSubmission> {
+  async submitAssignment(assignmentId: string, studentId: number, studentName: string, files: Array<string>, text?: string): Promise<AssignmentSubmission> {
     const assignment = this.memoryAssignments.get(assignmentId)
     if (!assignment) throw new Error('Assignment not found')
 
@@ -571,7 +486,7 @@ class FileService {
   // Demo data initialization
   async initializeDemoData(): Promise<void> {
     // Create some demo files for each course
-    const demoFiles: CourseFile[] = [
+    const demoFiles: Array<CourseFile> = [
       {
         id: 'file-demo-1',
         name: 'React_Basics_Slides.pdf',
@@ -625,7 +540,7 @@ class FileService {
     }
 
     // Create demo assignments
-    const demoAssignments: Assignment[] = [
+    const demoAssignments: Array<Assignment> = [
       {
         id: 'assignment-demo-1',
         title: 'Build a React Component',
@@ -672,3 +587,12 @@ class FileService {
 // Export singleton instance
 export const fileService = new FileService()
 export default fileService
+
+// Backward-compatible named function expected by FileUploader
+export async function uploadFile(
+  formData: FormData,
+  onProgress?: (progress: number) => void
+): Promise<FileUploadResponse> {
+  const data = await fileService.uploadFileFormData(formData, onProgress)
+  return { success: true, message: 'Uploaded', data }
+}

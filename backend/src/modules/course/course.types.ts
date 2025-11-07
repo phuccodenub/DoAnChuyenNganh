@@ -49,6 +49,7 @@ export interface GetCoursesOptions {
   status?: string;
   instructor_id?: string;
   search?: string;
+  category?: string; // Category slug or ID for filtering
 }
 
 export interface GetCoursesByInstructorOptions {

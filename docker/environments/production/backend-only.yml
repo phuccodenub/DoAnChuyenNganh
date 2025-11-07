@@ -1,0 +1,90 @@
+# LMS Backend-Only Production Environment
+# Includes: PostgreSQL + Redis + Backend (API Only)
+# Usage: docker-compose -f docker/environments/production/backend-only.yml up -d
+
+version: '3.8'
+
+# Include shared configurations
+include:
+  - ../../shared/database.yml
+  - ../../shared/cache.yml
+  - ../../shared/networks.yml
+
+services:
+  # PostgreSQL Database Service
+  postgres:
+    <<: *postgres-prod
+    container_name: lms_postgres_api_prod
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_api_prod_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_PROD}
+    networks:
+      - lms-network
+
+  # Redis Cache Service
+  redis:
+    <<: *redis-prod
+    container_name: lms_redis_api_prod
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_api_prod_data:/data
+    networks:
+      - lms-network
+
+  # Backend API Service
+  backend:
+    build:
+      context: ../../../backend
+      dockerfile: docker/Dockerfile
+    container_name: lms_backend_api_prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD_PROD}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD_PROD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET_PROD}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-24h}
+      - PORT=3000
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - DISABLE_RATE_LIMIT=false
+    volumes:
+      - ../../../backend/logs:/app/logs
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    networks:
+      - lms-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+# Named volumes for data persistence
+volumes:
+  postgres_api_prod_data:
+    name: lms_postgres_api_prod_data
+  redis_api_prod_data:
+    name: lms_redis_api_prod_data
+
+# Networks
+networks:
+  <<: *networks-default

@@ -32,7 +32,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       chat: '💬',
       quiz: '📝',
       assignment: '📋',
-      stream: '📹'
+      stream: '📹',
+      course: '📚'
     }
     return icons[type] || '🔔'
   }
@@ -46,7 +47,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       chat: 'text-blue-600 dark:text-blue-400',
       quiz: 'text-purple-600 dark:text-purple-400',
       assignment: 'text-indigo-600 dark:text-indigo-400',
-      stream: 'text-red-600 dark:text-red-400'
+      stream: 'text-red-600 dark:text-red-400',
+      course: 'text-teal-600 dark:text-teal-400'
     }
     return colors[type] || 'text-gray-600 dark:text-gray-400'
   }
@@ -89,7 +91,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
             </h4>
             <div className="flex items-center space-x-2">
               <span className={cn("text-xs", getTypeColor(notification.type))}>
-                {formatTime(notification.createdAt)}
+                {formatTime(notification.createdAt || (notification as any).created_at)}
               </span>
               {!notification.isRead && (
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>

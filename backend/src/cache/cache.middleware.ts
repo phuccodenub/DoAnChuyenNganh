@@ -44,6 +44,21 @@ export class CacheMiddleware {
         return next();
       }
 
+      // Skip cache for health endpoints, metrics, and debug routes
+      // Use originalUrl or path to check, support both /health and /api/health patterns
+      const path = req.originalUrl || req.path;
+      const noCachePatterns = [
+        /^\/health/,           // /health, /health/redis, etc.
+        /^\/api\/health/,      // /api/health (should not exist but just in case)
+        /^\/__routes_debug/,   // debug route
+        /^\/metrics/,          // metrics endpoints
+        /^\/api-docs/          // swagger docs
+      ];
+      
+      if (noCachePatterns.some(pattern => pattern.test(path))) {
+        return next();
+      }
+
       // Check if should skip cache
       if (mergedOptions.skipCache && mergedOptions.skipCache(req, res)) {
         return next();
@@ -77,6 +92,11 @@ export class CacheMiddleware {
         const originalJson = res.json;
         const cacheManager = this.cacheManager;
         res.json = function(body: any) {
+          // Don't cache error responses (4xx/5xx)
+          if (res.statusCode >= 400) {
+            return originalJson.call(this, body);
+          }
+          
           // Cache the response
           setImmediate(() => {
             cacheManager.set(cacheKey, body, mergedOptions.ttl, mergedOptions.strategy).catch((error: any) => {

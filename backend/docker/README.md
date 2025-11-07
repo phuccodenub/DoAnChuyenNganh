@@ -1,7 +1,18 @@
-# Docker Configuration for LMS Backend
+# ⚠️ DEPRECATED: Docker Configuration for LMS Backend
+
+## ⚠️ DEPRECATION NOTICE
+**This directory is DEPRECATED and will be removed in a future version.**
+
+🆕 **New Location**: All Docker configurations have been moved to the root `docker/` folder for better organization.
+
+**Migration Guide**:
+- Old: `docker-compose -f backend/docker/docker-compose.dev.yml up`
+- New: `npm run dev:api`
+
+📖 **See**: `/docker/README.md` for the new centralized Docker system.
 
 ## Overview
-This directory contains Docker configuration files for the LMS Backend application.
+This directory contains LEGACY Docker configuration files for the LMS Backend application.
 
 ## Files
 
@@ -131,3 +142,56 @@ docker-compose -f docker/docker-compose.yml logs redis
 - Health checks for monitoring
 - Volume persistence for data
 - Network isolation between services
+
+Bài học kinh nghiệm:
+Khi làm việc với Docker:
+⚠️ Docker volumes giữ data độc lập, không sync với localhost
+⚠️ Seed data phải chạy đúng target: Docker database (localhost:5432) hoặc native PostgreSQL
+⚠️ Port mapping ≠ Same database: localhost:5432 có thể là Docker container hoặc native PostgreSQL
+Để tránh nhầm lẫn trong tương lai:
+Luôn kiểm tra database thực tế bằng: docker exec lms-postgres-dev psql ...
+Clear cache sau khi thay đổi data: docker restart lms-backend-dev
+Seed data vào đúng database: Dùng .env với DB_HOST=localhost để target Docker
+
+---
+
+## 🎯 QUAN TRỌNG: Docker Volume & Data Management
+
+### **⚠️ Vấn đề đã gặp:**
+
+Docker volumes giữ data RIÊNG BIỆT, không sync với localhost. Điều này gây confusion:
+
+```
+Backend trong Docker → Docker PostgreSQL (volume data) ✅
+Seed scripts từ host → Docker PostgreSQL (qua port mapping) ✅
+Developer nghĩ → "Localhost database" ❌ NHẦM!
+```
+
+### **✅ Giải pháp:**
+
+Đã tạo 2 file config riêng biệt:
+- `.env.docker` - Cho backend trong Docker (DB_HOST=postgres)
+- `.env.local` - Cho seed scripts từ host (DB_HOST=localhost)
+
+### **📚 Utility Commands:**
+
+```bash
+# Kiểm tra database connection
+npm run db:check
+
+# Seed data đúng cách
+npm run seed:docker
+
+# Verify data trong Docker
+docker exec lms-postgres-dev psql -U lms_user -d lms_db -c "SELECT COUNT(*) FROM courses;"
+
+# Clear cache
+docker restart lms-backend-dev
+```
+
+### **📖 Chi tiết:**
+
+Xem file `DOCKER_VOLUME_SOLUTION.md` và `DEVELOPMENT_SETUP.md` để hiểu rõ hơn.
+
+---
+````

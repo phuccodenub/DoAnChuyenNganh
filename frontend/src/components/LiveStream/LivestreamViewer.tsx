@@ -64,8 +64,12 @@ export const LivestreamViewer: React.FC = () => {
   const { isSessionLive, formatViewerCount } = useLivestreamUtils()
 
   const session = sessionData?.data
-  const viewers = viewersData?.data || []
-  const chatMessages = chatData?.data || []
+  const viewers = Array.isArray(viewersData?.data)
+    ? (viewersData?.data as any)
+    : (viewersData?.data as any)?.viewers || []
+  const chatMessages: any[] = Array.isArray(chatData?.data)
+    ? (chatData?.data as any[])
+    : ((chatData?.data as any)?.messages || [])
 
   // WebRTC configuration
   const rtcConfig = {

@@ -43,7 +43,8 @@ export class CourseController {
         limit: paginationOptions.limit,
         status: req.query.status as string,
         instructor_id: req.query.instructor_id as string,
-        search: req.query.search as string
+        search: req.query.search as string,
+        category: req.query.category as string
       });
       
       responseUtils.sendSuccess(res, 'Courses retrieved successfully', courses);
@@ -139,12 +140,15 @@ export class CourseController {
   // Get enrolled courses for user
   getEnrolledCourses = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
+      console.log('CONTROLLER: getEnrolledCourses called');
       const userId = req.user?.userId;
+      console.log('CONTROLLER: userId:', userId);
       if (!userId) {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
         return;
       }
       const { page = 1, limit = 10, status } = req.query;
+      console.log('CONTROLLER: calling service with params:', { userId, page, limit, status });
       
       const courses = await this.courseService.getEnrolledCourses(userId!, {
         page: Number(page),

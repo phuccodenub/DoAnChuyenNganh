@@ -2,7 +2,7 @@
  * Seeder 002: Seed courses
  */
 
-import { Sequelize } from 'sequelize';
+import { Sequelize, QueryTypes } from 'sequelize';
 
 export async function seedCourses(sequelize: Sequelize): Promise<void> {
   const courses = [
@@ -212,6 +212,20 @@ export async function seedCourses(sequelize: Sequelize): Promise<void> {
 
   // Insert courses
   for (const course of courses) {
+    // Check if course already exists
+    const existingCourse = await sequelize.query(
+      'SELECT id FROM courses WHERE id = ?',
+      {
+        replacements: [course.id],
+        type: QueryTypes.SELECT
+      }
+    );
+
+    if (existingCourse.length > 0) {
+      console.log(`⚠️  Course ${course.title} already exists, skipping...`);
+      continue;
+    }
+
     await sequelize.query(
       `INSERT INTO courses (
         id, title, description, short_description, instructor_id, category, subcategory,

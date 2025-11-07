@@ -1,4 +1,4 @@
-# Test Status Update — 2025-10-30
+# Test Status Update — 2025-11-03
 
 This section records the latest verified status across tests, typecheck, lint, and Docker runtime.
 
@@ -8,6 +8,7 @@ This section records the latest verified status across tests, typecheck, lint, a
 - TypeScript typecheck: PASS (tsc --noEmit)
 - ESLint: 0 errors, many warnings (auto-fix applied where safe; warnings remain for future hardening)
 - Docker smoke test: PASS (backend container up; GET http://localhost:3000/health → 200)
+- Role-based login (Docker): PASS (admin/instructor/student) after seeding inside container
 
 ## Key fixes that stabilized the suite
 
@@ -20,7 +21,13 @@ This section records the latest verified status across tests, typecheck, lint, a
 - Build: PASS
 - Lint/Typecheck: Typecheck PASS; ESLint has warnings but no errors
 - Tests: PASS (10/10 suites, 248/248 tests)
-- Runtime (Docker): PASS (backend healthy; /health 200)
+- Runtime (Docker): PASS (backend healthy; /health 200; logins OK for seeded users)
+
+> Note 2025-11-03: If logins return 401 in Docker while tests pass locally, run the seed script inside the backend container to ensure the same DB is populated:
+
+- docker exec dacn-backend-1 node dist/scripts/seed-database.js
+
+Then re-run backend/scripts/test-logins.ps1 to verify admin/instructor/student logins.
 
 ---
 # Test Readiness & Next Steps (as of 2025-10-30)

@@ -1,0 +1,32 @@
+# Shared PostgreSQL Configuration Template
+# This file contains reusable database service configuration to avoid duplication
+
+version: '3.8'
+
+x-postgres-base: &postgres-base
+  image: postgres:15
+  restart: unless-stopped
+  environment:
+    POSTGRES_DB: ${POSTGRES_DB:-lms_db}
+    POSTGRES_USER: ${POSTGRES_USER:-lms_user}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms_user} -d ${POSTGRES_DB:-lms_db}"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+  networks:
+    - lms-network
+
+x-postgres-volumes: &postgres-volumes
+  - ./database/init:/docker-entrypoint-initdb.d
+
+# Development specific postgres (with init scripts)
+x-postgres-dev: &postgres-dev
+  <<: *postgres-base
+  volumes:
+    - *postgres-volumes
+
+# Production specific postgres (without init scripts for security)
+x-postgres-prod: &postgres-prod
+  <<: *postgres-base
