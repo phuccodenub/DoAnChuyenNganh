@@ -5,67 +5,13 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { MetricsService } from './metrics.service';
-import { DatabaseMetrics } from './database.metrics';
-import { RedisMetrics } from './redis.metrics';
-import { BackgroundTasksMetrics } from './background-tasks.metrics';
-import env from '../../config/env.config';
 import logger from '../../utils/logger.util';
 
 export class MetricsMiddleware {
   private metricsService: MetricsService;
-  private databaseMetrics?: DatabaseMetrics;
-  private redisMetrics?: RedisMetrics;
-  private backgroundTasksMetrics: BackgroundTasksMetrics;
 
   constructor(metricsService: MetricsService) {
     this.metricsService = metricsService;
-    this.backgroundTasksMetrics = new BackgroundTasksMetrics(metricsService);
-    
-    // Set global labels for all metrics
-    this.metricsService.setDefaultLabels({
-      service: 'lms-backend',
-      env: env.nodeEnv,
-      version: env.api.defaultVersion,
-      instance: `${process.env.HOSTNAME || 'localhost'}:${env.port}`
-    });
-  }
-
-  /**
-   * Initialize database metrics
-   */
-  public initializeDatabaseMetrics(sequelize: any): void {
-    this.databaseMetrics = new DatabaseMetrics(this.metricsService, sequelize);
-    logger.info('Database metrics initialized');
-  }
-
-  /**
-   * Initialize Redis metrics
-   */
-  public initializeRedisMetrics(redisClient: any): void {
-    this.redisMetrics = new RedisMetrics(this.metricsService, redisClient);
-    this.redisMetrics.startPeriodicCollection();
-    logger.info('Redis metrics initialized');
-  }
-
-  /**
-   * Get database metrics instance
-   */
-  public getDatabaseMetrics(): DatabaseMetrics | undefined {
-    return this.databaseMetrics;
-  }
-
-  /**
-   * Get Redis metrics instance
-   */
-  public getRedisMetrics(): RedisMetrics | undefined {
-    return this.redisMetrics;
-  }
-
-  /**
-   * Get background tasks metrics instance
-   */
-  public getBackgroundTasksMetrics(): BackgroundTasksMetrics {
-    return this.backgroundTasksMetrics;
   }
 
   /**
@@ -75,6 +21,12 @@ export class MetricsMiddleware {
     const startTime = Date.now();
     const timer = this.metricsService.startTimer('http_requests_duration');
     
+    // Increment total requests counter
+    this.metricsService.incrementCounter('http_requests_total', {
+      method: req.method,
+      route: req.route?.path || req.path,
+      status: 'unknown'
+    });
 
     // Override res.end to capture response metrics
     const originalEnd = res.end.bind(res);
@@ -82,38 +34,33 @@ export class MetricsMiddleware {
       const duration = Date.now() - startTime;
       const statusCode = res.statusCode.toString();
       
-      // Record response time (as histogram in ms)
+      // Record response time
       timer();
-      this.metricsService.recordHistogram('http_request_duration_seconds', duration / 1000, {
-        method: req.method,
-        route: normalizeRoute(req),
-        status: statusGroup(statusCode)
-      });
       
       // Increment status-specific counters
       this.metricsService.incrementCounter('http_requests_total', {
         method: req.method,
-        route: normalizeRoute(req),
-        status: statusGroup(statusCode)
+        route: req.route?.path || req.path,
+        status: statusCode
       });
 
       // Increment error counter if status >= 400
       if (res.statusCode >= 400) {
         this.metricsService.incrementCounter('http_errors_total', {
           method: req.method,
-          route: normalizeRoute(req),
-          status: statusGroup(statusCode),
+          route: req.route?.path || req.path,
+          status: statusCode,
           error_type: res.statusCode >= 500 ? 'server_error' : 'client_error'
         });
       }
 
       // Record response size
       if (chunk) {
-        const responseSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk || '', encoding as any);
+        const responseSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk || '', encoding);
         this.metricsService.recordHistogram('http_response_size', responseSize, {
           method: req.method,
-          route: normalizeRoute(req),
-          status: statusGroup(statusCode)
+          route: req.route?.path || req.path,
+          status: statusCode
         });
       }
 
@@ -122,12 +69,12 @@ export class MetricsMiddleware {
       if (requestSize > 0) {
         this.metricsService.recordHistogram('http_request_size', requestSize, {
           method: req.method,
-          route: normalizeRoute(req)
+          route: req.route?.path || req.path
         });
       }
 
-      // Call original end method
-      return originalEnd(chunk as any, encoding as any, cb as any);
+      // Call original end method and return Response
+      return originalEnd(chunk as any, encoding as any, cb as any) as any;
     }) as any;
 
     next();
@@ -194,22 +141,25 @@ export class MetricsMiddleware {
    * Middleware to collect error metrics
    */
   public collectErrorMetrics = (error: any, req: Request, res: Response, next: NextFunction): void => {
+    // Extract status code from error object, not response (which is still 200 at this point)
+    const statusCode = (error as any).statusCode || 500;
+    
     // Increment error counter
     this.metricsService.incrementCounter('http_errors_total', {
       method: req.method,
       route: req.route?.path || req.path,
-      status: res.statusCode?.toString() || '500',
-      error_type: error.name || 'unknown_error',
-      error_message: error.message || 'unknown_error'
+      status: statusCode.toString(),
+      error_type: (error as Error).name || 'unknown_error',
+      error_message: (error as Error).message || 'unknown_error'
     });
 
-    // Record error details
+    // Record error details with correct status code
     logger.error('HTTP error occurred', {
-      error: error.message,
-      stack: error.stack,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
       method: req.method,
       url: req.url,
-      statusCode: res.statusCode,
+      statusCode: statusCode,  // Use extracted status code, not res.statusCode
       userAgent: req.get('User-Agent'),
       ip: req.ip
     });
@@ -310,45 +260,3 @@ export const metricsMiddleware = disableMetrics
   ? (new NoopMetricsMiddleware() as unknown as MetricsMiddleware)
   : new MetricsMiddleware(new MetricsService());
 
-// Helpers
-function normalizeRoute(req: Request): string {
-  // Prefer Express route pattern if available; fallback to path with dynamic segments masked
-  const pattern = (req as any).route?.path as string | undefined;
-  if (pattern) return pattern;
-  
-  let path = req.path || '';
-  
-  // Mask UUIDs with :id
-  path = path.replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, ':id');
-  
-  // Mask numeric IDs with :id
-  path = path.replace(/\b\d+\b/g, ':id');
-  
-  // Mask common query patterns to reduce cardinality
-  path = path.replace(/\/search\?.*$/, '/search');
-  path = path.replace(/\/filter\?.*$/, '/filter');
-  path = path.replace(/\/page=\d+.*$/, '/page=:page');
-  path = path.replace(/\/limit=\d+.*$/, '/limit=:limit');
-  path = path.replace(/\/sort=.*$/, '/sort=:sort');
-  
-  // Mask email-like patterns
-  path = path.replace(/\/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '/:email');
-  
-  // Mask long strings (likely tokens or hashes)
-  path = path.replace(/\/[a-zA-Z0-9]{32,}/g, '/:token');
-  
-  // Limit path depth to prevent excessive cardinality
-  const segments = path.split('/').slice(0, 6); // Max 5 segments after root
-  if (segments.length > 5) {
-    segments[5] = '...';
-  }
-  
-  return segments.join('/') || '/';
-}
-
-function statusGroup(status: string): string {
-  if (status === '304' || status === '301' || status === '302' || status === '307' || status === '308') {
-    return status === '304' ? 'not_modified' : 'redirect';
-  }
-  return status;
-}

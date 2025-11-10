@@ -1,0 +1,9 @@
+# Shared Network Configuration
+# Standard network configurations for all environments
+
+version: '3.8'
+
+x-networks-default: &networks-default
+  lms-network:
+    driver: bridge
+    name: lms-network-${COMPOSE_PROJECT_NAME:-default}

@@ -100,15 +100,151 @@ npm start
 
 ## 🐳 Chạy với Docker
 
-1. Cấu hình file `.env` trong `backend` như phần hướng dẫn ở trên.
+### Quick Start (Khuyến nghị cho Flutter development)
 
-2. Khởi động bằng Docker Compose:
+Dự án hỗ trợ 2 môi trường Docker:
 
+#### 1. Backend Only (Cho Mobile/Flutter App)
 ```bash
-docker-compose up -d --build
+# Start backend + database + redis
+npm run dev:api
+
+# Stop services
+npm run dev:down:api
 ```
 
-Lệnh trên sẽ build image và khởi chạy các service (frontend, backend, postgres, redis).
+**Containers created:**
+- `lms-postgres-dev` - PostgreSQL database (port 5432)
+- `lms-redis-dev` - Redis cache (port 6379)
+- `lms-backend-dev` - Backend API (port 3000)
+
+**API Endpoint:** `http://localhost:3000/api`
+
+#### 2. Full Stack (Backend + Frontend)
+```bash
+# Start all services including React frontend
+npm run dev:web
+
+# Stop services
+npm run dev:down:web
+```
+
+**Containers created:**
+- `lms-postgres-dev` - PostgreSQL database (port 5432)
+- `lms-redis-dev` - Redis cache (port 6379)
+- `lms-backend-dev` - Backend API (port 3000)
+- `lms-frontend-dev` - React frontend (port 3001)
+
+### Useful Docker Commands
+
+```bash
+# View running containers
+docker ps
+
+# View logs
+docker logs lms-backend-dev
+docker logs lms-postgres-dev
+docker logs lms-redis-dev
+
+# Execute commands in containers
+docker exec lms-backend-dev npm run seed
+docker exec lms-postgres-dev psql -U lms_user -d lms_db
+docker exec lms-redis-dev redis-cli PING
+
+# Restart a service
+docker restart lms-backend-dev
+
+# Access backend shell
+docker exec -it lms-backend-dev sh
+```
+
+### Seed dữ liệu mẫu trong Docker
+
+Backend tự động seed dữ liệu khi khởi động lần đầu. Nếu cần seed lại:
+
+```bash
+# Seed database
+docker exec lms-backend-dev npm run seed
+
+# Clear and reseed
+docker exec lms-backend-dev npm run reset-db-simple
+docker exec lms-backend-dev npm run seed
+```
+
+Sau đó có thể kiểm tra nhanh đăng nhập 3 vai trò:
+
+```bash
+# Test login với tất cả roles
+docker exec lms-backend-dev npm run test:auth
+
+# Hoặc test bằng curl
+curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"Admin123!"}'
+```
+
+### Tài khoản mẫu (Test Credentials)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | superadmin@example.com | SuperAdmin123! |
+| Admin | admin@example.com | Admin123! |
+| Instructor | instructor1@example.com | Instructor123! |
+| Student | student1@example.com | Student123! |
+
+### Kết nối từ Flutter/Mobile App
+
+**Android Emulator:**
+```dart
+final apiUrl = 'http://10.0.2.2:3000/api';
+```
+
+**iOS Simulator:**
+```dart
+final apiUrl = 'http://localhost:3000/api';
+```
+
+**Physical Device (same network):**
+```dart
+final apiUrl = 'http://YOUR_COMPUTER_IP:3000/api';
+// Example: http://192.168.1.100:3000/api
+```
+
+### Troubleshooting
+
+**Backend không start:**
+```bash
+# Check logs
+docker logs lms-backend-dev
+
+# Restart backend
+docker restart lms-backend-dev
+```
+
+**Database connection failed:**
+```bash
+# Check if postgres is running
+docker ps | grep lms-postgres-dev
+
+# Check connection
+docker exec lms-postgres-dev pg_isready -U lms_user
+```
+
+**Redis connection failed:**
+```bash
+# Check if redis is running
+docker exec lms-redis-dev redis-cli PING
+# Should return: PONG
+```
+
+**Port already in use:**
+```bash
+# Stop services
+npm run dev:down:api
+
+# Or stop specific container
+docker stop lms-backend-dev
+```
 
 ---
 

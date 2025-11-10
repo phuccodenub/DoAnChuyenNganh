@@ -84,6 +84,34 @@ export namespace CourseTypes {
     settings?: Partial<CourseSettings>;
   }
 
+  // Course update data
+  export interface UpdateCourseData {
+    title?: string;
+    description?: string;
+    instructor_id?: string;
+    status?: CourseStatus;
+    start_date?: Date;
+    end_date?: Date;
+    max_students?: number;
+    thumbnail_url?: string;
+    tags?: string[];
+    settings?: Partial<CourseSettings>;
+  }
+
+  // Course creation data
+  export interface CreateCourseData {
+    title: string;
+    description?: string;
+    instructor_id: string;
+    status?: CourseStatus;
+    start_date?: Date;
+    end_date?: Date;
+    max_students?: number;
+    thumbnail_url?: string;
+    tags?: string[];
+    settings?: CourseSettings;
+  }
+
   // Course query parameters
   export interface CourseQuery {
     page?: number;
@@ -241,6 +269,11 @@ export namespace CourseTypes {
   }
 }
 
+// Re-export types outside of namespace for compatibility
+export type CreateCourseData = CourseTypes.CreateCourseData;
+export type UpdateCourseData = CourseTypes.UpdateCourseData;
+export type CourseStatus = CourseTypes.CourseStatus;
+
 // Top-level exports for repository usage
 export interface GetCoursesOptions {
   page: number;
@@ -248,6 +281,7 @@ export interface GetCoursesOptions {
   status?: CourseTypes.CourseStatus;
   instructor_id?: string;
   search?: string;
+  category?: string; // Category slug or ID for filtering
 }
 
 export interface GetCoursesByInstructorOptions {

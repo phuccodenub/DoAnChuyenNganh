@@ -27,14 +27,14 @@ export const QuizTaker: React.FC = () => {
   const submitAttempt = useSubmitAttempt()
   const { formatDuration, canTakeQuiz, isQuizActive } = useQuizUtils()
 
-  const quiz = quizData?.data
-  const attempts = attemptsData?.data || []
+  const quiz = quizData
+  const attempts = attemptsData || []
   const currentAttempt = attempts.find(a => a.status === 'in_progress')
 
   // Timer effect
   useEffect(() => {
     if (currentAttempt && quiz?.time_limit && timeRemaining === null) {
-      const startTime = new Date(currentAttempt.started_at).getTime()
+      const startTime = new Date(currentAttempt.started_at ?? new Date().toISOString()).getTime()
       const timeLimit = quiz.time_limit * 60 * 1000 // Convert to milliseconds
       const elapsed = Date.now() - startTime
       const remaining = Math.max(0, timeLimit - elapsed)

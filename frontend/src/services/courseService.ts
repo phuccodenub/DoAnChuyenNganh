@@ -44,9 +44,15 @@ export const courseService = {
     return res.data
   },
 
-  async getById(id: string): Promise<ApiResponse<Course>> {
+  async getById(id: string): Promise<ApiResponse<{ course: Course }>> {
     const res = await apiClient.get<ApiResponse<Course>>(`/courses/${id}`)
-    return res.data
+    // Adapt to expected shape in hooks (data.course)
+    const payload: ApiResponse<{ course: Course }> = {
+      success: res.data.success,
+      message: res.data.message,
+      data: { course: res.data.data }
+    }
+    return payload
   },
 
   // Courses taught by the current instructor
@@ -112,5 +118,10 @@ export const courseService = {
   }): Promise<ApiResponse<{ students: any[], pagination?: any }>> {
     const res = await apiClient.get<ApiResponse<{ students: any[], pagination?: any }>>(`/courses/${courseId}/students`, { params })
     return res.data
+  },
+
+  async toggleArchive(courseId: string): Promise<ApiResponse<{ course: Course }>> {
+    const res = await apiClient.put<ApiResponse<Course>>(`/courses/${courseId}/toggle-archive`)
+    return { success: res.data.success, message: res.data.message, data: { course: res.data.data } }
   },
 }

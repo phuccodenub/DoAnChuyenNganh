@@ -5,7 +5,6 @@
 
 import { redisClient } from '../../config/redis.config';
 import logger from '../../utils/logger.util';
-import { metricsMiddleware } from '../../monitoring/metrics/metrics.middleware';
 import { CacheStrategy, CacheStats, CacheOptions, CacheKeyOptions, CacheMetadata } from './cache.strategy';
 
 export class RedisCacheStrategy implements CacheStrategy {
@@ -50,8 +49,6 @@ export class RedisCacheStrategy implements CacheStrategy {
       const value = await redisClient.get(cacheKey);
       
       if (value === null) {
-        // metrics: cache miss
-        metricsMiddleware['metricsService'].incrementCounter('redis_cache_misses_total', { key: cacheKey });
         this.stats.misses++;
         this.updateHitRate();
         return null;
@@ -60,15 +57,12 @@ export class RedisCacheStrategy implements CacheStrategy {
       // Update access metadata
       await this.updateAccessMetadata(cacheKey);
       
-      // metrics: cache hit
-      metricsMiddleware['metricsService'].incrementCounter('redis_cache_hits_total', { key: cacheKey });
       this.stats.hits++;
       this.updateHitRate();
       
       return this.deserialize(value);
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache get error', { key, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache get error', { key, error: (error as Error).message });
       this.stats.misses++;
       this.updateHitRate();
       return null;
@@ -85,15 +79,13 @@ export class RedisCacheStrategy implements CacheStrategy {
       const cacheTtl = ttl || this.options.ttl!;
       
       await redisClient.setEx(cacheKey, cacheTtl, serializedValue);
-      metricsMiddleware['metricsService'].incrementCounter('redis_operations_total', { op: 'set' });
       
       // Store metadata
       await this.storeMetadata(cacheKey, cacheTtl);
       
       this.stats.size++;
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache set error', { key, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache set error', { key, error: (error as Error).message });
       throw error;
     }
   }
@@ -105,15 +97,13 @@ export class RedisCacheStrategy implements CacheStrategy {
     try {
       const cacheKey = this.buildKey(key);
       await redisClient.del(cacheKey);
-      metricsMiddleware['metricsService'].incrementCounter('redis_operations_total', { op: 'del' });
       
       // Delete metadata
       await redisClient.del(`${cacheKey}:meta`);
       
       this.stats.size = Math.max(0, this.stats.size - 1);
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache delete error', { key, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache delete error', { key, error: (error as Error).message });
       throw error;
     }
   }
@@ -126,9 +116,8 @@ export class RedisCacheStrategy implements CacheStrategy {
       const cacheKey = this.buildKey(key);
       const exists = await redisClient.exists(cacheKey);
       return exists === 1;
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache exists error', { key, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache exists error', { key, error: (error as Error).message });
       return false;
     }
   }
@@ -142,16 +131,15 @@ export class RedisCacheStrategy implements CacheStrategy {
       const keys = await redisClient.keys(pattern);
       
       if (keys.length > 0) {
-        await redisClient.del(keys as any);
+        await redisClient.del(keys);
       }
       
       this.stats.size = 0;
       this.stats.evictions += keys.length;
       
       logger.info('Redis cache cleared', { keysCount: keys.length });
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache clear error', { error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache clear error', { error: (error as Error).message });
       throw error;
     }
   }
@@ -162,9 +150,13 @@ export class RedisCacheStrategy implements CacheStrategy {
   public async mget<T>(keys: string[]): Promise<(T | null)[]> {
     try {
       const cacheKeys = keys.map(key => this.buildKey(key));
-      const values = await (redisClient as any).mget(cacheKeys);
+      const values = await redisClient.mget(cacheKeys);
       
-      return (values || []).map((value: any) => {
+      if (!values || !Array.isArray(values)) {
+        return keys.map(() => null);
+      }
+      
+      return values.map((value, index) => {
         if (value === null) {
           this.stats.misses++;
           return null;
@@ -173,9 +165,8 @@ export class RedisCacheStrategy implements CacheStrategy {
         this.stats.hits++;
         return this.deserialize(value as string);
       });
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache mget error', { keys, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache mget error', { keys, error: (error as Error).message });
       return keys.map(() => null);
     } finally {
       this.updateHitRate();
@@ -187,7 +178,7 @@ export class RedisCacheStrategy implements CacheStrategy {
    */
   public async mset<T>(keyValuePairs: Array<{ key: string; value: T; ttl?: number }>): Promise<void> {
     try {
-      const pipeline = redisClient.multi();
+      const pipeline = (redisClient as any).pipeline();
       
       for (const { key, value, ttl } of keyValuePairs) {
         const cacheKey = this.buildKey(key);
@@ -200,9 +191,8 @@ export class RedisCacheStrategy implements CacheStrategy {
       
       await pipeline.exec();
       this.stats.size += keyValuePairs.length;
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache mset error', { keyValuePairs, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache mset error', { keyValuePairs, error: (error as Error).message });
       throw error;
     }
   }
@@ -213,16 +203,15 @@ export class RedisCacheStrategy implements CacheStrategy {
   public async mdel(keys: string[]): Promise<void> {
     try {
       const cacheKeys = keys.map(key => this.buildKey(key));
-      await redisClient.del(cacheKeys as any);
+      await redisClient.del(cacheKeys);
       
       // Delete metadata
       const metaKeys = cacheKeys.map(key => `${key}:meta`);
-      await redisClient.del(metaKeys as any);
+      await redisClient.del(metaKeys);
       
       this.stats.size = Math.max(0, this.stats.size - keys.length);
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache mdel error', { keys, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache mdel error', { keys, error: (error as Error).message });
       throw error;
     }
   }
@@ -243,9 +232,8 @@ export class RedisCacheStrategy implements CacheStrategy {
       this.stats.size = keys.length;
       
       return { ...this.stats };
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache stats error', { error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache stats error', { error: (error as Error).message });
       return { ...this.stats };
     }
   }
@@ -312,9 +300,8 @@ export class RedisCacheStrategy implements CacheStrategy {
       };
       
       await redisClient.setEx(`${key}:meta`, ttl, JSON.stringify(metadata));
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache metadata store error', { key, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache metadata store error', { key, error: (error as Error).message });
     }
   }
 
@@ -333,9 +320,8 @@ export class RedisCacheStrategy implements CacheStrategy {
         
         await redisClient.setEx(metaKey, await redisClient.ttl(key), JSON.stringify(metadata));
       }
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache metadata update error', { key, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache metadata update error', { key, error: (error as Error).message });
     }
   }
 
@@ -354,9 +340,8 @@ export class RedisCacheStrategy implements CacheStrategy {
     try {
       const fullPattern = this.buildKey(pattern);
       return await redisClient.keys(fullPattern);
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache keys pattern error', { pattern, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache keys pattern error', { pattern, error: (error as Error).message });
       return [];
     }
   }
@@ -368,9 +353,8 @@ export class RedisCacheStrategy implements CacheStrategy {
     try {
       const cacheKey = this.buildKey(key);
       return await redisClient.ttl(cacheKey);
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache TTL error', { key, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache TTL error', { key, error: (error as Error).message });
       return -1;
     }
   }
@@ -382,9 +366,8 @@ export class RedisCacheStrategy implements CacheStrategy {
     try {
       const cacheKey = this.buildKey(key);
       await redisClient.expire(cacheKey, ttl);
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache set TTL error', { key, ttl, error: err.message });
+    } catch (error: unknown) {
+      logger.error('Redis cache set TTL error', { key, ttl, error: (error as Error).message });
       throw error;
     }
   }
@@ -395,10 +378,9 @@ export class RedisCacheStrategy implements CacheStrategy {
   public async increment(key: string, value: number = 1): Promise<number> {
     try {
       const cacheKey = this.buildKey(key);
-      return await (redisClient as any).incrby(cacheKey, value);
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache increment error', { key, value, error: err.message });
+      return Number(await redisClient.incrby(cacheKey, value));
+    } catch (error: unknown) {
+      logger.error('Redis cache increment error', { key, value, error: (error as Error).message });
       throw error;
     }
   }
@@ -409,11 +391,11 @@ export class RedisCacheStrategy implements CacheStrategy {
   public async decrement(key: string, value: number = 1): Promise<number> {
     try {
       const cacheKey = this.buildKey(key);
-      return await (redisClient as any).decrby(cacheKey, value);
-    } catch (error) {
-      const err = error as Error;
-      logger.error('Redis cache decrement error', { key, value, error: err.message });
+      return Number(await redisClient.decrby(cacheKey, value));
+    } catch (error: unknown) {
+      logger.error('Redis cache decrement error', { key, value, error: (error as Error).message });
       throw error;
     }
   }
 }
+

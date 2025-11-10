@@ -3,6 +3,6 @@
  * Re-exports course module routes
  */
 
-import courseRoutes from '../../../modules/course/course.routes';
+import { courseRoutes } from '../../../modules/course/course.routes';
 
 export default courseRoutes;

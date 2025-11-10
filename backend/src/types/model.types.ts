@@ -60,7 +60,7 @@ export interface UserInstance extends Model, UserAttributes {}
 // COURSE MODEL INTERFACES
 // ===================================
 
-export type CourseStatus = 'draft' | 'published' | 'archived';
+export type CourseStatus = 'draft' | 'published' | 'archived' | 'suspended';
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 export interface CourseAttributes {
@@ -70,6 +70,7 @@ export interface CourseAttributes {
   short_description?: string;
   instructor_id: string;
   category_id?: string;
+  category?: string;
   status: CourseStatus;
   level: CourseLevel;
   language: string;

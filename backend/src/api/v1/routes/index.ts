@@ -23,6 +23,8 @@ import { default as notificationsRoutes } from '../../../modules/notifications/n
 import { default as gradeRoutes } from '../../../modules/grade/grade.routes';
 import { default as liveStreamRoutes } from '../../../modules/livestream/livestream.routes';
 import { default as analyticsRoutes } from '../../../modules/analytics/analytics.routes';
+import systemSettingsRoutes from '../../../modules/system-settings/system.settings.routes';
+import categoryRoutes from '../../../modules/category/category.routes';
 import logger from '../../../utils/logger.util';
 
 const router = Router();
@@ -57,6 +59,7 @@ router.use('/courses', courseRoutes);
 router.use('/enrollments', enrollmentRoutes);
 router.use('/lessons', lessonRoutes);
 router.use('/sections', sectionRoutes);
+router.use('/categories', categoryRoutes);
 
 // Module-based routes (from refactor)
 router.use('/course-content', courseContentRoutes);
