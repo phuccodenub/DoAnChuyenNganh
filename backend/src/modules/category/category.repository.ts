@@ -47,3 +47,5 @@ export class CategoryRepository extends BaseRepository<CategoryInstance> {
 export default CategoryRepository;
 
 
+
+

@@ -1,6 +1,10 @@
 param([switch]$Down, [switch]$Build, [switch]$Logs)
 
 # Navigate to project root - use a more reliable method
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+$OutputEncoding = [System.Text.Encoding]::UTF8
+try { chcp.com 65001 > $null } catch {}
+
 Set-Location "h:\DACN"
 $ComposeFile = "./docker/environments/development/backend-only.yml"
 $ProjectName = "lms"  # Set explicit project name to avoid "lms_dev-" prefix

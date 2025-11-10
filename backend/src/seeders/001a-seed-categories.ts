@@ -61,3 +61,5 @@ export async function seedCategories(sequelize: Sequelize): Promise<void> {
 }
 
 
+
+

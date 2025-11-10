@@ -2,8 +2,6 @@
 # Includes: PostgreSQL + Redis + Backend + Frontend
 # Usage: docker-compose -f docker/environments/development/full-stack.yml up
 
-version: '3.8'
-
 # Shared configuration templates (inline to avoid compatibility issues)
 x-postgres-base: &postgres-base
   image: postgres:15
@@ -37,7 +35,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - lms_postgres_dev_data:/var/lib/postgresql/data
+      - postgres_api_dev_data:/var/lib/postgresql/data
       - ../../../database/init:/docker-entrypoint-initdb.d
     networks:
       - lms-dev-network
@@ -50,7 +48,7 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - lms_redis_dev_data:/data
+      - redis_api_dev_data:/data
     networks:
       - lms-dev-network
 
@@ -80,6 +78,8 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-debug}
       - FRONTEND_URL=http://localhost:${FRONTEND_PORT:-3001}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - CORS_ALLOWED_ORIGINS=http://localhost:${FRONTEND_PORT:-3001},http://127.0.0.1:${FRONTEND_PORT:-3001}
+      - CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With,X-Request-Start
       - DISABLE_RATE_LIMIT=${DISABLE_RATE_LIMIT:-true}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
@@ -90,17 +90,18 @@ services:
         condition: service_healthy
       redis-dev:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
     volumes:
       - ../../../backend:/app
       - /app/node_modules
       - ../../../backend/logs:/app/logs
       - ../../../docker/scripts/start-backend-dev.sh:/app/start-backend-dev.sh:ro
-    command: ["/bin/sh", "/app/start-backend-dev.sh"]
+    command:
+      - /bin/sh
+      - -c
+      - |
+        tr -d '\r' < /app/start-backend-dev.sh | sed "/^set[[:space:]]*-/d" > /tmp/start-backend-dev.sh && \
+        chmod +x /tmp/start-backend-dev.sh && \
+        /bin/sh /tmp/start-backend-dev.sh
 
   # Frontend React Service
   # Service name = "frontend-dev" → With project "lms" → Container "lms-frontend-dev"
@@ -108,6 +109,9 @@ services:
     build:
       context: ../../..
       dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: "http://localhost:${BACKEND_PORT:-3000}/api/v1.3.0"
+        VITE_SOCKET_URL: "http://localhost:${BACKEND_PORT:-3000}"
     image: lms-frontend-dev:latest
     container_name: lms-frontend-dev
     restart: unless-stopped
@@ -119,21 +123,23 @@ services:
       - ../../../frontend:/app
       - /app/node_modules
     ports:
-      - "${FRONTEND_PORT:-3001}:3000"
+      - "${FRONTEND_PORT:-3001}:80"
     networks:
       - lms-dev-network
     depends_on:
       backend-dev:
-        condition: service_healthy
+        condition: service_started
     stdin_open: true
     tty: true
 
 # Named volumes for data persistence
 volumes:
-  lms_postgres_dev_data:
-    name: lms_postgres_dev_data
-  lms_redis_dev_data:
-    name: lms_redis_dev_data
+  postgres_api_dev_data:
+    name: lms_postgres_api_dev_data
+    external: true
+  redis_api_dev_data:
+    name: lms_redis_api_dev_data
+    external: true
 
 # Networks
 networks:

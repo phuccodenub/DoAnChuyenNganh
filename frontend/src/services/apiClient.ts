@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import i18n from '@/i18n'
 
 // Get API base URL from environment with versioning support
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api/v1.2.0'
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api/v1.3.0'
 const DEBUG_MODE = (import.meta as any).env?.VITE_DEBUG_MODE === 'true'
 
 // Create axios instance with enhanced configuration

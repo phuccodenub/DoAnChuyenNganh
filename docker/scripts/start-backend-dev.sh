@@ -5,6 +5,20 @@ echo "🚀 Starting Backend API Development..."
 echo "Waiting for services to be ready..."
 sleep 10
 
+echo "📦 Verifying dependencies..."
+if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/ts-node-dev" ]; then
+  echo "Installing dependencies..."
+  npm install || npm ci || true
+fi
+
+echo "🔎 Checking OpenTelemetry packages..."
+if [ ! -f "node_modules/@opentelemetry/sdk-node/package.json" ] \
+  || [ ! -f "node_modules/@opentelemetry/auto-instrumentations-node/package.json" ] \
+  || [ ! -f "node_modules/@opentelemetry/exporter-trace-otlp-http/package.json" ]; then
+  echo "Installing OpenTelemetry packages..."
+  npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-http --no-audit --no-fund || true
+fi
+
 echo "🔍 Checking database status..."
 
 # Check if database exists
