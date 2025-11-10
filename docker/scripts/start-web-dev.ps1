@@ -6,6 +6,10 @@ param(
     [switch]$Clean
 )
 
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+$OutputEncoding = [System.Text.Encoding]::UTF8
+try { chcp.com 65001 > $null } catch {}
+
 Set-Location "h:\DACN"
 
 $ComposeFile = "./docker/environments/development/full-stack.yml"

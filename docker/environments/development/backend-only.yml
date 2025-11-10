@@ -104,8 +104,10 @@ services:
 volumes:
   postgres_api_dev_data:
     name: lms_postgres_api_dev_data
+    external: true
   redis_api_dev_data:
     name: lms_redis_api_dev_data
+    external: true
 
 # Networks
 networks:

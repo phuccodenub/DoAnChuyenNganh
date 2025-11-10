@@ -9,6 +9,22 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: lms_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     defaults:
       run:
         working-directory: backend
@@ -32,22 +48,29 @@ jobs:
       - name: Build (hard-fail)
         run: npm run build
 
-      - name: Prepare SQLite DB (migrate + seed)
+      - name: Prepare PostgreSQL DB (migrate + seed)
         env:
           NODE_ENV: test
-          DB_DIALECT: sqlite
-          DB_STORAGE: ./tmp/test.sqlite
+          DB_DIALECT: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: lms_test
           JWT_SECRET: test-secret-key-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
         run: |
-          mkdir -p ./tmp
           npm run reset-db-simple
 
-      - name: Run e2e tests with SQLite (hard-fail)
+      - name: Run e2e tests with PostgreSQL (hard-fail)
         env:
           NODE_ENV: test
-          DB_DIALECT: sqlite
-          DB_STORAGE: ./tmp/test.sqlite
+          DB_DIALECT: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: lms_test
           JWT_SECRET: test-secret-key-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
         run: npm run test:e2e

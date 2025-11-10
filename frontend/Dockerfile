@@ -13,6 +13,12 @@ RUN npm ci
 # Copy source code
 COPY frontend/ .
 
+# Build-time environment for Vite
+ARG VITE_API_URL
+ARG VITE_SOCKET_URL
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_SOCKET_URL=${VITE_SOCKET_URL}
+
 # Build the app
 RUN npm run build
 
