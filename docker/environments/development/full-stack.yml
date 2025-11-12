@@ -61,14 +61,19 @@ services:
     image: lms-backend-dev:latest
     container_name: lms-backend-dev
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    env_file:
+      - ../../../.env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - DB_HOST=postgres-dev
-      - DB_PORT=5432
-      - DB_NAME=${POSTGRES_DB:-lms_db}
-      - DB_USER=${POSTGRES_USER:-lms_user}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-123456}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-123456}@postgres-dev:5432/${POSTGRES_DB:-lms_db}
+      - DB_HOST=${DB_HOST:-postgres-dev}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-${POSTGRES_DB:-lms_db}}
+      - DB_USER=${DB_USER:-${POSTGRES_USER:-lms_user}}
+      - DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-123456}}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-123456}@postgres-dev:5432/${POSTGRES_DB:-lms_db}}
       - REDIS_HOST=redis-dev
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-dev:6379
@@ -86,8 +91,8 @@ services:
     networks:
       - lms-dev-network
     depends_on:
-      postgres-dev:
-        condition: service_healthy
+      # postgres-dev:  # Comment out if using external database (e.g., Supabase)
+      #   condition: service_healthy
       redis-dev:
         condition: service_healthy
     volumes:
