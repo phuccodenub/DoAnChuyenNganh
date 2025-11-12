@@ -1,8 +1,14 @@
 import 'dotenv-flow/config';
-// Enable runtime resolution for TypeScript path aliases in compiled JS
- 
-require('module-alias/register');
-import 'module-alias/register';
+// Enable runtime resolution for TypeScript path aliases in compiled JS (optional in dev/test)
+try {
+  // eslint-disable-next-line import/no-extraneous-dependencies
+  require('module-alias/register');
+} catch (error) {
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.warn('module-alias/register not found; continuing without runtime aliases');
+  }
+}
 import app from './app';
 import { connectRedis } from './config/redis.config';
 import { connectDatabase } from './config/db';

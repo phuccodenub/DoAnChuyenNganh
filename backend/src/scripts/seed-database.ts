@@ -280,7 +280,7 @@ async function seedUsers() {
       }
 
       const placeholders = fields.map(() => '?').join(', ');
-      const query = `INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT (id) DO NOTHING`;
+      const query = `INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`;
 
       const [results]: any = await sequelize.query(query, { replacements: values });
       if (results && results.rowCount > 0) {
@@ -383,7 +383,7 @@ async function seedCourses() {
           level, status, price, duration_hours, language, is_featured,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (id) DO NOTHING`,
+        ON CONFLICT DO NOTHING`,
         {
           replacements: [
             course.id, course.title, course.description,
