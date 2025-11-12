@@ -4,27 +4,51 @@
 
 import { QueryInterface, DataTypes } from 'sequelize';
 
+// Helper to add index safely (ignore if already exists or column doesn't exist)
+async function addIndexSafe(
+  queryInterface: QueryInterface,
+  table: string,
+  columns: string[],
+  options?: { name?: string; unique?: boolean }
+): Promise<void> {
+  try {
+    await queryInterface.addIndex(table, columns, options);
+  } catch (error: any) {
+    // Ignore if index already exists (code 42P07) or column doesn't exist (code 42703)
+    if (error?.parent?.code !== '42P07' && error?.parent?.code !== '42703') {
+      throw error;
+    }
+  }
+}
+
 export async function createExtendedLmsTables(queryInterface: QueryInterface): Promise<void> {
   // 1) Categories
-  await queryInterface.createTable('categories', {
-    id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, allowNull: false },
-    name: { type: DataTypes.STRING(100), allowNull: false, unique: true },
-    slug: { type: DataTypes.STRING(100), allowNull: false, unique: true },
-    description: { type: DataTypes.TEXT, allowNull: true },
-    parent_id: { type: DataTypes.UUID, allowNull: true, references: { model: 'categories', key: 'id' }, onDelete: 'CASCADE' },
-    icon: { type: DataTypes.STRING(100), allowNull: true },
-    color: { type: DataTypes.STRING(20), allowNull: true },
-    order_index: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    course_count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    metadata: { type: DataTypes.JSON, allowNull: true, defaultValue: {} },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
-  });
-  await queryInterface.addIndex('categories', ['slug']);
-  await queryInterface.addIndex('categories', ['parent_id']);
-  await queryInterface.addIndex('categories', ['is_active']);
-  await queryInterface.addIndex('categories', ['order_index']);
+  try {
+    await queryInterface.createTable('categories', {
+      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true, allowNull: false },
+      name: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+      slug: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+      description: { type: DataTypes.TEXT, allowNull: true },
+      parent_id: { type: DataTypes.UUID, allowNull: true, references: { model: 'categories', key: 'id' }, onDelete: 'CASCADE' },
+      icon: { type: DataTypes.STRING(100), allowNull: true },
+      color: { type: DataTypes.STRING(20), allowNull: true },
+      order_index: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+      course_count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      metadata: { type: DataTypes.JSON, allowNull: true, defaultValue: {} },
+      created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+      updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    });
+  } catch (error: any) {
+    // Table may already exist
+    if (error?.parent?.code !== '42P07') {
+      throw error;
+    }
+  }
+  await addIndexSafe(queryInterface, 'categories', ['slug']);
+  await addIndexSafe(queryInterface, 'categories', ['parent_id']);
+  await addIndexSafe(queryInterface, 'categories', ['is_active']);
+  await addIndexSafe(queryInterface, 'categories', ['order_index']);
 
   // 2) Alter courses: add category_id
   try {
@@ -35,7 +59,7 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
       onDelete: 'SET NULL',
       comment: 'Danh mục của khóa học'
     } as any);
-    await queryInterface.addIndex('courses', ['category_id']);
+    await addIndexSafe(queryInterface, 'courses', ['category_id']);
   } catch (_) {
     // Column may already exist in some environments
   }
@@ -53,8 +77,8 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('sections', ['course_id']);
-  await queryInterface.addIndex('sections', ['course_id', 'order_index'], { unique: true, name: 'unique_section_order_per_course' });
+  await addIndexSafe(queryInterface,'sections', ['course_id']);
+  await addIndexSafe(queryInterface,'sections', ['course_id', 'order_index'], { unique: true, name: 'unique_section_order_per_course' });
 
   // 4) Lessons
   await queryInterface.createTable('lessons', {
@@ -75,9 +99,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('lessons', ['section_id']);
-  await queryInterface.addIndex('lessons', ['section_id', 'order_index'], { unique: true, name: 'unique_lesson_order_per_section' });
-  await queryInterface.addIndex('lessons', ['content_type']);
+  await addIndexSafe(queryInterface,'lessons', ['section_id']);
+  await addIndexSafe(queryInterface,'lessons', ['section_id', 'order_index'], { unique: true, name: 'unique_lesson_order_per_section' });
+  await addIndexSafe(queryInterface,'lessons', ['content_type']);
 
   // 5) Lesson Materials
   await queryInterface.createTable('lesson_materials', {
@@ -96,9 +120,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('lesson_materials', ['lesson_id']);
-  await queryInterface.addIndex('lesson_materials', ['uploaded_by']);
-  await queryInterface.addIndex('lesson_materials', ['file_type']);
+  await addIndexSafe(queryInterface,'lesson_materials', ['lesson_id']);
+  await addIndexSafe(queryInterface,'lesson_materials', ['uploaded_by']);
+  await addIndexSafe(queryInterface,'lesson_materials', ['file_type']);
 
   // 6) Lesson Progress
   await queryInterface.createTable('lesson_progress', {
@@ -118,11 +142,11 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('lesson_progress', ['user_id']);
-  await queryInterface.addIndex('lesson_progress', ['lesson_id']);
-  await queryInterface.addIndex('lesson_progress', ['user_id', 'lesson_id'], { unique: true, name: 'unique_user_lesson_progress' });
-  await queryInterface.addIndex('lesson_progress', ['completed']);
-  await queryInterface.addIndex('lesson_progress', ['last_accessed_at']);
+  await addIndexSafe(queryInterface,'lesson_progress', ['user_id']);
+  await addIndexSafe(queryInterface,'lesson_progress', ['lesson_id']);
+  await addIndexSafe(queryInterface,'lesson_progress', ['user_id', 'lesson_id'], { unique: true, name: 'unique_user_lesson_progress' });
+  await addIndexSafe(queryInterface,'lesson_progress', ['completed']);
+  await addIndexSafe(queryInterface,'lesson_progress', ['last_accessed_at']);
 
   // 7) Notifications
   await queryInterface.createTable('notifications', {
@@ -146,14 +170,14 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('notifications', ['sender_id']);
-  await queryInterface.addIndex('notifications', ['notification_type']);
-  await queryInterface.addIndex('notifications', ['category']);
-  await queryInterface.addIndex('notifications', ['priority']);
-  await queryInterface.addIndex('notifications', ['scheduled_at']);
-  await queryInterface.addIndex('notifications', ['sent_at']);
-  await queryInterface.addIndex('notifications', ['related_resource_type', 'related_resource_id']);
-  await queryInterface.addIndex('notifications', ['created_at']);
+  await addIndexSafe(queryInterface,'notifications', ['sender_id']);
+  await addIndexSafe(queryInterface,'notifications', ['notification_type']);
+  await addIndexSafe(queryInterface,'notifications', ['category']);
+  await addIndexSafe(queryInterface,'notifications', ['priority']);
+  await addIndexSafe(queryInterface,'notifications', ['scheduled_at']);
+  await addIndexSafe(queryInterface,'notifications', ['sent_at']);
+  await addIndexSafe(queryInterface,'notifications', ['related_resource_type', 'related_resource_id']);
+  await addIndexSafe(queryInterface,'notifications', ['created_at']);
 
   // 8) Notification Recipients
   await queryInterface.createTable('notification_recipients', {
@@ -171,13 +195,13 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('notification_recipients', ['notification_id', 'recipient_id'], { unique: true, name: 'unique_notification_recipient' });
-  await queryInterface.addIndex('notification_recipients', ['recipient_id']);
-  await queryInterface.addIndex('notification_recipients', ['notification_id']);
-  await queryInterface.addIndex('notification_recipients', ['is_read']);
-  await queryInterface.addIndex('notification_recipients', ['recipient_id', 'is_read'], { name: 'recipient_read_status' });
-  await queryInterface.addIndex('notification_recipients', ['recipient_id', 'is_read', 'is_archived'], { name: 'recipient_active_unread' });
-  await queryInterface.addIndex('notification_recipients', ['created_at']);
+  await addIndexSafe(queryInterface,'notification_recipients', ['notification_id', 'recipient_id'], { unique: true, name: 'unique_notification_recipient' });
+  await addIndexSafe(queryInterface,'notification_recipients', ['recipient_id']);
+  await addIndexSafe(queryInterface,'notification_recipients', ['notification_id']);
+  await addIndexSafe(queryInterface,'notification_recipients', ['is_read']);
+  await addIndexSafe(queryInterface,'notification_recipients', ['recipient_id', 'is_read'], { name: 'recipient_read_status' });
+  await addIndexSafe(queryInterface,'notification_recipients', ['recipient_id', 'is_read', 'is_archived'], { name: 'recipient_active_unread' });
+  await addIndexSafe(queryInterface,'notification_recipients', ['created_at']);
 
   // 9) Quizzes
   await queryInterface.createTable('quizzes', {
@@ -196,9 +220,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('quizzes', ['course_id']);
-  await queryInterface.addIndex('quizzes', ['available_from']);
-  await queryInterface.addIndex('quizzes', ['available_until']);
+  await addIndexSafe(queryInterface,'quizzes', ['course_id']);
+  await addIndexSafe(queryInterface,'quizzes', ['available_from']);
+  await addIndexSafe(queryInterface,'quizzes', ['available_until']);
 
   // 10) Quiz Questions
   await queryInterface.createTable('quiz_questions', {
@@ -212,8 +236,8 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('quiz_questions', ['quiz_id']);
-  await queryInterface.addIndex('quiz_questions', ['quiz_id', 'order_index'], { unique: true });
+  await addIndexSafe(queryInterface,'quiz_questions', ['quiz_id']);
+  await addIndexSafe(queryInterface,'quiz_questions', ['quiz_id', 'order_index'], { unique: true });
 
   // 11) Quiz Options
   await queryInterface.createTable('quiz_options', {
@@ -225,7 +249,7 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('quiz_options', ['question_id']);
+  await addIndexSafe(queryInterface,'quiz_options', ['question_id']);
 
   // 12) Quiz Attempts
   await queryInterface.createTable('quiz_attempts', {
@@ -242,9 +266,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('quiz_attempts', ['quiz_id']);
-  await queryInterface.addIndex('quiz_attempts', ['user_id']);
-  await queryInterface.addIndex('quiz_attempts', ['quiz_id', 'user_id', 'attempt_number'], { unique: true });
+  await addIndexSafe(queryInterface,'quiz_attempts', ['quiz_id']);
+  await addIndexSafe(queryInterface,'quiz_attempts', ['user_id']);
+  await addIndexSafe(queryInterface,'quiz_attempts', ['quiz_id', 'user_id', 'attempt_number'], { unique: true });
 
   // 13) Quiz Answers
   await queryInterface.createTable('quiz_answers', {
@@ -258,8 +282,8 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('quiz_answers', ['attempt_id']);
-  await queryInterface.addIndex('quiz_answers', ['attempt_id', 'question_id'], { unique: true });
+  await addIndexSafe(queryInterface,'quiz_answers', ['attempt_id']);
+  await addIndexSafe(queryInterface,'quiz_answers', ['attempt_id', 'question_id'], { unique: true });
 
   // 14) Assignments
   await queryInterface.createTable('assignments', {
@@ -275,8 +299,8 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('assignments', ['course_id']);
-  await queryInterface.addIndex('assignments', ['due_date']);
+  await addIndexSafe(queryInterface,'assignments', ['course_id']);
+  await addIndexSafe(queryInterface,'assignments', ['due_date']);
 
   // 15) Assignment Submissions
   await queryInterface.createTable('assignment_submissions', {
@@ -295,9 +319,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('assignment_submissions', ['assignment_id']);
-  await queryInterface.addIndex('assignment_submissions', ['user_id']);
-  await queryInterface.addIndex('assignment_submissions', ['assignment_id', 'user_id'], { unique: true });
+  await addIndexSafe(queryInterface,'assignment_submissions', ['assignment_id']);
+  await addIndexSafe(queryInterface,'assignment_submissions', ['user_id']);
+  await addIndexSafe(queryInterface,'assignment_submissions', ['assignment_id', 'user_id'], { unique: true });
 
   // 16) Grade Components
   await queryInterface.createTable('grade_components', {
@@ -310,8 +334,8 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('grade_components', ['course_id']);
-  await queryInterface.addIndex('grade_components', ['component_type']);
+  await addIndexSafe(queryInterface,'grade_components', ['course_id']);
+  await addIndexSafe(queryInterface,'grade_components', ['component_type']);
 
   // 17) Grades
   await queryInterface.createTable('grades', {
@@ -327,9 +351,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('grades', ['user_id']);
-  await queryInterface.addIndex('grades', ['course_id']);
-  await queryInterface.addIndex('grades', ['component_id']);
+  await addIndexSafe(queryInterface,'grades', ['user_id']);
+  await addIndexSafe(queryInterface,'grades', ['course_id']);
+  await addIndexSafe(queryInterface,'grades', ['component_id']);
 
   // 18) Final Grades
   await queryInterface.createTable('final_grades', {
@@ -342,9 +366,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('final_grades', ['user_id']);
-  await queryInterface.addIndex('final_grades', ['course_id']);
-  await queryInterface.addIndex('final_grades', ['user_id', 'course_id'], { unique: true });
+  await addIndexSafe(queryInterface,'final_grades', ['user_id']);
+  await addIndexSafe(queryInterface,'final_grades', ['course_id']);
+  await addIndexSafe(queryInterface,'final_grades', ['user_id', 'course_id'], { unique: true });
 
   // 19) Live Sessions
   await queryInterface.createTable('live_sessions', {
@@ -365,10 +389,10 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('live_sessions', ['course_id']);
-  await queryInterface.addIndex('live_sessions', ['instructor_id']);
-  await queryInterface.addIndex('live_sessions', ['scheduled_at']);
-  await queryInterface.addIndex('live_sessions', ['status']);
+  await addIndexSafe(queryInterface,'live_sessions', ['course_id']);
+  await addIndexSafe(queryInterface,'live_sessions', ['instructor_id']);
+  await addIndexSafe(queryInterface,'live_sessions', ['scheduled_at']);
+  await addIndexSafe(queryInterface,'live_sessions', ['status']);
 
   // 20) Live Session Attendance
   await queryInterface.createTable('live_session_attendance', {
@@ -381,9 +405,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('live_session_attendance', ['session_id']);
-  await queryInterface.addIndex('live_session_attendance', ['user_id']);
-  await queryInterface.addIndex('live_session_attendance', ['session_id', 'user_id'], { unique: true });
+  await addIndexSafe(queryInterface,'live_session_attendance', ['session_id']);
+  await addIndexSafe(queryInterface,'live_session_attendance', ['user_id']);
+  await addIndexSafe(queryInterface,'live_session_attendance', ['session_id', 'user_id'], { unique: true });
 
   // 21) User Activity Logs
   await queryInterface.createTable('user_activity_logs', {
@@ -397,9 +421,9 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('user_activity_logs', ['user_id']);
-  await queryInterface.addIndex('user_activity_logs', ['activity_type']);
-  await queryInterface.addIndex('user_activity_logs', ['created_at']);
+  await addIndexSafe(queryInterface,'user_activity_logs', ['user_id']);
+  await addIndexSafe(queryInterface,'user_activity_logs', ['activity_type']);
+  await addIndexSafe(queryInterface,'user_activity_logs', ['created_at']);
 
   // 22) Course Statistics (1-1 with courses)
   await queryInterface.createTable('course_statistics', {
@@ -412,7 +436,7 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('course_statistics', ['course_id'], { unique: true });
+  await addIndexSafe(queryInterface,'course_statistics', ['course_id'], { unique: true });
 
   // 23) Password Reset Tokens
   await queryInterface.createTable('password_reset_tokens', {
@@ -426,10 +450,10 @@ export async function createExtendedLmsTables(queryInterface: QueryInterface): P
     created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   });
-  await queryInterface.addIndex('password_reset_tokens', ['user_id']);
-  await queryInterface.addIndex('password_reset_tokens', ['token']);
-  await queryInterface.addIndex('password_reset_tokens', ['expires_at']);
-  await queryInterface.addIndex('password_reset_tokens', ['token', 'used', 'expires_at']);
+  await addIndexSafe(queryInterface,'password_reset_tokens', ['user_id']);
+  await addIndexSafe(queryInterface,'password_reset_tokens', ['token']);
+  await addIndexSafe(queryInterface,'password_reset_tokens', ['expires_at']);
+  await addIndexSafe(queryInterface,'password_reset_tokens', ['token', 'used', 'expires_at']);
 }
 
 export async function dropExtendedLmsTables(queryInterface: QueryInterface): Promise<void> {
