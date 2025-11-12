@@ -1,6 +1,7 @@
 #!/usr/bin/env pwsh
-# Initialize Docker volumes and networks for LMS project
-# This script creates required external volumes and networks if they don't exist
+# Initialize Docker volumes for LMS project
+# This script creates required external volumes if they don't exist
+# Note: Networks are managed automatically by Docker Compose
 
 param(
     [switch]$Force
@@ -25,11 +26,6 @@ $Volumes = @(
     "lms_redis_api_dev_data"
 )
 
-# Required networks
-$Networks = @(
-    "lms-dev-network"
-)
-
 # Create volumes
 Write-Host "Checking Docker volumes..." -ForegroundColor Yellow
 foreach ($Volume in $Volumes) {
@@ -48,23 +44,7 @@ foreach ($Volume in $Volumes) {
 }
 
 Write-Host ""
-
-# Create networks
-Write-Host "Checking Docker networks..." -ForegroundColor Yellow
-foreach ($Network in $Networks) {
-    $ExistingNetwork = docker network ls -q --filter "name=$Network" 2>$null
-    if ($ExistingNetwork) {
-        Write-Host "   Network '$Network' already exists" -ForegroundColor Green
-    } else {
-        Write-Host "   Creating network '$Network'..." -ForegroundColor Cyan
-        docker network create $Network 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "   Network '$Network' created successfully" -ForegroundColor Green
-        } else {
-            Write-Host "   Failed to create network '$Network'" -ForegroundColor Red
-        }
-    }
-}
+Write-Host "Note: Networks are managed by Docker Compose automatically" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "Initialization completed!" -ForegroundColor Green
