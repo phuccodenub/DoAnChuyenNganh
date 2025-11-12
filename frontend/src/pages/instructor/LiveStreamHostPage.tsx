@@ -30,10 +30,10 @@ export function LiveStreamHostPage() {
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
 
   // Fetch session data
-  const { data: sessionResponse, isLoading } = useSession(sessionId!);
-  const session = sessionResponse?.data as any;
-  const { data: viewersResponse } = useSessionViewers(sessionId!);
-  const viewers = (viewersResponse?.data?.viewers || []) as any[];
+  const sessionIdNum = sessionId ? parseInt(sessionId, 10) : 0;
+  const { data: session, isLoading } = useSession(sessionIdNum);
+  const { data: viewersData } = useSessionViewers(sessionIdNum);
+  const viewers = (viewersData?.viewers || []) as any[];
   const updateSession = useUpdateSession();
 
   // Timer for live session
@@ -57,14 +57,13 @@ export function LiveStreamHostPage() {
 
   // Start session
   const handleStart = async () => {
-    if (!sessionId) return;
+    if (!sessionIdNum) return;
     
     try {
       await updateSession.mutateAsync({
-        sessionId,
+        id: sessionIdNum,
         data: {
           status: 'live',
-          started_at: new Date().toISOString(),
         } as any,
       });
       alert('Đã bắt đầu livestream!');
@@ -76,14 +75,13 @@ export function LiveStreamHostPage() {
 
   // End session
   const handleEnd = async () => {
-    if (!sessionId || !confirm('Bạn có chắc muốn kết thúc livestream?')) return;
+    if (!sessionIdNum || !confirm('Bạn có chắc muốn kết thúc livestream?')) return;
 
     try {
       await updateSession.mutateAsync({
-        sessionId,
+        id: sessionIdNum,
         data: {
           status: 'ended',
-          ended_at: new Date().toISOString(),
         } as any,
       });
       alert('Đã kết thúc livestream!');
@@ -270,7 +268,7 @@ export function LiveStreamHostPage() {
                   <Button
                     onClick={handleEnd}
                     disabled={updateSession.isPending}
-                    variant="destructive"
+                    variant="danger"
                     className="flex items-center gap-2"
                     size="lg"
                   >

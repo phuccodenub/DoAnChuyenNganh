@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Plus, Search, Filter, Edit, Trash2, Eye, Copy } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
-import { Input } from '@/components/ui/InputNew';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { ROUTES, generateRoute } from '@/constants/routes';
 

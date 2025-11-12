@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '@/stores/authStore'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/authStore.enhanced'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 function RegisterPage() {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,7 +17,6 @@ function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   
   const { register, isLoading, isAuthenticated } = useAuthStore()
-  const { t } = useTranslation()
   const navigate = useNavigate()
   
   // Redirect if already authenticated
@@ -30,27 +30,27 @@ function RegisterPage() {
     const newErrors: Record<string, string> = {}
     
     if (!formData.email) {
-      newErrors.email = 'Email is required'
+      newErrors.email = t('auth.register.emailRequired')
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid'
+      newErrors.email = t('auth.register.emailInvalid')
     }
     
     if (!formData.password) {
-      newErrors.password = 'Password is required'
+      newErrors.password = t('auth.register.passwordRequired')
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters'
+      newErrors.password = t('auth.register.passwordMinLength')
     }
     
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password'
+      newErrors.confirmPassword = t('auth.register.confirmPasswordRequired')
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match'
+      newErrors.confirmPassword = t('auth.register.confirmPasswordMismatch')
     }
     
     if (!formData.full_name.trim()) {
-      newErrors.full_name = 'Full name is required'
+      newErrors.full_name = t('auth.register.fullNameRequired')
     } else if (formData.full_name.trim().length < 2) {
-      newErrors.full_name = 'Full name must be at least 2 characters'
+      newErrors.full_name = t('auth.register.fullNameMinLength')
     }
     
     setErrors(newErrors)
@@ -86,34 +86,34 @@ function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-600 mt-2">Join our learning platform</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('auth.register.title')}</h1>
+          <p className="text-gray-600 mt-2">{t('auth.register.subtitle')}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Full Name"
+            label={t('auth.register.fullName')}
             type="text"
             value={formData.full_name}
             onChange={(e) => updateFormData('full_name', e.target.value)}
             error={errors.full_name}
-            placeholder="Enter your full name"
+            placeholder={t('auth.register.fullNamePlaceholder')}
             disabled={isLoading}
           />
           
           <Input
-            label="Email"
+            label={t('auth.register.email')}
             type="email"
             value={formData.email}
             onChange={(e) => updateFormData('email', e.target.value)}
             error={errors.email}
-            placeholder="Enter your email"
+            placeholder={t('auth.register.emailPlaceholder')}
             disabled={isLoading}
           />
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Role
+              {t('auth.register.role')}
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -126,7 +126,7 @@ function RegisterPage() {
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                🎓 Student
+                🎓 {t('auth.register.student')}
               </button>
               <button
                 type="button"
@@ -138,28 +138,28 @@ function RegisterPage() {
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                👨‍🏫 Instructor
+                👨‍🏫 {t('auth.register.instructor')}
               </button>
             </div>
           </div>
           
           <Input
-            label="Password"
+            label={t('auth.register.password')}
             type="password"
             value={formData.password}
             onChange={(e) => updateFormData('password', e.target.value)}
             error={errors.password}
-            placeholder="Create a password"
+            placeholder={t('auth.register.passwordPlaceholder')}
             disabled={isLoading}
           />
           
           <Input
-            label="Confirm Password"
+            label={t('auth.register.confirmPassword')}
             type="password"
             value={formData.confirmPassword}
             onChange={(e) => updateFormData('confirmPassword', e.target.value)}
             error={errors.confirmPassword}
-            placeholder="Confirm your password"
+            placeholder={t('auth.register.confirmPasswordPlaceholder')}
             disabled={isLoading}
           />
           
@@ -169,23 +169,22 @@ function RegisterPage() {
             className="w-full"
             size="lg"
           >
-            Create Account
+            {t('auth.register.submit')}
           </Button>
         </form>
         
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-600">
-            Already have an account?{' '}
+            {t('auth.register.haveAccount')}{' '}
             <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
+              {t('auth.register.signIn')}
             </Link>
           </p>
         </div>
         
         <div className="mt-6 p-4 bg-blue-50 rounded-md">
           <p className="text-xs text-blue-800">
-            <strong>{t('demo.demoMode')}:</strong> {t('demo.demoModeRegistration')}
-            Dữ liệu sẽ không được lưu trữ sau khi làm mới trình duyệt.
+            <strong>{t('auth.register.demoNote')}</strong>
           </p>
         </div>
       </div>

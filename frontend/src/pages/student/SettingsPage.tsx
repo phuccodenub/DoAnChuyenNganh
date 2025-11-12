@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Lock, Bell, Shield, Save } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
-import { Input } from '@/components/ui/InputNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 /**
  * SettingsPage - Student

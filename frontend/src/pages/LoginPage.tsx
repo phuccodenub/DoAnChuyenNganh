@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/authStore.enhanced'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { DEMO_ACCOUNTS } from '@/services/mockAuthService'
+
+// Demo accounts cho testing
+const DEMO_ACCOUNTS = {
+  admin: { email: 'admin@example.com', password: 'Admin123!' },
+  instructor: { email: 'instructor1@example.com', password: 'Instructor123!' },
+  student: { email: 'student11@example.com', password: 'Student123!' }
+}
 
 function LoginPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({})
-  const { t } = useTranslation()
 
   const { login, isLoading, isAuthenticated } = useAuthStore()
   const navigate = useNavigate()
@@ -63,7 +69,7 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{t('auth.login.title')}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('common.login')}</h1>
           <p className="text-gray-600 mt-2">{t('auth.login.subtitle')}</p>
         </div>
 
@@ -112,7 +118,15 @@ function LoginPage() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fillDemo('admin')}
+              disabled={isLoading}
+            >
+              Admin
+            </Button>
             <Button
               variant="outline"
               size="sm"

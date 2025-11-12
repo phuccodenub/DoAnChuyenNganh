@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Users, TrendingUp, DollarSign, Plus, Eye, Edit } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ROUTES, generateRoute } from '@/constants/routes';
 

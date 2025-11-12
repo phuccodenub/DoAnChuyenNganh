@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 // Badge simplified inline
 import { useAssignment, useSubmission, useSubmitAssignment, useUploadFile } from '@/hooks/useAssignmentData';
 

@@ -1,231 +1,260 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+import { 
+  livestreamApi, 
+  LivestreamSession, 
+  CreateSessionData, 
+  UpdateSessionData,
+  PaginationParams 
+} from '@/services/api/livestream.api';
+
+// ============================================================================
+// Query Keys
+// ============================================================================
+
+export const livestreamQueryKeys = {
+  all: ['livestream'] as const,
+  mySessions: (params?: PaginationParams) => [...livestreamQueryKeys.all, 'my-sessions', params] as const,
+  session: (id: number) => [...livestreamQueryKeys.all, 'session', id] as const,
+  viewers: (id: number) => [...livestreamQueryKeys.all, 'viewers', id] as const,
+};
+
+// ============================================================================
+// Query Hooks
+// ============================================================================
+
 /**
- * useLivestream Hook
- * React hook for managing livestream sessions with React Query
+ * Get instructor's livestream sessions with pagination
  */
-
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { livestreamService, type LivestreamSession, type CreateSessionData, type PaginationParams } from '@/services/livestreamService'
-import { toast } from 'react-hot-toast'
-
-// Livestream queries
-export const useCourseSessions = (courseId: string, params?: PaginationParams) => {
+export function useMySessions(params?: PaginationParams) {
   return useQuery({
-    queryKey: ['livestreams', 'course', courseId, params],
-    queryFn: () => livestreamService.getCourseSessions(courseId, params),
-    enabled: !!courseId,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute for live status
-  })
+    queryKey: livestreamQueryKeys.mySessions(params),
+    queryFn: () => livestreamApi.getMySessions(params),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
 }
 
-export const useSession = (sessionId: string) => {
-  return useQuery({
-    queryKey: ['livestream', sessionId],
-    queryFn: () => livestreamService.getSession(sessionId),
-    enabled: !!sessionId,
-    staleTime: 10000, // 10 seconds for live data
-    refetchInterval: 30000, // Frequent updates for live sessions
-  })
+/**
+ * Get single session by ID
+ */
+export function useSession(id: number, enabled: boolean = true) {
+  return useQuery<LivestreamSession>({
+    queryKey: livestreamQueryKeys.session(id),
+    queryFn: () => livestreamApi.getSession(id),
+    enabled: enabled && !!id,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
 }
 
-export const useMySessions = (params?: PaginationParams) => {
+/**
+ * Get session viewers
+ */
+export function useSessionViewers(id: number, enabled: boolean = true) {
   return useQuery({
-    queryKey: ['livestreams', 'my-sessions', params],
-    queryFn: () => livestreamService.getMySessions(params),
-    staleTime: 60000, // 1 minute
-  })
+    queryKey: livestreamQueryKeys.viewers(id),
+    queryFn: () => livestreamApi.getSessionViewers(id),
+    enabled: enabled && !!id,
+    refetchInterval: 10 * 1000, // Refetch every 10 seconds for live viewer count
+    staleTime: 5 * 1000, // 5 seconds
+  });
 }
 
-export const useSessionViewers = (sessionId: string) => {
-  return useQuery({
-    queryKey: ['livestream', sessionId, 'viewers'],
-    queryFn: () => livestreamService.getSessionViewers(sessionId),
-    enabled: !!sessionId,
-    staleTime: 5000, // 5 seconds
-    refetchInterval: 15000, // Update viewer list frequently
-  })
-}
+// ============================================================================
+// Mutation Hooks
+// ============================================================================
 
-export const useSessionChat = (sessionId: string, params?: PaginationParams) => {
-  return useQuery({
-    queryKey: ['livestream', sessionId, 'chat', params],
-    queryFn: () => livestreamService.getChatMessages(sessionId, params),
-    enabled: !!sessionId,
-    staleTime: 5000,
-    refetchInterval: 10000, // Frequent chat updates
-  })
-}
-
-export const useSessionStats = (sessionId: string) => {
-  return useQuery({
-    queryKey: ['livestream', sessionId, 'stats'],
-    queryFn: () => livestreamService.getSessionStats(sessionId),
-    enabled: !!sessionId,
-    staleTime: 30000,
-  })
-}
-
-export const useSignalingData = (sessionId: string) => {
-  return useQuery({
-    queryKey: ['livestream', sessionId, 'signaling'],
-    queryFn: () => livestreamService.getSignalingData(sessionId),
-    enabled: !!sessionId,
-    staleTime: 300000, // 5 minutes - signaling data doesn't change often
-  })
-}
-
-// Livestream mutations
-export const useCreateSession = () => {
-  const queryClient = useQueryClient()
+/**
+ * Create new livestream session
+ */
+export function useCreateSession() {
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateSessionData) => livestreamService.createSession(data),
-    onSuccess: (_, data) => {
-      queryClient.invalidateQueries({ queryKey: ['livestreams', 'course', data.course_id] })
-      queryClient.invalidateQueries({ queryKey: ['livestreams', 'my-sessions'] })
-      toast.success('Đã tạo phiên phát sóng mới')
-    },
-    onError: (error) => {
-      console.error('Error creating session:', error)
-      toast.error('Không thể tạo phiên phát sóng')
-    }
-  })
-}
-
-export const useUpdateSession = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ sessionId, data }: { sessionId: string, data: Partial<CreateSessionData> }) => 
-      livestreamService.updateSession(sessionId, data),
-    onSuccess: (_, { sessionId }) => {
-      queryClient.invalidateQueries({ queryKey: ['livestream', sessionId] })
-      queryClient.invalidateQueries({ queryKey: ['livestreams'] })
-      toast.success('Đã cập nhật phiên phát sóng')
-    },
-    onError: (error) => {
-      console.error('Error updating session:', error)
-      toast.error('Không thể cập nhật phiên phát sóng')
-    }
-  })
-}
-
-export const useDeleteSession = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (sessionId: string) => livestreamService.deleteSession(sessionId),
+    mutationFn: (data: CreateSessionData) => livestreamApi.createSession(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['livestreams'] })
-      toast.success('Đã xóa phiên phát sóng')
+      // Invalidate sessions list
+      queryClient.invalidateQueries({ queryKey: livestreamQueryKeys.all });
+      toast.success('Tạo phiên phát trực tiếp thành công!');
     },
-    onError: (error) => {
-      console.error('Error deleting session:', error)
-      toast.error('Không thể xóa phiên phát sóng')
-    }
-  })
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message = error?.response?.data?.message || 'Tạo phiên phát trực tiếp thất bại';
+      toast.error(message);
+    },
+  });
 }
 
-export const useStartSession = () => {
-  const queryClient = useQueryClient()
+/**
+ * Update livestream session
+ */
+export function useUpdateSession() {
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (sessionId: string) => livestreamService.startSession(sessionId),
-    onSuccess: (_, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: ['livestream', sessionId] })
-      queryClient.invalidateQueries({ queryKey: ['livestreams'] })
-      toast.success('Đã bắt đầu phát sóng trực tiếp')
+    mutationFn: ({ id, data }: { id: number; data: UpdateSessionData }) =>
+      livestreamApi.updateSession(id, data),
+    onSuccess: (updatedSession) => {
+      // Update session in cache
+      queryClient.setQueryData(livestreamQueryKeys.session(updatedSession.id), updatedSession);
+      // Invalidate sessions list
+      queryClient.invalidateQueries({ queryKey: [...livestreamQueryKeys.all, 'my-sessions'] });
+      toast.success('Cập nhật phiên phát trực tiếp thành công!');
     },
-    onError: (error) => {
-      console.error('Error starting session:', error)
-      toast.error('Không thể bắt đầu phát sóng')
-    }
-  })
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message = error?.response?.data?.message || 'Cập nhật phiên phát trực tiếp thất bại';
+      toast.error(message);
+    },
+  });
 }
 
-export const useEndSession = () => {
-  const queryClient = useQueryClient()
+/**
+ * Delete livestream session
+ */
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (sessionId: string) => livestreamService.endSession(sessionId),
-    onSuccess: (_, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: ['livestream', sessionId] })
-      queryClient.invalidateQueries({ queryKey: ['livestreams'] })
-      toast.success('Đã kết thúc phát sóng')
+    mutationFn: (id: number) => livestreamApi.deleteSession(id),
+    onSuccess: () => {
+      // Invalidate all sessions queries
+      queryClient.invalidateQueries({ queryKey: livestreamQueryKeys.all });
+      toast.success('Xóa phiên phát trực tiếp thành công!');
     },
-    onError: (error) => {
-      console.error('Error ending session:', error)
-      toast.error('Không thể kết thúc phát sóng')
-    }
-  })
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message = error?.response?.data?.message || 'Xóa phiên phát trực tiếp thất bại';
+      toast.error(message);
+    },
+  });
 }
 
-export const useJoinSession = () => {
-  const queryClient = useQueryClient()
+/**
+ * Start livestream session (change status to live)
+ */
+export function useStartSession() {
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (sessionId: string) => livestreamService.joinSession(sessionId),
-    onSuccess: (_, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: ['livestream', sessionId, 'viewers'] })
-      toast.success('Đã tham gia phiên phát sóng')
+    mutationFn: (id: number) => livestreamApi.startSession(id),
+    onMutate: async (id) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: livestreamQueryKeys.session(id) });
+
+      // Snapshot previous value
+      const previousSession = queryClient.getQueryData<LivestreamSession>(
+        livestreamQueryKeys.session(id)
+      );
+
+      // Optimistically update
+      if (previousSession) {
+        queryClient.setQueryData<LivestreamSession>(livestreamQueryKeys.session(id), {
+          ...previousSession,
+          status: 'live',
+        });
+      }
+
+      return { previousSession };
     },
-    onError: (error) => {
-      console.error('Error joining session:', error)
-      toast.error('Không thể tham gia phiên phát sóng')
-    }
-  })
+    onSuccess: (updatedSession) => {
+      // Update with server response
+      queryClient.setQueryData(livestreamQueryKeys.session(updatedSession.id), updatedSession);
+      queryClient.invalidateQueries({ queryKey: [...livestreamQueryKeys.all, 'my-sessions'] });
+      toast.success('Đã bắt đầu phát trực tiếp!');
+    },
+    onError: (error: { response?: { data?: { message?: string } } }, _variables, context) => {
+      // Rollback on error
+      if (context?.previousSession) {
+        queryClient.setQueryData(
+          livestreamQueryKeys.session(context.previousSession.id),
+          context.previousSession
+        );
+      }
+      const message = error?.response?.data?.message || 'Bắt đầu phát trực tiếp thất bại';
+      toast.error(message);
+    },
+  });
 }
 
-export const useLeaveSession = () => {
-  const queryClient = useQueryClient()
+/**
+ * End livestream session (change status to ended)
+ */
+export function useEndSession() {
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (sessionId: string) => livestreamService.leaveSession(sessionId),
-    onSuccess: (_, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: ['livestream', sessionId, 'viewers'] })
-      toast.success('Đã rời khỏi phiên phát sóng')
+    mutationFn: (id: number) => livestreamApi.endSession(id),
+    onMutate: async (id) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: livestreamQueryKeys.session(id) });
+
+      // Snapshot previous value
+      const previousSession = queryClient.getQueryData<LivestreamSession>(
+        livestreamQueryKeys.session(id)
+      );
+
+      // Optimistically update
+      if (previousSession) {
+        queryClient.setQueryData<LivestreamSession>(livestreamQueryKeys.session(id), {
+          ...previousSession,
+          status: 'ended',
+        });
+      }
+
+      return { previousSession };
     },
-    onError: (error) => {
-      console.error('Error leaving session:', error)
-      toast.error('Không thể rời khỏi phiên phát sóng')
-    }
-  })
+    onSuccess: (updatedSession) => {
+      // Update with server response
+      queryClient.setQueryData(livestreamQueryKeys.session(updatedSession.id), updatedSession);
+      queryClient.invalidateQueries({ queryKey: [...livestreamQueryKeys.all, 'my-sessions'] });
+      toast.success('Đã kết thúc phát trực tiếp!');
+    },
+    onError: (error: { response?: { data?: { message?: string } } }, _variables, context) => {
+      // Rollback on error
+      if (context?.previousSession) {
+        queryClient.setQueryData(
+          livestreamQueryKeys.session(context.previousSession.id),
+          context.previousSession
+        );
+      }
+      const message = error?.response?.data?.message || 'Kết thúc phát trực tiếp thất bại';
+      toast.error(message);
+    },
+  });
 }
 
-export const useSendChatMessage = () => {
-  const queryClient = useQueryClient()
+/**
+ * Join livestream session as viewer
+ */
+export function useJoinSession() {
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId, message }: { sessionId: string, message: string }) => 
-      livestreamService.sendChatMessage(sessionId, message),
-    onSuccess: (_, { sessionId }) => {
-      queryClient.invalidateQueries({ queryKey: ['livestream', sessionId, 'chat'] })
+    mutationFn: (id: number) => livestreamApi.joinSession(id),
+    onSuccess: (_, id) => {
+      // Invalidate viewers to update count
+      queryClient.invalidateQueries({ queryKey: livestreamQueryKeys.viewers(id) });
+      toast.success('Đã tham gia phiên phát trực tiếp!');
     },
-    onError: (error) => {
-      console.error('Error sending chat message:', error)
-      toast.error('Không thể gửi tin nhắn')
-    }
-  })
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message = error?.response?.data?.message || 'Tham gia phát trực tiếp thất bại';
+      toast.error(message);
+    },
+  });
 }
 
-export const useSendSignal = () => {
+/**
+ * Leave livestream session
+ */
+export function useLeaveSession() {
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ sessionId, signalData }: { sessionId: string, signalData: { type: 'offer' | 'answer' | 'ice-candidate', data: any } }) => 
-      livestreamService.sendSignal(sessionId, signalData),
-    onError: (error) => {
-      console.error('Error sending WebRTC signal:', error)
-    }
-  })
-}
-
-// Utility hooks
-export const useLivestreamUtils = () => {
-  return {
-    getStatusText: livestreamService.getStatusText,
-    getStatusColor: livestreamService.getStatusColor,
-    isSessionLive: livestreamService.isSessionLive,
-    canJoinSession: livestreamService.canJoinSession,
-    formatViewerCount: livestreamService.formatViewerCount,
-    getSessionDuration: livestreamService.getSessionDuration,
-  }
+    mutationFn: (id: number) => livestreamApi.leaveSession(id),
+    onSuccess: (_, id) => {
+      // Invalidate viewers to update count
+      queryClient.invalidateQueries({ queryKey: livestreamQueryKeys.viewers(id) });
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message = error?.response?.data?.message || 'Rời khỏi phát trực tiếp thất bại';
+      toast.error(message);
+    },
+  });
 }
