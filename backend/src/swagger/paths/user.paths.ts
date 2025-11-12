@@ -242,6 +242,206 @@ export const userPaths = {
         }
       }
     }
+  },
+
+  '/admin/users': {
+    get: {
+      summary: 'Get all users (Admin only)',
+      description: 'Retrieve all users with pagination and filtering. Only accessible by Admin and Super Admin roles.',
+      tags: ['Users', 'Admin'],
+      security: [
+        {
+          bearerAuth: []
+        }
+      ],
+      parameters: [
+        {
+          name: 'page',
+          in: 'query',
+          description: 'Page number (default: 1)',
+          required: false,
+          schema: {
+            type: 'integer',
+            minimum: 1,
+            default: 1
+          }
+        },
+        {
+          name: 'limit',
+          in: 'query',
+          description: 'Number of items per page (default: 10)',
+          required: false,
+          schema: {
+            type: 'integer',
+            minimum: 1,
+            maximum: 100,
+            default: 10
+          }
+        },
+        {
+          name: 'role',
+          in: 'query',
+          description: 'Filter by user role',
+          required: false,
+          schema: {
+            type: 'string',
+            enum: ['student', 'instructor', 'admin', 'super_admin']
+          }
+        },
+        {
+          name: 'status',
+          in: 'query',
+          description: 'Filter by user status',
+          required: false,
+          schema: {
+            type: 'string',
+            enum: ['active', 'inactive', 'suspended', 'pending']
+          }
+        },
+        {
+          name: 'search',
+          in: 'query',
+          description: 'Search by email, username, first_name, or last_name',
+          required: false,
+          schema: {
+            type: 'string'
+          }
+        }
+      ],
+      responses: {
+        '200': {
+          description: 'Users retrieved successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: {
+                    type: 'boolean',
+                    example: true
+                  },
+                  message: {
+                    type: 'string',
+                    example: 'Users retrieved successfully'
+                  },
+                  data: {
+                    type: 'array',
+                    items: {
+                      $ref: '#/components/schemas/User'
+                    }
+                  },
+                  pagination: {
+                    type: 'object',
+                    properties: {
+                      page: {
+                        type: 'integer',
+                        example: 1
+                      },
+                      limit: {
+                        type: 'integer',
+                        example: 10
+                      },
+                      total: {
+                        type: 'integer',
+                        example: 50
+                      },
+                      totalPages: {
+                        type: 'integer',
+                        example: 5
+                      },
+                      hasNext: {
+                        type: 'boolean',
+                        example: true
+                      },
+                      hasPrev: {
+                        type: 'boolean',
+                        example: false
+                      },
+                      nextPage: {
+                        type: 'integer',
+                        example: 2
+                      }
+                    }
+                  }
+                }
+              },
+              example: {
+                success: true,
+                message: 'Users retrieved successfully',
+                data: [
+                  {
+                    id: '123e4567-e89b-12d3-a456-426614174000',
+                    email: 'student@example.com',
+                    username: 'student1',
+                    first_name: 'Nguyen',
+                    last_name: 'Van A',
+                    role: 'student',
+                    status: 'active',
+                    email_verified: true,
+                    created_at: '2025-01-01T00:00:00.000Z',
+                    updated_at: '2025-01-01T00:00:00.000Z'
+                  }
+                ],
+                pagination: {
+                  page: 1,
+                  limit: 10,
+                  total: 50,
+                  totalPages: 5,
+                  hasNext: true,
+                  hasPrev: false,
+                  nextPage: 2
+                }
+              }
+            }
+          }
+        },
+        '401': {
+          description: 'Unauthorized - Invalid or missing token',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'Unauthorized',
+                data: null
+              }
+            }
+          }
+        },
+        '403': {
+          description: 'Forbidden - User does not have admin role',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'Forbidden: Admin access required',
+                data: null
+              }
+            }
+          }
+        },
+        '500': {
+          description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              },
+              example: {
+                success: false,
+                message: 'Internal server error',
+                data: null
+              }
+            }
+          }
+        }
+      }
+    }
   }
 };
 
