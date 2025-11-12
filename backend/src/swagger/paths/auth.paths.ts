@@ -1,5 +1,5 @@
 export const authPaths = {
-  '/api/auth/register': {
+  '/auth/register': {
     post: {
       summary: 'Register a new user',
       description: 'Create a new user account with role-based fields',
@@ -24,11 +24,11 @@ export const authPaths = {
                   role: 'student',
                   student_id: 'SV001',
                   class: 'CNTT-K62',
-                  major: 'Công nghệ thông tin',
+                  major: 'CĂ´ng nghá»‡ thĂ´ng tin',
                   year: 2021,
                   date_of_birth: '2000-01-01',
                   gender: 'male',
-                  address: 'Hà Nội'
+                  address: 'HĂ  Ná»™i'
                 }
               },
               instructor: {
@@ -41,8 +41,8 @@ export const authPaths = {
                   phone: '0987654321',
                   role: 'instructor',
                   instructor_id: 'GV001',
-                  department: 'Khoa Công nghệ thông tin',
-                  specialization: 'Lập trình web',
+                  department: 'Khoa CĂ´ng nghá»‡ thĂ´ng tin',
+                  specialization: 'Láº­p trĂ¬nh web',
                   experience_years: 5,
                   education_level: 'master',
                   date_of_birth: '1985-05-15',
@@ -109,7 +109,7 @@ export const authPaths = {
     }
   },
 
-  '/api/auth/login': {
+  '/auth/login': {
     post: {
       summary: 'Login user',
       description: 'Authenticate user and return access tokens',
@@ -151,7 +151,7 @@ export const authPaths = {
                     email_verified: true,
                     student_id: 'SV001',
                     class: 'CNTT-K62',
-                    major: 'Công nghệ thông tin',
+                    major: 'CĂ´ng nghá»‡ thĂ´ng tin',
                     year: 2021,
                     created_at: '2025-01-01T00:00:00.000Z'
                   },
@@ -238,7 +238,7 @@ export const authPaths = {
     }
   },
 
-  '/api/auth/logout': {
+  '/auth/logout': {
     post: {
       summary: 'Logout user',
       description: 'Invalidate user session and clear tokens',
@@ -298,7 +298,7 @@ export const authPaths = {
     }
   },
 
-  '/api/auth/verify': {
+  '/auth/verify': {
     get: {
       summary: 'Verify JWT token',
       description: 'Check if the provided JWT token is valid and return user info',
@@ -362,7 +362,7 @@ export const authPaths = {
     }
   },
 
-  '/api/auth/change-password': {
+  '/auth/change-password': {
     post: {
       summary: 'Change user password',
       description: 'Change the current user\'s password',

@@ -31,7 +31,7 @@ export interface FileListResponse {
   success: boolean
   message: string
   data: {
-    files: Array<FileItem>
+    files: FileItem[]
     total_size: number
   }
 }
@@ -75,7 +75,7 @@ export interface AssignmentSubmission {
   studentId: number
   studentName: string
   submittedAt: string
-  files: Array<string> // File IDs
+  files: string[] // File IDs
   text?: string
   grade?: number
   feedback?: string
@@ -90,8 +90,8 @@ export interface Assignment {
   createdBy: number
   dueDate: string
   maxPoints: number
-  attachments: Array<string>
-  submissions: Array<AssignmentSubmission>
+  attachments: string[]
+  submissions: AssignmentSubmission[]
   instructions: string
   createdAt: string
 }
@@ -282,7 +282,7 @@ class FileService {
   }
 
   // Get files by course
-  async getFilesByCourse(courseId: string): Promise<Array<CourseFile>> {
+  async getFilesByCourse(courseId: string): Promise<CourseFile[]> {
     if (this.db) {
       try {
         const transaction = this.db.transaction(['files'], 'readonly')
@@ -408,7 +408,7 @@ class FileService {
     }
   }
 
-  async getAssignmentsByCourse(courseId: string): Promise<Array<Assignment>> {
+  async getAssignmentsByCourse(courseId: string): Promise<Assignment[]> {
     if (this.db) {
       try {
         const transaction = this.db.transaction(['assignments'], 'readonly')
@@ -429,7 +429,7 @@ class FileService {
   }
 
   // Submit assignment
-  async submitAssignment(assignmentId: string, studentId: number, studentName: string, files: Array<string>, text?: string): Promise<AssignmentSubmission> {
+  async submitAssignment(assignmentId: string, studentId: number, studentName: string, files: string[], text?: string): Promise<AssignmentSubmission> {
     const assignment = this.memoryAssignments.get(assignmentId)
     if (!assignment) throw new Error('Assignment not found')
 
@@ -486,7 +486,7 @@ class FileService {
   // Demo data initialization
   async initializeDemoData(): Promise<void> {
     // Create some demo files for each course
-    const demoFiles: Array<CourseFile> = [
+    const demoFiles: CourseFile[] = [
       {
         id: 'file-demo-1',
         name: 'React_Basics_Slides.pdf',
@@ -540,7 +540,7 @@ class FileService {
     }
 
     // Create demo assignments
-    const demoAssignments: Array<Assignment> = [
+    const demoAssignments: Assignment[] = [
       {
         id: 'assignment-demo-1',
         title: 'Build a React Component',

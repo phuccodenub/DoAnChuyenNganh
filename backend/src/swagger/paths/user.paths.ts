@@ -1,5 +1,5 @@
 export const userPaths = {
-  '/api/users/profile': {
+  '/users/profile': {
     get: {
       summary: 'Get user profile',
       description: 'Retrieve the current user\'s profile information',
