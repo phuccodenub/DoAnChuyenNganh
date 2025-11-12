@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient'
-import type { User } from '@/stores/authStore'
+import type { User } from '@/stores/authStore.enhanced'
 
 export interface AuthResponse {
   success: boolean
@@ -7,6 +7,7 @@ export interface AuthResponse {
   data: {
     user: User
     token: string
+    refresh_token?: string // Optional for backward compatibility
   }
 }
 

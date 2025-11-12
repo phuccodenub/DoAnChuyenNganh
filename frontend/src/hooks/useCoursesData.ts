@@ -1,0 +1,100 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { courseApi, CourseFilters } from '@/services/api/course.api';
+import { QUERY_KEYS } from '@/constants/queryKeys';
+import toast from 'react-hot-toast';
+
+/**
+ * Hook lấy danh sách courses
+ */
+export function useCourses(filters?: CourseFilters) {
+  return useQuery({
+    queryKey: QUERY_KEYS.courses.list(filters),
+    queryFn: async () => {
+      const response = await courseApi.getAll(filters);
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook lấy chi tiết course
+ */
+export function useCourse(id: number) {
+  return useQuery({
+    queryKey: QUERY_KEYS.courses.detail(id),
+    queryFn: async () => {
+      const response = await courseApi.getById(id);
+      return response.data.data.course;
+    },
+    enabled: !!id,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
+ * Hook lấy courses đã đăng ký (student)
+ */
+export function useEnrolledCourses(filters?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: QUERY_KEYS.courses.enrolled(filters),
+    queryFn: async () => {
+      const response = await courseApi.getEnrolled(filters);
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
+/**
+ * Hook đăng ký course
+ */
+export function useEnrollCourse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (courseId: number) => courseApi.enroll(courseId),
+    onSuccess: () => {
+      toast.success('Đăng ký khóa học thành công!');
+      
+      // Invalidate enrolled courses
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.courses.enrolled() 
+      });
+      
+      // Invalidate enrollment stats
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.enrollments.stats.overview 
+      });
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Đăng ký khóa học thất bại';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Hook hủy đăng ký course
+ */
+export function useUnenrollCourse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (courseId: number) => courseApi.unenroll(courseId),
+    onSuccess: () => {
+      toast.success('Hủy đăng ký thành công');
+      
+      // Invalidate enrolled courses
+      queryClient.invalidateQueries({ 
+        queryKey: QUERY_KEYS.courses.enrolled() 
+      });
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Hủy đăng ký thất bại';
+      toast.error(message);
+    },
+  });
+}
+
+export default useCourses;

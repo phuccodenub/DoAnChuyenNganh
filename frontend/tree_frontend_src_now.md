@@ -44,7 +44,6 @@ H:.
 │           RecommendationPanel.tsx
 │           ToastNotifications.tsx
 │
-├───context
 ├───contexts
 │       ThemeContext.tsx
 │

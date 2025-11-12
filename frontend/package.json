@@ -5,7 +5,8 @@
   "private": true,
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
-    "@tanstack/react-query": "^5.17.8",
+"@tanstack/react-query": "^5.28.11",
+    "@tanstack/react-query-devtools": "^5.28.11",
     "axios": "^1.6.2",
     "clsx": "^2.1.1",
     "date-fns": "^3.0.6",
