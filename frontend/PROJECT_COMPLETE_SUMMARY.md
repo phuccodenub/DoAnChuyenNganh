@@ -613,7 +613,52 @@ This LMS (Learning Management System) frontend project has successfully implemen
 
 ---
 
-## 🚀 DEPLOYMENT READINESS
+## �️ LEGACY FILES STATUS
+
+### Current Situation
+After completing 8 batches of refactoring (53 new files, 13,600 lines), the codebase contains **~50 legacy files** (~5,000 lines) from pre-refactor implementation that are **NOT currently used**.
+
+### Legacy Files Breakdown
+- **6 duplicate pages** (CourseDetail, CoursePage, DashboardPage, etc.)
+- **15+ unused components** (Chat, Quiz, LiveStream, Files - old versions)
+- **12+ unused services** (old API services, mock services)
+- **3 duplicate UI components** (Button, Input, Card - old versions)
+- **10+ specialized UI** (Chatbot, Recommendations, Analytics - not in MVP)
+- **2 unused stores** (authStore.ts, chatStore.ts)
+
+### Impact Analysis
+✅ **No negative impact on current system**:
+- Legacy files NOT imported in routes/index.tsx
+- TypeScript errors: 0 (no conflicts)
+- Build successful
+- New refactored pages working independently
+
+### Cleanup Strategy
+
+**PHASE 1: TESTING PERIOD (Current)** - Keep All Files
+- ⏸️ **Do NOT delete** legacy files yet
+- Use as reference during testing
+- Can compare old vs new implementations if needed
+- Safe backup if issues discovered
+
+**PHASE 2: POST-TESTING CLEANUP (After Testing Complete)**
+- ✅ Create archive branch `archive/legacy-files-pre-refactor`
+- ❌ Delete ~50 legacy files (~5,000 lines)
+- 🔄 Rename "New" components (ButtonNew → Button, etc.)
+- 🔄 Update all imports
+- ✅ Verify TypeScript: 0 errors
+- ✅ Verify build: Successful
+- ✅ Commit cleanup
+
+**Automation**: Cleanup script created at `scripts/cleanup-legacy-files.ps1`
+
+**Documentation**: Full analysis at `LEGACY_FILES_ANALYSIS.md`
+
+**Recommendation**: **Execute cleanup AFTER manual testing confirms all features work 100%**
+
+---
+
+## �🚀 DEPLOYMENT READINESS
 
 ### Production Checklist
 - [x] **TypeScript Compilation**: 0 errors ✅
