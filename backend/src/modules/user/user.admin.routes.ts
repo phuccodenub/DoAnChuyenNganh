@@ -56,11 +56,11 @@ router.get(
 /**
  * Get all users with pagination
  * GET /admin/users
- * Admin/Super Admin/Instructor
+ * Admin/Super Admin only
  */
 router.get(
   '/',
-  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   validateQuery(userValidation.userQuery),
   (req: Request, res: Response, next: NextFunction) => userAdminController.getAllUsers(req, res, next)
 );
