@@ -32,7 +32,7 @@ export function LiveStreamManagementPage() {
   const { data: sessionsResponse, isLoading } = useMySessions();
 
   // Extract sessions array
-  const sessionsArray = sessionsResponse?.data?.sessions || [];
+  const sessionsArray = sessionsResponse?.data || [];
 
   // Filter sessions
   const filteredSessions = sessionsArray.filter((session: any) => {
@@ -224,7 +224,7 @@ export function LiveStreamManagementPage() {
                 {session.status === 'live' && (
                   <Button
                     size="sm"
-                    variant="destructive"
+                    variant="danger"
                     onClick={() => navigate(`/instructor/livestream/${session.id}`)}
                     className="flex items-center gap-1"
                   >

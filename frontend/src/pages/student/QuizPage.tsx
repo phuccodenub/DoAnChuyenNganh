@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { useQuiz, useQuizQuestions, useStartQuiz, useSubmitAnswer, useSubmitQuiz, useCurrentAttempt } from '@/hooks/useQuizData';
 import { ROUTES } from '@/constants/routes';
 

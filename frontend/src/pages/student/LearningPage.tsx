@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Menu, X, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { useCourseContent, useLesson, useLessonProgress, useMarkLessonComplete } from '@/hooks/useLessonData';
 import { Spinner } from '@/components/ui/Spinner';
-import { Button } from '@/components/ui/ButtonNew';
+import { Button } from '@/components/ui/Button';
 import { CurriculumSidebar } from '@/components/domain/learning/CurriculumSidebar';
 import { VideoPlayer } from '@/components/domain/learning/VideoPlayer';
 import { DocumentViewer } from '@/components/domain/learning/DocumentViewer';

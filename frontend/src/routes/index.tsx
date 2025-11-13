@@ -5,10 +5,6 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { ROUTES } from '@/constants/routes';
 
-// Lazy load pages
-const HomePage = lazy(() => import('@/pages/HomePage'));
-const LoginPage = lazy(() => import('@/pages/LoginPage'));
-const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 // Public course pages
@@ -57,12 +53,8 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public routes */}
-        <Route path={ROUTES.HOME} element={<HomePage />} />
-        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-        
-        {/* Public course catalog */}
+        {/* Public routes - temporarily removed auth until implemented */}
+        <Route path={ROUTES.HOME} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSES} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSE_DETAIL} element={<CourseDetailPage />} />
         

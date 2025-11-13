@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Clock, Award, TrendingUp } from 'lucide-react';
 import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { useEnrolledCourses } from '@/hooks/useCoursesData';

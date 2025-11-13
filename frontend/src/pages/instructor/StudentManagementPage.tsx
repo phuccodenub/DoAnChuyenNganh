@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Users, Search, Mail, Eye, UserX, Download, MessageSquare } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 
 /**
  * StudentManagementPage - Instructor

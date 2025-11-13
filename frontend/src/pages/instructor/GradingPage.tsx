@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { CheckCircle, Clock, Edit, Search, Filter, FileText, Download } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
-import { Input } from '@/components/ui/InputNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 /**
  * GradingPage - Instructor

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, ChevronDown, ChevronRight, Edit, Trash2, GripVertical, Video, FileText, Save } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
-import { Input } from '@/components/ui/InputNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 // import { Modal } from '@/components/ui/ModalNew';
 import { ROUTES } from '@/constants/routes';
 

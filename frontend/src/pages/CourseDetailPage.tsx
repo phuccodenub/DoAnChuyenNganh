@@ -15,8 +15,8 @@ import { useEnrollCourse } from '@/hooks/useCoursesData';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/CardNew';
-import { Button } from '@/components/ui/ButtonNew';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import Modal, { ModalBody, ModalFooter } from '@/components/ui/Modal';
 import { ROUTES, generateRoute } from '@/constants/routes';
 
