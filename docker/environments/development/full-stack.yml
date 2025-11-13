@@ -73,7 +73,6 @@ services:
       - DB_NAME=${DB_NAME:-${POSTGRES_DB:-lms_db}}
       - DB_USER=${DB_USER:-${POSTGRES_USER:-lms_user}}
       - DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-123456}}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-123456}@postgres-dev:5432/${POSTGRES_DB:-lms_db}}
       - REDIS_HOST=redis-dev
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-dev:6379
