@@ -18,7 +18,7 @@ import {
   Users
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { useAuthStore } from '@/stores/authStore'
+import useAuth from '@/hooks/useAuth'
 
 interface CourseCard {
   id: string
@@ -301,7 +301,7 @@ const navItems = [
 ]
 
 function HomePage() {
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState(skillTabs[0].value)
