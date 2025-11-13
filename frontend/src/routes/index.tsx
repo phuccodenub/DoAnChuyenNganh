@@ -8,6 +8,7 @@ import { ROUTES } from '@/constants/routes';
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 // Public course pages
+const HomePage = lazy(() => import('@/pages/HomePage'));
 const CourseCatalogPage = lazy(() => import('@/pages/CourseCatalogPage'));
 const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 
@@ -54,6 +55,7 @@ function AppRoutes() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public routes - temporarily removed auth until implemented */}
+        
         <Route path={ROUTES.HOME} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSES} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSE_DETAIL} element={<CourseDetailPage />} />
