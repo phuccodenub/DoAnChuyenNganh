@@ -7,6 +7,7 @@
 export const ROUTES = {
   // Public routes
   HOME: '/',
+  LANDING_PAGE: '/home',
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
