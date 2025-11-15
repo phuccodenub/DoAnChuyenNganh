@@ -1,13 +1,17 @@
 import { httpClient } from './http/client';
 import type { User } from '@/stores/authStore.enhanced';
 
+interface Tokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export interface AuthResponse {
   success: boolean
   message: string
   data: {
     user: User
-    token: string
-    refresh_token?: string // Optional for backward compatibility
+    tokens: Tokens
   }
 }
 
@@ -46,7 +50,8 @@ export const authService = {
   async register(data: {
     email: string
     password: string
-    full_name: string
+    first_name: string
+    last_name: string
     role?: 'student' | 'instructor'
   }): Promise<AuthResponse> {
     const response = await httpClient.post<AuthResponse>('/auth/register', data)

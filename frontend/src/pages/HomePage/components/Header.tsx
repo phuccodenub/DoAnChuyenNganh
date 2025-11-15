@@ -40,7 +40,7 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
   const handleLogout = async () => {
     await logout()
     setIsProfileOpen(false)
-    navigate('/')
+    navigate('/home')
   }
 
   const getDashboardRoute = () => {
@@ -83,7 +83,7 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3">
-        <div className="flex flex-1 items-center gap-4">
+        <div className="flex flex-1 items-center gap-12">
           <div className="flex items-center gap-2">
             <img src="/GekLearn.png" alt="GekLearn logo" className="h-10 w-auto object-contain" />
           </div>

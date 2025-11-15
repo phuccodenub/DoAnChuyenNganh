@@ -8,8 +8,12 @@ function App() {
   const { initializeAuth, isInitialized } = useAuthStore();
 
   useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
+    // Chỉ initialize 1 lần khi component mount
+    if (!isInitialized) {
+      initializeAuth();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array để chỉ chạy 1 lần
 
   if (!isInitialized) {
     return (

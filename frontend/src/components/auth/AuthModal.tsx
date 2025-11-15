@@ -42,7 +42,7 @@ export function AuthModal() {
       closeModal()
       // Small delay to allow modal to close smoothly
       setTimeout(() => {
-        navigate('/dashboard', { replace: true })
+        navigate('/home', { replace: true })
       }, 200)
     }
   }, [isAuthenticated, isOpen, closeModal, navigate])
