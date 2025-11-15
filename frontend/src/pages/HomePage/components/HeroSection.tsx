@@ -12,7 +12,7 @@ export function HeroSection({ onPrimaryCta, onSecondaryCta }: HeroSectionProps) 
 
   return (
     <section id="hero" className="border-b border-slate-100 bg-gradient-to-b from-white via-slate-50/60 to-white">
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 lg:grid-cols-[0.4fr_0.6fr] lg:items-center">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 lg:grid-cols-[0.4fr_0.6fr] lg:items-center">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-1.5 py-1 text-xs font-semibold text-indigo-600">
             <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.32em] text-white">
@@ -24,7 +24,7 @@ export function HeroSection({ onPrimaryCta, onSecondaryCta }: HeroSectionProps) 
             </span>
           </div>
           <h1 className="mt-6 text-[2.1rem] font-black leading-[1.05] text-slate-900 sm:text-[2.4rem] lg:text-[2.8rem]">
-            Học hỏi – Phát triển – Bứt phá sự nghiệp
+            Học hỏi – Phát triển<br /> Bứt phá sự nghiệp
           </h1>
           <p className="mt-5 max-w-xl text-sm text-slate-600 sm:text-base lg:text-[1.05rem]">
             GekLearn là nền tảng học tập toàn diện giúp đội ngũ nâng cấp kỹ năng nhanh hơn với khóa học tuyển chọn, huấn luyện trực tiếp và phân tích dữ liệu hữu ích.

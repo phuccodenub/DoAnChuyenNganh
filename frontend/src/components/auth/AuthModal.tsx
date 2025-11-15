@@ -112,7 +112,15 @@ export function AuthModal() {
 
     if (!validateLogin()) return
 
-    await login(loginEmail, loginPassword)
+    // Clear previous errors
+    setLoginErrors({})
+
+    const success = await login(loginEmail, loginPassword)
+    
+    if (!success) {
+      // If login failed, show general error (specific error already shown via toast)
+      setLoginErrors({ general: 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.' })
+    }
     // Navigation will be handled by useEffect when isAuthenticated changes
   }
 
@@ -266,6 +274,35 @@ export function AuthModal() {
                 </div>
                 {loginErrors.email && (
                   <p className="mt-1 text-sm text-red-600">{loginErrors.email}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => {
+                      setLoginPassword(e.target.value)
+                      if (loginErrors.password) {
+                        setLoginErrors((prev) => ({ ...prev, password: '' }))
+                      }
+                    }}
+                    placeholder="Enter your password"
+                    className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
+                      loginErrors.password
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                    disabled={isLoading}
+                  />
+                </div>
+                {loginErrors.password && (
+                  <p className="mt-1 text-sm text-red-600">{loginErrors.password}</p>
                 )}
               </div>
 
