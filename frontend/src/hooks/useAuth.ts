@@ -8,7 +8,8 @@ import { useAuthStore } from '@/stores/authStore.enhanced';
  */
 export function useAuth() {
   const user = useAuthStore((state) => state.user);
-  const token = useAuthStore((state) => state.token);
+  const tokens = useAuthStore((state) => state.tokens);
+  const token = tokens?.accessToken || null; // Support cả format mới
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
   const isInitialized = useAuthStore((state) => state.isInitialized);

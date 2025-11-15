@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 import { authService } from '@/services/authService';
 import i18n from '@/i18n';
+import { getTokensFromState, restoreAuthFromStorage, getErrorMessage, isUnauthorizedError } from './authStore.utils';
+import { partializeAuthState, setupLocalStorageWatcher } from './authStore.config';
 
 export interface User {
   id: number;
@@ -20,10 +22,14 @@ export interface User {
   updated_at?: string; // Make optional for backward compatibility
 }
 
-interface AuthState {
+export interface Tokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface AuthState {
   user: User | null;
-  token: string | null;
-  refreshToken: string | null;
+  tokens: Tokens | null;
   isAuthenticated: boolean;
   isInitialized: boolean;
   isLoading: boolean;
@@ -44,19 +50,21 @@ interface AuthActions {
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   initializeAuth: () => Promise<void>;
   setLoading: (loading: boolean) => void;
-  setToken: (token: string, refreshToken?: string) => void;
+  setToken: (tokens: Tokens) => void;
   clearAuth: () => void;
 }
 
-type AuthStore = AuthState & AuthActions;
+export type AuthStore = AuthState & AuthActions;
+
+// Setup localStorage watcher (chỉ trong development)
+setupLocalStorageWatcher();
 
 export const useAuthStore = create<AuthStore>()(
-  persist(
+  persist<AuthStore>(
     (set, get) => ({
       // Initial state
       user: null,
-      token: null,
-      refreshToken: null,
+      tokens: null,
       isAuthenticated: false,
       isInitialized: false,
       isLoading: false,
@@ -65,29 +73,24 @@ export const useAuthStore = create<AuthStore>()(
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true });
-          
           const response = await authService.login(email, password);
           
           if (response.success && response.data) {
             set({
               user: response.data.user,
-              token: response.data.token,
-              refreshToken: response.data.refresh_token,
+              tokens: response.data.tokens,
               isAuthenticated: true,
               isLoading: false,
             });
-            
             toast.success(i18n.t('auth.messages.loginSuccess') || 'Đăng nhập thành công');
             return true;
-          } else {
-            toast.error(response.message || i18n.t('auth.messages.loginFailed') || 'Đăng nhập thất bại');
-            set({ isLoading: false });
-            return false;
           }
+          
+          toast.error(response.message || i18n.t('auth.messages.loginFailed') || 'Đăng nhập thất bại');
+          set({ isLoading: false });
+          return false;
         } catch (error: unknown) {
-          const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message 
-            || i18n.t('auth.messages.loginFailed') 
-            || 'Đăng nhập thất bại';
+          const message = getErrorMessage(error, i18n.t('auth.messages.loginFailed') || 'Đăng nhập thất bại');
           toast.error(message);
           set({ isLoading: false });
           return false;
@@ -97,61 +100,62 @@ export const useAuthStore = create<AuthStore>()(
       loginWith2FA: async (email: string, password: string, code: string) => {
         try {
           set({ isLoading: true });
-          
           const response = await authService.loginWith2FA(email, password, code);
           
           if (response.success && response.data) {
             set({
               user: response.data.user,
-              token: response.data.token,
-              refreshToken: response.data.refresh_token,
+              tokens: response.data.tokens,
               isAuthenticated: true,
               isLoading: false,
             });
-            
             toast.success('Đăng nhập thành công');
             return true;
-          } else {
-            toast.error(response.message || 'Xác thực 2FA thất bại');
-            set({ isLoading: false });
-            return false;
           }
+          
+          toast.error(response.message || 'Xác thực 2FA thất bại');
+          set({ isLoading: false });
+          return false;
         } catch (error: unknown) {
-          const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message 
-            || 'Xác thực 2FA thất bại';
-          toast.error(message);
+          toast.error(getErrorMessage(error, 'Xác thực 2FA thất bại'));
           set({ isLoading: false });
           return false;
         }
       },
 
-      register: async (data) => {
+      register: async (data: {
+        email: string;
+        password: string;
+        first_name: string;
+        last_name: string;
+        role?: 'student' | 'instructor';
+      }) => {
         try {
           set({ isLoading: true });
-          
-          const response = await authService.register(data);
+          const response = await authService.register({
+            email: data.email,
+            password: data.password,
+            first_name: data.first_name,
+            last_name: data.last_name,
+            role: data.role,
+          });
           
           if (response.success && response.data) {
             set({
               user: response.data.user,
-              token: response.data.token,
-              refreshToken: response.data.refresh_token,
+              tokens: response.data.tokens,
               isAuthenticated: true,
               isLoading: false,
             });
-            
             toast.success(i18n.t('auth.messages.registerSuccess') || 'Đăng ký thành công');
             return true;
-          } else {
-            toast.error(response.message || i18n.t('auth.messages.registerFailed') || 'Đăng ký thất bại');
-            set({ isLoading: false });
-            return false;
           }
+          
+          toast.error(response.message || i18n.t('auth.messages.registerFailed') || 'Đăng ký thất bại');
+          set({ isLoading: false });
+          return false;
         } catch (error: unknown) {
-          const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message 
-            || i18n.t('auth.messages.registerFailed') 
-            || 'Đăng ký thất bại';
-          toast.error(message);
+          toast.error(getErrorMessage(error, i18n.t('auth.messages.registerFailed') || 'Đăng ký thất bại'));
           set({ isLoading: false });
           return false;
         }
@@ -166,8 +170,7 @@ export const useAuthStore = create<AuthStore>()(
         } finally {
           set({
             user: null,
-            token: null,
-            refreshToken: null,
+            tokens: null,
             isAuthenticated: false,
           });
           
@@ -175,10 +178,9 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      updateProfile: async (data) => {
+      updateProfile: async (data: Partial<User>) => {
         try {
           set({ isLoading: true });
-          
           const response = await authService.updateProfile(data);
           
           if (response.success && response.data) {
@@ -186,18 +188,15 @@ export const useAuthStore = create<AuthStore>()(
               user: response.data.user,
               isLoading: false,
             });
-            
             toast.success('Cập nhật thông tin thành công');
             return true;
-          } else {
-            toast.error(response.message || 'Cập nhật thông tin thất bại');
-            set({ isLoading: false });
-            return false;
           }
+          
+          toast.error(response.message || 'Cập nhật thông tin thất bại');
+          set({ isLoading: false });
+          return false;
         } catch (error: unknown) {
-          const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message 
-            || 'Cập nhật thông tin thất bại';
-          toast.error(message);
+          toast.error(getErrorMessage(error, 'Cập nhật thông tin thất bại'));
           set({ isLoading: false });
           return false;
         }
@@ -206,95 +205,127 @@ export const useAuthStore = create<AuthStore>()(
       changePassword: async (currentPassword: string, newPassword: string) => {
         try {
           set({ isLoading: true });
-          
           const response = await authService.changePassword(currentPassword, newPassword);
           
           if (response.success) {
             set({ isLoading: false });
             toast.success('Đổi mật khẩu thành công');
             return true;
-          } else {
-            toast.error(response.message || 'Đổi mật khẩu thất bại');
-            set({ isLoading: false });
-            return false;
           }
+          
+          toast.error(response.message || 'Đổi mật khẩu thất bại');
+          set({ isLoading: false });
+          return false;
         } catch (error: unknown) {
-          const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message 
-            || 'Đổi mật khẩu thất bại';
-          toast.error(message);
+          toast.error(getErrorMessage(error, 'Đổi mật khẩu thất bại'));
           set({ isLoading: false });
           return false;
         }
       },
 
       initializeAuth: async () => {
-        const { token } = get();
+        const { tokens, isInitialized } = get();
         
-        if (!token) {
-          set({ isInitialized: true });
+        if (isInitialized) return;
+        
+        // Nếu không có tokens, thử restore từ localStorage
+        if (!tokens) {
+          const storedState = restoreAuthFromStorage();
+          const restoredTokens = storedState ? getTokensFromState(storedState) : null;
+          
+          if (restoredTokens) {
+            set({
+              tokens: restoredTokens,
+              user: storedState?.user || null,
+              isAuthenticated: storedState?.isAuthenticated || false,
+              isInitialized: true,
+            });
+            return;
+          }
+          
+          // Không có tokens, chỉ set initialized
+          set((prevState: AuthState) => ({ ...prevState, isInitialized: true }));
           return;
         }
 
+        // Verify token và fetch profile
         try {
-          // Verify token
           const verifyResponse = await authService.verifyToken();
-          
-          if (!verifyResponse.success) {
-            throw new Error('Token invalid');
-          }
+          if (!verifyResponse.success) throw new Error('Token invalid');
 
-          // Get user profile
           const profileResponse = await authService.getProfile();
-          
           if (profileResponse.success && profileResponse.data) {
             set({
               user: profileResponse.data.user,
               isAuthenticated: true,
               isInitialized: true,
             });
-          } else {
-            throw new Error('Profile fetch failed');
+            return;
           }
-        } catch (error) {
-          // Token invalid hoặc expired, clear auth state
-          set({
-            user: null,
-            token: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isInitialized: true,
-          });
+          
+          throw new Error('Profile fetch failed');
+        } catch (error: unknown) {
+          // Chỉ clear nếu là 401, giữ nguyên state nếu là lỗi khác
+          if (isUnauthorizedError(error)) {
+            set({
+              user: null,
+              tokens: null,
+              isAuthenticated: false,
+              isInitialized: true,
+            });
+          } else {
+            set({ isInitialized: true });
+          }
         }
       },
 
-      setLoading: (loading) => {
+      setLoading: (loading: boolean) => {
         set({ isLoading: loading });
       },
 
-      setToken: (token: string, refreshToken?: string) => {
+      setToken: (tokens: Tokens) => {
         set({ 
-          token,
-          ...(refreshToken && { refreshToken }),
+          tokens,
         });
       },
 
       clearAuth: () => {
+        // Clear auth state - Zustand persist sẽ tự động sync vào localStorage
         set({
           user: null,
-          token: null,
-          refreshToken: null,
+          tokens: null,
           isAuthenticated: false,
+          // Giữ isInitialized để tránh re-initialize
         });
       },
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        token: state.token,
-        refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated,
-      }),
+      // @ts-expect-error - Zustand persist partialize type is complex, but this works correctly
+      partialize: partializeAuthState,
+      onRehydrateStorage: () => {
+        return (state) => {
+          if (!state) return;
+          
+          // Nếu state empty, thử restore từ localStorage
+          if (!state.tokens && !state.user) {
+            const storedState = restoreAuthFromStorage();
+            if (storedState) {
+              const tokens = getTokensFromState(storedState);
+              if (tokens) {
+                state.tokens = tokens;
+                if (storedState.user) state.user = storedState.user;
+                if (storedState.isAuthenticated !== undefined) {
+                  state.isAuthenticated = storedState.isAuthenticated;
+                }
+                if (storedState.isInitialized !== undefined) {
+                  state.isInitialized = storedState.isInitialized;
+                }
+              }
+            }
+          }
+        };
+      },
     }
   )
 );

@@ -1,5 +1,6 @@
 import { httpClient } from './client';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/stores/authStore.enhanced';
 
 /**
  * Axios Interceptors
@@ -27,24 +28,54 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 /**
+ * Check if an endpoint is public (không cần authentication)
+ */
+const isPublicEndpoint = (url?: string, method?: string): boolean => {
+  if (!url) return false;
+  
+  // Auth endpoints
+  if (url.includes('/auth/login') || 
+      url.includes('/auth/register') ||
+      url.includes('/auth/refresh-token')) {
+    return true;
+  }
+  
+  // Public course endpoints (GET /courses, GET /courses/:id)
+  if (url.includes('/courses') && 
+      method === 'get' &&
+      !url.includes('/courses/enrolled') && 
+      !url.includes('/courses/instructor')) {
+    return true;
+  }
+  
+  return false;
+};
+
+/**
  * Setup interceptors for HTTP client
+ * 
+ * Best Practice: Sử dụng Zustand store làm single source of truth
+ * - Đọc token từ store thay vì localStorage trực tiếp
+ * - Update token qua store actions thay vì thao tác localStorage
+ * - Tránh race condition và đảm bảo consistency
  */
 export const setupInterceptors = () => {
   // Request interceptor - Attach token to headers
   httpClient.interceptors.request.use(
     (config) => {
-      // Lấy token từ localStorage (persist store)
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
-        try {
-          const { state } = JSON.parse(authStorage);
-          if (state?.token) {
-            config.headers.Authorization = `Bearer ${state.token}`;
-          }
-        } catch (error) {
-          console.error('Error parsing auth storage:', error);
-        }
+      // Không gắn token cho public endpoints
+      if (isPublicEndpoint(config.url, config.method)) {
+        return config;
       }
+      
+      // Lấy token từ Zustand store (single source of truth)
+      const state = useAuthStore.getState();
+      const token = state.tokens?.accessToken;
+      
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      
       return config;
     },
     (error) => {
@@ -59,7 +90,8 @@ export const setupInterceptors = () => {
       const originalRequest = error.config;
 
       // Handle 401 (Unauthorized) - Token expired
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      // Bỏ qua 401 cho các public endpoints (không cần authentication)
+      if (error.response?.status === 401 && !originalRequest._retry && !isPublicEndpoint(originalRequest.url, originalRequest.method)) {
         if (isRefreshing) {
           // Nếu đang refresh, add request vào queue
           return new Promise((resolve, reject) => {
@@ -77,24 +109,18 @@ export const setupInterceptors = () => {
         originalRequest._retry = true;
         isRefreshing = true;
 
-        // Lấy refresh token từ storage
-        const authStorage = localStorage.getItem('auth-storage');
-        let refreshToken: string | null = null;
-
-        if (authStorage) {
-          try {
-            const { state } = JSON.parse(authStorage);
-            refreshToken = state?.refreshToken;
-          } catch (error) {
-            console.error('Error parsing auth storage:', error);
-          }
-        }
+        // Lấy refresh token từ Zustand store (single source of truth)
+        const state = useAuthStore.getState();
+        const refreshToken = state.tokens?.refreshToken;
 
         if (!refreshToken) {
-          // Không có refresh token, logout user
+          // Không có refresh token
           processQueue(error, null);
           isRefreshing = false;
-          handleLogout();
+          // Chỉ logout nếu không phải là public endpoint
+          if (!isPublicEndpoint(originalRequest.url, originalRequest.method)) {
+            handleLogout();
+          }
           return Promise.reject(error);
         }
 
@@ -105,19 +131,19 @@ export const setupInterceptors = () => {
           });
 
           if (response.data.success) {
-            const newToken = response.data.data.token;
-            const newRefreshToken = response.data.data.refresh_token;
+            // Backend trả về format: { tokens: { accessToken, refreshToken } }
+            const tokens = response.data.data.tokens || {
+              accessToken: response.data.data.token,
+              refreshToken: response.data.data.refresh_token
+            };
+            const newToken = tokens.accessToken;
+            const newRefreshToken = tokens.refreshToken;
 
-            // Update token trong localStorage
-            const storage = localStorage.getItem('auth-storage');
-            if (storage) {
-              const { state } = JSON.parse(storage);
-              state.token = newToken;
-              if (newRefreshToken) {
-                state.refreshToken = newRefreshToken;
-              }
-              localStorage.setItem('auth-storage', JSON.stringify({ state }));
-            }
+            // Update token qua Zustand store (sẽ tự động sync vào localStorage)
+            useAuthStore.getState().setToken({
+              accessToken: newToken,
+              refreshToken: newRefreshToken
+            });
 
             // Process queued requests
             processQueue(null, newToken);
@@ -132,7 +158,10 @@ export const setupInterceptors = () => {
         } catch (refreshError) {
           processQueue(refreshError, null);
           isRefreshing = false;
-          handleLogout();
+          // Chỉ logout nếu không phải là public endpoint
+          if (!isPublicEndpoint(originalRequest.url, originalRequest.method)) {
+            handleLogout();
+          }
           return Promise.reject(refreshError);
         }
       }
@@ -164,10 +193,11 @@ export const setupInterceptors = () => {
 
 /**
  * Handle logout when token refresh fails
+ * Sử dụng Zustand store action thay vì trực tiếp thao tác localStorage
  */
 const handleLogout = () => {
-  // Clear auth storage
-  localStorage.removeItem('auth-storage');
+  // Clear auth state qua Zustand store (sẽ tự động sync vào localStorage)
+  useAuthStore.getState().clearAuth();
   
   // Redirect to login page
   window.location.href = '/login';

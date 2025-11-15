@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { QueryProvider } from './QueryProvider';
 import { Toaster } from 'react-hot-toast';
 import { AuthModalProvider } from '@/contexts/AuthModalContext';
+import { setupInterceptors } from '@/services/http/interceptors';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -16,6 +17,11 @@ interface AppProvidersProps {
  * - Toaster: Toast notifications
  */
 export function AppProviders({ children }: AppProvidersProps) {
+  // Setup HTTP interceptors once when app loads
+  useEffect(() => {
+    setupInterceptors();
+  }, []);
+
   return (
     <QueryProvider>
       <AuthModalProvider>
