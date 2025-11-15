@@ -13,10 +13,10 @@ import type {
 export const partnerLogos = ['LearnerX', 'Skylab', 'Classcloud', 'Scholar', 'Questline']
 
 export const skillTabs = [
-  { label: 'Product & Design', value: 'design' },
-  { label: 'Data & AI', value: 'data' },
-  { label: 'Business & Leadership', value: 'business' },
-  { label: 'Technology', value: 'technology' }
+  { label: 'Sản phẩm & Thiết kế', value: 'design' },
+  { label: 'Dữ liệu & AI', value: 'data' },
+  { label: 'Kinh doanh & Quản lý', value: 'business' },
+  { label: 'Công nghệ', value: 'technology' }
 ]
 
 export const courseCatalog: CourseCard[] = [
@@ -26,7 +26,7 @@ export const courseCatalog: CourseCard[] = [
     description: 'Học tư duy thiết kế sản phẩm, xây dựng prototype và kiểm thử với người dùng thực tế.',
     thumbnail: 'https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=800',
     price: '2.600.000₫',
-    level: 'Intermediate',
+    level: 'Trung bình',
     category: 'design',
     rating: 4.9,
     students: 1860,
@@ -38,7 +38,7 @@ export const courseCatalog: CourseCard[] = [
     description: 'Phân tích dữ liệu doanh nghiệp, xây dựng dashboard realtime và kể chuyện bằng số liệu.',
     thumbnail: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800',
     price: '2.300.000₫',
-    level: 'Beginner',
+    level: 'Cơ bản',
     category: 'data',
     rating: 4.8,
     students: 1420,
@@ -50,7 +50,7 @@ export const courseCatalog: CourseCard[] = [
     description: 'Xây dựng roadmap chuyển đổi, quản trị nhân sự, đo lường hiệu quả và tối ưu vận hành.',
     thumbnail: 'https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800',
     price: '3.100.000₫',
-    level: 'Advanced',
+    level: 'Nâng cao',
     category: 'business',
     rating: 4.7,
     students: 980,
@@ -62,7 +62,7 @@ export const courseCatalog: CourseCard[] = [
     description: 'Triển khai LMS end-to-end: auth, realtime, analytics và CI/CD theo chuẩn doanh nghiệp.',
     thumbnail: 'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=800',
     price: '2.900.000₫',
-    level: 'Intermediate',
+    level: 'Trung bình',
     category: 'technology',
     rating: 4.9,
     students: 2130,
@@ -121,123 +121,119 @@ export const testimonials: Testimonial[] = [
 
 export const resources: ResourceItem[] = [
   {
-    title: 'Refactoring UI',
-    description: 'How do you create compelling pres..',
-    author: 'Alex Bejos',
+    title: 'Thiết kế UI/UX',
+    description: 'Làm thế nào để tạo ra các trang web đẹp và thu hút người dùng?',
+    author: 'Nguyễn Chidi',
     authorAvatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100',
     type: 'Ebook',
     thumbnail: 'https://images.pexels.com/photos/374751/pexels-photo-374751.jpeg?auto=compress&cs=tinysrgb&w=800',
     rating: 4.5,
-    price: '$15.25'
+    price: '2.000.000₫'
   },
   {
-    title: 'HTML Template',
-    description: 'How do you create compelling pres..',
-    author: 'Alex Bejos',
+    title: 'Xây dựng website với HTML & CSS',
+    description: 'Làm thế nào để tạo ra các trang web đẹp và thu hút người dùng?',
+    author: 'Nguyễn Chidi',
     authorAvatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100',
     type: 'Ebook',
     thumbnail: 'https://images.pexels.com/photos/3153207/pexels-photo-3153207.jpeg?auto=compress&cs=tinysrgb&w=800',
     rating: 4.5,
-    price: '$15.25'
+    price: '2.000.000₫'
   },
   {
-    title: 'Hooked: How to Build Habit..',
-    description: 'How do you create compelling pres..',
-    author: 'Alex Bejos',
+    title: 'Lập trình React với TypeScript',
+    description: 'Làm thế nào để tạo ra các trang web đẹp và thu hút người dùng?',
+    author: 'Nguyễn Chidi',
     authorAvatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100',
     type: 'Ebook',
     thumbnail: 'https://images.pexels.com/photos/3862130/pexels-photo-3862130.jpeg?auto=compress&cs=tinysrgb&w=800',
     rating: 4.5,
-    price: '$15.25'
+    price: '2.000.000₫'
   },
   {
-    title: "Don't Make Me Think, Revis..",
-    description: 'How do you create compelling pres..',
-    author: 'Alex Bejos',
+    title: 'Lập trình Node.js với Express',
+    description: 'Làm thế nào để tạo ra các trang web đẹp và thu hút người dùng?',
+    author: 'Nguyễn Chidi',
     authorAvatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100',
     type: 'Ebook',
     thumbnail: 'https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=800',
     rating: 4.5,
-    price: '$15.25'
+    price: '2.000.000₫'
   }
 ]
 
 export const pricingPlans: PricingPlan[] = [
   {
-    name: 'Personal Plan',
-    price: '$1000 /month',
-    description: 'The perfect package for startups just getting started',
+    name: 'Gói cá nhân',
+    price: '1.000.000₫ /tháng',
+    description: 'Gói hoàn hảo cho các startup đang bắt đầu',
     highlights: [
-      'Access to 12,000+ top courses',
-      'Certification prep',
-      'Goal-focused recommendations',
-      'AI-powered coding exercises',
-      'Brand Identity'
+      'Truy cập vào 12,000+ khóa học hàng đầu',
+      'Chuẩn bị cho việc chứng nhận',
+      'Hướng đến các gợi ý đích thực',
+      'Bài tập lập trình được hỗ trợ bởi AI',
+      'Thương hiệu độc quyền'
     ],
-    cta: 'Choose Plan'
+    cta: 'Chọn gói'
   },
   {
-    name: 'Team Plan',
-    price: '$2000 /month',
-    description: 'For startups and enterprises with on-going design needs',
+    name: 'Gói nhóm',
+    price: '2.000.000₫ /tháng',
+    description: 'Cho các startup và doanh nghiệp có nhu cầu thiết kế liên tục',
     highlights: [
-      'Access to 12,000+ top courses',
-      'Certification prep',
-      'Goal-focused recommendations',
-      'AI-powered coding exercises',
-      'Analytics and adoption reports',
-      'Visual Design',
-      'Visual Design'
+      'Truy cập vào 12,000+ khóa học hàng đầu',
+      'Chuẩn bị cho việc chứng nhận',
+      'Hướng đến các gợi ý đích thực',
+      'Bài tập lập trình được hỗ trợ bởi AI',
+      'Báo cáo phân tích và triển khai',
+      'Bảo mật website số'
     ],
-    cta: 'Choose Plan',
+    cta: 'Chọn gói',
     popular: true
   },
   {
-    name: 'Enterprise Plan',
-    price: '$4000 /month',
-    description: 'For startups and enterprises with on-going design and development needs.',
+    name: 'Gói doanh nghiệp',
+    price: '4.000.000₫ /tháng',
+    description: 'Cho các startup và doanh nghiệp có nhu cầu thiết kế và phát triển liên tục',
     highlights: [
-      'Access to 12,000+ top courses',
-      'Certification prep',
-      'Goal-focused recommendations',
-      'AI-powered coding exercises',
-      'Analytics and adoption reports',
-      'Dedicated customer success team',
-      'International course collection featuring',
-      'Customizable content',
-      'Hands-on tech training with add-on'
+      'Truy cập vào 12,000+ khóa học hàng đầu',
+      'Chuẩn bị cho việc chứng nhận',
+      'Hướng đến các gợi ý đích thực',
+      'Bài tập lập trình được hỗ trợ bởi AI',
+      'Báo cáo phân tích và triển khai',
+      'Bảo mật website số'
     ],
-    cta: 'Choose Plan'
+    cta: 'Chọn gói'
   }
 ]
 
 export const events: EventItem[] = [
   {
-    title: 'Advanced Techniques for Next-Level Tech Security',
-    date: '21 Feb, 2024',
+    title: 'Kỹ thuật nâng cao cho công nghệ bảo mật',
+    date: '16/11/2025',
     description:
-      'Explore cutting-edge security measures and tricks to stay ahead of evolving cyber threats and ensure maximum protection.',
+      'Khám phá các biện pháp bảo mật cắt ngang và mẹo để đứng vững trước các đe dọa cyber thay đổi và đảm bảo bảo mật tối đa.',
     image: 'https://images.pexels.com/photos/3861964/pexels-photo-3861964.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    badge: 'Tips & Track',
-    cta: 'Register Now'
+    badge: 'Mẹo & Theo dõi',
+    cta: 'Đăng ký ngay'
   },
   {
-    title: 'Website Digital Security',
-    date: '21 Feb, 2024',
-    description: "Ensure your website's safety with robust digital security solutions. Protect against cyber threats.",
-    cta: 'Register Now'
+    title: 'Bảo mật website số',
+    date: '16/11/2025',
+    description: 'Đảm bảo an toàn cho website của bạn với các giải pháp bảo mật số mạnh mẽ. Bảo vệ khỏi các đe dọa cyber.',
+    cta: 'Đăng ký ngay'
   },
   {
-    title: 'Tips for a Safer Online Experience',
-    date: '21 Feb, 2024',
-    description: 'Learn the foundational steps to secure your devices and data with practical tips.',
-    cta: 'Register Now'
+    title: 'Mẹo cho trải nghiệm an toàn trực tuyến',
+    date: '16/11/2025',
+    description: 'Học các bước cơ bản để bảo vệ thiết bị và dữ liệu của bạn với các mẹo thực tế.',
+    cta: 'Đăng ký ngay'
   },
   {
-    title: 'Stay Protected Online',
-    date: '21 Feb, 2024',
-    description: 'Get up-to-date advice on protecting your digital life with essential tricks and tools.',
-    cta: 'Register Now'
+    title: 'Bảo vệ an toàn trực tuyến',
+    date: '16/11/2025',
+    description: 'Nhận các lời khuyên cập nhật về việc bảo vệ cuộc sống số của bạn với các mẹo và công cụ cần thiết.',
+    cta: 'Đăng ký ngay'
   }
 ]
 
@@ -340,8 +336,8 @@ export const liveCourses: LiveCourse[] = [
 ]
 
 export const navItems = [
-  { label: 'For Business', target: 'features' },
-  { label: 'Resources', target: 'resources', isDropdown: true },
-  { label: 'More', target: 'faq', isDropdown: true }
+  { label: 'Kinh doanh & Quản lý', target: 'features' },
+  { label: 'Tài nguyên', target: 'resources', isDropdown: true },
+  { label: 'Thêm', target: 'faq', isDropdown: true }
 ]
 

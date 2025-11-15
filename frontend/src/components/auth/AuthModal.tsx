@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Mail, Check, Lock, User } from 'lucide-react'
+import { X, Mail, Check, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.enhanced'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { Button } from '@/components/ui/Button'
@@ -23,6 +23,7 @@ export function AuthModal() {
   // Login form state
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [loginErrors, setLoginErrors] = useState<{ email?: string; password?: string; general?: string }>({})
 
   // Register form state
@@ -33,6 +34,8 @@ export function AuthModal() {
     full_name: '',
     role: 'student' as 'student' | 'instructor',
   })
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [registerErrors, setRegisterErrors] = useState<Record<string, string>>({})
   const [isTransitioning, setIsTransitioning] = useState(false)
 
@@ -130,10 +133,16 @@ export function AuthModal() {
 
     if (!validateRegister()) return
 
+    // Split full_name into first_name and last_name
+    const nameParts = registerData.full_name.trim().split(/\s+/)
+    const first_name = nameParts[0] || ''
+    const last_name = nameParts.slice(1).join(' ') || ''
+
     await register({
       email: registerData.email,
       password: registerData.password,
-      full_name: registerData.full_name.trim(),
+      first_name,
+      last_name,
       role: registerData.role,
     })
     // Navigation will be handled by useEffect when isAuthenticated changes
@@ -207,14 +216,14 @@ export function AuthModal() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-8">
+          <div className="flex gap-2 mb-8 bg-gray-100 p-2 rounded-lg">
             <button
               type="button"
               onClick={() => setActiveTab('signin')}
               className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'signin'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'bg-white text-gray-500 hover:bg-gray-50'
+                  ? 'bg-white text-gray-900'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-50'
               }`}
             >
               Sign In
@@ -224,8 +233,8 @@ export function AuthModal() {
               onClick={() => setActiveTab('signup')}
               className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'signup'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'bg-white text-gray-500 hover:bg-gray-50'
+                  ? 'bg-white text-gray-900'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-50'
               }`}
             >
               Signup
@@ -242,7 +251,7 @@ export function AuthModal() {
                 : 'hidden'
             }`}
           >
-            <form onSubmit={handleLoginSubmit} className="space-y-6 flex-1 flex flex-col">
+            <form onSubmit={handleLoginSubmit} className="space-y-4 flex-1 flex flex-col">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
@@ -284,7 +293,7 @@ export function AuthModal() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type="password"
+                    type={showLoginPassword ? 'text' : 'password'}
                     value={loginPassword}
                     onChange={(e) => {
                       setLoginPassword(e.target.value)
@@ -293,13 +302,25 @@ export function AuthModal() {
                       }
                     }}
                     placeholder="Enter your password"
-                    className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
+                    className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       loginErrors.password
                         ? 'border-red-500 focus:ring-red-500'
                         : 'border-gray-300 focus:ring-blue-500'
                     }`}
                     disabled={isLoading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showLoginPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
                 {loginErrors.password && (
                   <p className="mt-1 text-sm text-red-600">{loginErrors.password}</p>
@@ -524,17 +545,29 @@ export function AuthModal() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type="password"
+                    type={showRegisterPassword ? 'text' : 'password'}
                     value={registerData.password}
                     onChange={(e) => updateRegisterData('password', e.target.value)}
                     placeholder="Create a password"
-                    className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
+                    className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       registerErrors.password
                         ? 'border-red-500 focus:ring-red-500'
                         : 'border-gray-300 focus:ring-blue-500'
                     }`}
                     disabled={isLoading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showRegisterPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
                 {registerErrors.password && (
                   <p className="mt-1 text-sm text-red-600">{registerErrors.password}</p>
@@ -548,17 +581,29 @@ export function AuthModal() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={registerData.confirmPassword}
                     onChange={(e) => updateRegisterData('confirmPassword', e.target.value)}
                     placeholder="Confirm your password"
-                    className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
+                    className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       registerErrors.confirmPassword
                         ? 'border-red-500 focus:ring-red-500'
                         : 'border-gray-300 focus:ring-blue-500'
                     }`}
                     disabled={isLoading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
                 {registerErrors.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600">{registerErrors.confirmPassword}</p>

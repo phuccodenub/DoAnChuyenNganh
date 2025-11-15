@@ -32,7 +32,7 @@ export function FeatureOverview({ onSecondaryCta }: FeatureOverviewProps) {
       <div className="mx-auto grid max-w-6xl gap-12 px-4 lg:grid-cols-[2fr_3fr] lg:items-center">
         <div className="space-y-8">
           <div className="space-y-3">
-            <span className="text-sm font-semibold uppercase tracking-[0.25em] text-indigo-500">Features</span>
+            <span className="text-sm font-semibold uppercase tracking-[0.25em] text-green-500">Tính năng</span>
             <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Những chương trình đào tạo chúng tôi cung cấp</h2>
             <p className="text-base text-slate-600 md:text-lg">
               Cá nhân hóa lộ trình học cho đội ngũ của bạn với những định dạng nội dung phù hợp, từ lớp live, video tự học đến tài liệu thực hành.
@@ -68,7 +68,7 @@ export function FeatureOverview({ onSecondaryCta }: FeatureOverviewProps) {
                         e.stopPropagation()
                         onSecondaryCta()
                       }}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-green-600 transition hover:text-green-700"
                     >
                       {item.cta}
                       <ArrowRight className="h-4 w-4" />

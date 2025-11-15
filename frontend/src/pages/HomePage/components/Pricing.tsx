@@ -12,21 +12,21 @@ export function Pricing({ onPrimaryCta, onSecondaryCta }: PricingProps) {
     <section id="pricing" className="bg-white py-20">
       <div className="mx-auto max-w-6xl space-y-12 px-4">
         <div className="text-center space-y-3">
-          <span className="text-sm font-semibold text-indigo-500">Pricing</span>
-          <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Accelerate growth — for you or your organization</h2>
-          <p className="text-base text-slate-600 md:text-lg">Spend smarter, lower your bills, get cashback on everything.</p>
+          <span className="text-sm font-semibold text-green-500">Giá cả</span>
+          <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Tăng tốc phát triển — cho bạn hoặc tổ chức của bạn</h2>
+          <p className="text-base text-slate-600 md:text-lg">Tiết kiệm hơn, giảm chi phí, nhận hoa hồng trên mọi thứ.</p>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {pricingPlans.map((plan) => (
             <div
               key={plan.name}
               className={`relative flex h-full flex-col rounded-2xl border bg-white p-8 ${
-                plan.popular ? 'border-indigo-500' : 'border-slate-200'
+                plan.popular ? 'border-green-500' : 'border-slate-200'
               }`}
             >
               {plan.popular && (
-                <span className="absolute right-4 top-4 inline-flex rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white">
-                  Most Order
+                <span className="absolute right-4 top-4 inline-flex rounded-full bg-gradient-to-r from-green-500 via-teal-600 to-sky-900 px-3 py-1 text-xs font-semibold text-white">
+                  Phổ biến nhất
                 </span>
               )}
               <div className="mb-6 space-y-2">
@@ -44,7 +44,7 @@ export function Pricing({ onPrimaryCta, onSecondaryCta }: PricingProps) {
               </ul>
               <Button
                 onClick={plan.popular ? onPrimaryCta : onSecondaryCta}
-                className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+                className="w-full rounded-lg bg-gradient-to-br from-green-500 via-teal-600 to-sky-900 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 {plan.cta}
               </Button>
