@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import useAuth from '@/hooks/useAuth'
+import { useAuthModal } from '@/contexts/AuthModalContext'
+import { AuthModal } from '@/components/auth/AuthModal'
 import { Header } from './components/Header'
 import { HeroSection } from './components/HeroSection'
 import { PartnerLogos } from './components/PartnerLogos'
@@ -19,13 +21,14 @@ import { Footer } from './components/Footer'
 function HomePage() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const { openModal } = useAuthModal()
 
   const handlePrimaryCta = () => {
     if (isAuthenticated) {
       navigate('/dashboard')
       return
     }
-    navigate('/register')
+    openModal('signup')
   }
 
   const handleSecondaryCta = () => {
@@ -33,7 +36,7 @@ function HomePage() {
       navigate('/courses')
       return
     }
-    navigate('/login')
+    openModal('signin')
   }
 
   const handleScrollTo = (target: string) => {
@@ -48,6 +51,7 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
+      <AuthModal />
       <Header onPrimaryCta={handlePrimaryCta} onSecondaryCta={handleSecondaryCta} onScrollTo={handleScrollTo} />
       <HeroSection onPrimaryCta={handlePrimaryCta} onSecondaryCta={handleSecondaryCta} />
       <PartnerLogos />

@@ -1,6 +1,7 @@
 import { ChevronDown, Search } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import useAuth from '@/hooks/useAuth'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 import { navItems } from '../data'
 
 interface HeaderProps {
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps) {
   const { isAuthenticated } = useAuth()
+  const { openModal } = useAuthModal()
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/85 backdrop-blur">
@@ -46,13 +48,25 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            onClick={onSecondaryCta}
+            onClick={() => {
+              if (isAuthenticated) {
+                onSecondaryCta()
+              } else {
+                openModal('signin')
+              }
+            }}
             className="rounded-full border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600"
           >
             {isAuthenticated ? 'Bảng điều khiển' : 'Đăng nhập'}
           </Button>
           <Button
-            onClick={onPrimaryCta}
+            onClick={() => {
+              if (isAuthenticated) {
+                onPrimaryCta()
+              } else {
+                openModal('signup')
+              }
+            }}
             className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700"
           >
             {isAuthenticated ? 'Đến ứng dụng' : 'Đăng ký'}
