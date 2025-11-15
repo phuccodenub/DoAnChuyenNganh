@@ -87,6 +87,9 @@ dist
 # =========================================
 .cache/
 public
+# Exception: Allow frontend/public folder (contains static assets)
+!/frontend/public/
+!/frontend/public/**
 
 # =========================================
 # Storybook build outputs
