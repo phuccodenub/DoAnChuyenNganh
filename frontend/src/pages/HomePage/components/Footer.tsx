@@ -10,10 +10,10 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <div className="mb-4 flex items-center gap-2">
               <img src="/GekLearn.png" alt="GekLearn logo" className="h-8 w-auto object-contain" />
-              <span className="text-xl font-bold">
+              {/* <span className="text-xl font-bold">
                 <span className="text-white">Gek</span>
                 <span className="text-slate-300">Learn</span>
-              </span>
+              </span> */}
             </div>
             <p className="text-sm text-slate-400">
               Design amazing digital experiences that create more happy in the world.

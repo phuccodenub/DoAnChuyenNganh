@@ -7,7 +7,8 @@ import i18n from '@/i18n';
 export interface User {
   id: number;
   email: string;
-  full_name: string;
+  first_name: string;
+  last_name: string;
   role: 'student' | 'instructor' | 'admin' | 'super_admin';
   avatar_url?: string;
   bio?: string;
@@ -34,7 +35,8 @@ interface AuthActions {
   register: (data: {
     email: string;
     password: string;
-    full_name: string;
+    first_name: string;
+    last_name: string;
     role?: 'student' | 'instructor';
   }) => Promise<boolean>;
   logout: () => Promise<void>;
