@@ -1,19 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Search, User, LogOut, Settings, LayoutDashboard } from 'lucide-react'
+import { Search, User, LogOut, Settings, LayoutDashboard, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import useAuth from '@/hooks/useAuth'
 import { useAuthModal } from '@/contexts/AuthModalContext'
-import { navItems } from '../data'
 import { ROUTES } from '@/constants/routes'
 
 interface HeaderProps {
-  onPrimaryCta: () => void
-  onSecondaryCta: () => void
-  onScrollTo: (target: string) => void
+  onMenuClick?: () => void
+  showMenuButton?: boolean
 }
 
-export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps) {
+export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
   const { isAuthenticated, user, logout } = useAuth()
   const { openModal } = useAuthModal()
   const navigate = useNavigate()
@@ -61,9 +59,9 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
     switch (user.role) {
       case 'admin':
       case 'super_admin':
-        return ROUTES.ADMIN.DASHBOARD // Admin có thể không có profile route riêng
+        return ROUTES.ADMIN.DASHBOARD
       case 'instructor':
-        return ROUTES.INSTRUCTOR.DASHBOARD // Instructor có thể không có profile route riêng
+        return ROUTES.INSTRUCTOR.DASHBOARD
       default:
         return ROUTES.STUDENT.PROFILE
     }
@@ -74,7 +72,7 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
     return name
       .split(' ')
       .map((n) => n[0])
-      .filter((char) => char) // Filter out empty strings
+      .filter((char) => char)
       .join('')
       .toUpperCase()
       .slice(0, 2) || 'U'
@@ -82,13 +80,28 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3 relative">
-        <div className="flex flex-1 items-center gap-12">
+      <div className="mx-auto flex max-w-8xl items-center gap-6 px-4 py-3 relative">
+        {/* Left section: Menu button + Logo */}
+        <div className="flex items-center gap-4 flex-shrink-0">
+          {showMenuButton && (
+            <button
+              type="button"
+              onClick={onMenuClick}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <Menu className="h-6 w-6 text-gray-700" />
+            </button>
+          )}
+          
           <div className="flex items-center gap-2">
             <img src="/GekLearn.png" alt="GekLearn logo" className="h-10 w-auto object-contain" />
           </div>
+        </div>
+
+        {/* Center section: Search bar */}
+        <div className="hidden lg:flex flex-1 items-center justify-center">
           <div className="w-full max-w-2xl flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
-            <Search className="h-4 w-4 text-slate-400" />
+            <Search className="h-4 w-4 text-slate-400 flex-shrink-0" />
             <input
               type="text"
               placeholder="Bạn muốn học gì?"
@@ -97,24 +110,10 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
           </div>
         </div>
 
-        {/* <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-500 md:flex">
-          {navItems.map((item) => (
-            <button
-              key={item.target}
-              type="button"
-              onClick={() => onScrollTo(item.target)}
-              className="flex items-center gap-1 transition hover:text-indigo-600"
-            >
-              {item.label}
-              {item.isDropdown && <ChevronDown className="h-4 w-4 text-slate-400" />}
-            </button>
-          ))}
-        </nav> */}
-
-        <div className="flex items-center gap-3">
+        {/* Right section: User avatar/buttons */}
+        <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
           {isAuthenticated && user ? (
             <div className="relative" ref={profileRef}>
-              {/* Avatar Button - Facebook Style */}
               <button
                 type="button"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -135,10 +134,8 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
                 </div>
               </button>
 
-              {/* Profile Dropdown - Facebook Style */}
               {isProfileOpen && (
                 <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white shadow-2xl border border-slate-200 overflow-hidden">
-                  {/* Header Section with Large Avatar */}
                   <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 border-b border-slate-100">
                     <div className="flex items-center gap-3">
                       <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-indigo-600 ring-4 ring-white shadow-md">
@@ -168,7 +165,6 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
                     </div>
                   </div>
 
-                  {/* Menu Items */}
                   <div className="py-2">
                     <button
                       type="button"
@@ -224,10 +220,8 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
                       </div>
                     </button>
 
-                    {/* Divider */}
                     <div className="my-2 border-t border-slate-200" />
 
-                    {/* Logout */}
                     <button
                       type="button"
                       onClick={handleLogout}
