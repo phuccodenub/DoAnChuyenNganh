@@ -64,20 +64,32 @@ npm run test:ci            # Run tests for CI/CD
 
 ## Test Database Setup
 
-1. **Create test database**:
-   ```sql
-   CREATE DATABASE lms_db_test;
+> ⚠️ **Tuyệt đối không chạy Jest trên database production/local chính**.  
+> Các bài test (đặc biệt e2e) luôn chạy `sequelize.sync({ force: true })` và sẽ xóa toàn bộ dữ liệu.  
+> Sử dụng Postgres riêng cho tests theo hướng dẫn dưới đây.
+
+1. **Khởi động Postgres dành riêng cho tests (port 6543)**:
+   ```powershell
+   docker run -d --name lms-postgres-e2e `
+     -e POSTGRES_DB=lms_db `
+     -e POSTGRES_USER=lms_user `
+     -e POSTGRES_PASSWORD=123456 `
+     -p 6543:5432 postgres:15
    ```
 
-2. **Run migrations**:
-   ```bash
-   npm run migrate up
+2. **(Tuỳ chọn) Dừng/Xóa container khi không cần**:
+   ```powershell
+   docker stop lms-postgres-e2e
+   docker rm lms-postgres-e2e
    ```
 
-3. **Run tests**:
+3. **Run tests** (integration/e2e sẽ tự kết nối `localhost:6543` theo `src/tests/integration/test.env`):
    ```bash
    npm run test:integration
+   npm run test:e2e
    ```
+
+> Nếu thật sự cần chạy test trên database chính, buộc phải đặt `ALLOW_MAIN_DB_TESTS=true` **và** chấp nhận mất dữ liệu. Điều này không được khuyến khích.
 
 ## Test Data Factories
 

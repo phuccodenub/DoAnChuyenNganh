@@ -1,11 +1,30 @@
-// Jest global env setup for backend tests
-process.env.NODE_ENV = process.env.NODE_ENV || 'test';
-process.env.DB_DIALECT = process.env.DB_DIALECT || 'sqlite';
-process.env.SQLITE = process.env.SQLITE || 'true';
-process.env.SQLITE_PATH = process.env.SQLITE_PATH || ':memory:';
-process.env.DISABLE_METRICS = 'true';
-process.env.DISABLE_CACHE = 'true';
-process.env.RATE_LIMIT_DISABLED = 'true';
-// Avoid noisy logs during tests
-process.env.LOG_LEVEL = process.env.LOG_LEVEL || 'error';
+const setDefault = (key: string, value: string): void => {
+  if (typeof process.env[key] === 'undefined') {
+    process.env[key] = value;
+  }
+};
+
+const isIntegrationCategory = process.env.TEST_CATEGORY === 'integration';
+
+setDefault('NODE_ENV', 'test');
+
+if (isIntegrationCategory) {
+  setDefault('DB_DIALECT', 'postgres');
+  if (typeof process.env.SQLITE === 'undefined') {
+    process.env.SQLITE = 'false';
+  }
+  if (process.env.SQLITE_PATH === ':memory:') {
+    delete process.env.SQLITE_PATH;
+  }
+  setDefault('DISABLE_METRICS', 'false');
+} else {
+  setDefault('DB_DIALECT', 'sqlite');
+  setDefault('SQLITE', 'true');
+  setDefault('SQLITE_PATH', ':memory:');
+  setDefault('DISABLE_METRICS', 'true');
+}
+
+setDefault('DISABLE_CACHE', 'true');
+setDefault('RATE_LIMIT_DISABLED', 'true');
+setDefault('LOG_LEVEL', 'error');
 

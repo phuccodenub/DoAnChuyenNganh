@@ -240,8 +240,7 @@ export class MetricsMiddleware {
 }
 
 // Export singleton instance
-// In test environments, export a no-op middleware to avoid timers/open handles
-const disableMetrics = process.env.DISABLE_METRICS === 'true' || process.env.NODE_ENV === 'test';
+const disableMetrics = process.env.DISABLE_METRICS === 'true';
 
 class NoopMetricsMiddleware {
   public collectHttpMetrics = (_req: Request, _res: Response, next: NextFunction) => next();

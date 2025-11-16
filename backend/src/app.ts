@@ -45,8 +45,8 @@ app.use(loggerMiddleware);
 // Tracing middleware (route-level spans)
 app.use(tracingMiddleware);
 
-// Metrics middleware (allow disabling in tests via DISABLE_METRICS=true)
-if (process.env.DISABLE_METRICS !== 'true' && process.env.NODE_ENV !== 'test') {
+// Metrics middleware (allow disabling via DISABLE_METRICS=true)
+if (process.env.DISABLE_METRICS !== 'true') {
   app.use(metricsMiddleware.collectHttpMetrics);
   app.use(metricsMiddleware.collectMemoryMetrics);
   app.use(metricsMiddleware.collectCpuMetrics);
@@ -162,7 +162,7 @@ if (process.env.DISABLE_CACHE !== 'true') {
 }
 
 // Error handling middleware
-if (process.env.DISABLE_METRICS !== 'true' && process.env.NODE_ENV !== 'test') {
+if (process.env.DISABLE_METRICS !== 'true') {
   app.use(metricsMiddleware.collectErrorMetrics);
 }
 app.use(errorHandler);

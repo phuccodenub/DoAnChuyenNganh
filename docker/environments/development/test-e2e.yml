@@ -1,0 +1,141 @@
+# LMS E2E Testing Environment
+# Uses traditional PostgreSQL with old volume data
+# Includes: PostgreSQL (with old data) + Redis + Backend
+# Usage: npm run dev:test
+
+# Shared configuration templates
+x-postgres-base: &postgres-base
+  image: postgres:15
+  restart: unless-stopped
+  environment:
+    POSTGRES_DB: ${POSTGRES_DB:-lms_db}
+    POSTGRES_USER: ${POSTGRES_USER:-lms_user}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms_user} -d ${POSTGRES_DB:-lms_db}"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+
+x-redis-base: &redis-base
+  image: redis:7-alpine
+  restart: unless-stopped
+  command: redis-server --appendonly yes
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+
+services:
+  # NOTE: postgres-test service removed for host-DB mode.
+  # The backend will connect to the Windows-host PostgreSQL so that
+  # the containers operate on the same DB visible in DBeaver (localhost:5432).
+
+  # Redis Cache Service (Using existing volume with cache)
+  redis-test:
+    <<: *redis-base
+    container_name: lms-redis-test
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      # Using EXISTING redis volume to preserve cache
+      - redis_api_dev_data:/data
+    networks:
+      - lms-test-network
+
+  # Backend API Service (for E2E testing)
+  backend-test:
+    build:
+      context: ../../..
+      dockerfile: docker/dockerfiles/backend.dev.Dockerfile
+    image: lms-backend-test:latest
+    container_name: lms-backend-test
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    # Do NOT load .env file - use environment variables only
+    # env_file:
+    #   - ../../../.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - DB_HOST=${HOST_POSTGRES_HOST:-host.docker.internal}
+      - DB_PORT=${HOST_POSTGRES_PORT:-5432}
+      - DB_NAME=${HOST_POSTGRES_DB:-lms_db}
+      - DB_USER=${HOST_POSTGRES_USER:-lms_user}
+      - DB_PASSWORD=${HOST_POSTGRES_PASSWORD:-123456}
+      # Connect directly to Windows host PostgreSQL (visible in DBeaver)
+      - DATABASE_URL=postgresql://${HOST_POSTGRES_USER:-lms_user}:${HOST_POSTGRES_PASSWORD:-123456}@${HOST_POSTGRES_HOST:-host.docker.internal}:${HOST_POSTGRES_PORT:-5432}/${HOST_POSTGRES_DB:-lms_db}
+      - REDIS_HOST=redis-test
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis-test:6379
+      - JWT_SECRET=${JWT_SECRET:-nguyensyphuctrankimhuongnguyenthanhloc}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - PORT=3000
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+      - FRONTEND_URL=http://localhost:${FRONTEND_PORT:-3001}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173
+      - CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With,X-Request-Start
+      - DISABLE_RATE_LIMIT=true
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    networks:
+      - lms-test-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      # Using host PostgreSQL - do not depend on an internal postgres container
+      redis-test:
+        condition: service_healthy
+    volumes:
+      - ../../../backend:/app
+      - /app/node_modules
+      - ../../../backend/logs:/app/logs
+      - ../../../docker/scripts/start-backend-test.sh:/app/start-backend-test.sh:ro
+    command: ["/bin/sh", "/app/start-backend-test.sh"]
+
+  # Frontend React Service (for E2E testing)
+  frontend-test:
+    build:
+      context: ../../..
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: "http://localhost:${BACKEND_PORT:-3000}/api/v1.3.0"
+        VITE_SOCKET_URL: "http://localhost:${BACKEND_PORT:-3000}"
+    image: lms-frontend-test:latest
+    container_name: lms-frontend-test
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - REACT_APP_API_URL=http://localhost:${BACKEND_PORT:-3000}/api
+      - REACT_APP_WS_URL=http://localhost:${BACKEND_PORT:-3000}
+    volumes:
+      - ../../../frontend:/app
+      - /app/node_modules
+    ports:
+      - "${FRONTEND_PORT:-3001}:80"
+    networks:
+      - lms-test-network
+    depends_on:
+      backend-test:
+        condition: service_started
+    stdin_open: true
+    tty: true
+
+# Named volumes for data persistence
+volumes:
+  # Using EXISTING volumes from dev environment that have all the data!
+  postgres_api_dev_data:
+    name: lms_postgres_api_dev_data
+    external: true
+  redis_api_dev_data:
+    name: lms_redis_api_dev_data
+    external: true
+
+# Networks
+networks:
+  lms-test-network:
+    driver: bridge
+    name: lms-test-network

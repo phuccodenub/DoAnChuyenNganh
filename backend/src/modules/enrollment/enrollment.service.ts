@@ -53,6 +53,8 @@ export class EnrollmentService {
 
       // Validate course exists
       const course = await (Course as any).findByPk(normalizedPayload.course_id);
+      logger.debug('Course lookup result:', { courseId: normalizedPayload.course_id, found: !!course, courseData: course ? { id: course.id, title: course.title, status: course.status } : null });
+      
       if (!course) {
         throw new ApiError(
           RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND,

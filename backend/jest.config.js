@@ -20,9 +20,17 @@ module.exports = {
       diagnostics: false,
     }],
   },
-  collectCoverage: false,
+  collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html', 'json'],
+  coverageThreshold: {
+    global: {
+      statements: 25,
+      branches: 15,
+      functions: 18,
+      lines: 25
+    }
+  },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',

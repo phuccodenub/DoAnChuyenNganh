@@ -1,15 +1,23 @@
-import { EnrollmentInstance } from '../../types/enrollment.types';
+import { EnrollmentInstance as EnrollmentInstanceType } from '../../types/enrollment.types';
 import { BaseRepository } from '@repositories/base.repository';
 import * as EnrollmentTypes from '../../types/enrollment.types';
 import logger from '../../utils/logger.util';
-import { Op } from 'sequelize';
+import { Op, Model } from 'sequelize';
 import User from '../../models/user.model';
 import Course from '../../models/course.model';
 import Enrollment from '../../models/enrollment.model';
+import type { ModelStatic } from '../../types/sequelize-types';
 
-export class EnrollmentRepository extends BaseRepository {
+// Define proper Sequelize Model instance type
+interface EnrollmentInstance extends Model, EnrollmentInstanceType {}
+
+export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
   constructor() {
-    super(Enrollment);
+    super('Enrollment');
+  }
+
+  protected getModel(): ModelStatic<EnrollmentInstance> {
+    return Enrollment as unknown as ModelStatic<EnrollmentInstance>;
   }
 
   // ===== ENROLLMENT MANAGEMENT METHODS =====
@@ -102,7 +110,7 @@ export class EnrollmentRepository extends BaseRepository {
       if (enrollment) {
         logger.debug('Enrollment with details found', { enrollmentId });
         // Convert to plain JSON to avoid circular references
-        return enrollment.get({ plain: true });
+        return (enrollment as any).get({ plain: true }) as EnrollmentTypes.EnrollmentWithDetails;
       } else {
         logger.debug('Enrollment with details not found', { enrollmentId });
         return null;

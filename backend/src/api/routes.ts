@@ -24,6 +24,10 @@ router.get('/users/profile', authMiddleware, (req: Request, res: Response, next:
 router.put('/users/profile', authMiddleware, validateBody(userSchemas.updateProfile), (req: Request, res: Response, next: NextFunction) => userController.updateProfile(req, res, next));
 router.put('/users/change-password', authMiddleware, validateBody(authSchemas.changePassword), (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next));
 
+// Mount versioned routes for fallback (admin endpoints, etc.)
+// This allows /api/users, /api/users/:id, etc. to work via v1 routes
+router.use('/', v1Routes);
+
 // Temporary route debug to verify registered paths during tests
 // Note: keep lightweight and non-sensitive; remove when routes stabilize
 router.get('/__routes_debug', (req: Request, res: Response) => {
