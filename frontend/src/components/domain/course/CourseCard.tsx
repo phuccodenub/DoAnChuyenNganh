@@ -88,7 +88,7 @@ export function CourseCard({
         </p>
 
         {/* Instructor */}
-        {course.instructor && (
+        {course.instructor && course.instructor.full_name && (
           <div className="flex items-center gap-2 mb-3">
             <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-600">
               {course.instructor.full_name.charAt(0).toUpperCase()}
@@ -117,7 +117,7 @@ export function CourseCard({
         </div>
 
         {/* Category */}
-        {course.category && (
+        {course.category && course.category.name && (
           <div className="mb-4">
             <Badge variant="default" size="sm">
               {course.category.name}
