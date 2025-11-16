@@ -110,17 +110,14 @@ export class AssignmentRepository {
         {
           model: Assignment,
           as: 'assignment',
-          attributes: ['id', 'title', 'description', 'max_score', 'due_date']
+          attributes: ['id', 'title', 'description', 'max_score', 'due_date'],
+          required: false
         },
         {
           model: User,
-          as: 'user',
-          attributes: ['id', 'first_name', 'last_name', 'email']
-        },
-        {
-          model: User,
-          as: 'grader',
-          attributes: ['id', 'first_name', 'last_name', 'email']
+          as: 'student',
+          attributes: ['id', 'first_name', 'last_name', 'email'],
+          required: false
         }
       ]
     });
@@ -157,13 +154,9 @@ export class AssignmentRepository {
       include: [
         {
           model: User,
-          as: 'user',
-          attributes: ['id', 'first_name', 'last_name', 'email']
-        },
-        {
-          model: User,
-          as: 'grader',
-          attributes: ['id', 'first_name', 'last_name', 'email']
+          as: 'student',
+          attributes: ['id', 'first_name', 'last_name', 'email'],
+          required: false
         }
       ],
       order: [['submitted_at', 'DESC']],

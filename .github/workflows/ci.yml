@@ -14,16 +14,16 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: lms_test
+          POSTGRES_PASSWORD: "123456"
+          POSTGRES_USER: lms_user
+          POSTGRES_DB: lms_db
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
+          - 6543:5432
     
     defaults:
       run:
@@ -53,13 +53,17 @@ jobs:
           NODE_ENV: test
           DB_DIALECT: postgres
           DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_NAME: lms_test
+          DB_PORT: 6543
+          DB_USER: lms_user
+          DB_PASSWORD: "123456"
+          DB_NAME: lms_db
+          DATABASE_URL: postgresql://lms_user:123456@localhost:6543/lms_db
+          FORCE_POSTGRES_FOR_TESTS: "true"
+          FORCE_POSTGRES: "true"
           JWT_SECRET: test-secret-key-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
         run: |
+          until pg_isready -h localhost -p 6543 -U lms_user; do sleep 2; done
           npm run reset-db-simple
 
       - name: Run e2e tests with PostgreSQL (hard-fail)
@@ -67,10 +71,13 @@ jobs:
           NODE_ENV: test
           DB_DIALECT: postgres
           DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_NAME: lms_test
+          DB_PORT: 6543
+          DB_USER: lms_user
+          DB_PASSWORD: "123456"
+          DB_NAME: lms_db
+          DATABASE_URL: postgresql://lms_user:123456@localhost:6543/lms_db
+          FORCE_POSTGRES_FOR_TESTS: "true"
+          FORCE_POSTGRES: "true"
           JWT_SECRET: test-secret-key-for-ci
           JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
         run: npm run test:e2e

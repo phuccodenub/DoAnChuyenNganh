@@ -75,6 +75,12 @@ export class UserAdminController {
       }
 
       const data = parsed.data as any;
+      
+      // Generate username from email if not provided
+      if (!data.username && data.email) {
+        data.username = data.email.split('@')[0] + '_' + Date.now();
+      }
+      
       // Map plain password -> password_hash with strong hashing
       if (data.password) {
         try {
