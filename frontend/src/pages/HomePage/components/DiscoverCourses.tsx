@@ -30,7 +30,7 @@ export function DiscoverCourses({ onSecondaryCta }: DiscoverCoursesProps) {
               onClick={() => setActiveTab(tab.value)}
               className={`rounded-full border px-5 py-2 text-sm font-semibold transition ${
                 activeTab === tab.value
-                  ? 'border-indigo-400 bg-white text-indigo-600 shadow-[0_12px_24px_-20px_rgba(79,70,229,0.65)]'
+                  ? 'border-green-400 bg-white text-green-600 shadow-[0_12px_24px_-20px_rgba(79,192,229,0.65)]'
                   : 'border-transparent bg-slate-100 text-slate-500 hover:border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -52,7 +52,7 @@ export function DiscoverCourses({ onSecondaryCta }: DiscoverCoursesProps) {
                 />
               </div>
               <div className="flex flex-1 flex-col gap-3 px-6 pb-6 pt-6">
-                <span className="inline-flex w-fit items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-500">
+                <span className="inline-flex w-fit items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-500">
                   Best Seller
                 </span>
                 <h3 className="text-[1.1rem] font-semibold leading-tight text-slate-900">{course.title}</h3>
@@ -69,7 +69,7 @@ export function DiscoverCourses({ onSecondaryCta }: DiscoverCoursesProps) {
                   <button
                     type="button"
                     onClick={onSecondaryCta}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500 text-white transition hover:bg-indigo-600"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-white transition hover:bg-green-600"
                   >
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -77,7 +77,7 @@ export function DiscoverCourses({ onSecondaryCta }: DiscoverCoursesProps) {
                 <button
                   type="button"
                   onClick={onSecondaryCta}
-                  className="mt-2 w-fit text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
+                  className="mt-2 w-fit text-sm font-semibold text-green-600 transition hover:text-green-700"
                 >
                   Xem chi tiết
                 </button>

@@ -11,10 +11,10 @@ export function LiveCourses({ onSecondaryCta }: LiveCoursesProps) {
     <section id="live-courses" className="bg-slate-50 py-20">
       <div className="mx-auto max-w-6xl space-y-10 px-4">
         <div className="space-y-3">
-          <span className="text-sm font-semibold text-indigo-500">Live</span>
-          <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Live Courses</h2>
+          <span className="text-sm font-semibold text-green-500">Live</span>
+          <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Khóa học trực tiếp</h2>
           <p className="text-base text-slate-600 md:text-lg">
-            We believe Untitled should be accessible to all companies, no matter the size.
+            Chúng tôi tin rằng GekLearn phải truy cập được cho tất cả các công ty, không quan trọng kích thước của họ.
           </p>
         </div>
 

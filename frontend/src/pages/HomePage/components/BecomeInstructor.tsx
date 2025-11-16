@@ -24,29 +24,29 @@ export function BecomeInstructor({ onPrimaryCta }: BecomeInstructorProps) {
       <div className="mx-auto max-w-6xl grid gap-10 px-4 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-6">
           <div className="space-y-3">
-            <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Become an Instructor. Expert Yourself</h2>
+            <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Trở thành giảng viên. Trở thành chuyên gia</h2>
             <p className="text-base text-slate-600">
-              Build your personal brand, share expert knowledge and access exclusive resources for teaching.
+              Xây dựng thương hiệu cá nhân, chia sẻ kiến thức chuyên môn và truy cập tài nguyên độc quyền cho việc giảng dạy.
             </p>
           </div>
           <ul className="space-y-3 text-sm text-slate-600">
             {[
-              'Share your expertise with millions',
-              'Earn from course sales',
-              'Build your personal brand',
-              'Access teaching resources'
+              'Chia sẻ kiến thức chuyên môn với hàng triệu người',
+              'Nhận tiền từ việc bán khóa học',
+              'Xây dựng thương hiệu cá nhân',
+              'Truy cập tài nguyên độc quyền cho việc giảng dạy'
             ].map((item) => (
               <li key={item} className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-indigo-400" />
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <span>{item}</span>
               </li>
             ))}
           </ul>
           <Button
             onClick={onPrimaryCta}
-            className="w-fit rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+            className="w-fit rounded-lg bg-gradient-to-r from-green-500 via-teal-600 to-sky-900 px-6 py-3 text-sm font-semibold text-white hover:bg-green-600"
           >
-            Start Teaching
+            Bắt đầu giảng dạy
           </Button>
         </div>
 

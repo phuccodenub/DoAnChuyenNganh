@@ -256,7 +256,7 @@ export function Header({ onPrimaryCta, onSecondaryCta, onScrollTo }: HeaderProps
               </Button>
               <Button
                 onClick={() => openModal('signup')}
-                className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700"
+                className="rounded-full bg-gradient-to-r from-green-500 via-teal-600 to-sky-900 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-green-600"
               >
                 Đăng ký
               </Button>
