@@ -56,11 +56,11 @@ router.get(
 /**
  * Get all users with pagination
  * GET /admin/users
- * Admin/Super Admin only
+ * Admin/Super Admin/Instructor - Instructors can view users list
  */
 router.get(
   '/',
-  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateQuery(userValidation.userQuery),
   (req: Request, res: Response, next: NextFunction) => userAdminController.getAllUsers(req, res, next)
 );
@@ -82,19 +82,13 @@ router.post(
 /**
  * Get user by ID
  * GET /admin/users/:id
- * All authenticated users can view user profiles
+ * Admin/Super Admin/Instructor only
+ * Students should NOT access admin endpoints
  * ⚠️ This MUST come after all specific routes like /stats, /email/search, etc.
  */
-// Dynamic authorization: broader access on true admin mount, admin-only on alias mount
 router.get(
   '/:id',
-  (req: Request, res: Response, next: NextFunction) => {
-    const isAlias = req.baseUrl?.endsWith('/users') && !req.baseUrl.includes('/admin/users');
-    const mw = isAlias
-      ? authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN])
-      : authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT]);
-    return mw(req, res, next);
-  },
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
   validateParams(userValidation.userId),
   (req: Request, res: Response, next: NextFunction) => userAdminController.getUserInfo(req, res, next)
 );

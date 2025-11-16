@@ -21,8 +21,9 @@ maybeDescribe('User Admin Controller - Integration Tests', () => {
   let instructorToken: string;
   let studentToken: string;
   let testUserId: string;
+  let createdUserIds: string[] = [];
 
-  // Setup: Create test tokens
+  // Setup: Create test tokens and test user
   beforeAll(async () => {
     // Generate tokens for different roles
     adminToken = jwtUtils.generateAccessToken(
@@ -42,6 +43,23 @@ maybeDescribe('User Admin Controller - Integration Tests', () => {
       'student@test.com',
       UserRole.STUDENT
     );
+
+    // Create a test user for GET/PATCH/DELETE operations
+    const testUserResponse = await request(app)
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        email: `testuser-${Date.now()}@example.com`,
+        password: 'TestPass123!',
+        first_name: 'Test',
+        last_name: 'User',
+        role: 'student'
+      });
+    
+    if (testUserResponse.status === 201) {
+      testUserId = testUserResponse.body.data.id;
+      createdUserIds.push(testUserId);
+    }
   });
 
   describe('GET /admin/users/stats', () => {
@@ -140,12 +158,14 @@ maybeDescribe('User Admin Controller - Integration Tests', () => {
 
   describe('POST /admin/users', () => {
     it('should create a new user as admin', async () => {
+      const uniqueEmail = `test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
+      const uniquePhone = `+849${Math.floor(Math.random() * 100000000).toString().padStart(8, '0')}`;
       const newUser = {
-        email: `test-${Date.now()}@example.com`,
+        email: uniqueEmail,
         password: 'SecurePass123!',
         first_name: 'John',
         last_name: 'Doe',
-        phone: '+84912345678',
+        phone: uniquePhone,
         role: 'student',
         bio: 'Test user'
       };
@@ -160,8 +180,10 @@ maybeDescribe('User Admin Controller - Integration Tests', () => {
       expect(response.body.data).toHaveProperty('id');
       expect(response.body.data.email).toBe(newUser.email);
       
-      // Save for cleanup
-      testUserId = response.body.data.id;
+      // Save for potential cleanup
+      if (response.body.data.id) {
+        createdUserIds.push(response.body.data.id);
+      }
     });
 
     it('should validate email format', async () => {
@@ -215,23 +237,21 @@ maybeDescribe('User Admin Controller - Integration Tests', () => {
 
   describe('GET /admin/users/:id', () => {
     it('should get user by ID', async () => {
-      // Assuming a test user exists
       const response = await request(app)
-        .get(`/api/v1/admin/users/${testUserId || 'test-id'}`)
+        .get(`/api/v1/admin/users/${testUserId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('id');
+      expect(response.body.data.id).toBe(testUserId);
     });
 
-    it('should allow students to view user profiles', async () => {
-      const response = await request(app)
-        .get(`/api/v1/admin/users/${testUserId || 'test-id'}`)
+    it('should deny students access to view user profiles via admin endpoint', async () => {
+      await request(app)
+        .get(`/api/v1/admin/users/${testUserId}`)
         .set('Authorization', `Bearer ${studentToken}`)
-        .expect(200);
-
-      expect(response.body.success).toBe(true);
+        .expect(403);
     });
 
     it('should return 404 for non-existent user', async () => {
@@ -356,15 +376,29 @@ maybeDescribe('User Admin Controller - Integration Tests', () => {
 
   describe('DELETE /admin/users/:id', () => {
     it('should delete user as admin', async () => {
+      // Create a user to delete
+      const userToDelete = await request(app)
+        .post('/api/v1/admin/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          email: `delete-${Date.now()}@example.com`,
+          password: 'DeletePass123!',
+          first_name: 'Delete',
+          last_name: 'Me',
+          role: 'student'
+        });
+
+      const deleteUserId = userToDelete.body.data.id;
+
       await request(app)
-        .delete(`/api/v1/admin/users/${testUserId}`)
+        .delete(`/api/v1/admin/users/${deleteUserId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(204);
     });
 
     it('should deny access for non-admin users', async () => {
       await request(app)
-        .delete('/api/v1/admin/users/some-id')
+        .delete(`/api/v1/admin/users/${testUserId}`)
         .set('Authorization', `Bearer ${studentToken}`)
         .expect(403);
     });

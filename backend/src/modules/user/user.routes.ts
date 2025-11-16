@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { UserModuleController } from './user.controller';
 import { AuthController } from '../auth/auth.controller';
+import { EnrollmentController } from '../enrollment/enrollment.controller';
 import { authSchemas } from '../../validates/auth.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { UserRole } from '../../constants/roles.enum';
@@ -11,6 +12,7 @@ import multer from 'multer';
 const router = Router();
 const userModuleController = new UserModuleController();
 const authController = new AuthController();
+const enrollmentController = new EnrollmentController();
 
 // Configure multer for file uploads
 const upload = multer({
@@ -129,6 +131,19 @@ router.patch(
   '/privacy',
   validateBody(userSchemas.updatePrivacySettings),
   (req: Request, res: Response, next: NextFunction) => userModuleController.updatePrivacySettings(req, res, next)
+);
+
+// ===== ENROLLMENT NESTED ROUTES =====
+
+/**
+ * Get user enrollments
+ * GET /users/:id/enrollments
+ * This allows viewing enrollment history for a specific user
+ */
+router.get(
+  '/:id/enrollments',
+  authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.INSTRUCTOR]),
+  (req: Request, res: Response, next: NextFunction) => enrollmentController.getUserEnrollments(req, res, next)
 );
 
 export default router;

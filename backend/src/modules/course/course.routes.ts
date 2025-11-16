@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { CourseController } from './course.controller';
+import { EnrollmentController } from '../enrollment/enrollment.controller';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { validateRequest } from '../../middlewares/validate.middleware';
 import { courseValidation } from '../../validates/course.validate';
 
 const router = Router();
 const courseController = new CourseController();
+const enrollmentController = new EnrollmentController();
 
 // ===== PUBLIC ROUTES =====
 
@@ -562,6 +564,61 @@ router.get('/:courseId/students',
   authMiddleware, 
   authorizeRoles(['instructor', 'admin', 'super_admin']),
   courseController.getCourseStudents
+);
+
+/**
+ * @swagger
+ * /api/courses/{id}/enrollments:
+ *   get:
+ *     summary: Get course enrollments
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, active, completed, cancelled, suspended]
+ *         description: Filter by enrollment status
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Limit number of results
+ *     responses:
+ *       200:
+ *         description: Course enrollments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Enrollment'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Course not found
+ */
+router.get('/:id/enrollments', 
+  authMiddleware, 
+  authorizeRoles(['instructor', 'admin', 'super_admin']),
+  enrollmentController.getCourseEnrollments.bind(enrollmentController)
 );
 
 export { router as courseRoutes };

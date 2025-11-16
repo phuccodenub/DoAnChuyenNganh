@@ -1,0 +1,86 @@
+version: '3.8'
+
+# 🧪 TEST ENVIRONMENT - Docker Compose Configuration
+# Dành riêng cho Integration và E2E testing
+# Dữ liệu lưu trong RAM (tmpfs) → Tắt container = mất hết → An toàn 100%
+
+services:
+  # PostgreSQL Test Database
+  postgres-test:
+    image: postgres:15
+    container_name: lms-postgres-e2e
+    restart: "no" # Không tự động restart
+    environment:
+      POSTGRES_DB: lms_db
+      POSTGRES_USER: lms_user
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "6543:5432"
+    tmpfs:
+      # Dữ liệu chỉ tồn tại trong RAM
+      # Khi stop container → mất hết dữ liệu → an toàn tuyệt đối
+      - /var/lib/postgresql/data:rw,noexec,nosuid,size=512m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lms_user -d lms_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - test-network
+    labels:
+      - "com.lms.environment=test"
+      - "com.lms.purpose=e2e-testing"
+
+  # Redis Test Cache (Optional - nếu test cần Redis)
+  redis-test:
+    image: redis:7-alpine
+    container_name: lms-redis-e2e
+    restart: "no"
+    command: redis-server --appendonly no --save ""
+    ports:
+      - "6380:6379"
+    tmpfs:
+      # Cache cũng lưu trong RAM
+      - /data:rw,noexec,nosuid,size=128m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - test-network
+    labels:
+      - "com.lms.environment=test"
+      - "com.lms.purpose=e2e-testing"
+
+networks:
+  test-network:
+    driver: bridge
+    name: lms-test-network
+
+# ⚠️  QUAN TRỌNG:
+# - Dữ liệu lưu trong tmpfs (RAM) → không persist
+# - Mỗi lần start = database mới sạch sẽ
+# - Port 6543 (không trùng với DB chính port 5432)
+# - Không có volumes → không lo backup/cleanup
+
+# 📋 Cách sử dụng:
+#
+# 1. Start test environment:
+#    docker-compose -f docker-compose.test.yml up -d
+#
+# 2. Check health:
+#    docker-compose -f docker-compose.test.yml ps
+#
+# 3. Run tests:
+#    npm run test:e2e
+#
+# 4. View logs:
+#    docker-compose -f docker-compose.test.yml logs -f
+#
+# 5. Stop and cleanup:
+#    docker-compose -f docker-compose.test.yml down
+#
+# 6. Full cycle (automated):
+#    npm run test:e2e:safe  # start → test → stop

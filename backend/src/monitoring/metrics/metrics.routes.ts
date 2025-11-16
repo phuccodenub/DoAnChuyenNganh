@@ -8,7 +8,7 @@ import { MetricsController } from './metrics.controller';
 import { MetricsService } from './metrics.service';
 
 const router = Router();
-const disableMetrics = process.env.DISABLE_METRICS === 'true' || process.env.NODE_ENV === 'test';
+const disableMetrics = process.env.DISABLE_METRICS === 'true';
 
 let metricsController: MetricsController | null = null;
 if (!disableMetrics) {
@@ -259,6 +259,43 @@ if (metricsController) {
  *         description: Metric not found
  */
 if (metricsController) {
+	router.get('/prometheus', metricsController.getPrometheusMetrics);
+}
+
+/**
+ * @swagger
+ * /metrics/{name}:
+ *   get:
+ *     summary: Get specific metric by name
+ *     description: Returns metrics for a specific metric name
+ *     tags: [Metrics]
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Metric name
+ *     responses:
+ *       200:
+ *         description: Metric retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       404:
+ *         description: Metric not found
+ */
+if (metricsController) {
 	router.get('/:name', metricsController.getMetricByName);
 }
 
@@ -286,25 +323,6 @@ if (metricsController) {
  */
 if (metricsController) {
 	router.post('/reset', metricsController.resetMetrics);
-}
-
-/**
- * @swagger
- * /metrics/prometheus:
- *   get:
- *     summary: Get Prometheus format metrics
- *     description: Returns metrics in Prometheus format
- *     tags: [Metrics]
- *     responses:
- *       200:
- *         description: Prometheus metrics retrieved
- *         content:
- *           text/plain:
- *             schema:
- *               type: string
- */
-if (metricsController) {
-	router.get('/prometheus', metricsController.getPrometheusMetrics);
 }
 
 export default router;

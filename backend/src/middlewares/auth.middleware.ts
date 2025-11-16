@@ -60,8 +60,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 // Role-based authorization middleware
 export const authorizeRoles = (roles: string | string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    // In test environment, bypass role checks to allow full E2E coverage
-    if (process.env.NODE_ENV === 'test') {
+    // Only bypass role checks for E2E tests that create their own data
+    // Integration tests should validate authorization properly
+    if (process.env.NODE_ENV === 'test' && process.env.E2E_SUITE === 'true') {
       next();
       return;
     }

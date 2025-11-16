@@ -93,6 +93,58 @@ docker/
 - iOS Simulator: http://localhost:3000/api
 - Physical device: http://[YOUR-IP]:3000/api
 
+## 🧪 `npm run dev:test` with Host PostgreSQL
+
+This setup reuses the Windows-host PostgreSQL instance (the same one that DBeaver connects to on `localhost:5432`) so that backend containers operate on production-like data without exporting dumps.
+
+### Prerequisites on Windows host
+
+1. **Allow PostgreSQL to listen on the Docker network interface**
+   - Edit `postgresql.conf` (default: `C:\Program Files\PostgreSQL\<version>\data\postgresql.conf`)
+   - Set `listen_addresses = '*'`
+2. **Grant access to the Docker subnet**
+   - Edit `pg_hba.conf` in the same directory
+   - Add a rule that matches your Docker bridge (example for `172.22.0.0/16`):
+     ```
+     host all all 172.22.0.0/16 md5
+     ```
+   - When unsure of the subnet, run `docker network inspect lms-test-network` after the first compose up; you can temporarily use `172.0.0.0/8 md5` while testing.
+3. **Restart PostgreSQL**
+   ```powershell
+   Restart-Service -Name postgresql-x64-15
+   ```
+   (Replace the service name according to the version installed.)
+4. **Open Windows Firewall for port 5432** if it is not already exposed:
+   ```powershell
+   New-NetFirewallRule -DisplayName "PostgreSQL 5432" -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Allow
+   ```
+
+### Starting the environment
+
+```powershell
+npm run dev:test
+```
+
+Services launched:
+- `lms-backend-test`: connects to the host DB via `host.docker.internal`
+- `lms-redis-test`: reuses the development Redis volume
+- `lms-frontend-test`: points to the test backend on port 3000
+
+### Customizing connection targets
+
+Expose different host endpoints by setting these environment variables before running the script:
+
+```powershell
+$env:HOST_POSTGRES_HOST = "172.22.0.1"   # Custom gateway/IP
+$env:HOST_POSTGRES_PORT = "5432"
+$env:HOST_POSTGRES_DB = "lms_db"
+$env:HOST_POSTGRES_USER = "lms_user"
+$env:HOST_POSTGRES_PASSWORD = "123456"
+npm run dev:test
+```
+
+> Tip: use `docker compose -p lms-test -f docker/environments/development/test-e2e.yml logs backend-test` if the backend reports `ECONNREFUSED`.
+
 ## ⚙️ Configuration
 
 ### Environment Variables

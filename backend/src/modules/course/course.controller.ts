@@ -38,6 +38,8 @@ export class CourseController {
         defaultLimit: 10,
         maxLimit: 100
       });
+
+      const hasExplicitPagination = typeof req.query.page !== 'undefined' || typeof req.query.limit !== 'undefined';
       
       const courses = await this.courseService.getAllCourses({
         page: paginationOptions.page,
@@ -48,7 +50,14 @@ export class CourseController {
         category: req.query.category as string
       });
       
-      responseUtils.sendSuccess(res, 'Courses retrieved successfully', courses);
+      if (hasExplicitPagination) {
+        responseUtils.sendSuccess(res, 'Courses retrieved successfully', {
+          courses: courses.data,
+          pagination: courses.pagination
+        });
+      } else {
+        responseUtils.sendSuccess(res, 'Courses retrieved successfully', courses.data);
+      }
     } catch (error: unknown) {
       next(error);
     }

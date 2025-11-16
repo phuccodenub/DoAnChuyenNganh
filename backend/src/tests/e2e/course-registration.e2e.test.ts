@@ -22,42 +22,26 @@ maybeDescribe('Course Registration E2E', () => {
   let courseId: string;
 
   beforeAll(async () => {
-    // Setup test database
     const sequelize = getSequelize();
-    
-    // Setup model associations before sync
-    const { setupAssociations } = await import('../../models/associations');
-    setupAssociations();
-    
-    const { setupExtendedAssociations } = await import('../../models/associations-extended');
-    setupExtendedAssociations();
-    
-    // Run migrations first to create enum types
-    const { MigrationManager } = await import('../../migrations');
-    const migrationManager = new MigrationManager(sequelize);
-    await migrationManager.migrate();
-    
-    await sequelize.sync({ force: true });
-    
-    // Create test user and get auth token
+    await sequelize.query('TRUNCATE TABLE courses RESTART IDENTITY CASCADE');
+
+    const uniqueSuffix = `${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const registerPayload = {
+      email: `instructor+${uniqueSuffix}@example.com`,
+      username: `instr_${uniqueSuffix.slice(-10)}`,
+      password: 'TestPassword123!',
+      first_name: 'Test',
+      last_name: 'Instructor',
+      role: 'instructor'
+    };
+
     const registerResponse = await request(app)
       .post('/api/v1/auth/register')
-      .send({
-        email: 'test@example.com',
-        password: 'TestPassword123!',
-        firstName: 'Test',
-        lastName: 'User'
-      });
+      .send(registerPayload);
     
     expect(registerResponse.status).toBe(201);
     authToken = registerResponse.body.data.tokens.accessToken;
     userId = registerResponse.body.data.user.id;
-  });
-
-  afterAll(async () => {
-    // Cleanup test database
-    const sequelize = getSequelize();
-    await sequelize.close();
   });
 
   describe('POST /api/v1/courses', () => {
@@ -68,9 +52,7 @@ maybeDescribe('Course Registration E2E', () => {
         category: 'Programming',
         level: 'intermediate',
         duration: 40,
-        price: 99.99,
-        instructorId: userId,
-        tags: ['typescript', 'programming', 'advanced']
+        price: 99.99
       };
 
       const response = await request(app)

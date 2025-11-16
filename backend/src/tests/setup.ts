@@ -11,12 +11,23 @@ import { Sequelize } from 'sequelize';
 import { getSequelize } from '../config/db';
 import { MigrationManager } from '../migrations';
 
+const allowMainDbFallback = process.env.ALLOW_MAIN_DB_TESTS === 'true';
+const assertFallbackSafety = (reason: string): void => {
+  if (!allowMainDbFallback) {
+    throw new Error(
+      `[TEST_SETUP] Refusing to fallback to main database (${reason}). ` +
+      'Start a dedicated Postgres instance for tests or set ALLOW_MAIN_DB_TESTS=true (NOT recommended).'
+    );
+  }
+};
+
 // Set test environment
 process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'error'; // Reduce log noise in tests
 
 // For integration tests, load dedicated env and avoid mocking DB
 const isIntegration = process.env.TEST_CATEGORY === 'integration';
+const isE2ESuite = process.env.E2E_SUITE === 'true';
 if (isIntegration) {
   dotenv.config({ path: path.resolve(__dirname, 'integration', 'test.env'), override: true });
   // Ensure Postgres NUMERIC (OID 1700) is parsed as number before any connections are made
@@ -50,6 +61,7 @@ if (isIntegration) {
       || databaseUrl.includes('/lms_db_test')
       || /[?&]database=lms_db_test\b/.test(databaseUrl);
     if (targetsTestDb) {
+      assertFallbackSafety('forceEarlyDbFallback');
       process.env.DATABASE_URL = `postgresql://${user}:${password}@${host}:${port}/${fallbackDb}`;
       process.env.DB_NAME_TEST = fallbackDb;
       process.env.DB_HOST = host;
@@ -113,6 +125,7 @@ if (isIntegration) {
       }
 
       if (willFallbackToMainDb) {
+        assertFallbackSafety(`create database permission denied for "${targetDbName}"`);
         const fallbackDb = process.env.DB_NAME || 'lms_db';
         // Prefer overriding DATABASE_URL so getSequelize() uses it
         const hostForUrl = host;
@@ -132,27 +145,34 @@ if (isIntegration) {
       await sequelize.authenticate();
       const migrator = new MigrationManager(sequelize);
       await migrator.migrate();
+
+      const { setupAssociations } = await import('../models/associations');
+      setupAssociations();
+      const { setupExtendedAssociations } = await import('../models/associations-extended');
+      setupExtendedAssociations();
     }
   });
 
   // Ensure a clean slate before each test to avoid unique constraint collisions across suites
-  beforeEach(async () => {
-    const sequelize = getSequelize();
-    try {
-      await sequelize.query('TRUNCATE TABLE enrollments RESTART IDENTITY CASCADE');
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('[TEST_SETUP] Failed to truncate enrollments:', (e as any)?.message || e);
-    }
-    try {
-      await sequelize.query('TRUNCATE TABLE courses RESTART IDENTITY CASCADE');
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('[TEST_SETUP] Failed to truncate courses:', (e as any)?.message || e);
-    }
-    // Do NOT truncate users between tests to allow IDs created earlier in the suite to persist
-    // This aligns with integration tests that create a user in one test and reference it in later tests
-  });
+  if (!isE2ESuite) {
+    beforeEach(async () => {
+      const sequelize = getSequelize();
+      try {
+        await sequelize.query('TRUNCATE TABLE enrollments RESTART IDENTITY CASCADE');
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[TEST_SETUP] Failed to truncate enrollments:', (e as any)?.message || e);
+      }
+      try {
+        await sequelize.query('TRUNCATE TABLE courses RESTART IDENTITY CASCADE');
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[TEST_SETUP] Failed to truncate courses:', (e as any)?.message || e);
+      }
+      // Do NOT truncate users between tests to allow IDs created earlier in the suite to persist
+      // This aligns with integration tests that create a user in one test and reference it in later tests
+    });
+  }
 } else {
   // Mock external services for unit tests and other categories
   jest.mock('../config/db', () => ({

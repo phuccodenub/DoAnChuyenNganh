@@ -253,4 +253,50 @@ export class EnrollmentController {
       next(error);
     }
   }
+
+  // ===== NESTED ROUTES FOR COURSE & USER MODULES =====
+
+  /**
+   * Get enrollments for a specific course (for course/:id/enrollments route)
+   * This is used by instructors to see who is enrolled in their course
+   */
+  async getCourseEnrollments(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const courseId = req.params.id; // Note: using 'id' instead of 'courseId' for nested route
+      const queryData = (req as any).validatedQuery || req.query;
+      
+      const options = {
+        status: queryData.status as string,
+        limit: queryData.limit ? parseInt(queryData.limit as string) : undefined
+      };
+      
+      const enrollments = await this.enrollmentService.getEnrollmentsByCourseId(courseId, options);
+      responseUtils.sendSuccess(res, 'Course enrollments retrieved successfully', enrollments);
+    } catch (error) {
+      logger.error('Error getting course enrollments:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get enrollments for a specific user (for users/:id/enrollments route)
+   * This is used to see enrollment history for a user
+   */
+  async getUserEnrollments(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.params.id; // Note: using 'id' instead of 'userId' for nested route
+      const queryData = (req as any).validatedQuery || req.query;
+      
+      const options = {
+        status: queryData.status as string,
+        limit: queryData.limit ? parseInt(queryData.limit as string) : undefined
+      };
+      
+      const enrollments = await this.enrollmentService.getEnrollmentsByUserId(userId, options);
+      responseUtils.sendSuccess(res, 'User enrollments retrieved successfully', enrollments);
+    } catch (error) {
+      logger.error('Error getting user enrollments:', error);
+      next(error);
+    }
+  }
 }

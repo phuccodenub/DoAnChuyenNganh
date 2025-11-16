@@ -2,8 +2,9 @@ import { Sequelize } from 'sequelize';
 import logger from '../utils/logger.util';
 
 async function resetDatabase() {
-  // Prefer SQLite in CI or when explicitly requested
-  const preferSqlite = (
+  const forcePostgres = process.env.FORCE_POSTGRES_FOR_TESTS === 'true' || process.env.FORCE_POSTGRES === 'true';
+  // Prefer SQLite in CI or when explicitly requested, unless forced to use Postgres
+  const preferSqlite = !forcePostgres && (
     process.env.DB_DIALECT === 'sqlite' ||
     process.env.SQLITE === 'true' ||
     typeof process.env.SQLITE_PATH !== 'undefined' ||
