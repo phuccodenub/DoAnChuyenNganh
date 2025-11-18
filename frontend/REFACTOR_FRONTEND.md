@@ -46,7 +46,7 @@ src/
 - axios instance (`services/http/client.ts`) với `baseURL = import.meta.env.VITE_API_URL || '/api'`.
 - Interceptors:
   - Request: gắn `Authorization: Bearer <accessToken>` từ `authStore` nếu có.
-  - Response: tự động refresh khi 401 với `POST /auth/refresh-token` (fallback alias `/auth/refresh`). Nếu refresh thất bại → logout + chuyển hướng Login.
+- Response: tự động refresh khi 401 với `POST /auth/refresh`. Nếu refresh thất bại → logout + chuyển hướng Login.
 - Chuẩn hóa lỗi: map HTTP/validation error về format thống nhất cho UI/Toast.
 - React Query: 
   - Query keys rõ ràng theo domain (vd: `['courses', filters]`).
@@ -83,7 +83,7 @@ src/
   - i18n: Toàn bộ UI tiếng Việt (đặt vi làm default), switch ngôn ngữ ở header.
 
 Kết nối Backend (tiêu biểu):
-- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/login-2fa`, `POST /auth/refresh-token` (alias `/auth/refresh`), `POST /auth/logout`, `GET /auth/verify`, `GET /auth/verify-email/:token`.
+- Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/login-2fa`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/verify`, `GET /auth/verify-email/:token`.
 - User self-service: `GET/PUT /users/profile`, `POST /users/avatar`, `PATCH /users/preferences`, `GET /users/sessions`, `POST /users/logout-all`, `PUT /users/change-password`, `POST /users/2fa/enable|disable`, `POST /users/social/link`, `GET /users/analytics`, `PATCH /users/notifications`, `PATCH /users/privacy`.
 
 ### Phase 2: Luồng nghiệp vụ của Student (Student Flow)

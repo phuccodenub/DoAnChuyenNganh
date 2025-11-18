@@ -50,7 +50,7 @@ backend/src/modules/
 - [ ] `POST /register` - Đăng ký tài khoản mới
 - [ ] `POST /login` - Đăng nhập
 - [ ] `POST /login-2fa` - Đăng nhập với 2FA
-- [ ] `POST /refresh-token` - Làm mới token (alias: `/refresh`)
+- [ ] `POST /auth/refresh` - Làm mới token
 - [ ] `GET /verify-email/:token` - Xác thực email
 
 **Protected Routes:**
@@ -1147,7 +1147,7 @@ httpClient.interceptors.response.use(
         // Try to refresh token
         const refreshToken = useAuthStore.getState().refreshToken;
         if (refreshToken) {
-          const response = await httpClient.post('/auth/refresh-token', {
+          const response = await httpClient.post('/auth/refresh', {
             refresh_token: refreshToken,
           });
 

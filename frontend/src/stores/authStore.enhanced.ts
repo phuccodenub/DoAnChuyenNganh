@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import toast from 'react-hot-toast';
 import { authService } from '@/services/authService';
 import i18n from '@/i18n';
-import { getTokensFromState, restoreAuthFromStorage, getErrorMessage, isUnauthorizedError } from './authStore.utils';
+import { getTokensFromState, restoreAuthFromStorage, getErrorMessage, getAuthErrorMessage, isUnauthorizedError } from './authStore.utils';
 import { partializeAuthState, setupLocalStorageWatcher } from './authStore.config';
 
 export interface User {
@@ -39,10 +39,12 @@ interface AuthActions {
   login: (email: string, password: string) => Promise<boolean>;
   loginWith2FA: (email: string, password: string, code: string) => Promise<boolean>;
   register: (data: {
+    username: string;
     email: string;
     password: string;
     first_name: string;
     last_name: string;
+    phone?: string;
     role?: 'student' | 'instructor';
   }) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -86,11 +88,14 @@ export const useAuthStore = create<AuthStore>()(
             return true;
           }
           
-          toast.error(response.message || i18n.t('auth.messages.loginFailed') || 'Đăng nhập thất bại');
+          // Xử lý lỗi từ response
+          const errorMessage = response.message || i18n.t('auth.messages.loginFailed') || 'Đăng nhập thất bại';
+          toast.error(errorMessage);
           set({ isLoading: false });
           return false;
         } catch (error: unknown) {
-          const message = getErrorMessage(error, i18n.t('auth.messages.loginFailed') || 'Đăng nhập thất bại');
+          // Xử lý lỗi chi tiết từ API
+          const message = getAuthErrorMessage(error);
           toast.error(message);
           set({ isLoading: false });
           return false;
@@ -124,19 +129,23 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       register: async (data: {
+        username: string;
         email: string;
         password: string;
         first_name: string;
         last_name: string;
+        phone?: string;
         role?: 'student' | 'instructor';
       }) => {
         try {
           set({ isLoading: true });
           const response = await authService.register({
+            username: data.username,
             email: data.email,
             password: data.password,
             first_name: data.first_name,
             last_name: data.last_name,
+            phone: data.phone,
             role: data.role,
           });
           
@@ -155,7 +164,9 @@ export const useAuthStore = create<AuthStore>()(
           set({ isLoading: false });
           return false;
         } catch (error: unknown) {
-          toast.error(getErrorMessage(error, i18n.t('auth.messages.registerFailed') || 'Đăng ký thất bại'));
+          // Xử lý lỗi chi tiết từ API
+          const message = getErrorMessage(error, i18n.t('auth.messages.registerFailed') || 'Đăng ký thất bại');
+          toast.error(message);
           set({ isLoading: false });
           return false;
         }
@@ -173,6 +184,9 @@ export const useAuthStore = create<AuthStore>()(
             tokens: null,
             isAuthenticated: false,
           });
+          
+          // Note: Không xóa remember me email ở đây vì user có thể muốn giữ lại
+          // Chỉ xóa khi user tự bỏ check remember me
           
           toast.success(i18n.t('auth.messages.logoutSuccess') || 'Đăng xuất thành công');
         }

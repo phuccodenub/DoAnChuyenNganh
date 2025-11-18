@@ -54,7 +54,7 @@
 - [ ] **Hoàn thiện `authService.ts`** để match backend:
   - 2FA endpoints: `/auth/2fa/enable`, `/auth/2fa/verify-setup`, `/auth/2fa/disable`
   - Email verification: `/auth/verify-email/:token`
-  - Refresh token: `/auth/refresh-token`
+- Refresh token: `/auth/refresh`
   - Profile endpoints: `/users/profile` (GET/PUT)
 
 #### 1.3 Course Service Fix

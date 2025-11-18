@@ -39,17 +39,22 @@ export class WebRTCGateway {
   private userSessions: Map<string, string> = new Map(); // userId -> sessionId
   private socketUsers: Map<string, SocketUser> = new Map(); // socketId -> user data
 
-  constructor(httpServer: HTTPServer) {
-    // Create separate namespace for WebRTC
-    this.io = new SocketIOServer(httpServer, {
-      cors: {
-        origin: APP_CONSTANTS.CORS.ALLOWED_ORIGINS,
-        methods: APP_CONSTANTS.CORS.ALLOWED_METHODS,
-        credentials: true
-      },
-      path: '/socket.io',
-      transports: ['websocket', 'polling']
-    });
+  constructor(io: SocketIOServer | HTTPServer) {
+    // Accept either SocketIOServer instance (shared) or HTTPServer (legacy)
+    if (io instanceof SocketIOServer) {
+      this.io = io;
+    } else {
+      // Legacy: create new server (should not happen in new code)
+      this.io = new SocketIOServer(io, {
+        cors: {
+          origin: APP_CONSTANTS.CORS.ALLOWED_ORIGINS,
+          methods: APP_CONSTANTS.CORS.ALLOWED_METHODS,
+          credentials: true
+        },
+        path: '/socket.io',
+        transports: ['websocket', 'polling']
+      });
+    }
 
     this.webrtcService = new WebRTCService();
     this.setupMiddleware();

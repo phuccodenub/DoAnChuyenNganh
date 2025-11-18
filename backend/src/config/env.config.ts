@@ -32,7 +32,7 @@ export const env = {
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 
   cors: {
-    allowedOrigins: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000')
+    allowedOrigins: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5174,http://localhost:3001')
       .split(',')
       .map(o => o.trim())
       .filter(Boolean),

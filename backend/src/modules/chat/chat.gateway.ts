@@ -32,16 +32,22 @@ export class ChatGateway {
   private chatRooms: Map<string, ChatRoom> = new Map(); // courseId -> room data
   private userStatus: Map<string, UserStatus> = new Map(); // userId -> status
 
-  constructor(httpServer: HTTPServer) {
-    this.io = new SocketIOServer(httpServer, {
-      cors: {
-        origin: APP_CONSTANTS.CORS.ALLOWED_ORIGINS,
-        methods: APP_CONSTANTS.CORS.ALLOWED_METHODS,
-        credentials: true
-      },
-      path: '/socket.io',
-      transports: ['websocket', 'polling']
-    });
+  constructor(io: SocketIOServer | HTTPServer) {
+    // Accept either SocketIOServer instance (shared) or HTTPServer (legacy)
+    if (io instanceof SocketIOServer) {
+      this.io = io;
+    } else {
+      // Legacy: create new server (should not happen in new code)
+      this.io = new SocketIOServer(io, {
+        cors: {
+          origin: APP_CONSTANTS.CORS.ALLOWED_ORIGINS,
+          methods: APP_CONSTANTS.CORS.ALLOWED_METHODS,
+          credentials: true
+        },
+        path: '/socket.io',
+        transports: ['websocket', 'polling']
+      });
+    }
 
     this.chatService = new ChatService();
     this.setupMiddleware();

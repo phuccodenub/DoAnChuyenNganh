@@ -11,6 +11,10 @@ import {
 } from 'lucide-react'
 import { MainLayout } from '@/layouts/MainLayout'
 import { SliderBanner } from './components/SliderBanner'
+import { LiveClassesSection } from './components/LiveClassesSection'
+import { AIFeaturesSection } from './components/AIFeaturesSection'
+import { BlockchainCertificatesSection } from './components/BlockchainCertificatesSection'
+import { InteractiveLearningSection } from './components/InteractiveLearningSection'
 import { categories } from '@/components/layout/data'
 
 function Home() {
@@ -100,8 +104,11 @@ function Home() {
   return (
     <MainLayout showSidebar={true}>
       <SliderBanner />
-          
-          {/* Statistics Section */}
+      
+      {/* Live Classes Section - Highlight real-time learning */}
+      <LiveClassesSection />
+      
+      {/* Statistics Section */}
           <section className="bg-white border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 py-12">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -224,6 +231,15 @@ function Home() {
               </div>
             </div>
           </section>
+
+          {/* Interactive Learning Section - Real-time features */}
+          <InteractiveLearningSection />
+
+          {/* AI Features Section - Showcase AI capabilities */}
+          <AIFeaturesSection />
+
+          {/* Blockchain Certificates Section - Highlight blockchain credentials */}
+          <BlockchainCertificatesSection />
 
           {/* Features Section */}
           <section className="py-12 bg-white">

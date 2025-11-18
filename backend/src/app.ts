@@ -78,16 +78,27 @@ if (process.env.DISABLE_CACHE !== 'true') {
 app.use(helmet());
 
 // CORS configuration (centralized)
-app.use(corsMiddleware);
+// Skip CORS for Socket.IO path (Socket.IO handles its own CORS)
+app.use((req, res, next) => {
+  if (req.path?.startsWith('/socket.io')) {
+    return next(); // Skip CORS middleware for Socket.IO
+  }
+  corsMiddleware(req, res, next);
+});
 
 // Rate limiting (allow disabling in tests via DISABLE_RATE_LIMIT=true)
+// Skip rate limiting for Socket.IO path (Socket.IO handles its own rate limiting)
 if (process.env.DISABLE_RATE_LIMIT !== 'true' && process.env.NODE_ENV !== 'test') {
   const limiter = rateLimit({
     windowMs: APP_CONSTANTS.SYSTEM.RATE_LIMIT_WINDOW_MS,
     max: APP_CONSTANTS.SYSTEM.RATE_LIMIT_MAX_REQUESTS,
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skip: (req) => {
+      // Skip rate limiting for Socket.IO
+      return req.path?.startsWith('/socket.io') || false;
+    }
   });
   app.use(limiter);
 }

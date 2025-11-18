@@ -12,7 +12,9 @@ declare const import_meta: { env: Record<string, string> };
  * - Headers: Content-Type JSON
  */
 
-const baseURL = (import.meta as any).env?.VITE_API_URL || '/api';
+// API Base URL: http://localhost:3000/api/v1.3.0
+// Set VITE_API_URL in .env file, fallback to /api/v1.3.0 for proxy
+const baseURL = (import.meta as any).env?.VITE_API_URL || '/api/v1.3.0';
 
 export const httpClient: AxiosInstance = axios.create({
   baseURL,

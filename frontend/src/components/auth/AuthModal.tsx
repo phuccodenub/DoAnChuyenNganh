@@ -20,18 +20,35 @@ export function AuthModal() {
   const { isOpen, activeTab, closeModal, setActiveTab } = useAuthModal()
   const { login, register, isLoading, isAuthenticated } = useAuthStore()
 
+  // Remember me storage key
+  const REMEMBER_ME_KEY = 'lms_remember_email'
+
   // Login form state
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [loginErrors, setLoginErrors] = useState<{ email?: string; password?: string; general?: string }>({})
+
+  // Load remembered email when modal opens
+  useEffect(() => {
+    if (isOpen && activeTab === 'signin') {
+      const rememberedEmail = localStorage.getItem(REMEMBER_ME_KEY)
+      if (rememberedEmail) {
+        setLoginEmail(rememberedEmail)
+        setRememberMe(true)
+      }
+    }
+  }, [isOpen, activeTab])
 
   // Register form state
   const [registerData, setRegisterData] = useState({
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
     full_name: '',
+    phone: '',
     role: 'student' as 'student' | 'instructor',
   })
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
@@ -45,7 +62,7 @@ export function AuthModal() {
       closeModal()
       // Small delay to allow modal to close smoothly
       setTimeout(() => {
-        navigate('/home', { replace: true })
+        navigate('/', { replace: true })
       }, 200)
     }
   }, [isAuthenticated, isOpen, closeModal, navigate])
@@ -58,6 +75,22 @@ export function AuthModal() {
     }, 300)
     return () => clearTimeout(timer)
   }, [activeTab])
+
+  // Reset register form when switching to signup tab or modal opens
+  useEffect(() => {
+    if (isOpen && activeTab === 'signup') {
+      setRegisterData({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        full_name: '',
+        phone: '',
+        role: 'student', // Always default to student
+      })
+      setRegisterErrors({})
+    }
+  }, [isOpen, activeTab])
 
   // Validate login form
   const validateLogin = () => {
@@ -77,32 +110,91 @@ export function AuthModal() {
     return Object.keys(newErrors).length === 0
   }
 
+  // Generate username from email (helper function)
+  const generateUsernameFromEmail = (email: string): string => {
+    if (!email) return ''
+    const emailPart = email.split('@')[0]
+    // Remove special characters, keep only alphanumeric, underscores, hyphens
+    return emailPart.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase().substring(0, 30)
+  }
+
+  // Validate username
+  const validateUsername = (username: string): string | null => {
+    if (!username) {
+      return 'Username là bắt buộc'
+    }
+    if (username.length < 3) {
+      return 'Username phải có ít nhất 3 ký tự'
+    }
+    if (username.length > 30) {
+      return 'Username không được quá 30 ký tự'
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return 'Username chỉ được chứa chữ cái, số, dấu gạch dưới và dấu gạch ngang'
+    }
+    return null
+  }
+
+  // Validate password strength
+  const validatePasswordStrength = (password: string): string | null => {
+    if (!password) {
+      return 'Mật khẩu là bắt buộc'
+    }
+    if (password.length < 8) {
+      return 'Mật khẩu phải có ít nhất 8 ký tự'
+    }
+    if (!/[a-z]/.test(password)) {
+      return 'Mật khẩu phải chứa ít nhất một chữ cái thường'
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Mật khẩu phải chứa ít nhất một chữ cái hoa'
+    }
+    if (!/\d/.test(password)) {
+      return 'Mật khẩu phải chứa ít nhất một số'
+    }
+    if (!/[@$!%*?&]/.test(password)) {
+      return 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&)'
+    }
+    return null
+  }
+
   // Validate register form
   const validateRegister = () => {
     const newErrors: Record<string, string> = {}
 
+    // Validate username (only if user provided one, otherwise will auto-generate from email)
+    if (registerData.username.trim()) {
+      const usernameError = validateUsername(registerData.username)
+      if (usernameError) {
+        newErrors.username = usernameError
+      }
+    }
+
+    // Validate email
     if (!registerData.email) {
-      newErrors.email = t('auth.register.emailRequired')
+      newErrors.email = t('auth.register.emailRequired') || 'Email là bắt buộc'
     } else if (!/\S+@\S+\.\S+/.test(registerData.email)) {
-      newErrors.email = t('auth.register.emailInvalid')
+      newErrors.email = t('auth.register.emailInvalid') || 'Email không hợp lệ'
     }
 
-    if (!registerData.password) {
-      newErrors.password = t('auth.register.passwordRequired')
-    } else if (registerData.password.length < 6) {
-      newErrors.password = t('auth.register.passwordMinLength')
+    // Validate password
+    const passwordError = validatePasswordStrength(registerData.password)
+    if (passwordError) {
+      newErrors.password = passwordError
     }
 
+    // Validate confirm password
     if (!registerData.confirmPassword) {
-      newErrors.confirmPassword = t('auth.register.confirmPasswordRequired')
+      newErrors.confirmPassword = t('auth.register.confirmPasswordRequired') || 'Xác nhận mật khẩu là bắt buộc'
     } else if (registerData.password !== registerData.confirmPassword) {
-      newErrors.confirmPassword = t('auth.register.confirmPasswordMismatch')
+      newErrors.confirmPassword = t('auth.register.confirmPasswordMismatch') || 'Mật khẩu xác nhận không khớp'
     }
 
+    // Validate full name
     if (!registerData.full_name.trim()) {
-      newErrors.full_name = t('auth.register.fullNameRequired')
+      newErrors.full_name = t('auth.register.fullNameRequired') || 'Họ tên là bắt buộc'
     } else if (registerData.full_name.trim().length < 2) {
-      newErrors.full_name = t('auth.register.fullNameMinLength')
+      newErrors.full_name = t('auth.register.fullNameMinLength') || 'Họ tên phải có ít nhất 2 ký tự'
     }
 
     setRegisterErrors(newErrors)
@@ -120,7 +212,15 @@ export function AuthModal() {
 
     const success = await login(loginEmail, loginPassword)
     
-    if (!success) {
+    if (success) {
+      // Lưu email nếu remember me được chọn
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_ME_KEY, loginEmail)
+      } else {
+        // Xóa email đã lưu nếu không chọn remember me
+        localStorage.removeItem(REMEMBER_ME_KEY)
+      }
+    } else {
       // If login failed, show general error (specific error already shown via toast)
       setLoginErrors({ general: 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.' })
     }
@@ -138,12 +238,18 @@ export function AuthModal() {
     const first_name = nameParts[0] || ''
     const last_name = nameParts.slice(1).join(' ') || ''
 
+    // Generate username from email if not provided
+    const username = registerData.username.trim() || generateUsernameFromEmail(registerData.email)
+
+    // Role is always 'student' for new registrations (backend will default to 'student' if not provided)
     await register({
-      email: registerData.email,
+      username: username.toLowerCase(),
+      email: registerData.email.toLowerCase(),
       password: registerData.password,
       first_name,
       last_name,
-      role: registerData.role,
+      phone: registerData.phone.trim() || undefined,
+      role: 'student', // Always 'student' for new registrations
     })
     // Navigation will be handled by useEffect when isAuthenticated changes
   }
@@ -327,6 +433,21 @@ export function AuthModal() {
                 )}
               </div>
 
+              {/* Remember Me */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  disabled={isLoading}
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Ghi nhớ đăng nhập
+                </label>
+              </div>
+
               <Button
                 type="submit"
                 isLoading={isLoading}
@@ -483,6 +604,41 @@ export function AuthModal() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Username <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={registerData.username}
+                    onChange={(e) => {
+                      // Auto lowercase và chỉ cho phép alphanumeric, underscore, hyphen
+                      const value = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase()
+                      updateRegisterData('username', value)
+                    }}
+                    placeholder="username (tự động tạo từ email nếu để trống)"
+                    className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
+                      registerErrors.username
+                        ? 'border-red-500 focus:ring-red-500'
+                        : registerData.username && registerData.username.length >= 3
+                          ? 'border-green-500 focus:ring-green-500'
+                          : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                    disabled={isLoading}
+                  />
+                </div>
+                {registerErrors.username && (
+                  <p className="mt-1 text-sm text-red-600">{registerErrors.username}</p>
+                )}
+                {!registerErrors.username && registerData.username && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Username sẽ được tự động tạo từ email nếu để trống
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
                 </label>
                 <div className="relative">
@@ -511,48 +667,38 @@ export function AuthModal() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updateRegisterData('role', 'student')}
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number <span className="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={registerData.phone}
+                    onChange={(e) => updateRegisterData('phone', e.target.value)}
+                    placeholder="Enter your phone number (optional)"
+                    className="w-full pl-3 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled={isLoading}
-                    className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                      registerData.role === 'student'
-                        ? 'bg-blue-50 border-blue-500 text-blue-700'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    🎓 Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateRegisterData('role', 'instructor')}
-                    disabled={isLoading}
-                    className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                      registerData.role === 'instructor'
-                        ? 'bg-blue-50 border-blue-500 text-blue-700'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    👨‍🏫 Instructor
-                  </button>
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type={showRegisterPassword ? 'text' : 'password'}
                     value={registerData.password}
                     onChange={(e) => updateRegisterData('password', e.target.value)}
-                    placeholder="Create a password"
+                    placeholder="Tối thiểu 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt"
                     className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       registerErrors.password
                         ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:ring-blue-500'
+                        : registerData.password && validatePasswordStrength(registerData.password) === null
+                          ? 'border-green-500 focus:ring-green-500'
+                          : 'border-gray-300 focus:ring-blue-500'
                     }`}
                     disabled={isLoading}
                   />
@@ -572,11 +718,16 @@ export function AuthModal() {
                 {registerErrors.password && (
                   <p className="mt-1 text-sm text-red-600">{registerErrors.password}</p>
                 )}
+                {!registerErrors.password && registerData.password && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Mật khẩu phải có: ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password
+                  Confirm Password <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
