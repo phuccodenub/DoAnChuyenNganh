@@ -326,7 +326,7 @@ $refreshBody = @{
 } | ConvertTo-Json
 
 try {
-    $refreshResponse = Invoke-RestMethod -Uri "$baseUrl/auth/refresh-token" `
+    $refreshResponse = Invoke-RestMethod -Uri "$baseUrl/auth/refresh" `
         -Method Post `
         -ContentType "application/json" `
         -Body $refreshBody

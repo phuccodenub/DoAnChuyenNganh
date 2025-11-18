@@ -36,7 +36,7 @@ const isPublicEndpoint = (url?: string, method?: string): boolean => {
   // Auth endpoints
   if (url.includes('/auth/login') || 
       url.includes('/auth/register') ||
-      url.includes('/auth/refresh-token')) {
+      url.includes('/auth/refresh')) {
     return true;
   }
   
@@ -126,7 +126,7 @@ export const setupInterceptors = () => {
 
         try {
           // Call refresh token API
-          const response = await httpClient.post('/auth/refresh-token', {
+          const response = await httpClient.post('/auth/refresh', {
             refresh_token: refreshToken,
           });
 

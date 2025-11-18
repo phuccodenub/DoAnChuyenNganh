@@ -202,9 +202,9 @@
 							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/auth/refresh-token",
+							"raw": "{{baseUrl}}/auth/refresh",
 							"host": ["{{baseUrl}}"],
-							"path": ["auth", "refresh-token"]
+							"path": ["auth", "refresh"]
 						}
 					}
 				},

@@ -48,10 +48,12 @@ export const authService = {
    * Register new user
    */
   async register(data: {
+    username: string
     email: string
     password: string
     first_name: string
     last_name: string
+    phone?: string
     role?: 'student' | 'instructor'
   }): Promise<AuthResponse> {
     const response = await httpClient.post<AuthResponse>('/auth/register', data)
@@ -117,7 +119,7 @@ export const authService = {
    * Refresh access token
    */
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
-    const response = await httpClient.post<AuthResponse>('/auth/refresh-token', {
+    const response = await httpClient.post<AuthResponse>('/auth/refresh', {
       refresh_token: refreshToken
     })
     return response.data

@@ -100,7 +100,7 @@ backend/src/
 | `/auth/register` | POST | Đăng ký tài khoản mới | Public |
 | `/auth/login` | POST | Đăng nhập | Public |
 | `/auth/login-2fa` | POST | Đăng nhập với 2FA | Public |
-| `/auth/refresh-token` | POST | Làm mới token | Public |
+| `/auth/refresh` | POST | Làm mới token | Public |
 | `/auth/refresh` | POST | Alias refresh token | Public |
 | `/auth/verify-email/:token` | GET | Xác thực email | Public |
 | `/auth/logout` | POST | Đăng xuất | Authenticated |
@@ -864,7 +864,7 @@ backend/src/
 ✅ POST /auth/register
 ✅ POST /auth/login
 ✅ POST /auth/login-2fa
-✅ POST /auth/refresh-token
+✅ POST /auth/refresh
 ✅ GET /auth/verify-email/:token
 ✅ POST /auth/logout
 ✅ GET /auth/verify

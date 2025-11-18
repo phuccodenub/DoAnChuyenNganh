@@ -14,9 +14,11 @@ export default defineConfig({
     port: 5174,
     host: true,
     proxy: {
+      // Proxy cho API với version v1.3.0
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
+        rewrite: (path) => path, // Giữ nguyên path để proxy đúng version
       },
       '/socket.io': {
         target: 'http://localhost:3000',

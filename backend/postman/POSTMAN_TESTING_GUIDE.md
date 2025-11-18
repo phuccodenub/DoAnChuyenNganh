@@ -185,7 +185,7 @@ Lưu ý chung:
     ```
   - Tests tab: Lưu `accessToken`, `refreshToken` vào environment.
 
-- POST /auth/refresh-token (alias: /auth/refresh)
+- POST /auth/refresh
   - Body JSON:
     ```json
     { "refreshToken": "{{refreshToken}}" }

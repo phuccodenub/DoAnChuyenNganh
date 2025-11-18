@@ -63,7 +63,7 @@ export const APP_CONSTANTS = {
   
   // CORS (read from centralized CORS_* envs with sensible defaults)
   CORS: {
-    ALLOWED_ORIGINS: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000')
+    ALLOWED_ORIGINS: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5174,http://localhost:3001')
       .split(',')
       .map((o: string) => o.trim())
       .filter(Boolean),

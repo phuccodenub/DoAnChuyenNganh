@@ -131,7 +131,7 @@ Expected:
 #### TC-AUTH-007: Refresh Access Token
 ```
 Method: POST
-Endpoint: /api/auth/refresh-token
+Endpoint: /api/auth/refresh
 Body:
 {
   "refreshToken": "{{refreshToken}}"
