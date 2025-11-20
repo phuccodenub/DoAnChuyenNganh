@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   BookOpen, 
@@ -8,7 +8,8 @@ import {
   CheckCircle,
   PlayCircle,
   FileText,
-  DollarSign
+  DollarSign,
+  Share2
 } from 'lucide-react';
 import { useCourse } from '@/hooks/useCoursesData';
 import { useEnrollCourse } from '@/hooks/useCoursesData';
@@ -19,6 +20,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Modal, { ModalBody, ModalFooter } from '@/components/ui/Modal';
 import { ROUTES, generateRoute } from '@/constants/routes';
+import { QUERY_KEYS } from '@/constants/queryKeys';
+import { useQueryClient } from '@tanstack/react-query';
+import { CurriculumSidebar } from '@/components/domain/learning/CurriculumSidebar';
+import type { Section } from '@/services/api/lesson.api';
+import type { Course } from '@/services/api/course.api';
+import { MainLayout } from '@/layouts/MainLayout';
 
 /**
  * Course Detail Page
@@ -30,34 +37,88 @@ import { ROUTES, generateRoute } from '@/constants/routes';
  * - Instructor info
  * - Enroll button với confirmation modal
  */
+type DetailedCourse = Course & { sections?: Section[]; is_enrolled?: boolean };
+
 export function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum'>('overview');
+  const [isUserEnrolled, setIsUserEnrolled] = useState(false);
 
-  const courseId = Number(id);
-  const { data: course, isLoading, error } = useCourse(courseId);
+  const courseId = id ?? '';
+  const { data: courseData, isLoading, error } = useCourse(courseId);
+  const course = courseData as DetailedCourse | undefined;
   const { mutate: enrollCourse, isPending: isEnrolling } = useEnrollCourse();
 
+  const curriculumSections = course?.sections ?? [];
+  const learningPath = courseId ? generateRoute.student.learning(courseId) : ROUTES.COURSES;
+
+  useEffect(() => {
+    if (!courseId) {
+      setIsUserEnrolled(false);
+      return;
+    }
+
+    const cachedEnrolled = queryClient.getQueryData<{ data?: { courses?: Course[] } }>(
+      QUERY_KEYS.courses.enrolled()
+    );
+
+    const isCachedEnrollment = cachedEnrolled?.data?.courses?.some(
+      (enrolledCourse) => String(enrolledCourse.id) === String(courseId)
+    );
+
+    setIsUserEnrolled(Boolean(course?.is_enrolled) || Boolean(isCachedEnrollment));
+  }, [course?.is_enrolled, courseId, queryClient]);
+
+  const handleLessonPreviewClick = (lessonId: number) => {
+    console.log('Preview lesson', lessonId);
+  };
+
   const handleEnrollClick = () => {
+    if (!courseId) {
+      return;
+    }
     if (!isAuthenticated) {
       // Redirect to login với return URL
       navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
       return;
     }
-    setShowEnrollModal(true);
+    // setShowEnrollModal(true);
+    // Điều hướng trực tiếp đến LearningPage
+    navigate(learningPath);
   };
 
-  const handleConfirmEnroll = () => {
-    enrollCourse(courseId, {
-      onSuccess: () => {
-        setShowEnrollModal(false);
-        // Redirect to learning page
-        navigate(generateRoute.student.learning(courseId));
-      },
-    });
+  const handlePrimaryAction = () => {
+    if (!courseId) {
+      return;
+    }
+
+    if (isUserEnrolled) {
+      navigate(learningPath);
+      return;
+    }
+
+    handleEnrollClick();
   };
+
+  // const handleConfirmEnroll = () => {
+  //   if (!courseId) {
+  //     return;
+  //   }
+
+  //   enrollCourse(courseId, {
+  //     onSuccess: () => {
+  //       setShowEnrollModal(false);
+  //       setIsUserEnrolled(true);
+  //       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.detail(courseId) });
+  //       // Redirect to learning page
+  //       navigate(learningPath);
+  //     },
+  //   });
+  // };
 
   if (isLoading) {
     return (
@@ -92,9 +153,9 @@ export function CourseDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <MainLayout showSidebar={false}> {/* Chọn showSidebar=true nếu bạn muốn thanh điều hướng bên */}
       {/* Hero section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <div className="bg-gradient-to-r from-green-500 via-teal-600 to-sky-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left: Course info */}
@@ -190,12 +251,13 @@ export function CourseDetailPage() {
 
                   {/* Enroll button */}
                   <Button
-                    onClick={handleEnrollClick}
+                    onClick={handlePrimaryAction}
                     fullWidth
                     size="lg"
                     className="mb-4"
+                    isLoading={isEnrolling && !isUserEnrolled}
                   >
-                    Đăng ký ngay
+                    {isUserEnrolled ? 'Vào học ngay' : 'Đăng ký ngay'}
                   </Button>
 
                   <p className="text-sm text-gray-500 text-center">
@@ -210,67 +272,108 @@ export function CourseDetailPage() {
 
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-8 border-b border-gray-200 flex gap-4">
+          <button
+            type="button"
+            onClick={() => setActiveTab('overview')}
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'overview'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Tổng quan
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('curriculum')}
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'curriculum'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Mục lục khóa học
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Course content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* What you'll learn */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Bạn sẽ học được gì</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    'Nắm vững các kiến thức nền tảng',
-                    'Thực hành với các dự án thực tế',
-                    'Áp dụng vào công việc ngay lập tức',
-                    'Nhận được chứng chỉ hoàn thành',
-                  ].map((item, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+          {/* Left: Tab content */}
+          <div className="lg:col-span-2">
+            {activeTab === 'overview' ? (
+              <div className="space-y-8">
+                {/* What you'll learn */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Bạn sẽ học được gì</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[
+                        'Nắm vững các kiến thức nền tảng',
+                        'Thực hành với các dự án thực tế',
+                        'Áp dụng vào công việc ngay lập tức',
+                        'Nhận được chứng chỉ hoàn thành',
+                      ].map((item, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-gray-700">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
 
-            {/* Course description */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Mô tả khóa học</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="prose max-w-none">
-                  <p className="text-gray-700 whitespace-pre-line">
-                    {course.description}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                {/* Course description */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mô tả khóa học</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose max-w-none">
+                      <p className="text-gray-700 whitespace-pre-line">
+                        {course.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Requirements */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Yêu cầu</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  <li className="flex items-start gap-2 text-gray-700">
-                    <span className="text-blue-600">•</span>
-                    Máy tính có kết nối internet
-                  </li>
-                  <li className="flex items-start gap-2 text-gray-700">
-                    <span className="text-blue-600">•</span>
-                    Tinh thần học hỏi và kiên trì
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+                {/* Requirements */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Yêu cầu</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      <li className="flex items-start gap-2 text-gray-700">
+                        <span className="text-blue-600">•</span>
+                        Máy tính có kết nối internet
+                      </li>
+                      <li className="flex items-start gap-2 text-gray-700">
+                        <span className="text-blue-600">•</span>
+                        Tinh thần học hỏi và kiên trì
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                <CurriculumSidebar
+                  sections={curriculumSections}
+                  onLessonClick={handleLessonPreviewClick}
+                />
+                {curriculumSections.length === 0 && (
+                  <div className="p-6 text-center text-gray-500 text-sm border-t border-gray-100">
+                    Mục lục khóa học đang được cập nhật.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right: Instructor info */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             {course.instructor && (
               <Card>
                 <CardHeader>
@@ -302,12 +405,57 @@ export function CourseDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Nội dung bao gồm</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3 text-gray-700">
+                    <PlayCircle className="w-5 h-5 text-blue-600 mt-1" />
+                    <div>
+                      <p className="font-semibold">Video chất lượng HD</p>
+                      <p className="text-sm text-gray-500">Truy cập mọi lúc, hỗ trợ thiết bị di động</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3 text-gray-700">
+                    <FileText className="w-5 h-5 text-blue-600 mt-1" />
+                    <div>
+                      <p className="font-semibold">Tài liệu tải về</p>
+                      <p className="text-sm text-gray-500">Slide bài giảng, bài tập thực hành, checklist</p>
+                    </div>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Chia sẻ khóa học</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">
+                  Giới thiệu khóa học đến bạn bè hoặc đồng nghiệp để cùng học và nhận ưu đãi nhóm.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <Share2 className="w-4 h-4" />
+                    Sao chép liên kết
+                  </button>
+                  <button className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <Users className="w-4 h-4" />
+                    Mời vào lớp học
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
 
       {/* Enrollment confirmation modal */}
-      <Modal
+      {/* <Modal
         isOpen={showEnrollModal}
         onClose={() => setShowEnrollModal(false)}
         title="Xác nhận đăng ký"
@@ -342,9 +490,10 @@ export function CourseDetailPage() {
             Xác nhận đăng ký
           </Button>
         </ModalFooter>
-      </Modal>
-    </div>
+      </Modal> */}
+    </MainLayout>
   );
 }
 
-export default CourseDetailPage;
+export default CourseDetailPage; 
+ 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, BookOpen, Users, Award, TrendingUp } from 'lucide-react';
 import { MainLayout } from '@/layouts/MainLayout';
 import { CourseCard } from '@/components/domain/course/CourseCard';
@@ -6,6 +7,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useCourses } from '@/hooks/useCoursesData';
 import { useDebounce } from '@/hooks/useDebounce';
 import { CourseFilters, Course } from '@/services/api/course.api';
+import { generateRoute } from '@/constants/routes';
 
 /**
  * Course Catalog Page - Dashboard Layout
@@ -66,7 +68,7 @@ function SearchHeader({
               {/* Category Dropdown */}
               <select
                 value={filters.category_id || ''}
-                onChange={(e) => onFilterChange('category_id', e.target.value ? Number(e.target.value) : undefined)}
+                onChange={(e) => onFilterChange('category_id', e.target.value || undefined)}
                 className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">Danh mục</option>
@@ -121,9 +123,10 @@ function SearchHeader({
 interface CourseGridProps {
   courses: Course[];
   isLoading: boolean;
+  onCourseClick: (courseId: string) => void;
 }
 
-function CourseGrid({ courses, isLoading }: CourseGridProps) {
+function CourseGrid({ courses, isLoading, onCourseClick }: CourseGridProps) {
   // Lấy 4 khóa học đầu tiên
   const displayCourses = courses.slice(0, 4);
 
@@ -150,7 +153,7 @@ function CourseGrid({ courses, isLoading }: CourseGridProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {displayCourses.map((course) => (
-          <CourseCard key={course.id} course={course} />
+          <CourseCard key={course.id} course={course} onCourseClick={onCourseClick} />
         ))}
       </div>
     </div>
@@ -253,9 +256,10 @@ function PlatformPromotion() {
 // ============================================================================
 interface RecommendedSectionProps {
   courses: Course[];
+  onCourseClick: (courseId: string) => void;
 }
 
-function RecommendedSection({ courses }: RecommendedSectionProps) {
+function RecommendedSection({ courses, onCourseClick }: RecommendedSectionProps) {
   // 1. Lấy tất cả các khóa học sau 4 khóa đầu tiên (index 4 trở đi)
   const availableCourses = courses.slice(4);
 
@@ -292,7 +296,7 @@ function RecommendedSection({ courses }: RecommendedSectionProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {recommendedCourses.map((course) => (
-          <CourseCard key={course.id} course={course} />
+          <CourseCard key={course.id} course={course} onCourseClick={onCourseClick} />
         ))}
       </div>
     </div>
@@ -307,9 +311,11 @@ export function CourseCatalogPage() {
   const [filters, setFilters] = useState<Partial<CourseFilters>>({
     status: 'published',
   });
+  const navigate = useNavigate();
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
+  
   // Fetch courses - lấy 12 khóa học (8 cho grid chính + 4 cho recommended)
   const { data, isLoading, error } = useCourses({
     page: 1,
@@ -319,6 +325,10 @@ export function CourseCatalogPage() {
   });
 
   const courses = data?.data?.courses || [];
+
+  const handleCourseClick = (courseId: string) => {
+    navigate(generateRoute.courseDetail(courseId));
+  };
 
   const handleFilterChange = (key: keyof CourseFilters, value: any) => {
     setFilters((prev) => ({
@@ -378,7 +388,11 @@ export function CourseCatalogPage() {
 
         {/* 2. Course Grid - 4 khóa học đầu */}
         {!error && (
-          <CourseGrid courses={courses.slice(0, 4)} isLoading={isLoading} />
+          <CourseGrid
+            courses={courses.slice(0, 4)}
+            isLoading={isLoading}
+            onCourseClick={handleCourseClick}
+          />
         )}
 
         {/* 3. Platform Promotion */}
@@ -388,7 +402,7 @@ export function CourseCatalogPage() {
 
         {/* 4. Recommended Section - 4 khóa học gợi ý */}
         {!isLoading && !error && courses.length > 4 && (
-          <RecommendedSection courses={courses} />
+          <RecommendedSection courses={courses} onCourseClick={handleCourseClick} />
         )}
       </div>
     </MainLayout>

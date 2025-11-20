@@ -28,7 +28,7 @@ export const QUERY_KEYS = {
   courses: {
     all: ['courses'] as const,
     list: (filters?: unknown) => ['courses', 'list', filters] as const,
-    detail: (id: number) => ['courses', 'detail', id] as const,
+    detail: (id: string | number | undefined) => ['courses', 'detail', id] as const,
     enrolled: (filters?: unknown) => ['courses', 'enrolled', filters] as const,
     instructor: (id?: number) => ['courses', 'instructor', id] as const,
     students: (courseId: number) => ['courses', courseId, 'students'] as const,

@@ -61,13 +61,16 @@ function AppRoutes() {
         <Route path={ROUTES.COURSES} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSE_DETAIL} element={<CourseDetailPage />} />
         
+        {/* Public Learning Route - Tạm thời public để test */}
+        <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
+
         {/* Protected routes - Cần authentication */}
         <Route element={<ProtectedRoute />}>
           {/* Student routes */}
           <Route element={<RoleGuard allowedRoles={['student']} />}>
             <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
             <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentDashboard />} />
-            <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
+            {/* <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} /> */}
             <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
             <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
@@ -105,7 +108,7 @@ function AppRoutes() {
             </Route>
           </Route>
         </Route>
-        
+
         {/* 404 Not Found */}
         <Route path={ROUTES.NOT_FOUND} element={<NotFoundPage />} />
         <Route path="*" element={<Navigate to={ROUTES.NOT_FOUND} replace />} />

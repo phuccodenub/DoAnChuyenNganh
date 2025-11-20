@@ -20,14 +20,17 @@ export function useCourses(filters?: CourseFilters) {
 /**
  * Hook lấy chi tiết course
  */
-export function useCourse(id: number) {
+export function useCourse(id?: string) {
   return useQuery({
     queryKey: QUERY_KEYS.courses.detail(id),
     queryFn: async () => {
+      if (!id) {
+        throw new Error('Course ID is required');
+      }
       const response = await courseApi.getById(id);
-      return response.data.data.course;
+      return response.data.data;
     },
-    enabled: !!id,
+    enabled: Boolean(id),
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 }
@@ -53,7 +56,7 @@ export function useEnrollCourse() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (courseId: number) => courseApi.enroll(courseId),
+    mutationFn: (courseId: string) => courseApi.enroll(courseId),
     onSuccess: () => {
       toast.success('Đăng ký khóa học thành công!');
       
@@ -81,7 +84,7 @@ export function useUnenrollCourse() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (courseId: number) => courseApi.unenroll(courseId),
+    mutationFn: (courseId: string) => courseApi.unenroll(courseId),
     onSuccess: () => {
       toast.success('Hủy đăng ký thành công');
       
