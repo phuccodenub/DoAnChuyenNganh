@@ -100,4 +100,19 @@ export function useUnenrollCourse() {
   });
 }
 
+/**
+ * Hook lấy tiến độ học tập trong khóa học
+ */
+export function useCourseProgress(courseId: number, enabled: boolean = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.courses.progress(courseId),
+    queryFn: async () => {
+      const response = await courseApi.getProgress(courseId);
+      return response.data.data;
+    },
+    enabled: !!courseId && enabled,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
 export default useCourses;

@@ -328,6 +328,36 @@
       "assignments": "Assignment submissions",
       "liveSessions": "Access to live sessions"
     }
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search courses, lessons, users...",
+    "noResults": "No results found",
+    "searching": "Searching...",
+    "clearSearch": "Clear search",
+    "types": {
+      "course": "Course",
+      "lesson": "Lesson",
+      "user": "User",
+      "quiz": "Quiz",
+      "assignment": "Assignment"
+    }
+  },
+  "recommendations": {
+    "title": "Recommended For You",
+    "trending": "Trending Now",
+    "basedOnInterests": "Based on your interests",
+    "popular": "Popular",
+    "recentlyAdded": "Recently Added",
+    "viewAll": "View all",
+    "noRecommendations": "No recommendations available"
+  },
+  "accessibility": {
+    "skipToMain": "Skip to main content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "toggleDarkMode": "Toggle dark mode",
+    "clearSearch": "Clear search"
   }
 }
 

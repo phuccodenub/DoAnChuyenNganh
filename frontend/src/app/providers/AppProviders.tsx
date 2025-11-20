@@ -54,18 +54,24 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   // Listen to token changes and reconnect Socket.IO when token is refreshed
   useEffect(() => {
-    const unsubscribe = useAuthStore.subscribe(
-      (state) => state.tokens?.accessToken,
-      (accessToken) => {
-        // Only reconnect if already authenticated and token changed
-        if (isAuthenticated && accessToken && socketService.isConnected()) {
-          console.log('[AppProviders] Token updated, reconnecting Socket.IO...');
-          socketService.reconnectWithToken(accessToken).catch((error) => {
-            console.error('[AppProviders] Failed to reconnect Socket.IO:', error);
-          });
-        }
+    let previousToken: string | undefined = useAuthStore.getState().tokens?.accessToken;
+
+    const unsubscribe = useAuthStore.subscribe((state) => {
+      const currentToken = state.tokens?.accessToken;
+      // Only reconnect if already authenticated and token changed
+      if (
+        isAuthenticated && 
+        currentToken && 
+        currentToken !== previousToken && 
+        socketService.isConnected()
+      ) {
+        console.log('[AppProviders] Token updated, reconnecting Socket.IO...');
+        socketService.reconnectWithToken(currentToken).catch((error) => {
+          console.error('[AppProviders] Failed to reconnect Socket.IO:', error);
+        });
       }
-    );
+      previousToken = currentToken;
+    });
 
     return unsubscribe;
   }, [isAuthenticated]);

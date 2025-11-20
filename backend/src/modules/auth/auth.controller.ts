@@ -187,5 +187,33 @@ export class AuthController {
       next(error);
     }
   }
+
+  // Forgot password - request password reset
+  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      await this.authService.forgotPassword(email);
+      
+      // Return success message even if email doesn't exist (for security)
+      responseUtils.sendSuccess(res, 'Password reset email sent successfully. Please check your email.', null);
+    } catch (error: unknown) {
+      logger.error('Error in forgot password:', error);
+      next(error);
+    }
+  }
+
+  // Reset password - with token
+  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token, password } = req.body;
+      await this.authService.resetPassword(token, password);
+      
+      responseUtils.sendSuccess(res, 'Password reset successfully. Please login with your new password.', null);
+    } catch (error: unknown) {
+      logger.error('Error resetting password:', error);
+      next(error);
+    }
+  }
 }
+
 
