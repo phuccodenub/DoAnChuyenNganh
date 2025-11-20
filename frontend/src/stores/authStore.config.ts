@@ -33,7 +33,9 @@ export function partializeAuthState(state: AuthStore): Pick<AuthState, 'user' | 
  * Chỉ chạy trong development
  */
 export function setupLocalStorageWatcher() {
-  if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') {
+  // Check if we're in browser and not in production
+  const isProduction = typeof import.meta !== 'undefined' && import.meta.env.PROD;
+  if (typeof window === 'undefined' || isProduction) {
     return;
   }
 

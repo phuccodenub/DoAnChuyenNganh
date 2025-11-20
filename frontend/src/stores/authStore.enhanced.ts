@@ -11,6 +11,7 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
+  full_name?: string; // Optional for backward compatibility
   role: 'student' | 'instructor' | 'admin' | 'super_admin';
   avatar_url?: string;
   bio?: string;

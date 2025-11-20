@@ -1,6 +1,6 @@
 // Ensure runtime alias resolution for compiled JS (optional in tests/CI)
 try { require('module-alias/register'); } catch { /* no-op for CI */ }
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { corsMiddleware } from './config/cors.config';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -79,11 +79,11 @@ app.use(helmet());
 
 // CORS configuration (centralized)
 // Skip CORS for Socket.IO path (Socket.IO handles its own CORS)
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction): void => {
   if (req.path?.startsWith('/socket.io')) {
     return next(); // Skip CORS middleware for Socket.IO
   }
-  corsMiddleware(req, res, next);
+  corsMiddleware(req as any, res as any, next);
 });
 
 // Rate limiting (allow disabling in tests via DISABLE_RATE_LIMIT=true)

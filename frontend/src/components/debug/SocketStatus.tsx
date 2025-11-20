@@ -94,7 +94,7 @@ export function SocketStatus() {
         </div>
       )}
       <div className="text-gray-500 mt-1">
-        URL: {(import.meta as any).env?.VITE_WS_URL || 'http://localhost:3000'}
+        URL: {import.meta.env.VITE_WS_URL || 'http://localhost:3000'}
       </div>
     </div>
   );
