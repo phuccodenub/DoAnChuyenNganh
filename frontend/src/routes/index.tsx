@@ -42,6 +42,16 @@ const AdminDashboard = lazy(() => import('@/pages/admin/DashboardPage'));
 const UserManagementPage = lazy(() => import('@/pages/admin/UserManagementPage'));
 const CourseManagementPage = lazy(() => import('@/pages/admin/CourseManagementPage'));
 const CategoryManagementPage = lazy(() => import('@/pages/admin/CategoryManagementPage'));
+const SystemSettingsPage = lazy(() => import('@/pages/admin/SystemSettingsPage'));
+const ReportsPage = lazy(() => import('@/pages/admin/ReportsPage'));
+const ActivityLogsPage = lazy(() => import('@/pages/admin/ActivityLogsPage'));
+
+// Auth pages (Batch 9)
+const VerifyEmailPage = lazy(() => import('@/pages/auth/VerifyEmailPage'));
+const TwoFactorSetupPage = lazy(() => import('@/pages/auth/TwoFactorSetupPage'));
+const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
+const NotificationsPage = lazy(() => import('@/pages/student/NotificationsPage'));
 
 /**
  * Main Application Routes
@@ -60,6 +70,12 @@ function AppRoutes() {
         <Route path={ROUTES.HOME} element={<Home />} />
         <Route path={ROUTES.COURSES} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSE_DETAIL} element={<CourseDetailPage />} />
+
+        {/* Auth routes - Public (no authentication required) */}
+        <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
+        <Route path={ROUTES.TWO_FACTOR} element={<TwoFactorSetupPage />} />
+        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
         
         {/* Protected routes - Cần authentication */}
         <Route element={<ProtectedRoute />}>
@@ -73,6 +89,7 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
             <Route path={ROUTES.STUDENT.PROFILE} element={<ProfilePage />} />
             <Route path={ROUTES.STUDENT.SETTINGS} element={<SettingsPage />} />
+            <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
           </Route>
           
           {/* Instructor routes */}
@@ -102,6 +119,9 @@ function AppRoutes() {
               <Route path={ROUTES.ADMIN.USERS} element={<UserManagementPage />} />
               <Route path={ROUTES.ADMIN.COURSES} element={<CourseManagementPage />} />
               <Route path={ROUTES.ADMIN.CATEGORIES} element={<CategoryManagementPage />} />
+              <Route path={ROUTES.ADMIN.SYSTEM_SETTINGS} element={<SystemSettingsPage />} />
+              <Route path={ROUTES.ADMIN.REPORTS} element={<ReportsPage />} />
+              <Route path={ROUTES.ADMIN.ACTIVITY_LOGS} element={<ActivityLogsPage />} />
             </Route>
           </Route>
         </Route>

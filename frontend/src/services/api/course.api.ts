@@ -62,9 +62,56 @@ export interface CourseListResponse {
 export interface CourseDetailResponse {
   success: boolean;
   message: string;
-  data: {
-    course: Course;
-  };
+  data: Course;
+}
+
+export interface CourseProgress {
+  course_id: number;
+  user_id: number;
+  lessons_completed: number;
+  total_lessons: number;
+  percent: number;
+  last_activity_at?: string;
+}
+
+export interface CourseProgressResponse {
+  success: boolean;
+  message: string;
+  data: CourseProgress;
+}
+
+export interface CourseSection {
+  id: number;
+  course_id: number;
+  title: string;
+  description?: string;
+  order: number;
+  lessons_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SectionsResponse {
+  success: boolean;
+  message: string;
+  data: CourseSection[];
+}
+
+export interface CourseQuiz {
+  id: number;
+  course_id: number;
+  title: string;
+  description?: string;
+  questions_count?: number;
+  passing_percentage?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuizzesResponse {
+  success: boolean;
+  message: string;
+  data: CourseQuiz[];
 }
 
 export const courseApi = {
@@ -139,6 +186,27 @@ export const courseApi = {
    */
   delete: (id: number) => {
     return httpClient.delete(`/courses/${id}`);
+  },
+
+  /**
+   * Lấy tiến độ học tập trong khóa học
+   */
+  getProgress: (courseId: number) => {
+    return httpClient.get<CourseProgressResponse>(`/courses/${courseId}/progress`);
+  },
+
+  /**
+   * Lấy danh sách sections của khóa học
+   */
+  getSections: (courseId: number) => {
+    return httpClient.get<SectionsResponse>(`/courses/${courseId}/sections`);
+  },
+
+  /**
+   * Lấy danh sách quizzes của khóa học
+   */
+  getQuizzes: (courseId: number) => {
+    return httpClient.get<QuizzesResponse>(`/courses/${courseId}/quizzes`);
   },
 };
 

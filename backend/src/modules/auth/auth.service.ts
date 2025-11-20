@@ -6,6 +6,7 @@ import { RESPONSE_CONSTANTS } from '../../constants/response.constants';
 import { ApiError } from '../../errors/api.error';
 import { userUtils } from '../../utils/user.util';
 import logger from '../../utils/logger.util';
+import { randomUUID } from 'crypto';
 
 /**
  * Auth Module Service
@@ -442,6 +443,123 @@ export class AuthModuleService {
       return loginResult;
     } catch (error: unknown) {
       logger.error('Error logging in with 2FA:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Request password reset
+   */
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      logger.info('Password reset requested', { email });
+
+      // Find user by email
+      const user = await this.authRepository.findByEmail(email);
+      
+      if (!user) {
+        // Return success for security (don't reveal if email exists)
+        logger.warn('Password reset requested for non-existent email', { email });
+        return;
+      }
+
+      // Generate reset token (UUID)
+      const resetToken = randomUUID();
+      
+      // Store token with 24 hour expiry in database
+      const expiryTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      // Store in database for persistence - using user metadata or a separate token store
+      // For now, we'll store it in cache with expiry
+      const cacheKey = `password-reset:${resetToken}`;
+      await globalServices.cache.set(cacheKey, JSON.stringify({ userId: user.id, expiryTime: expiryTime.toISOString() }), 24 * 60 * 60);
+
+      // Send reset email if email service is configured
+      // For development, this can be skipped or logged
+      const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+      
+      logger.info('Password reset link generated', { email, userId: user.id, resetLink });
+      
+      // TODO: Send email via email service when configured
+      // await globalServices.email.sendPasswordResetEmail({
+      //   to: email,
+      //   resetLink,
+      //   expiryTime,
+      // });
+
+      logger.info('Password reset requested successfully', { email, userId: user.id });
+    } catch (error: unknown) {
+      logger.error('Error requesting password reset:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, password: string): Promise<void> {
+    try {
+      logger.info('Password reset attempted');
+
+      // Validate token format
+      if (!token || typeof token !== 'string') {
+        throw ApiError.badRequest('Invalid reset token');
+      }
+
+      // Verify token validity and get user ID
+      const cacheKey = `password-reset:${token}`;
+      let userId: string | null = null;
+
+      try {
+        const cachedData = await globalServices.cache.get(cacheKey);
+        
+        if (cachedData) {
+          const parsedData = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
+          const expiryTime = new Date(parsedData.expiryTime);
+          
+          // Check if token is expired
+          if (new Date() > expiryTime) {
+            throw ApiError.badRequest('Reset token has expired');
+          }
+          
+          userId = parsedData.userId;
+        } else {
+          throw ApiError.badRequest('Invalid or expired reset token');
+        }
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message.includes('token')) {
+          throw error;
+        }
+        throw ApiError.badRequest('Invalid reset token');
+      }
+
+      if (!userId) {
+        throw ApiError.badRequest('Invalid reset token');
+      }
+
+      // Get user
+      const user = await this.authRepository.getUserForAuth(userId);
+      if (!user) {
+        throw ApiError.notFound('User not found');
+      }
+
+      // Validate new password strength
+      if (!password || password.length < 8) {
+        throw ApiError.badRequest('Password must be at least 8 characters long');
+      }
+
+      // Hash new password using auth service
+      const hashedPassword = await globalServices.auth.hashPassword(password);
+
+      // Update user password - increments token version to invalidate old tokens
+      await this.authRepository.updateUserPassword(userId, hashedPassword, user.token_version + 1);
+
+      // Clear reset token from cache
+      await globalServices.cache.delete(cacheKey);
+
+      logger.info('Password reset successfully', { userId });
+    } catch (error: unknown) {
+      logger.error('Error resetting password:', error);
       throw error;
     }
   }

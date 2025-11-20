@@ -472,6 +472,156 @@
       "delete": "Xóa",
       "viewDetails": "Xem chi tiết"
     }
+  },
+  "admin": {
+    "systemSettings": {
+      "title": "Cài đặt hệ thống",
+      "desc": "Quản lý các cài đặt và cấu hình hệ thống",
+      "general": "Cài đặt chung",
+      "email": "Email",
+      "security": "Bảo mật",
+      "features": "Các tính năng",
+      "saved": "Cài đặt đã lưu thành công",
+      "savingError": "Lỗi khi lưu cài đặt"
+    },
+    "reports": {
+      "title": "Báo cáo & Phân tích",
+      "desc": "Xem tổng quan phân tích nền tảng",
+      "totalUsers": "Tổng người dùng",
+      "totalCourses": "Tổng khóa học",
+      "totalEnrollments": "Tổng ghi danh",
+      "totalRevenue": "Tổng doanh thu",
+      "completionRate": "Tỷ lệ hoàn thành",
+      "userGrowth": "Tăng trưởng người dùng",
+      "topCourses": "Khóa học hàng đầu",
+      "courseName": "Tên khóa học",
+      "enrollments": "Ghi danh",
+      "rating": "Xếp hạng",
+      "revenue": "Doanh thu",
+      "printReport": "In báo cáo",
+      "exportAsCsv": "Xuất CSV"
+    },
+    "activityLogs": {
+      "title": "Nhật ký hoạt động",
+      "desc": "Theo dõi hoạt động hệ thống",
+      "timestamp": "Thời gian",
+      "user": "Người dùng",
+      "action": "Hành động",
+      "resourceType": "Loại tài nguyên",
+      "status": "Trạng thái",
+      "ipAddress": "Địa chỉ IP",
+      "allActions": "Tất cả hành động",
+      "allTypes": "Tất cả loại",
+      "allStatuses": "Tất cả trạng thái",
+      "exportCsv": "Xuất CSV",
+      "exportJson": "Xuất JSON",
+      "clearOldLogs": "Xóa nhật ký cũ",
+      "confirmClearOldLogs": "Bạn chắc chắn muốn xóa nhật ký cũ hơn 90 ngày?",
+      "logsExported": "Nhật ký đã xuất thành công",
+      "logsCleared": "Nhật ký cũ đã xóa thành công"
+    },
+    "generalSettings": {
+      "siteName": "Tên trang web",
+      "logoUrl": "URL Logo",
+      "faviconUrl": "URL Favicon",
+      "timezone": "Múi giờ",
+      "language": "Ngôn ngữ",
+      "currency": "Tiền tệ",
+      "maxUploadSize": "Kích thước upload tối đa",
+      "generalSettingsUpdated": "Cài đặt chung đã cập nhật",
+      "errorUpdatingGeneralSettings": "Lỗi khi cập nhật cài đặt chung"
+    },
+    "emailSettings": {
+      "emailFrom": "Email từ",
+      "emailProvider": "Nhà cung cấp email",
+      "emailHost": "Host email",
+      "emailPort": "Cổng email",
+      "emailUsername": "Tên đăng nhập email",
+      "smtpEncryption": "Mã hóa SMTP",
+      "useTls": "Sử dụng TLS",
+      "testConnection": "Kiểm tra kết nối",
+      "emailSettingsUpdated": "Cài đặt email đã cập nhật",
+      "errorUpdatingEmailSettings": "Lỗi khi cập nhật cài đặt email",
+      "emailConnectionSuccessful": "Kết nối email thành công",
+      "emailConnectionFailed": "Kết nối email thất bại"
+    },
+    "securitySettings": {
+      "passwordMinLength": "Chiều dài mật khẩu tối thiểu",
+      "sessionTimeoutMinutes": "Timeout phiên (phút)",
+      "requireEmailVerification": "Yêu cầu xác thực email",
+      "featureTwoFactor": "Xác thực hai yếu tố",
+      "apiRateLimit": "Giới hạn tỷ lệ API",
+      "apiRateLimitWindow": "Cửa sổ giới hạn tỷ lệ API",
+      "securitySettingsUpdated": "Cài đặt bảo mật đã cập nhật",
+      "errorUpdatingSecuritySettings": "Lỗi khi cập nhật cài đặt bảo mật"
+    },
+    "featureFlags": {
+      "systemFeatures": "Tính năng hệ thống",
+      "learningFeatures": "Tính năng học tập",
+      "userFeatures": "Tính năng người dùng",
+      "maintenanceMode": "Chế độ bảo trì",
+      "maintenanceMode_desc": "Tạm dừng hệ thống để bảo trì",
+      "allowRegistration": "Cho phép đăng ký",
+      "allowNewUserRegistrations": "Cho phép người dùng mới đăng ký",
+      "liveStreaming": "Phát trực tiếp",
+      "enableLiveCourses": "Cho phép các khóa học trực tiếp",
+      "chatSystem": "Hệ thống trò chuyện",
+      "enableCourseChat": "Cho phép trò chuyện trong khóa học",
+      "discussionForums": "Diễn đàn thảo luận",
+      "enableCourseForums": "Cho phép diễn đàn khóa học",
+      "courseReviews": "Đánh giá khóa học",
+      "allowCourseRatings": "Cho phép người dùng đánh giá khóa học",
+      "twoFactorAuth": "Xác thực hai yếu tố",
+      "enable2faForUsers": "Cho phép người dùng bật 2FA",
+      "socialLogin": "Đăng nhập xã hội",
+      "enableSocialAuth": "Cho phép đăng nhập qua mạng xã hội",
+      "userProfiles": "Hồ sơ người dùng",
+      "allowPublicUserProfiles": "Cho phép hồ sơ người dùng công khai",
+      "featureFlagsUpdated": "Cờ tính năng đã cập nhật",
+      "errorUpdatingFeatureFlags": "Lỗi khi cập nhật cờ tính năng"
+    }
+  },
+  "period": {
+    "today": "Hôm nay",
+    "week": "Tuần này",
+    "month": "Tháng này",
+    "year": "Năm này"
+  },
+  "time": {
+    "thisMonth": "tháng này",
+    "fromPaidCourses": "từ các khóa học trả phí",
+    "coursesAvailable": "khóa học có sẵn"
+  },
+  "search": {
+    "title": "Tìm kiếm",
+    "placeholder": "Tìm kiếm khóa học, bài học, người dùng...",
+    "noResults": "Không tìm thấy kết quả",
+    "searching": "Đang tìm kiếm...",
+    "clearSearch": "Xóa tìm kiếm",
+    "types": {
+      "course": "Khóa học",
+      "lesson": "Bài học",
+      "user": "Người dùng",
+      "quiz": "Bài kiểm tra",
+      "assignment": "Bài tập"
+    }
+  },
+  "recommendations": {
+    "title": "Được Đề Xuất Cho Bạn",
+    "trending": "Đang Xu Hướng",
+    "basedOnInterests": "Dựa trên sở thích của bạn",
+    "popular": "Phổ biến",
+    "recentlyAdded": "Vừa thêm",
+    "viewAll": "Xem tất cả",
+    "noRecommendations": "Không có đề xuất nào"
+  },
+  "accessibility": {
+    "skipToMain": "Bỏ qua đến nội dung chính",
+    "openMenu": "Mở menu",
+    "closeMenu": "Đóng menu",
+    "toggleDarkMode": "Chuyển đổi chế độ tối",
+    "clearSearch": "Xóa tìm kiếm"
   }
 }
+
 

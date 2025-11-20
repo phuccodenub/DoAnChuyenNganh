@@ -25,7 +25,7 @@ export function useCourse(id: number) {
     queryKey: QUERY_KEYS.courses.detail(id),
     queryFn: async () => {
       const response = await courseApi.getById(id);
-      return response.data.data.course;
+      return response.data.data;
     },
     enabled: !!id,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -94,6 +94,21 @@ export function useUnenrollCourse() {
       const message = error.response?.data?.message || 'Hủy đăng ký thất bại';
       toast.error(message);
     },
+  });
+}
+
+/**
+ * Hook lấy tiến độ học tập trong khóa học
+ */
+export function useCourseProgress(courseId: number, enabled: boolean = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.courses.progress(courseId),
+    queryFn: async () => {
+      const response = await courseApi.getProgress(courseId);
+      return response.data.data;
+    },
+    enabled: !!courseId && enabled,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 }
 

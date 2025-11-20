@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { ChatController } from './chat.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
+import { messageRateLimiter } from '../../middlewares/message-rate-limit.middleware';
 
 const router = Router();
 const chatController = new ChatController();
@@ -25,7 +26,11 @@ router.get('/courses/:courseId/messages', chatController.getMessages);
  * @desc    Send a message to course chat (REST fallback)
  * @access  Private (authenticated users in the course)
  */
-router.post('/courses/:courseId/messages', chatController.sendMessage);
+router.post(
+  '/courses/:courseId/messages',
+  messageRateLimiter.limit,
+  chatController.sendMessage
+);
 
 /**
  * @route   GET /chat/courses/:courseId/messages/search
