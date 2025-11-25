@@ -485,7 +485,7 @@ export function CreateLiveStreamPage() {
             abrBandWidthFactor: 0.95,
             abrBandWidthUpFactor: 0.7,
             
-            xhrSetup: (xhr, url) => {
+            xhrSetup: (xhr: any, url: any) => {
               xhr.withCredentials = false;
             },
           });
@@ -523,7 +523,7 @@ export function CreateLiveStreamPage() {
               setStreamPreviewLoading(true);
             });
             
-            instance.on(Hls.Events.LEVEL_LOADED, (_, data) => {
+            instance.on(Hls.Events.LEVEL_LOADED, (_: any, data: any) => {
               const targetDuration = Math.max(data.details?.targetduration || 2, 0.5);
               const totalDuration = Math.max(
                 data.details?.totalduration ||
@@ -541,7 +541,7 @@ export function CreateLiveStreamPage() {
               });
             });
 
-            instance.on(Hls.Events.FRAG_LOADED, (_, data) => {
+            instance.on(Hls.Events.FRAG_LOADED, (_: any, data: any) => {
               const fragStatsWrapper = data as unknown as { stats?: { trequest?: number; tload?: number } };
               const tRequest = fragStatsWrapper.stats?.trequest ?? 0;
               const tLoad = fragStatsWrapper.stats?.tload ?? 0;
@@ -636,7 +636,7 @@ export function CreateLiveStreamPage() {
               }
             }, 500);
             
-            instance.on(Hls.Events.ERROR, (_, data) => {
+            instance.on(Hls.Events.ERROR, (_: any, data: any) => {
               // Bỏ qua non-fatal errors (có thể tự recover)
               if (!data.fatal) {
                 // BufferStalledError - cần xử lý để tránh giật lag

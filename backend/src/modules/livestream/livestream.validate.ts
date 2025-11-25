@@ -4,7 +4,7 @@ export const liveStreamValidation = {
   create: [
     body('course_id')
       .optional({ nullable: true, checkFalsy: true })
-      .custom((value) => {
+      .custom((value: any) => {
         if (!value || value === null) return true; // Allow null/empty
         // If provided, must be valid UUID
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -20,7 +20,7 @@ export const liveStreamValidation = {
     body('duration_minutes').optional().isInt({ min: 1 }).toInt(),
     body('meeting_url')
       .optional()
-      .custom((value) => {
+      .custom((value: any) => {
         if (!value) return true; // Optional, allow empty
         // Chấp nhận HTTP/HTTPS URL hoặc RTMP URL
         const httpUrlPattern = /^https?:\/\/.+/i;
@@ -37,7 +37,7 @@ export const liveStreamValidation = {
     body('webrtc_config').optional().isObject(),
     body('playback_url')
       .optional()
-      .custom((value, { req }) => {
+      .custom((value: any, { req }: any) => {
         // Nếu ingest_type là rtmp và có playback_url, thì phải là URL hợp lệ
         // Nếu không có playback_url, backend sẽ tự generate (OK)
         if (req.body?.ingest_type === 'rtmp' && value) {
@@ -60,7 +60,7 @@ export const liveStreamValidation = {
       .isLength({ max: 100 }),
     body('thumbnail_url')
       .optional({ nullable: true, checkFalsy: true })
-      .custom((value) => {
+      .custom((value: any) => {
         if (!value || value === null || value === '') return true; // Allow null/empty
         // If provided, must be valid URL
         const httpUrlPattern = /^https?:\/\/.+/i;

@@ -123,7 +123,6 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
         maxBufferSize: 200 * 1000 * 1000, // 200MB buffer size (tăng để có buffer lớn hơn)
         maxBufferHole: 1.0, // Tolerance cho buffer gaps (tăng để cho phép holes lớn hơn)
         maxStarvationDelay: 15, // Max delay khi buffer starved (tăng để có thời gian recover)
-        maxMaxBufferHole: 2.0, // Max buffer hole tolerance (tăng để cho phép holes lớn hơn)
         
         // Level selection
         startLevel: -1, // Tự động chọn level tốt nhất
@@ -143,7 +142,6 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
         fragLoadingRetryDelay: 2000, // Delay 2s (tăng để đợi file sẵn sàng)
         
         // Tối ưu fragment loading để build buffer nhanh hơn
-        fragLoadingTimeOutMax: 60000, // Max timeout 60s
         startFragPrefetch: true, // Prefetch fragment đầu tiên ngay
         testBandwidth: true, // Test bandwidth để chọn level tốt nhất
         
@@ -198,11 +196,11 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
         }
       };
 
-      hls.on(Hls.Events.MANIFEST_LOADING, (_, data) => {
+      hls.on(Hls.Events.MANIFEST_LOADING, (_: any, data: any) => {
         console.log('[HlsPreview] Loading manifest from:', playbackUrl, data);
       });
       
-      hls.on(Hls.Events.MANIFEST_LOADED, (_, data) => {
+      hls.on(Hls.Events.MANIFEST_LOADED, (_: any, data: any) => {
         console.log('[HlsPreview] Manifest loaded:', {
           levels: data.levels?.length || 0,
           firstLevel: data.levels?.[0],
@@ -215,11 +213,11 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
         retryCount = 0; // Reset retry count khi manifest parsed thành công
         playAttemptedRef.current = false; // Reset để có thể thử lại
         loadedFragmentsCount = 0; // Reset fragment counter
-        const fragmentCount = data.levels?.[0]?.fragments?.length || 0;
+        const fragmentCount = (data as any).levels?.[0]?.fragments?.length || 0;
         console.log('[HlsPreview] Manifest parsed:', {
           levels: data.levels?.length || 0,
           fragments: fragmentCount,
-          totalDuration: data.levels?.[0]?.totalduration,
+          totalDuration: (data as any).levels?.[0]?.totalduration,
         });
         
         // Nếu không có fragments, có thể stream chưa bắt đầu hoặc đang được tạo
@@ -233,7 +231,7 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
       });
       
       // Level loaded event - khi level playlist được load thành công
-      hls.on(Hls.Events.LEVEL_LOADED, (_, data) => {
+      hls.on(Hls.Events.LEVEL_LOADED, (_: any, data: any) => {
         retryCount = 0; // Reset retry count khi level loaded thành công
         const targetDuration = Math.max(data.details?.targetduration || DEFAULT_TARGET_DURATION, 1);
         const totalDuration = Math.max(
@@ -267,7 +265,7 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
         }
       });
       
-      hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
+      hls.on(Hls.Events.FRAG_LOADED, (_: any, data: any) => {
         loadedFragmentsCount++;
         // Log fragment loaded để debug (chỉ log mỗi 10 fragments để giảm noise)
         if (loadedFragmentsCount % 10 === 0 || loadedFragmentsCount === 1) {
@@ -279,7 +277,7 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
         console.debug('[HlsPreview] Parsing init segment');
       });
       
-      hls.on(Hls.Events.FRAG_PARSING_DATA, () => {
+      hls.on(Hls.Events.FRAG_PARSING_USERDATA, () => {
         // Không log để giảm noise
       });
       
@@ -370,7 +368,7 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
         }, { once: false });
       }
 
-      hls.on(Hls.Events.ERROR, (_, data) => {
+      hls.on(Hls.Events.ERROR, (_: any, data: any) => {
         // Log tất cả errors để debug (bao gồm cả non-fatal)
         console.error('[HlsPreview] HLS Error:', {
           type: data.type,
@@ -414,9 +412,9 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
           }
           
           // Buffer-related errors khác
-          if (data.type === Hls.ErrorTypes.BUFFER_APPENDING_ERROR || 
-              data.type === Hls.ErrorTypes.BUFFER_APPEND_ERROR ||
-              data.type === Hls.ErrorTypes.BUFFER_STALLED_ERROR) {
+          if (data.type === 'bufferAppendingError' || 
+              data.type === 'bufferAppendError' ||
+              data.type === 'bufferStalledError') {
             // Không log để giảm noise
             return;
           }

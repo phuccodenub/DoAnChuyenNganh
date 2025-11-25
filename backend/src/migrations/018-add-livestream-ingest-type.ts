@@ -26,8 +26,8 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
 }
 
 export async function down(queryInterface: QueryInterface): Promise<void> {
-  await queryInterface.removeIndex(TABLE_NAME, ['webrtc_room_id']);
-  await queryInterface.removeIndex(TABLE_NAME, ['ingest_type']);
+  await queryInterface.removeIndex(TABLE_NAME, 'webrtc_room_id');
+  await queryInterface.removeIndex(TABLE_NAME, 'ingest_type');
   await queryInterface.removeColumn(TABLE_NAME, 'webrtc_config');
   await queryInterface.removeColumn(TABLE_NAME, 'webrtc_room_id');
   await queryInterface.removeColumn(TABLE_NAME, 'ingest_type');

@@ -88,7 +88,7 @@ export class LiveStreamRepository {
       ];
     }
 
-    const result = await LiveSession.findAndCountAll({
+    const result = await (LiveSession as any).findAndCountAll({
       where,
       include: [
         { model: User, as: 'host', attributes: ['id', 'first_name', 'last_name', 'avatar', 'role'] },
