@@ -67,7 +67,13 @@ export const ROUTES = {
     REPORTS: '/admin/reports',
     ANALYTICS: '/admin/analytics',
   },
-  
+
+  // Livestream (common hub)
+  LIVESTREAM: {
+    HUB: '/livestream',
+    SESSION: '/livestream/:sessionId',
+  },
+
   // Common routes
   NOT_FOUND: '/404',
   UNAUTHORIZED: '/unauthorized',
@@ -104,6 +110,9 @@ export const generateRoute = {
       `/instructor/assignments/${assignmentId}/submissions`,
     courseGrades: (courseId: number | string) => `/instructor/courses/${courseId}/grades`,
     livestreamSession: (sessionId: number | string) => `/instructor/livestream/${sessionId}`,
+  },
+  livestream: {
+    session: (sessionId: number | string) => `/livestream/${sessionId}`,
   },
   
   admin: {

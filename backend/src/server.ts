@@ -26,6 +26,7 @@ import './models';
 // Import Socket.IO gateways
 import { ChatGateway } from './modules/chat/chat.gateway';
 import { WebRTCGateway } from './modules/webrtc/webrtc.gateway';
+import { LiveStreamGateway } from './modules/livestream/livestream.gateway';
 
 const PORT = process.env.PORT || 3000;
 
@@ -64,6 +65,7 @@ async function startServer() {
     logger.info('Initializing Socket.IO gateways...');
     new ChatGateway(io);
     new WebRTCGateway(io);
+    new LiveStreamGateway(io);
     logger.info('Socket.IO gateways initialized');
     
     // Start HTTP server (this will also start Socket.IO)

@@ -151,3 +151,36 @@
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-in-out;
 }
+
+/* Reaction emoji animation - bay lên từ dưới như Facebook Live */
+@keyframes reactionFloat {
+  0% {
+    opacity: 0;
+    transform: translateX(0) translateY(0) scale(0.5);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(calc(var(--offset-x) * 0.1)) translateY(-30px) scale(1.2);
+  }
+  30% {
+    transform: translateX(calc(var(--offset-x) * 0.3)) translateY(-120px) scale(1);
+  }
+  50% {
+    transform: translateX(calc(var(--offset-x) * 0.5)) translateY(-200px) scale(1.05);
+  }
+  70% {
+    transform: translateX(calc(var(--offset-x) * 0.7)) translateY(-280px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--offset-x)) translateY(-400px) scale(0.8);
+  }
+}
+
+.reaction-emoji-float {
+  position: absolute;
+  bottom: 20px;
+  animation: reactionFloat 4s ease-out forwards;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}

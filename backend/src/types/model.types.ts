@@ -419,26 +419,92 @@ export interface GradeInstance extends Model, GradeAttributes {}
 
 export interface LiveSessionAttributes {
   id: string;
-  course_id: string;
-  instructor_id: string;
+  host_user_id: string;
+  course_id?: string | null;
   title: string;
   description?: string;
-  scheduled_at: Date;
-  duration_minutes?: number;
-  meeting_url?: string;
-  meeting_id?: string;
-  meeting_password?: string;
-  recording_url?: string;
-  started_at?: Date;
-  ended_at?: Date;
+  scheduled_start?: Date | null;
+  scheduled_end?: Date | null;
+  actual_start?: Date | null;
+  actual_end?: Date | null;
+  duration_minutes?: number | null;
+  meeting_url?: string | null;
+  meeting_id?: string | null;
+  meeting_password?: string | null;
+  platform: string;
+  ingest_type: 'webrtc' | 'rtmp';
+  webrtc_room_id?: string | null;
+  webrtc_config?: Record<string, unknown>;
+  viewer_count: number;
+  thumbnail_url?: string | null;
+  stream_key?: string | null;
+  playback_url?: string | null;
+  recording_url?: string | null;
+  max_participants?: number | null;
+  is_public: boolean;
+  is_recorded: boolean;
+  category?: string | null;
+  metadata?: Record<string, unknown>;
   status: 'scheduled' | 'live' | 'ended' | 'cancelled';
   created_at: Date;
   updated_at: Date;
 }
 
-export interface LiveSessionCreationAttributes extends Optional<LiveSessionAttributes, 'id' | 'created_at' | 'updated_at' | 'status'> {}
+export interface LiveSessionCreationAttributes extends Optional<
+  LiveSessionAttributes,
+  'id' |
+  'created_at' |
+  'updated_at' |
+  'course_id' |
+  'description' |
+  'scheduled_start' |
+  'scheduled_end' |
+  'actual_start' |
+  'actual_end' |
+  'duration_minutes' |
+  'meeting_url' |
+  'meeting_id' |
+  'meeting_password' |
+  'platform' |
+  'ingest_type' |
+  'webrtc_room_id' |
+  'webrtc_config' |
+  'viewer_count' |
+  'thumbnail_url' |
+  'stream_key' |
+  'playback_url' |
+  'recording_url' |
+  'max_participants' |
+  'is_public' |
+  'is_recorded' |
+  'category' |
+  'metadata' |
+  'status'
+> {}
 
 export interface LiveSessionInstance extends Model, LiveSessionAttributes {}
+
+// ===================================
+// LIVE SESSION MESSAGE MODEL INTERFACES
+// ===================================
+
+export interface LiveSessionMessageAttributes {
+  id: string;
+  session_id: string;
+  sender_id: string;
+  message: string;
+  message_type: 'text' | 'emoji' | 'system';
+  reply_to?: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface LiveSessionMessageCreationAttributes extends Optional<
+  LiveSessionMessageAttributes,
+  'id' | 'created_at' | 'updated_at' | 'message_type' | 'reply_to'
+> {}
+
+export interface LiveSessionMessageInstance extends Model, LiveSessionMessageAttributes {}
 
 // ===================================
 // CHAT MESSAGE MODEL INTERFACES

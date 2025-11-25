@@ -13,6 +13,14 @@ function toInt(value: string | undefined, defaultValue: number): number {
   return Number.isFinite(n) ? n : defaultValue;
 }
 
+function toList(value: string | undefined, defaultValue: string[] = []): string[] {
+  if (!value) return defaultValue;
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: toInt(process.env.PORT, 3000),
@@ -96,6 +104,43 @@ export const env = {
     debug: toBool(process.env.DEBUG, false),
     verboseLogging: toBool(process.env.VERBOSE_LOGGING, false),
     hotReload: toBool(process.env.HOT_RELOAD, true)
+  },
+
+  // ============================================
+  // Livestream Configuration
+  // ============================================
+  livestream: {
+    // HLS Base URL - URL để truy cập HLS streams
+    // Format: http://localhost:8080/hls hoặc https://yourdomain.com/hls
+    hlsBaseUrl: process.env.HLS_BASE_URL || 'http://localhost:8080/hls',
+    
+    // RTMP Server URL - URL để OBS connect
+    // Format: rtmp://localhost:1935/live hoặc rtmp://yourdomain.com/live
+    rtmpServerUrl: process.env.RTMP_SERVER_URL || 'rtmp://127.0.0.1/live',
+    
+    // RTMP Control URL - URL để control RTMP streams (drop publisher, etc.)
+    // Format: http://localhost:8080/control
+    // Note: Yêu cầu Nginx-RTMP control module được enable
+    rtmpControlUrl: process.env.RTMP_CONTROL_URL || 'http://localhost:8080/control',
+    
+    // Stream key prefix - prefix cho stream keys (ví dụ: "LS-")
+    streamKeyPrefix: process.env.STREAM_KEY_PREFIX || 'LS-',
+    
+    // Stream key length - độ dài stream key (không tính prefix)
+    streamKeyLength: toInt(process.env.STREAM_KEY_LENGTH, 24),
+
+    // WebRTC ICE servers (STUN/TURN) - used when ingest_type = webrtc
+    webrtc: {
+      stunServers: toList(process.env.WEBRTC_STUN_SERVERS, [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+      ]),
+      turn: {
+        urls: toList(process.env.WEBRTC_TURN_URLS),
+        username: process.env.WEBRTC_TURN_USERNAME || process.env.TURN_SERVER_USERNAME,
+        credential: process.env.WEBRTC_TURN_PASSWORD || process.env.WEBRTC_TURN_CREDENTIAL || process.env.TURN_SERVER_PASSWORD,
+      },
+    },
   }
 };
 

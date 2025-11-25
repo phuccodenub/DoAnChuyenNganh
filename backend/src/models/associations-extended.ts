@@ -255,64 +255,6 @@ export const setupExtendedAssociations = () => {
   });
 
   // ===================================
-  // LIVESTREAM RELATIONSHIPS
-  // ===================================
-  
-  // Course 1 ---< LiveSession
-  (Course as any).hasMany(LiveSession, {
-    foreignKey: 'course_id',
-    as: 'liveSessions',
-    onDelete: 'CASCADE'
-  });
-  (LiveSession as any).belongsTo(Course, {
-    foreignKey: 'course_id',
-    as: 'course'
-  });
-
-  // User (instructor) 1 ---< LiveSession
-  (User as any).hasMany(LiveSession, {
-    foreignKey: 'instructor_id',
-    as: 'hostedSessions'
-  });
-  (LiveSession as any).belongsTo(User, {
-    foreignKey: 'instructor_id',
-    as: 'instructor'
-  });
-
-  // User >---< LiveSession (through LiveSessionAttendance)
-  (User as any).belongsToMany(LiveSession, {
-    through: LiveSessionAttendance,
-    foreignKey: 'user_id',
-    otherKey: 'session_id',
-    as: 'attendedSessions'
-  });
-  (LiveSession as any).belongsToMany(User, {
-    through: LiveSessionAttendance,
-    foreignKey: 'session_id',
-    otherKey: 'user_id',
-    as: 'attendees'
-  });
-
-  // Direct associations for LiveSessionAttendance
-  (User as any).hasMany(LiveSessionAttendance, {
-    foreignKey: 'user_id',
-    as: 'sessionAttendances'
-  });
-  (LiveSessionAttendance as any).belongsTo(User, {
-    foreignKey: 'user_id',
-    as: 'attendee'
-  });
-
-  (LiveSession as any).hasMany(LiveSessionAttendance, {
-    foreignKey: 'session_id',
-    as: 'attendances'
-  });
-  (LiveSessionAttendance as any).belongsTo(LiveSession, {
-    foreignKey: 'session_id',
-    as: 'session'
-  });
-
-  // ===================================
   // ANALYTICS RELATIONSHIPS
   // ===================================
   

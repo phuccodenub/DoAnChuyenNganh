@@ -123,6 +123,14 @@ export const validate = (validations: any[]) => {
       return next();
     }
 
+    // Log validation errors for debugging
+    logger.error('Express-validator validation failed', {
+      method: req.method,
+      path: req.path,
+      errors: errors.array(),
+      body: req.body
+    });
+
     responseUtils.sendValidationError(
       res,
       RESPONSE_CONSTANTS.ERROR.VALIDATION_ERROR,
