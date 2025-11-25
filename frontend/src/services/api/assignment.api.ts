@@ -4,9 +4,9 @@ import { apiClient } from '../http/client';
  * Assignment Types
  */
 export interface Assignment {
-  id: number;
-  course_id: number;
-  section_id?: number;
+  id: string;
+  course_id: string;
+  section_id?: string;
   title: string;
   description: string;
   instructions: string | null;
@@ -25,9 +25,9 @@ export interface Assignment {
 }
 
 export interface Submission {
-  id: number;
-  assignment_id: number;
-  user_id: number;
+  id: string;
+  assignment_id: string;
+  user_id: string;
   submission_text: string | null;
   file_urls: string[];
   submitted_at: string;
@@ -36,7 +36,7 @@ export interface Submission {
   feedback: string | null;
   graded_at: string | null;
   graded_by?: {
-    id: number;
+    id: string;
     full_name: string;
   };
   is_late: boolean;
@@ -45,7 +45,7 @@ export interface Submission {
 }
 
 export interface SubmitAssignmentPayload {
-  assignment_id: number;
+  assignment_id: string;
   submission_text?: string;
   files?: File[];
 }
@@ -62,7 +62,7 @@ export const assignmentApi = {
   /**
    * Get assignment by ID
    */
-  getAssignment: async (assignmentId: number): Promise<Assignment> => {
+  getAssignment: async (assignmentId: string): Promise<Assignment> => {
     const response = await apiClient.get<Assignment>(
       `/assignments/${assignmentId}`
     );
@@ -72,7 +72,7 @@ export const assignmentApi = {
   /**
    * Get all assignments for a course
    */
-  getAssignments: async (courseId: number): Promise<Assignment[]> => {
+  getAssignments: async (courseId: string): Promise<Assignment[]> => {
     const response = await apiClient.get<Assignment[]>(
       `/courses/${courseId}/assignments`
     );
@@ -83,7 +83,7 @@ export const assignmentApi = {
    * Submit assignment
    */
   submitAssignment: async (
-    assignmentId: number,
+    assignmentId: string,
     payload: {
       submission_text?: string;
       file_urls?: string[];
@@ -99,7 +99,7 @@ export const assignmentApi = {
   /**
    * Upload assignment file
    */
-  uploadFile: async (assignmentId: number, file: File): Promise<{ url: string }> => {
+  uploadFile: async (assignmentId: string, file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -118,7 +118,7 @@ export const assignmentApi = {
   /**
    * Get submission by assignment ID (current user)
    */
-  getSubmission: async (assignmentId: number): Promise<Submission | null> => {
+  getSubmission: async (assignmentId: string): Promise<Submission | null> => {
     try {
       const response = await apiClient.get<Submission>(
         `/assignments/${assignmentId}/submission`
@@ -132,7 +132,7 @@ export const assignmentApi = {
   /**
    * Get submission by ID
    */
-  getSubmissionById: async (submissionId: number): Promise<Submission> => {
+  getSubmissionById: async (submissionId: string): Promise<Submission> => {
     const response = await apiClient.get<Submission>(
       `/submissions/${submissionId}`
     );
@@ -143,7 +143,7 @@ export const assignmentApi = {
    * Update submission (draft)
    */
   updateSubmission: async (
-    submissionId: number,
+    submissionId: string,
     payload: {
       submission_text?: string;
       file_urls?: string[];
@@ -159,7 +159,7 @@ export const assignmentApi = {
   /**
    * Delete submission file
    */
-  deleteFile: async (submissionId: number, fileUrl: string): Promise<void> => {
+  deleteFile: async (submissionId: string, fileUrl: string): Promise<void> => {
     await apiClient.delete(`/submissions/${submissionId}/files`, {
       data: { file_url: fileUrl },
     });

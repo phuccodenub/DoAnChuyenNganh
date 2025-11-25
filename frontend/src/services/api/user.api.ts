@@ -71,7 +71,7 @@ export const userApi = {
   /**
    * Get user by ID (for viewing other users)
    */
-  getUserById: async (userId: number): Promise<User> => {
+  getUserById: async (userId: string): Promise<User> => {
     const response = await apiClient.get<User>(`/users/${userId}`);
     return response.data;
   },

@@ -4,7 +4,7 @@ import { assignmentApi } from '@/services/api/assignment.api';
 /**
  * Hook to fetch assignment by ID
  */
-export function useAssignment(assignmentId: number) {
+export function useAssignment(assignmentId: string) {
   return useQuery({
     queryKey: ['assignments', assignmentId],
     queryFn: () => assignmentApi.getAssignment(assignmentId),
@@ -16,7 +16,7 @@ export function useAssignment(assignmentId: number) {
 /**
  * Hook to fetch all assignments for a course
  */
-export function useAssignments(courseId: number) {
+export function useAssignments(courseId: string) {
   return useQuery({
     queryKey: ['assignments', 'course', courseId],
     queryFn: () => assignmentApi.getAssignments(courseId),
@@ -36,7 +36,7 @@ export function useSubmitAssignment() {
       assignmentId, 
       payload 
     }: { 
-      assignmentId: number; 
+      assignmentId: string; 
       payload: { submission_text?: string; file_urls?: string[] };
     }) => assignmentApi.submitAssignment(assignmentId, payload),
     onSuccess: (data, variables) => {
@@ -59,7 +59,7 @@ export function useUploadFile() {
       assignmentId, 
       file 
     }: { 
-      assignmentId: number; 
+      assignmentId: string; 
       file: File;
     }) => assignmentApi.uploadFile(assignmentId, file),
   });
@@ -68,7 +68,7 @@ export function useUploadFile() {
 /**
  * Hook to get submission by assignment ID
  */
-export function useSubmission(assignmentId: number) {
+export function useSubmission(assignmentId: string) {
   return useQuery({
     queryKey: ['assignments', assignmentId, 'submission'],
     queryFn: () => assignmentApi.getSubmission(assignmentId),
@@ -80,7 +80,7 @@ export function useSubmission(assignmentId: number) {
 /**
  * Hook to get submission by ID
  */
-export function useSubmissionById(submissionId: number) {
+export function useSubmissionById(submissionId: string) {
   return useQuery({
     queryKey: ['submissions', submissionId],
     queryFn: () => assignmentApi.getSubmissionById(submissionId),
@@ -100,7 +100,7 @@ export function useUpdateSubmission() {
       submissionId, 
       payload 
     }: { 
-      submissionId: number; 
+      submissionId: string; 
       payload: { submission_text?: string; file_urls?: string[] };
     }) => assignmentApi.updateSubmission(submissionId, payload),
     onSuccess: (data, variables) => {
@@ -123,7 +123,7 @@ export function useDeleteFile() {
       submissionId, 
       fileUrl 
     }: { 
-      submissionId: number; 
+      submissionId: string; 
       fileUrl: string;
     }) => assignmentApi.deleteFile(submissionId, fileUrl),
     onSuccess: (data, variables) => {

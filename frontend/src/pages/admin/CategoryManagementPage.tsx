@@ -20,7 +20,7 @@ export default function CategoryManagementPage() {
   const [searchInput, setSearchInput] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: categories, isLoading } = useCategories({ include_inactive: true });
   const { data: stats } = useCategoryStats();

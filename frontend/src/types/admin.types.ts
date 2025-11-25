@@ -14,7 +14,7 @@ export type UserStatus = 'active' | 'suspended';
  * Admin User interface (extended from base User)
  */
 export interface AdminUser {
-  id: number;
+  id: string;
   email: string;
   full_name: string;
   role: UserRole;
@@ -102,7 +102,7 @@ export interface EnrollmentTrendData {
  * Top instructor data
  */
 export interface TopInstructor {
-  id: number;
+  id: string;
   full_name: string;
   avatar_url?: string;
   total_enrollments: number;
@@ -118,9 +118,9 @@ export type ActivityType = 'user_registration' | 'course_creation' | 'enrollment
  * Recent activity
  */
 export interface RecentActivity {
-  id: number;
+  id: string;
   type: ActivityType;
-  user_id: number;
+  user_id: string;
   user_name: string;
   user_avatar?: string;
   description: string;
@@ -190,7 +190,7 @@ export type BulkActionType = 'delete' | 'activate' | 'suspend';
  * Bulk action payload
  */
 export interface BulkActionPayload {
-  user_ids: number[];
+  user_ids: string[];
   action: BulkActionType;
 }
 

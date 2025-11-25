@@ -21,7 +21,7 @@ import { ROUTES } from '@/constants/routes';
 type SubmissionType = 'text' | 'file' | 'both';
 
 interface RubricCriteria {
-  id: number;
+  id: string;
   criteria: string;
   max_points: number;
   description: string;
@@ -52,15 +52,15 @@ export function AssignmentBuilderPage() {
 
   // Grading rubric
   const [rubric, setRubric] = useState<RubricCriteria[]>([
-    { id: 1, criteria: 'Hoàn thành đúng yêu cầu', max_points: 40, description: 'Bài làm đáp ứng đầy đủ các yêu cầu đề ra' },
-    { id: 2, criteria: 'Chất lượng nội dung', max_points: 30, description: 'Nội dung chính xác, logic, có tham khảo nguồn' },
-    { id: 3, criteria: 'Trình bày và format', max_points: 20, description: 'Bài làm được trình bày rõ ràng, dễ đọc' },
-    { id: 4, criteria: 'Nộp đúng hạn', max_points: 10, description: 'Nộp bài đúng hoặc trước thời hạn' },
+    { id: '1', criteria: 'Hoàn thành đúng yêu cầu', max_points: 40, description: 'Bài làm đáp ứng đầy đủ các yêu cầu đề ra' },
+    { id: '2', criteria: 'Chất lượng nội dung', max_points: 30, description: 'Nội dung chính xác, logic, có tham khảo nguồn' },
+    { id: '3', criteria: 'Trình bày và format', max_points: 20, description: 'Bài làm được trình bày rõ ràng, dễ đọc' },
+    { id: '4', criteria: 'Nộp đúng hạn', max_points: 10, description: 'Nộp bài đúng hoặc trước thời hạn' },
   ]);
 
   const [showRubricModal, setShowRubricModal] = useState(false);
   const [rubricForm, setRubricForm] = useState<RubricCriteria>({
-    id: 0,
+    id: '0',
     criteria: '',
     max_points: 0,
     description: '',
@@ -98,7 +98,7 @@ export function AssignmentBuilderPage() {
   };
 
   const handleAddRubric = () => {
-    setRubricForm({ id: Date.now(), criteria: '', max_points: 0, description: '' });
+    setRubricForm({ id: Date.now().toString(), criteria: '', max_points: 0, description: '' });
     setEditingRubric(null);
     setShowRubricModal(true);
   };
@@ -118,7 +118,7 @@ export function AssignmentBuilderPage() {
     setShowRubricModal(false);
   };
 
-  const handleDeleteRubric = (id: number) => {
+  const handleDeleteRubric = (id: string) => {
     if (confirm('Xóa tiêu chí này?')) {
       setRubric(rubric.filter(r => r.id !== id));
     }

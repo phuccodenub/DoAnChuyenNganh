@@ -23,7 +23,7 @@ export function MyCoursesPage() {
   // TODO: Replace with real API data
   const courses = [
     {
-      id: 1,
+      id: '1',
       title: 'Lập trình Web với React',
       status: 'published',
       students: 89,
@@ -34,7 +34,7 @@ export function MyCoursesPage() {
       price: 990000,
     },
     {
-      id: 2,
+      id: '2',
       title: 'JavaScript nâng cao',
       status: 'draft',
       students: 0,
@@ -44,7 +44,7 @@ export function MyCoursesPage() {
       is_free: true,
     },
     {
-      id: 3,
+      id: '3',
       title: 'TypeScript từ cơ bản đến nâng cao',
       status: 'published',
       students: 124,
@@ -55,7 +55,7 @@ export function MyCoursesPage() {
       price: 1290000,
     },
     {
-      id: 4,
+      id: '4',
       title: 'Node.js & Express.js',
       status: 'private',
       students: 5,
@@ -92,14 +92,14 @@ export function MyCoursesPage() {
     return matchesSearch && matchesFilter;
   });
 
-  const handleDelete = (courseId: number, title: string) => {
+  const handleDelete = (courseId: string, title: string) => {
     if (window.confirm(`Bạn có chắc muốn xóa khóa học "${title}"?`)) {
       // TODO: Implement delete API
       console.log('Delete course:', courseId);
     }
   };
 
-  const handleDuplicate = (courseId: number) => {
+  const handleDuplicate = (courseId: string) => {
     // TODO: Implement duplicate API
     console.log('Duplicate course:', courseId);
   };

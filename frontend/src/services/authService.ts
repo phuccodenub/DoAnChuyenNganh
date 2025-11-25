@@ -27,7 +27,7 @@ export interface VerifyResponse {
   success: boolean
   message: string
   data: {
-    userId: number
+    userId: string
     userRole: string
   }
 }

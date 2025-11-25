@@ -36,7 +36,7 @@ export function CourseDetailPage() {
   const { isAuthenticated } = useAuth();
   const [showEnrollModal, setShowEnrollModal] = useState(false);
 
-  const courseId = Number(id);
+  const courseId = id!;
   const { data: course, isLoading, error } = useCourse(courseId);
   const { mutate: enrollCourse, isPending: isEnrolling } = useEnrollCourse();
 

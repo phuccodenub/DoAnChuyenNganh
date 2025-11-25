@@ -14,18 +14,18 @@ export type CourseDifficulty = 'beginner' | 'intermediate' | 'advanced';
  * Admin Course interface (with additional admin fields)
  */
 export interface AdminCourse {
-  id: number;
+  id: string;
   title: string;
   description: string;
   thumbnail_url?: string;
   instructor: {
-    id: number;
+    id: string;
     full_name: string;
     avatar_url?: string;
     email?: string;
   };
   category?: {
-    id: number;
+    id: string;
     name: string;
   };
   status: CourseStatus;
@@ -44,8 +44,8 @@ export interface AdminCourse {
 export interface CourseAdminFilters {
   search?: string;
   status?: CourseStatus | 'all';
-  instructor_id?: number;
-  category_id?: number;
+  instructor_id?: string;
+  category_id?: string;
   date_from?: string;
   date_to?: string;
   page?: number;
@@ -99,7 +99,7 @@ export interface AdminCourseDetail extends AdminCourse {
  * Course section
  */
 export interface CourseSection {
-  id: number;
+  id: string;
   title: string;
   description?: string;
   order: number;
@@ -111,9 +111,9 @@ export interface CourseSection {
  * Enrollment info
  */
 export interface EnrollmentInfo {
-  id: number;
+  id: string;
   student: {
-    id: number;
+    id: string;
     full_name: string;
     avatar_url?: string;
     email: string;
@@ -130,7 +130,7 @@ export interface UpdateCoursePayload {
   title?: string;
   description?: string;
   thumbnail_url?: string;
-  category_id?: number;
+  category_id?: string;
   difficulty?: CourseDifficulty;
   price?: number;
   is_free?: boolean;
@@ -145,7 +145,7 @@ export type BulkCourseActionType = 'delete' | 'publish' | 'archive' | 'draft';
  * Bulk course action payload
  */
 export interface BulkCourseActionPayload {
-  course_ids: number[];
+  course_ids: string[];
   action: BulkCourseActionType;
 }
 
@@ -157,13 +157,13 @@ export interface BulkCourseActionPayload {
  * Category interface
  */
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   slug: string;
-  parent_id?: number;
+  parent_id?: string;
   parent?: {
-    id: number;
+    id: string;
     name: string;
   };
   course_count: number;
@@ -179,7 +179,7 @@ export interface Category {
 export interface CreateCategoryPayload {
   name: string;
   description?: string;
-  parent_id?: number;
+  parent_id?: string;
   slug?: string;
   is_active?: boolean;
   icon_url?: string;
@@ -191,7 +191,7 @@ export interface CreateCategoryPayload {
 export interface UpdateCategoryPayload {
   name?: string;
   description?: string;
-  parent_id?: number;
+  parent_id?: string;
   slug?: string;
   is_active?: boolean;
   icon_url?: string;
@@ -204,7 +204,7 @@ export interface CategoryStats {
   total_categories: number;
   active_categories: number;
   top_categories: Array<{
-    id: number;
+    id: string;
     name: string;
     course_count: number;
   }>;
@@ -229,7 +229,7 @@ export const categoryFormSchema = z.object({
     .optional()
     .or(z.literal('')),
   
-  parent_id: z.number().optional().nullable(),
+  parent_id: z.string().optional().nullable(),
   
   slug: z
     .string()
@@ -252,15 +252,6 @@ export const categoryFormSchema = z.object({
 export type CategoryFormData = z.infer<typeof categoryFormSchema>;
 
 /**
- * Course status change schema
- */
-export const courseStatusSchema = z.object({
-  status: z.enum(['draft', 'published', 'archived'], {
-    required_error: 'Trạng thái là bắt buộc',
-  }),
-});
-
-/**
  * Course update schema (partial)
  */
 export const courseUpdateSchema = z.object({
@@ -272,7 +263,7 @@ export const courseUpdateSchema = z.object({
   
   description: z.string().optional(),
   
-  category_id: z.number().optional(),
+  category_id: z.string().optional(),
   
   difficulty: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
   
@@ -289,14 +280,23 @@ export const courseUpdateSchema = z.object({
 export const courseAdminFiltersSchema = z.object({
   search: z.string().optional(),
   status: z.enum(['draft', 'published', 'archived', 'all']).optional(),
-  instructor_id: z.number().optional(),
-  category_id: z.number().optional(),
+  instructor_id: z.string().optional(),
+  category_id: z.string().optional(),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
   page: z.number().int().positive().optional(),
   per_page: z.number().int().positive().max(100).optional(),
   sort_by: z.enum(['title', 'created_at', 'student_count']).optional(),
   sort_order: z.enum(['asc', 'desc']).optional(),
+});
+
+/**
+ * Course status change schema
+ */
+export const courseStatusSchema = z.object({
+  status: z.enum(['draft', 'published', 'archived'], {
+    required_error: 'Trạng thái là bắt buộc',
+  }),
 });
 
 export default {

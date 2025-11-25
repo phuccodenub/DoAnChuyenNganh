@@ -19,10 +19,10 @@ export const courseAdminQueryKeys = {
   lists: () => [...courseAdminQueryKeys.all, 'list'] as const,
   list: (filters: CourseAdminFilters) => [...courseAdminQueryKeys.lists(), filters] as const,
   details: () => [...courseAdminQueryKeys.all, 'detail'] as const,
-  detail: (id: number) => [...courseAdminQueryKeys.details(), id] as const,
+  detail: (id: string) => [...courseAdminQueryKeys.details(), id] as const,
   stats: () => [...courseAdminQueryKeys.all, 'stats'] as const,
-  students: (courseId: number) => [...courseAdminQueryKeys.all, 'students', courseId] as const,
-  analytics: (courseId: number) => [...courseAdminQueryKeys.all, 'analytics', courseId] as const,
+  students: (courseId: string) => [...courseAdminQueryKeys.all, 'students', courseId] as const,
+  analytics: (courseId: string) => [...courseAdminQueryKeys.all, 'analytics', courseId] as const,
 };
 
 // ============================================================================
@@ -43,7 +43,7 @@ export function useAdminCourses(filters: CourseAdminFilters = {}) {
 /**
  * Get course by ID
  */
-export function useAdminCourse(courseId: number, enabled: boolean = true) {
+export function useAdminCourse(courseId: string, enabled: boolean = true) {
   return useQuery<AdminCourseDetail>({
     queryKey: courseAdminQueryKeys.detail(courseId),
     queryFn: () => courseAdminApi.getCourseById(courseId),
@@ -66,7 +66,7 @@ export function useCourseStats() {
 /**
  * Get course students
  */
-export function useCourseStudents(courseId: number, params: { page?: number; limit?: number } = {}) {
+export function useCourseStudents(courseId: string, params: { page?: number; limit?: number } = {}) {
   return useQuery({
     queryKey: [...courseAdminQueryKeys.students(courseId), params],
     queryFn: () => courseAdminApi.getCourseStudents(courseId, params),
@@ -77,7 +77,7 @@ export function useCourseStudents(courseId: number, params: { page?: number; lim
 /**
  * Get course analytics
  */
-export function useCourseAnalytics(courseId: number, enabled: boolean = true) {
+export function useCourseAnalytics(courseId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: courseAdminQueryKeys.analytics(courseId),
     queryFn: () => courseAdminApi.getCourseAnalytics(courseId),
@@ -97,7 +97,7 @@ export function useUpdateCourse() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ courseId, data }: { courseId: number; data: UpdateCoursePayload }) =>
+    mutationFn: ({ courseId, data }: { courseId: string; data: UpdateCoursePayload }) =>
       courseAdminApi.updateCourse(courseId, data),
     onSuccess: (updatedCourse) => {
       // Update course in cache
@@ -120,7 +120,7 @@ export function useDeleteCourse() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (courseId: number) => courseAdminApi.deleteCourse(courseId),
+    mutationFn: (courseId: string) => courseAdminApi.deleteCourse(courseId),
     onSuccess: () => {
       // Invalidate all course queries
       queryClient.invalidateQueries({ queryKey: courseAdminQueryKeys.all });
@@ -140,7 +140,7 @@ export function useChangeCourseStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ courseId, status }: { courseId: number; status: 'draft' | 'published' | 'archived' }) =>
+    mutationFn: ({ courseId, status }: { courseId: string; status: 'draft' | 'published' | 'archived' }) =>
       courseAdminApi.changeCourseStatus(courseId, status),
     onMutate: async ({ courseId, status }) => {
       // Cancel outgoing refetches
@@ -188,7 +188,7 @@ export function useBulkDeleteCourses() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (courseIds: number[]) => courseAdminApi.bulkDeleteCourses(courseIds),
+    mutationFn: (courseIds: string[]) => courseAdminApi.bulkDeleteCourses(courseIds),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: courseAdminQueryKeys.all });
       toast.success(response.message || `Đã xóa ${response.affected} khóa học`);
@@ -207,7 +207,7 @@ export function useBulkUpdateCourseStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ courseIds, status }: { courseIds: number[]; status: 'draft' | 'published' | 'archived' }) =>
+    mutationFn: ({ courseIds, status }: { courseIds: string[]; status: 'draft' | 'published' | 'archived' }) =>
       courseAdminApi.bulkUpdateStatus(courseIds, status),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: courseAdminQueryKeys.all });

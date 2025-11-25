@@ -7,7 +7,7 @@ import { generateRoute } from '@/constants/routes';
 interface CourseCardProps {
   course: Course;
   showEnrollButton?: boolean;
-  onEnroll?: (courseId: number) => void;
+  onEnroll?: (courseId: string) => void;
   isEnrolling?: boolean;
 }
 

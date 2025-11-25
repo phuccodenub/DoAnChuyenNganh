@@ -3,7 +3,7 @@ import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw } from 'lucide-react
 import { useUpdateProgress } from '@/hooks/useLessonData';
 
 interface VideoPlayerProps {
-  lessonId: number;
+  lessonId: string;
   videoUrl: string;
   lastPosition?: number;
   onProgress?: (progress: number, timeSpent: number) => void;

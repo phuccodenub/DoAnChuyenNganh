@@ -28,7 +28,7 @@ export default function NotificationsPage() {
   const pagination = notificationsData?.pagination;
   const unreadCount = unreadCountData?.unread_count || 0;
 
-  const handleMarkAsRead = (notificationId: number) => {
+  const handleMarkAsRead = (notificationId: string) => {
     markAsReadMutation.mutate(notificationId);
   };
 
@@ -38,11 +38,11 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleArchiveNotification = (notificationId: number) => {
+  const handleArchiveNotification = (notificationId: string) => {
     archiveNotificationMutation.mutate(notificationId);
   };
 
-  const handleDeleteNotification = (notificationId: number) => {
+  const handleDeleteNotification = (notificationId: string) => {
     if (confirm(t('confirm_delete'))) {
       deleteNotificationMutation.mutate(notificationId);
     }

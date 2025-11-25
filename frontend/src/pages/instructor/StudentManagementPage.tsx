@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/Button';
  */
 
 interface Student {
-  id: number;
+  id: string;
   full_name: string;
   email: string;
   avatar_url?: string;
@@ -32,12 +32,12 @@ interface Student {
 export function StudentManagementPage() {
   const [selectedCourse, setSelectedCourse] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
   // Mock data
   const mockStudents: Student[] = [
     {
-      id: 1,
+      id: '1',
       full_name: 'Nguyễn Văn A',
       email: 'nguyenvana@example.com',
       avatar_url: '',
@@ -50,7 +50,7 @@ export function StudentManagementPage() {
       last_active: '2024-01-15T10:30:00',
     },
     {
-      id: 2,
+      id: '2',
       full_name: 'Trần Thị B',
       email: 'tranthib@example.com',
       avatar_url: '',
@@ -79,7 +79,7 @@ export function StudentManagementPage() {
     completionRate: Math.round((mockStudents.filter(s => s.progress_percentage === 100).length / mockStudents.length) * 100),
   };
 
-  const toggleSelection = (id: number) => {
+  const toggleSelection = (id: string) => {
     setSelectedStudents(prev =>
       prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
     );
@@ -97,7 +97,7 @@ export function StudentManagementPage() {
     alert('Đang xuất danh sách học viên...');
   };
 
-  const handleUnenroll = (studentId: number) => {
+  const handleUnenroll = (studentId: string) => {
     if (confirm('Bạn có chắc muốn xóa học viên khỏi khóa học?')) {
       alert('Đã xóa học viên');
     }

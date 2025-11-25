@@ -19,7 +19,7 @@ import { ROUTES } from '@/constants/routes';
 type ContentType = 'video' | 'document' | 'quiz' | 'assignment';
 
 interface Lesson {
-  id: number;
+  id: string;
   title: string;
   content_type: ContentType;
   duration_minutes: number;
@@ -27,7 +27,7 @@ interface Lesson {
 }
 
 interface Section {
-  id: number;
+  id: string;
   title: string;
   lessons: Lesson[];
   isExpanded: boolean;
@@ -39,12 +39,12 @@ export function CurriculumBuilderPage() {
 
   const [sections, setSections] = useState<Section[]>([
     {
-      id: 1,
+      id: '1',
       title: 'Chương 1: Giới thiệu',
       isExpanded: true,
       lessons: [
-        { id: 1, title: 'Bài 1: Tổng quan', content_type: 'video', duration_minutes: 15, is_preview: true },
-        { id: 2, title: 'Bài 2: Cài đặt môi trường', content_type: 'video', duration_minutes: 20, is_preview: false },
+        { id: '1', title: 'Bài 1: Tổng quan', content_type: 'video', duration_minutes: 15, is_preview: true },
+        { id: '2', title: 'Bài 2: Cài đặt môi trường', content_type: 'video', duration_minutes: 20, is_preview: false },
       ],
     },
   ]);
@@ -52,7 +52,7 @@ export function CurriculumBuilderPage() {
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
-  const [editingLesson, setEditingLesson] = useState<{ lesson: Lesson; sectionId: number } | null>(null);
+  const [editingLesson, setEditingLesson] = useState<{ lesson: Lesson; sectionId: string } | null>(null);
 
   const [sectionForm, setSectionForm] = useState({ title: '' });
   const [lessonForm, setLessonForm] = useState({
@@ -76,7 +76,7 @@ export function CurriculumBuilderPage() {
     assignment: FileText,
   };
 
-  const toggleSection = (sectionId: number) => {
+  const toggleSection = (sectionId: string) => {
     setSections(sections.map(s => s.id === sectionId ? { ...s, isExpanded: !s.isExpanded } : s));
   };
 
@@ -97,7 +97,7 @@ export function CurriculumBuilderPage() {
       setSections(sections.map(s => s.id === editingSection.id ? { ...s, title: sectionForm.title } : s));
     } else {
       const newSection: Section = {
-        id: Date.now(),
+        id: Date.now().toString(),
         title: sectionForm.title,
         lessons: [],
         isExpanded: true,
@@ -107,19 +107,19 @@ export function CurriculumBuilderPage() {
     setShowSectionModal(false);
   };
 
-  const handleDeleteSection = (sectionId: number) => {
+  const handleDeleteSection = (sectionId: string) => {
     if (confirm('Xóa chương này? Tất cả bài học trong chương sẽ bị xóa.')) {
       setSections(sections.filter(s => s.id !== sectionId));
     }
   };
 
-  const handleAddLesson = (sectionId: number) => {
+  const handleAddLesson = (sectionId: string) => {
     setLessonForm({ title: '', content_type: 'video', duration_minutes: 0, is_preview: false });
     setEditingLesson({ lesson: null as unknown as Lesson, sectionId });
     setShowLessonModal(true);
   };
 
-  const handleEditLesson = (lesson: Lesson, sectionId: number) => {
+  const handleEditLesson = (lesson: Lesson, sectionId: string) => {
     setLessonForm({ ...lesson });
     setEditingLesson({ lesson, sectionId });
     setShowLessonModal(true);
@@ -136,7 +136,7 @@ export function CurriculumBuilderPage() {
             lessons: s.lessons.map(l => l.id === editingLesson.lesson.id ? { ...l, ...lessonForm } : l),
           };
         } else {
-          const newLesson: Lesson = { id: Date.now(), ...lessonForm };
+          const newLesson: Lesson = { id: Date.now().toString(), ...lessonForm };
           return { ...s, lessons: [...s.lessons, newLesson] };
         }
       }
@@ -145,7 +145,7 @@ export function CurriculumBuilderPage() {
     setShowLessonModal(false);
   };
 
-  const handleDeleteLesson = (sectionId: number, lessonId: number) => {
+  const handleDeleteLesson = (sectionId: string, lessonId: string) => {
     if (confirm('Xóa bài học này?')) {
       setSections(sections.map(s => 
         s.id === sectionId ? { ...s, lessons: s.lessons.filter(l => l.id !== lessonId) } : s

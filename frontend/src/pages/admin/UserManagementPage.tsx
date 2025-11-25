@@ -31,10 +31,10 @@ export default function UserManagementPage() {
   });
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput, 300);
-  const [selectedRows, setSelectedRows] = useState<(string | number)[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [viewingUserId, setViewingUserId] = useState<number | null>(null);
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
 
   // API hooks
   const finalFilters = useMemo(
@@ -71,7 +71,7 @@ export default function UserManagementPage() {
     if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedRows.length} người dùng?`)) return;
 
     await bulkActionMutation.mutateAsync({
-      user_ids: selectedRows.map(Number),
+      user_ids: selectedRows,
       action: 'delete',
     });
     setSelectedRows([]);
@@ -80,7 +80,7 @@ export default function UserManagementPage() {
   const handleBulkActivate = async () => {
     if (selectedRows.length === 0) return;
     await bulkActionMutation.mutateAsync({
-      user_ids: selectedRows.map(Number),
+      user_ids: selectedRows,
       action: 'activate',
     });
     setSelectedRows([]);
@@ -89,7 +89,7 @@ export default function UserManagementPage() {
   const handleBulkSuspend = async () => {
     if (selectedRows.length === 0) return;
     await bulkActionMutation.mutateAsync({
-      user_ids: selectedRows.map(Number),
+      user_ids: selectedRows,
       action: 'suspend',
     });
     setSelectedRows([]);
@@ -344,7 +344,7 @@ export default function UserManagementPage() {
           defaultSortOrder={filters.sort_order}
           selectable={true}
           selectedRows={selectedRows}
-          onSelectionChange={setSelectedRows}
+          onSelectionChange={(ids) => setSelectedRows(ids.map(String))}
           pagination={
             usersData
               ? {

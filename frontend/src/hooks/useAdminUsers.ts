@@ -27,8 +27,8 @@ export const adminQueryKeys = {
   topInstructors: (limit: number) => [...adminQueryKeys.all, 'top-instructors', limit] as const,
   recentActivities: (limit: number) => [...adminQueryKeys.all, 'recent-activities', limit] as const,
   users: (filters: UserListFilters) => [...adminQueryKeys.all, 'users', filters] as const,
-  user: (userId: number) => [...adminQueryKeys.all, 'user', userId] as const,
-  userStats: (userId: number) => [...adminQueryKeys.all, 'user-stats', userId] as const,
+  user: (userId: string) => [...adminQueryKeys.all, 'user', userId] as const,
+  userStats: (userId: string) => [...adminQueryKeys.all, 'user-stats', userId] as const,
 };
 
 // ============================================================================
@@ -108,7 +108,7 @@ export function useAdminUsers(filters: UserListFilters = {}) {
 /**
  * Get user by ID
  */
-export function useAdminUser(userId: number, enabled: boolean = true) {
+export function useAdminUser(userId: string, enabled: boolean = true) {
   return useQuery<AdminUser>({
     queryKey: adminQueryKeys.user(userId),
     queryFn: () => adminApi.getUserById(userId),
@@ -120,7 +120,7 @@ export function useAdminUser(userId: number, enabled: boolean = true) {
 /**
  * Get user statistics
  */
-export function useUserStats(userId: number, enabled: boolean = true) {
+export function useUserStats(userId: string, enabled: boolean = true) {
   return useQuery<UserStats>({
     queryKey: adminQueryKeys.userStats(userId),
     queryFn: () => adminApi.getUserStats(userId),
@@ -160,7 +160,7 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, data }: { userId: number; data: UpdateUserPayload }) =>
+    mutationFn: ({ userId, data }: { userId: string; data: UpdateUserPayload }) =>
       adminApi.updateUser(userId, data),
     onSuccess: (updatedUser) => {
       // Update user in cache
@@ -183,7 +183,7 @@ export function useDeleteUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userId: number) => adminApi.deleteUser(userId),
+    mutationFn: (userId: string) => adminApi.deleteUser(userId),
     onSuccess: () => {
       // Invalidate all users queries
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.all });
@@ -203,7 +203,7 @@ export function useChangeUserRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, role }: { userId: number; role: AdminUser['role'] }) =>
+    mutationFn: ({ userId, role }: { userId: string; role: AdminUser['role'] }) =>
       adminApi.changeUserRole(userId, role),
     onMutate: async ({ userId, role }) => {
       // Cancel outgoing refetches
@@ -249,7 +249,7 @@ export function useChangeUserStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, status }: { userId: number; status: 'active' | 'suspended' }) =>
+    mutationFn: ({ userId, status }: { userId: string; status: 'active' | 'suspended' }) =>
       adminApi.changeUserStatus(userId, status),
     onMutate: async ({ userId, status }) => {
       // Cancel outgoing refetches
@@ -294,7 +294,7 @@ export function useChangeUserStatus() {
  */
 export function useResetUserPassword() {
   return useMutation({
-    mutationFn: (userId: number) => adminApi.resetUserPassword(userId),
+    mutationFn: (userId: string) => adminApi.resetUserPassword(userId),
     onSuccess: (response) => {
       toast.success(response.message || 'Đã gửi email đặt lại mật khẩu');
     },
@@ -314,7 +314,7 @@ export function useSendUserNotification() {
       userId,
       data,
     }: {
-      userId: number;
+      userId: string;
       data: { title: string; message: string; type?: string };
     }) => adminApi.sendUserNotification(userId, data),
     onSuccess: (response) => {

@@ -24,8 +24,8 @@ export function AssignmentPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: assignment, isLoading: assignmentLoading } = useAssignment(Number(assignmentId));
-  const { data: submission } = useSubmission(Number(assignmentId));
+  const { data: assignment, isLoading: assignmentLoading } = useAssignment(assignmentId!);
+  const { data: submission } = useSubmission(assignmentId!);
   
   const submitMutation = useSubmitAssignment();
   const uploadMutation = useUploadFile();
@@ -50,7 +50,7 @@ export function AssignmentPage() {
     try {
       setUploadProgress(0);
       const result = await uploadMutation.mutateAsync({
-        assignmentId: Number(assignmentId),
+        assignmentId: assignmentId!,
         file,
       });
       
@@ -100,7 +100,7 @@ export function AssignmentPage() {
 
     try {
       await submitMutation.mutateAsync({
-        assignmentId: Number(assignmentId),
+        assignmentId: assignmentId!,
         payload: {
           submission_text: submissionText,
           file_urls: uploadedFiles.map(f => f.url),

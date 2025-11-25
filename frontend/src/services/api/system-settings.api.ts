@@ -6,7 +6,7 @@ export interface SystemSettingsResponse {
 }
 
 export interface SystemSettings {
-  id: number;
+  id: string;
   site_name: string;
   site_logo_url: string;
   site_favicon_url: string;

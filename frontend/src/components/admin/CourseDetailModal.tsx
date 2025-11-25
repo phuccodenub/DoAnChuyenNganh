@@ -15,7 +15,7 @@ import {
 interface CourseDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  courseId: number;
+  courseId: string;
   onEdit: (course: AdminCourse) => void;
 }
 

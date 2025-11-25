@@ -25,22 +25,22 @@ export function LearningPage() {
   const navigate = useNavigate();
   
   const [showSidebar, setShowSidebar] = useState(true);
-  const [currentLessonId, setCurrentLessonId] = useState<number | undefined>(
-    lessonId ? Number(lessonId) : undefined
+  const [currentLessonId, setCurrentLessonId] = useState<string | undefined>(
+    lessonId ? lessonId : undefined
   );
 
-  const parsedCourseId = Number(courseId);
+  const parsedCourseId = courseId!;
 
   // Fetch course content
   const { data: courseContent, isLoading: isLoadingContent } = useCourseContent(parsedCourseId);
   
   // Fetch current lesson
   const { data: lesson, isLoading: isLoadingLesson } = useLesson(
-    currentLessonId || 0
+    currentLessonId!
   );
 
   // Fetch lesson progress
-  const { data: lessonProgress } = useLessonProgress(currentLessonId || 0);
+  const { data: lessonProgress } = useLessonProgress(currentLessonId!);
 
   // Mark complete mutation
   const { mutate: markComplete, isPending: isMarkingComplete } = useMarkLessonComplete();
@@ -53,7 +53,7 @@ export function LearningPage() {
     }
   }
 
-  const handleLessonClick = (lessonId: number) => {
+  const handleLessonClick = (lessonId: string) => {
     setCurrentLessonId(lessonId);
     // Close sidebar on mobile
     if (window.innerWidth < 768) {

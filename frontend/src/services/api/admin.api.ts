@@ -93,7 +93,7 @@ export const adminApi = {
   /**
    * Get user by ID
    */
-  getUserById: async (userId: number): Promise<AdminUser> => {
+  getUserById: async (userId: string): Promise<AdminUser> => {
     const response = await apiClient.get<AdminUser>(`/admin/users/${userId}`);
     return response.data;
   },
@@ -101,7 +101,7 @@ export const adminApi = {
   /**
    * Get user statistics
    */
-  getUserStats: async (userId: number): Promise<UserStats> => {
+  getUserStats: async (userId: string): Promise<UserStats> => {
     const response = await apiClient.get<UserStats>(`/admin/users/${userId}/stats`);
     return response.data;
   },
@@ -117,7 +117,7 @@ export const adminApi = {
   /**
    * Update user
    */
-  updateUser: async (userId: number, data: UpdateUserPayload): Promise<AdminUser> => {
+  updateUser: async (userId: string, data: UpdateUserPayload): Promise<AdminUser> => {
     const response = await apiClient.patch<AdminUser>(`/admin/users/${userId}`, data);
     return response.data;
   },
@@ -125,7 +125,7 @@ export const adminApi = {
   /**
    * Delete user
    */
-  deleteUser: async (userId: number): Promise<{ success: boolean; message: string }> => {
+  deleteUser: async (userId: string): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/admin/users/${userId}`
     );
@@ -136,7 +136,7 @@ export const adminApi = {
    * Change user role
    */
   changeUserRole: async (
-    userId: number,
+    userId: string,
     role: 'student' | 'instructor' | 'admin' | 'super_admin'
   ): Promise<AdminUser> => {
     const response = await apiClient.patch<AdminUser>(`/admin/users/${userId}/role`, { role });
@@ -147,7 +147,7 @@ export const adminApi = {
    * Change user status (activate/suspend)
    */
   changeUserStatus: async (
-    userId: number,
+    userId: string,
     status: 'active' | 'suspended'
   ): Promise<AdminUser> => {
     const response = await apiClient.patch<AdminUser>(`/admin/users/${userId}/status`, { status });
@@ -158,7 +158,7 @@ export const adminApi = {
    * Reset user password (send email)
    */
   resetUserPassword: async (
-    userId: number
+    userId: string
   ): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post<{ success: boolean; message: string }>(
       `/admin/users/${userId}/reset-password`
@@ -170,7 +170,7 @@ export const adminApi = {
    * Send notification to user
    */
   sendUserNotification: async (
-    userId: number,
+    userId: string,
     data: { title: string; message: string; type?: string }
   ): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post<{ success: boolean; message: string }>(

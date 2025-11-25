@@ -1,12 +1,12 @@
 import { httpClient } from '@/services/http/client';
 
 export interface ActivityLog {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   user_name: string;
   action: string;
   resource_type: string;
-  resource_id: number;
+  resource_id: string;
   old_values: Record<string, unknown>;
   new_values: Record<string, unknown>;
   ip_address: string;
@@ -31,7 +31,7 @@ export const activityLogsApi = {
     page: number = 1,
     limit: number = 20,
     filters?: {
-      user_id?: number;
+      user_id?: string;
       action?: string;
       resource_type?: string;
       status?: 'success' | 'failed';
@@ -48,7 +48,7 @@ export const activityLogsApi = {
     return response.data.data;
   },
 
-  getLogDetail: async (logId: number): Promise<ActivityLog> => {
+  getLogDetail: async (logId: string): Promise<ActivityLog> => {
     const response = await httpClient.get<{ success: boolean; data: ActivityLog }>(`/admin/activity-logs/${logId}`);
     return response.data.data;
   },
