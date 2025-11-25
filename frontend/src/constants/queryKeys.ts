@@ -33,6 +33,8 @@ export const QUERY_KEYS = {
     instructor: (id?: string) => ['courses', 'instructor', id] as const,
     students: (courseId: string) => ['courses', courseId, 'students'] as const,
     progress: (courseId: string) => ['courses', courseId, 'progress'] as const,
+    sections: (courseId: string) => ['courses', courseId, 'sections'] as const,
+    quizzes: (courseId: string) => ['courses', courseId, 'quizzes'] as const,
   },
 
   // Course Content

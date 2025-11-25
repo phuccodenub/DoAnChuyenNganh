@@ -27,6 +27,7 @@ export const ROUTES = {
     LESSON: '/student/courses/:courseId/lessons/:lessonId',
     QUIZ: '/student/courses/:courseId/quizzes/:quizId',
     QUIZ_RESULTS: '/student/quizzes/:attemptId/results',
+    ASSIGNMENTS: '/student/assignments',
     ASSIGNMENT: '/student/courses/:courseId/assignments/:assignmentId',
     PROFILE: '/student/profile',
     SETTINGS: '/student/settings',

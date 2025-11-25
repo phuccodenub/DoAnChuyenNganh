@@ -39,7 +39,7 @@ export interface CourseFilters {
   page?: number;
   limit?: number;
   status?: string;
-  category_id?: number;
+  category_id?: string;
   difficulty?: string;
   is_free?: boolean;
   search?: string;

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Users, Clock, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
@@ -9,6 +10,7 @@ interface CourseCardProps {
   showEnrollButton?: boolean;
   onEnroll?: (courseId: string) => void;
   isEnrolling?: boolean;
+  onCourseClick?: (courseId: string) => void;
 }
 
 /**
@@ -21,7 +23,8 @@ export function CourseCard({
   course, 
   showEnrollButton = false,
   onEnroll,
-  isEnrolling = false
+  isEnrolling = false,
+  onCourseClick,
 }: CourseCardProps) {
   const difficultyColors = {
     beginner: 'success',
@@ -35,10 +38,32 @@ export function CourseCard({
     advanced: 'Nâng cao',
   };
 
+  const detailPath = generateRoute.courseDetail(course.id);
+  const handleCourseClick = () => {
+    if (onCourseClick) {
+      onCourseClick(course.id);
+    }
+  };
+
+  const Wrapper = ({ children, className = '' }: { children: ReactNode; className?: string }) =>
+    onCourseClick ? (
+      <button
+        type="button"
+        onClick={handleCourseClick}
+        className={`block w-full text-left ${className}`.trim()}
+      >
+        {children}
+      </button>
+    ) : (
+      <Link to={detailPath} className={`block ${className}`.trim()}>
+        {children}
+      </Link>
+    );
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
       {/* Thumbnail */}
-      <Link to={generateRoute.courseDetail(course.id)} className="block">
+      <Wrapper>
         <div className="aspect-video bg-gray-200 relative">
           {course.thumbnail_url ? (
             <img
@@ -70,18 +95,15 @@ export function CourseCard({
             </Badge>
           </div>
         </div>
-      </Link>
+      </Wrapper>
 
       {/* Content */}
       <div className="p-4">
-        <Link 
-          to={generateRoute.courseDetail(course.id)}
-          className="block hover:text-blue-600 transition-colors"
-        >
+        <Wrapper className="hover:text-blue-600 transition-colors">
           <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
             {course.title}
           </h3>
-        </Link>
+        </Wrapper>
 
         <p className="text-sm text-gray-600 mb-3 line-clamp-2 min-h-[2.5rem]">
           {course.description}
@@ -137,12 +159,11 @@ export function CourseCard({
         )}
 
         {!showEnrollButton && (
-          <Link
-            to={generateRoute.courseDetail(course.id)}
-            className="block w-full text-center px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            Xem chi tiết
-          </Link>
+          <Wrapper className="w-full">
+            <div className="w-full text-center px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+              Xem chi tiết
+            </div>
+          </Wrapper>
         )}
       </div>
     </div>
