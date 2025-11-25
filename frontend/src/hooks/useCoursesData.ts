@@ -103,7 +103,7 @@ export function useUnenrollCourse() {
 /**
  * Hook lấy tiến độ học tập trong khóa học
  */
-export function useCourseProgress(courseId: number, enabled: boolean = true) {
+export function useCourseProgress(courseId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: QUERY_KEYS.courses.progress(courseId),
     queryFn: async () => {
@@ -112,6 +112,36 @@ export function useCourseProgress(courseId: number, enabled: boolean = true) {
     },
     enabled: !!courseId && enabled,
     staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
+/**
+ * Hook lấy sections của khóa học
+ */
+export function useCourseSections(courseId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.courses.sections(courseId),
+    queryFn: async () => {
+      const response = await courseApi.getSections(courseId);
+      return response.data.data;
+    },
+    enabled: !!courseId && enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook lấy quizzes của khóa học
+ */
+export function useCourseQuizzes(courseId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.courses.quizzes(courseId),
+    queryFn: async () => {
+      const response = await courseApi.getQuizzes(courseId);
+      return response.data.data;
+    },
+    enabled: !!courseId && enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

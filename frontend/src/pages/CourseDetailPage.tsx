@@ -11,8 +11,8 @@ import {
   DollarSign,
   Share2
 } from 'lucide-react';
-import { useCourse } from '@/hooks/useCoursesData';
-import { useEnrollCourse } from '@/hooks/useCoursesData';
+import { useCourse, useEnrollCourse, useCourseProgress, useCourseQuizzes } from '@/hooks/useCoursesData';
+import { useCourseContent } from '@/hooks/useLessonData';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
@@ -44,17 +44,29 @@ export function CourseDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
-  const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'curriculum'>('overview');
   const [isUserEnrolled, setIsUserEnrolled] = useState(false);
 
   const courseId = id ?? '';
+  
   const { data: courseData, isLoading, error } = useCourse(courseId);
   const course = courseData as DetailedCourse | undefined;
   const { mutate: enrollCourse, isPending: isEnrolling } = useEnrollCourse();
 
-  const curriculumSections = course?.sections ?? [];
+  // Fetch additional data
+  const { data: progressData } = useCourseProgress(courseId, isUserEnrolled);
+  const { data: courseContent } = useCourseContent(courseId);
+  const { data: quizzesData } = useCourseQuizzes(courseId, true);
+
+  const curriculumSections = courseContent?.sections ?? course?.sections ?? [];
   const learningPath = courseId ? generateRoute.student.learning(courseId) : ROUTES.COURSES;
+  
+  // Extract counts from API data
+  const totalSections = courseContent?.sections?.length || 0;
+  const totalLessons = courseContent?.total_lessons || 0;
+  const totalQuizzes = quizzesData?.length || 0;
+  const completedLessons = courseContent?.completed_lessons || 0;
+  const progressPercentage = progressData?.percent || courseContent?.progress_percentage || 0;
 
   useEffect(() => {
     if (!courseId) {
@@ -73,7 +85,7 @@ export function CourseDetailPage() {
     setIsUserEnrolled(Boolean(course?.is_enrolled) || Boolean(isCachedEnrollment));
   }, [course?.is_enrolled, courseId, queryClient]);
 
-  const handleLessonPreviewClick = (lessonId: number) => {
+  const handleLessonPreviewClick = (lessonId: string) => {
     console.log('Preview lesson', lessonId);
   };
 
@@ -86,9 +98,22 @@ export function CourseDetailPage() {
       navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
       return;
     }
-    // setShowEnrollModal(true);
-    // Điều hướng trực tiếp đến LearningPage
-    navigate(learningPath);
+    
+    // Enroll trực tiếp không cần modal
+    enrollCourse(courseId, {
+      onSuccess: () => {
+        setIsUserEnrolled(true);
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.detail(courseId) });
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.enrolled() });
+        // Navigate to learning page
+        navigate(learningPath);
+      },
+      onError: (error) => {
+        console.error('Enrollment failed:', error);
+        // Still navigate even if enrollment fails (for testing)
+        navigate(learningPath);
+      }
+    });
   };
 
   const handlePrimaryAction = () => {
@@ -198,6 +223,13 @@ export function CourseDetailPage() {
                   <div className="flex items-center gap-2 text-blue-50">
                     <Clock className="w-5 h-5" />
                     <span>{course.duration_hours} giờ</span>
+                  </div>
+                )}
+
+                {totalSections > 0 && (
+                  <div className="flex items-center gap-2 text-blue-50">
+                    <BookOpen className="w-5 h-5" />
+                    <span>{totalSections} chương • {totalLessons} bài học</span>
                   </div>
                 )}
               </div>
@@ -406,12 +438,64 @@ export function CourseDetailPage() {
               </Card>
             )}
 
+            {/* Progress (only for enrolled students) */}
+            {isUserEnrolled && progressData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tiến độ học tập</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          {completedLessons} / {totalLessons} bài học
+                        </span>
+                        <span className="text-sm font-semibold text-blue-600">
+                          {progressPercentage.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                    {progressData.last_activity_at && (
+                      <p className="text-xs text-gray-500">
+                        Hoạt động gần nhất: {new Date(progressData.last_activity_at).toLocaleDateString('vi-VN')}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Nội dung bao gồm</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
+                  {totalSections > 0 && (
+                    <li className="flex items-start gap-3 text-gray-700">
+                      <BookOpen className="w-5 h-5 text-blue-600 mt-1" />
+                      <div>
+                        <p className="font-semibold">{totalSections} chương học</p>
+                        <p className="text-sm text-gray-500">{totalLessons} bài học</p>
+                      </div>
+                    </li>
+                  )}
+                  {totalQuizzes > 0 && (
+                    <li className="flex items-start gap-3 text-gray-700">
+                      <FileText className="w-5 h-5 text-blue-600 mt-1" />
+                      <div>
+                        <p className="font-semibold">{totalQuizzes} bài kiểm tra</p>
+                        <p className="text-sm text-gray-500">Đánh giá kiến thức định kỳ</p>
+                      </div>
+                    </li>
+                  )}
                   <li className="flex items-start gap-3 text-gray-700">
                     <PlayCircle className="w-5 h-5 text-blue-600 mt-1" />
                     <div>
@@ -420,10 +504,10 @@ export function CourseDetailPage() {
                     </div>
                   </li>
                   <li className="flex items-start gap-3 text-gray-700">
-                    <FileText className="w-5 h-5 text-blue-600 mt-1" />
+                    <Award className="w-5 h-5 text-blue-600 mt-1" />
                     <div>
-                      <p className="font-semibold">Tài liệu tải về</p>
-                      <p className="text-sm text-gray-500">Slide bài giảng, bài tập thực hành, checklist</p>
+                      <p className="font-semibold">Chứng chỉ hoàn thành</p>
+                      <p className="text-sm text-gray-500">Được cấp sau khi hoàn thành khóa học</p>
                     </div>
                   </li>
                 </ul>

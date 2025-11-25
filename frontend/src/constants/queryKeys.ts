@@ -17,7 +17,7 @@ export const QUERY_KEYS = {
   users: {
     all: ['users'] as const,
     list: (filters?: unknown) => ['users', 'list', filters] as const,
-    detail: (id: number) => ['users', 'detail', id] as const,
+    detail: (id: string | number) => ['users', 'detail', id] as const,
     profile: ['users', 'profile'] as const,
     byRole: (role: string) => ['users', 'role', role] as const,
     byEmail: (email: string) => ['users', 'email', email] as const,
@@ -30,20 +30,22 @@ export const QUERY_KEYS = {
     list: (filters?: unknown) => ['courses', 'list', filters] as const,
     detail: (id: string | number | undefined) => ['courses', 'detail', id] as const,
     enrolled: (filters?: unknown) => ['courses', 'enrolled', filters] as const,
-    instructor: (id?: number) => ['courses', 'instructor', id] as const,
-    students: (courseId: number) => ['courses', courseId, 'students'] as const,
-    progress: (courseId: number) => ['courses', courseId, 'progress'] as const,
+    instructor: (id?: string | number) => ['courses', 'instructor', id] as const,
+    students: (courseId: string | number) => ['courses', courseId, 'students'] as const,
+    progress: (courseId: string | number) => ['courses', courseId, 'progress'] as const,
+    sections: (courseId: string | number) => ['courses', courseId, 'sections'] as const,
+    quizzes: (courseId: string | number) => ['courses', courseId, 'quizzes'] as const,
   },
 
   // Course Content
   courseContent: {
-    all: (courseId: number) => ['course-content', courseId] as const,
-    sections: (courseId: number) => ['course-content', courseId, 'sections'] as const,
-    section: (sectionId: number) => ['course-content', 'section', sectionId] as const,
-    lessons: (sectionId: number) => ['course-content', 'section', sectionId, 'lessons'] as const,
-    lesson: (lessonId: number) => ['course-content', 'lesson', lessonId] as const,
-    progress: (courseId: number) => ['course-content', courseId, 'progress'] as const,
-    lessonProgress: (lessonId: number) => ['course-content', 'lesson', lessonId, 'progress'] as const,
+    all: (courseId: string | number) => ['course-content', courseId] as const,
+    sections: (courseId: string | number) => ['course-content', courseId, 'sections'] as const,
+    section: (sectionId: string | number) => ['course-content', 'section', sectionId] as const,
+    lessons: (sectionId: string | number) => ['course-content', 'section', sectionId, 'lessons'] as const,
+    lesson: (lessonId: string | number) => ['course-content', 'lesson', lessonId] as const,
+    progress: (courseId: string | number) => ['course-content', courseId, 'progress'] as const,
+    lessonProgress: (lessonId: string | number) => ['course-content', 'lesson', lessonId, 'progress'] as const,
     recentActivity: ['course-content', 'recent-activity'] as const,
   },
 
@@ -51,25 +53,25 @@ export const QUERY_KEYS = {
   lessons: {
     all: ['lessons'] as const,
     contentAll: ['lessons', 'content'] as const,
-    content: (courseId: number) => ['lessons', 'content', courseId] as const,
-    detail: (lessonId: number) => ['lessons', 'detail', lessonId] as const,
-    progress: (lessonId: number) => ['lessons', 'progress', lessonId] as const,
-    sections: (courseId: number) => ['lessons', 'sections', courseId] as const,
+    content: (courseId: string | number) => ['lessons', 'content', courseId] as const,
+    detail: (lessonId: string | number) => ['lessons', 'detail', lessonId] as const,
+    progress: (lessonId: string | number) => ['lessons', 'progress', lessonId] as const,
+    sections: (courseId: string | number) => ['lessons', 'sections', courseId] as const,
   },
 
   // Enrollments
   enrollments: {
     all: ['enrollments'] as const,
     list: (filters?: unknown) => ['enrollments', 'list', filters] as const,
-    detail: (id: number) => ['enrollments', 'detail', id] as const,
-    byUser: (userId: number) => ['enrollments', 'user', userId] as const,
-    byCourse: (courseId: number) => ['enrollments', 'course', courseId] as const,
-    check: (userId: number, courseId: number) => 
+    detail: (id: string | number) => ['enrollments', 'detail', id] as const,
+    byUser: (userId: string | number) => ['enrollments', 'user', userId] as const,
+    byCourse: (courseId: string | number) => ['enrollments', 'course', courseId] as const,
+    check: (userId: string | number, courseId: string | number) => 
       ['enrollments', 'check', userId, courseId] as const,
     stats: {
       overview: ['enrollments', 'stats', 'overview'] as const,
-      byCourse: (courseId: number) => ['enrollments', 'stats', 'course', courseId] as const,
-      byUser: (userId: number) => ['enrollments', 'stats', 'user', userId] as const,
+      byCourse: (courseId: string | number) => ['enrollments', 'stats', 'course', courseId] as const,
+      byUser: (userId: string | number) => ['enrollments', 'stats', 'user', userId] as const,
     },
   },
 
@@ -77,29 +79,29 @@ export const QUERY_KEYS = {
   quizzes: {
     all: ['quizzes'] as const,
     list: (filters?: unknown) => ['quizzes', 'list', filters] as const,
-    detail: (id: number) => ['quizzes', 'detail', id] as const,
-    questions: (quizId: number) => ['quizzes', quizId, 'questions'] as const,
-    question: (quizId: number, questionId: number) => 
+    detail: (id: string | number) => ['quizzes', 'detail', id] as const,
+    questions: (quizId: string | number) => ['quizzes', quizId, 'questions'] as const,
+    question: (quizId: string | number, questionId: string | number) => 
       ['quizzes', quizId, 'questions', questionId] as const,
-    attempts: (quizId: number) => ['quizzes', quizId, 'attempts'] as const,
-    attempt: (attemptId: number) => ['quizzes', 'attempt', attemptId] as const,
-    userAttempts: (quizId: number) => ['quizzes', quizId, 'user-attempts'] as const,
+    attempts: (quizId: string | number) => ['quizzes', quizId, 'attempts'] as const,
+    attempt: (attemptId: string | number) => ['quizzes', 'attempt', attemptId] as const,
+    userAttempts: (quizId: string | number) => ['quizzes', quizId, 'user-attempts'] as const,
   },
 
   // Assignments
   assignments: {
     all: ['assignments'] as const,
     list: (filters?: unknown) => ['assignments', 'list', filters] as const,
-    detail: (id: number) => ['assignments', 'detail', id] as const,
-    submissions: (assignmentId: number) => ['assignments', assignmentId, 'submissions'] as const,
-    submission: (submissionId: number) => ['assignments', 'submission', submissionId] as const,
+    detail: (id: string | number) => ['assignments', 'detail', id] as const,
+    submissions: (assignmentId: string | number) => ['assignments', assignmentId, 'submissions'] as const,
+    submission: (submissionId: string | number) => ['assignments', 'submission', submissionId] as const,
   },
 
   // Grades
   grades: {
     all: ['grades'] as const,
-    byCourse: (courseId: number) => ['grades', 'course', courseId] as const,
-    byUser: (userId: number, courseId: number) => 
+    byCourse: (courseId: string | number) => ['grades', 'course', courseId] as const,
+    byUser: (userId: string | number, courseId: string | number) => 
       ['grades', 'user', userId, 'course', courseId] as const,
   },
 
@@ -114,13 +116,13 @@ export const QUERY_KEYS = {
   categories: {
     all: ['categories'] as const,
     list: (filters?: unknown) => ['categories', 'list', filters] as const,
-    detail: (id: number) => ['categories', 'detail', id] as const,
+    detail: (id: string | number) => ['categories', 'detail', id] as const,
   },
 
   // Analytics
   analytics: {
-    courseStats: (courseId: number) => ['analytics', 'course', courseId, 'stats'] as const,
-    userActivities: (userId: number) => ['analytics', 'user', userId, 'activities'] as const,
+    courseStats: (courseId: string | number) => ['analytics', 'course', courseId, 'stats'] as const,
+    userActivities: (userId: string | number) => ['analytics', 'user', userId, 'activities'] as const,
     platformStats: ['analytics', 'platform', 'stats'] as const,
   },
 
@@ -128,16 +130,16 @@ export const QUERY_KEYS = {
   livestream: {
     all: ['livestream'] as const,
     list: (filters?: unknown) => ['livestream', 'list', filters] as const,
-    session: (sessionId: number) => ['livestream', 'session', sessionId] as const,
+    session: (sessionId: string | number) => ['livestream', 'session', sessionId] as const,
   },
 
   // Chat
   chat: {
-    messages: (courseId: number, filters?: unknown) => 
+    messages: (courseId: string | number, filters?: unknown) => 
       ['chat', 'course', courseId, 'messages', filters] as const,
-    search: (courseId: number, query: string) => 
+    search: (courseId: string | number, query: string) => 
       ['chat', 'course', courseId, 'search', query] as const,
-    statistics: (courseId: number) => ['chat', 'course', courseId, 'statistics'] as const,
+    statistics: (courseId: string | number) => ['chat', 'course', courseId, 'statistics'] as const,
   },
 
   // Files

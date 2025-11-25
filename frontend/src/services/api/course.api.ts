@@ -66,8 +66,8 @@ export interface CourseDetailResponse {
 }
 
 export interface CourseProgress {
-  course_id: number;
-  user_id: number;
+  course_id: string;
+  user_id: string;
   lessons_completed: number;
   total_lessons: number;
   percent: number;
@@ -81,8 +81,8 @@ export interface CourseProgressResponse {
 }
 
 export interface CourseSection {
-  id: number;
-  course_id: number;
+  id: string;
+  course_id: string;
   title: string;
   description?: string;
   order: number;
@@ -98,8 +98,8 @@ export interface SectionsResponse {
 }
 
 export interface CourseQuiz {
-  id: number;
-  course_id: number;
+  id: string;
+  course_id: string;
   title: string;
   description?: string;
   questions_count?: number;
@@ -191,21 +191,21 @@ export const courseApi = {
   /**
    * Lấy tiến độ học tập trong khóa học
    */
-  getProgress: (courseId: number) => {
+  getProgress: (courseId: string) => {
     return httpClient.get<CourseProgressResponse>(`/courses/${courseId}/progress`);
   },
 
   /**
    * Lấy danh sách sections của khóa học
    */
-  getSections: (courseId: number) => {
+  getSections: (courseId: string) => {
     return httpClient.get<SectionsResponse>(`/courses/${courseId}/sections`);
   },
 
   /**
    * Lấy danh sách quizzes của khóa học
    */
-  getQuizzes: (courseId: number) => {
+  getQuizzes: (courseId: string) => {
     return httpClient.get<QuizzesResponse>(`/courses/${courseId}/quizzes`);
   },
 };

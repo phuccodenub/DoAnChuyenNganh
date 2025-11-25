@@ -8,11 +8,13 @@ import {
   LogOut, 
   Menu, 
   X,
-  Bell
+  Bell,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/utils';
+import { NotificationPanel } from '@/components/notifications/NotificationPanel';
 
 interface StudentDashboardLayoutProps {
   children: ReactNode;
@@ -21,6 +23,7 @@ interface StudentDashboardLayoutProps {
 const navigation = [
   { name: 'Trang chủ', href: ROUTES.STUDENT.DASHBOARD, icon: Home },
   { name: 'Khóa học của tôi', href: ROUTES.STUDENT.MY_COURSES, icon: BookOpen },
+  { name: 'Bài tập', href: ROUTES.STUDENT.ASSIGNMENTS, icon: ClipboardList },
   { name: 'Thông báo', href: ROUTES.STUDENT.NOTIFICATIONS, icon: Bell },
   { name: 'Hồ sơ', href: ROUTES.STUDENT.PROFILE, icon: User },
   { name: 'Cài đặt', href: ROUTES.STUDENT.SETTINGS, icon: Settings },
@@ -28,8 +31,7 @@ const navigation = [
 
 /**
  * Student Dashboard Layout
- * 
- * Layout cho student dashboard với sidebar navigation
+ * * Layout cho student dashboard với sidebar navigation
  * Responsive: Mobile menu toggle
  */
 export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps) {
@@ -129,20 +131,29 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
         {/* Top bar */}
         <header className="h-16 bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="h-full px-4 lg:px-8 flex items-center justify-between">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
+            {/* Left: Mobile Menu Trigger */}
+            <div className="flex items-center gap-4">
+                <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+                >
+                <Menu className="w-6 h-6" />
+                </button>
 
-            <div className="hidden lg:block text-lg font-semibold text-gray-900">
-              Dashboard
+                <div className="hidden lg:block text-lg font-semibold text-gray-900">
+                Dashboard
+                </div>
             </div>
 
-            {/* Right side items (notifications, profile, etc.) */}
+            {/* Right side items (Notification Bell) */}
             <div className="flex items-center gap-4">
-              {/* Add notification bell, profile menu, etc. */}
+              {/* Notification Panel */}
+              <NotificationPanel />
+
+              {/* Optional: Avatar nhỏ bên phải nếu cần */}
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center lg:hidden">
+                  <span className="text-xs font-bold text-gray-600">{user?.full_name?.charAt(0).toUpperCase()}</span>
+              </div>
             </div>
           </div>
         </header>

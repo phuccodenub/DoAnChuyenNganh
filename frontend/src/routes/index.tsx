@@ -15,6 +15,8 @@ const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 
 // Student pages
 const StudentDashboard = lazy(() => import('@/pages/student/DashboardPage'));
+const StudentMyCoursesPage = lazy(() => import('@/pages/student/MyCoursesPage'));
+const StudentAssignmentsPage = lazy(() => import('@/pages/student/StudentAssignmentsPage'));
 const LearningPage = lazy(() => import('@/pages/student/LearningPage'));
 const QuizPage = lazy(() => import('@/pages/student/QuizPage'));
 const QuizResultsPage = lazy(() => import('@/pages/student/QuizResultsPage'));
@@ -77,7 +79,7 @@ function AppRoutes() {
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
         
-        {/* Public Learning Route - Tạm thời public để test */}
+        {/* Temporary Public Learning Route - ONLY FOR TESTING UI */}
         <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
 
         {/* Protected routes - Cần authentication */}
@@ -85,8 +87,8 @@ function AppRoutes() {
           {/* Student routes */}
           <Route element={<RoleGuard allowedRoles={['student']} />}>
             <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
-            <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentDashboard />} />
-            {/* <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} /> */}
+            <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentMyCoursesPage />} />
+            <Route path={ROUTES.STUDENT.ASSIGNMENTS} element={<StudentAssignmentsPage />} />
             <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
             <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />

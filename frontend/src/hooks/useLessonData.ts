@@ -5,7 +5,7 @@ import { QUERY_KEYS } from '@/constants/queryKeys';
 /**
  * Hook to fetch course content (sections and lessons)
  */
-export function useCourseContent(courseId: number) {
+export function useCourseContent(courseId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.lessons.content(courseId),
     queryFn: () => lessonApi.getCourseContent(courseId),
@@ -17,7 +17,7 @@ export function useCourseContent(courseId: number) {
 /**
  * Hook to fetch lesson detail
  */
-export function useLesson(lessonId: number) {
+export function useLesson(lessonId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.lessons.detail(lessonId),
     queryFn: () => lessonApi.getLesson(lessonId),
@@ -29,7 +29,7 @@ export function useLesson(lessonId: number) {
 /**
  * Hook to fetch lesson progress
  */
-export function useLessonProgress(lessonId: number) {
+export function useLessonProgress(lessonId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.lessons.progress(lessonId),
     queryFn: () => lessonApi.getLessonProgress(lessonId),
@@ -45,7 +45,7 @@ export function useUpdateProgress() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ lessonId, data }: { lessonId: number; data: UpdateProgressPayload }) =>
+    mutationFn: ({ lessonId, data }: { lessonId: string; data: UpdateProgressPayload }) =>
       lessonApi.updateProgress(lessonId, data),
     onSuccess: (data, variables) => {
       // Invalidate lesson progress
@@ -68,7 +68,7 @@ export function useMarkLessonComplete() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (lessonId: number) => lessonApi.markComplete(lessonId),
+    mutationFn: (lessonId: string) => lessonApi.markComplete(lessonId),
     onSuccess: (data, lessonId) => {
       // Invalidate lesson progress
       queryClient.invalidateQueries({
@@ -96,7 +96,7 @@ export function useMarkLessonComplete() {
 /**
  * Hook to get course sections
  */
-export function useCourseSections(courseId: number) {
+export function useCourseSections(courseId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.lessons.sections(courseId),
     queryFn: () => lessonApi.getCourseSections(courseId),
