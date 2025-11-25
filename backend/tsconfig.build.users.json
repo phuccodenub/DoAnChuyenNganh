@@ -1,47 +1,27 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "strict": false,
-    "skipLibCheck": true,
     "noEmit": true,
-    "verbatimModuleSyntax": false,
-    
-    "types": ["node"],
-    "typeRoots": [
-      "./src/types",
-      "./node_modules/@types"
-    ],
-    "baseUrl": "./",
-    "paths": {
-      "@utils/*": ["src/utils/*"],
-      "@config/*": ["src/config/*"],
-      "@modules/*": ["src/modules/*"],
-      "@types/*": ["src/types/*"],
-      "@repositories/*": ["src/repositories/*"]
-    }
+    "isolatedModules": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/models/**/*.ts",
     "src/modules/user/user.repository.ts",
     "src/modules/user/user.service.ts",
-    "src/types/shims-users.d.ts",
-    "src/types/shims-user-service.d.ts",
-    "src/types/shims-users-repo.d.ts",
-    "src/config/db.d.ts",
+    "src/middlewares/validate.middleware.ts",
+    "src/middlewares/uuid-validation.middleware.ts",
     "src/errors/**/*.ts",
     "src/utils/response.util.ts",
     "src/constants/**/*.ts",
-    "src/types/**/*.d.ts"
+    "src/types/**/*.d.ts",
+    "src/config/db.d.ts"
   ],
   "exclude": [
+    "src/modules/user/**/*.test.ts",
+    "src/modules/user/**/*.spec.ts",
     "node_modules",
-    "dist",
-    "**/*.test.ts"
+    "dist"
   ]
 }
 
