@@ -1,4 +1,5 @@
 import logger from '../../utils/logger.util';
+import { CloudinaryService } from '../media/cloudinary.service';
 
 // Multer file type (Express.Multer.File)
 export interface UploadedFile {
@@ -31,8 +32,10 @@ export interface FileMetadata {
  * Handles file operations like upload, download, delete
  */
 export class FileService {
+  private cloudinary: CloudinaryService;
+
   constructor() {
-    // Initialize file service
+    this.cloudinary = new CloudinaryService();
   }
 
   /**
@@ -56,16 +59,34 @@ export class FileService {
         throw new Error(`File size ${file.size} exceeds maximum allowed size ${options.maxSize}`);
       }
 
-      // Generate unique filename
+      // Nếu là ảnh (avatar, thumbnail, ...) thì upload lên Cloudinary
+      if (file.mimetype.startsWith('image/')) {
+        if (!file.buffer) {
+          throw new Error('Image uploads require memory storage (file.buffer is missing)');
+        }
+
+        const folder = options.folder || 'images';
+        const result = await this.cloudinary.uploadImage(
+          file as unknown as Express.Multer.File,
+          folder
+        );
+
+        logger.info('File uploaded to Cloudinary', { url: result.url, folder });
+
+        return {
+          url: result.url,
+          filename: result.publicId,
+          size: file.size
+        };
+      }
+
+      // Fallback: sinh URL local (chủ yếu cho các loại file khác nếu dùng Global FileService)
       const timestamp = Date.now();
       const extension = file.originalname.split('.').pop();
       const filename = `${options.userId}_${timestamp}.${extension}`;
-      
-      // In a real implementation, you would upload to cloud storage (AWS S3, Google Cloud, etc.)
-      // For now, we'll simulate the upload
       const url = `/uploads/${options.folder}/${filename}`;
 
-      logger.info('File uploaded successfully', { filename, url });
+      logger.info('File uploaded (simulated local url)', { filename, url });
       
       return {
         url,

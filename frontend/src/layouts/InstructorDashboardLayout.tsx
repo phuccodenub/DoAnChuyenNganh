@@ -57,7 +57,7 @@ export function InstructorDashboardLayout() {
     },
     {
       label: 'Học viên',
-      path: ROUTES.INSTRUCTOR.DASHBOARD, // TODO: Add students route
+      path: '/instructor/students', // TODO: Add students route
       icon: <Users className="w-5 h-5" />,
     },
     {
@@ -139,9 +139,9 @@ export function InstructorDashboardLayout() {
         )}
       >
         <nav className="p-4 space-y-2">
-          {navItems.map((item) => (
+          {navItems.map((item, index) => (
             <Link
-              key={item.path}
+              key={`nav-${index}-${item.path}`}
               to={item.path}
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
@@ -180,9 +180,9 @@ export function InstructorDashboardLayout() {
             onClick={(e) => e.stopPropagation()}
           >
             <nav className="p-4 space-y-2">
-              {navItems.map((item) => (
+              {navItems.map((item, index) => (
                 <Link
-                  key={item.path}
+                  key={`mobile-nav-${index}-${item.path}`}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(

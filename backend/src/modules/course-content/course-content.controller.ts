@@ -293,6 +293,37 @@ export class CourseContentController {
   };
 
   /**
+   * POST /api/lessons/:lessonId/materials/upload
+   * Upload material file to Google Drive and create LessonMaterial
+   */
+  uploadMaterialFile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { lessonId } = req.params;
+      const userId = req.user?.userId;
+      const file = req.file as Express.Multer.File | undefined;
+
+      if (!file) {
+        return responseUtils.error(res, 'No file uploaded', 400);
+      }
+
+      const description = (req.body.description as string) || undefined;
+
+      const material = await this.service.addMaterialFromUpload(lessonId, userId!, file, {
+        description
+      });
+
+      return responseUtils.success(
+        res,
+        material,
+        'Material uploaded and created successfully',
+        201
+      );
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  /**
    * DELETE /api/materials/:materialId
    * Delete a material
    */

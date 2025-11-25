@@ -449,10 +449,12 @@ export class AuthModuleService {
 
   /**
    * Request password reset
+   * mode = 'link'  -> gửi link đổi mật khẩu
+   * mode = 'password' -> tạo mật khẩu mới ngẫu nhiên và gửi thẳng cho user
    */
-  async forgotPassword(email: string): Promise<void> {
+  async forgotPassword(email: string, mode: 'link' | 'password' = 'link'): Promise<void> {
     try {
-      logger.info('Password reset requested', { email });
+      logger.info('Password reset requested', { email, mode });
 
       // Find user by email
       const user = await this.authRepository.findByEmail(email);
@@ -463,35 +465,83 @@ export class AuthModuleService {
         return;
       }
 
+      if (mode === 'password') {
+        // Tạo mật khẩu mới ngẫu nhiên, đảm bảo đủ mạnh
+        const newPassword = this.generateStrongRandomPassword();
+
+        // Hash password mới
+        const hashedPassword = await globalServices.auth.hashPassword(newPassword);
+
+        // Cập nhật mật khẩu và tăng token_version để vô hiệu token cũ
+        await this.authRepository.updateUserPassword(user.id, hashedPassword, user.token_version + 1);
+
+        // Gửi email chứa mật khẩu mới
+        await globalServices.email.sendNewPasswordEmail(email, newPassword);
+
+        logger.info('Password reset with new random password successfully', { email, userId: user.id });
+        return;
+      }
+
+      // ======= mode === 'link' (mặc định) =======
+
       // Generate reset token (UUID)
       const resetToken = randomUUID();
       
-      // Store token with 24 hour expiry in database
+      // Store token with 24 hour expiry in cache
       const expiryTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-      
-      // Store in database for persistence - using user metadata or a separate token store
-      // For now, we'll store it in cache with expiry
       const cacheKey = `password-reset:${resetToken}`;
-      await globalServices.cache.set(cacheKey, JSON.stringify({ userId: user.id, expiryTime: expiryTime.toISOString() }), 24 * 60 * 60);
+      await globalServices.cache.set(
+        cacheKey,
+        JSON.stringify({ userId: user.id, expiryTime: expiryTime.toISOString() }),
+        24 * 60 * 60
+      );
 
-      // Send reset email if email service is configured
-      // For development, this can be skipped or logged
       const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
       
       logger.info('Password reset link generated', { email, userId: user.id, resetLink });
       
-      // TODO: Send email via email service when configured
-      // await globalServices.email.sendPasswordResetEmail({
-      //   to: email,
-      //   resetLink,
-      //   expiryTime,
-      // });
+      // Gửi email chứa link reset password
+      await globalServices.email.sendPasswordResetEmail(email, resetToken);
 
       logger.info('Password reset requested successfully', { email, userId: user.id });
     } catch (error: unknown) {
       logger.error('Error requesting password reset:', error);
       throw error;
     }
+  }
+
+  /**
+   * Tạo mật khẩu mạnh ngẫu nhiên cho flow reset bằng password
+   */
+  private generateStrongRandomPassword(length: number = 12): string {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const digits = '0123456789';
+    const symbols = '@$!%*?&';
+    const all = upper + lower + digits + symbols;
+
+    const pick = (chars: string) => chars[Math.floor(Math.random() * chars.length)];
+
+    // Đảm bảo có đủ 4 loại ký tự
+    const base = [
+      pick(upper),
+      pick(lower),
+      pick(digits),
+      pick(symbols)
+    ];
+
+    const remainingLength = Math.max(length, 8) - base.length;
+    for (let i = 0; i < remainingLength; i++) {
+      base.push(pick(all));
+    }
+
+    // Shuffle
+    for (let i = base.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [base[i], base[j]] = [base[j], base[i]];
+    }
+
+    return base.join('');
   }
 
   /**

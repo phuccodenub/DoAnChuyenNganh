@@ -5,6 +5,7 @@ import { ApiError } from '../../errors/api.error';
 import { DatabaseError } from '../../errors/database.error';
 import { AuthorizationError } from '../../errors/authorization.error';
 import logger from '../../utils/logger.util';
+import { GoogleDriveService } from '../../services/storage/google-drive.service';
 
 /**
  * Course Content Service
@@ -12,9 +13,11 @@ import logger from '../../utils/logger.util';
  */
 export class CourseContentService {
   private repository: CourseContentRepository;
+  private driveService: GoogleDriveService;
 
   constructor() {
     this.repository = new CourseContentRepository();
+    this.driveService = new GoogleDriveService();
   }
 
   // ===================================
@@ -284,7 +287,7 @@ orders: ReorderItem[]
   async addMaterial(
     lessonId: string,
     userId: string,
-data: LessonMaterialInput
+  data: LessonMaterialInput
   ) {
     try {
       const lesson = await this.repository.findLessonById(lessonId) as LessonInstance | null;
@@ -301,6 +304,51 @@ data: LessonMaterialInput
       return material;
     } catch (error: unknown) {
       logger.error(`Error adding material: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload file lên Google Drive và tạo LessonMaterial tương ứng
+   */
+  async addMaterialFromUpload(
+    lessonId: string,
+    userId: string,
+    file: Express.Multer.File,
+    options?: { description?: string }
+  ) {
+    try {
+      const lesson = await this.repository.findLessonById(lessonId) as LessonInstance | null;
+      if (!lesson) {
+        throw new ApiError('Lesson not found', 404);
+      }
+
+      const courseId = (lesson as any).section?.course?.id;
+      await this.verifyInstructorAccess(courseId, userId);
+
+      // Upload file lên Google Drive (thư mục Resources)
+      const driveResult = await this.driveService.uploadCourseResource(
+        file.buffer as Buffer,
+        file.originalname,
+        file.mimetype
+      );
+
+      const input: LessonMaterialInput = {
+        file_name: driveResult.name,
+        file_url: driveResult.webViewLink || driveResult.webContentLink || '',
+        file_type: file.mimetype,
+        file_size: file.size,
+        file_extension: this.getFileExtension(file.originalname),
+        description: options?.description,
+        is_downloadable: true
+      };
+
+      const material = await this.repository.createMaterial(lessonId, userId, input) as LessonMaterialInstance;
+      logger.info(`Material uploaded to Google Drive and added: ${material.id} to lesson ${lessonId}`);
+
+      return material;
+    } catch (error: unknown) {
+      logger.error(`Error uploading material to Google Drive: ${error}`);
       throw error;
     }
   }
@@ -338,6 +386,12 @@ data: LessonMaterialInput
       throw new ApiError('Material not found', 404);
     }
     return material;
+  }
+
+  private getFileExtension(fileName: string): string | undefined {
+    const parts = fileName.split('.');
+    if (parts.length < 2) return undefined;
+    return parts.pop();
   }
 
   // ===================================

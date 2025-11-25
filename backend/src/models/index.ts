@@ -23,6 +23,7 @@ export { default as FinalGrade } from './final-grade.model';
 export { default as GradeComponent } from './grade-component.model';
 export { default as LiveSession } from './live-session.model';
 export { default as LiveSessionAttendance } from './live-session-attendance.model';
+export { default as LiveSessionMessage } from './live-session-message.model';
 
 // Import models for associations
 import User from './user.model';

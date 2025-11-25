@@ -1,9 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { PageLoader } from '@/components/ui/Spinner';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
-import { ROUTES } from '@/constants/routes';
+import { ROUTES, generateRoute } from '@/constants/routes';
 
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -12,6 +12,8 @@ const HomePage = lazy(() => import('@/pages/HomePage/index'));
 const Home = lazy(() => import('@/pages/Home/index'));
 const CourseCatalogPage = lazy(() => import('@/pages/CourseCatalogPage'));
 const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
+const LiveStreamLobbyPage = lazy(() => import('@/pages/LiveStreamLobbyPage'));
+const LiveStreamSessionPage = lazy(() => import('@/pages/LiveStreamSessionPage'));
 
 // Student pages
 const StudentDashboard = lazy(() => import('@/pages/student/DashboardPage'));
@@ -55,9 +57,17 @@ const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 const NotificationsPage = lazy(() => import('@/pages/student/NotificationsPage'));
 
+const InstructorLivestreamRedirect = () => {
+  const { sessionId } = useParams<{ sessionId: string }>();
+  if (!sessionId) {
+    return <Navigate to={ROUTES.NOT_FOUND} replace />;
+  }
+  return <Navigate to={generateRoute.livestream.session(sessionId)} replace />;
+};
+
 /**
  * Main Application Routes
- * 
+ *
  * Tổ chức routes theo:
  * - Public routes (Home, Login, Register, Courses)
  * - Protected routes (cần authentication)
@@ -84,6 +94,11 @@ function AppRoutes() {
 
         {/* Protected routes - Cần authentication */}
         <Route element={<ProtectedRoute />}>
+          {/* Shared livestream hub */}
+          <Route path={ROUTES.LIVESTREAM.HUB} element={<LiveStreamLobbyPage />} />
+          <Route path={ROUTES.LIVESTREAM.SESSION} element={<LiveStreamSessionPage />} />
+          <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_SESSION} element={<InstructorLivestreamRedirect />} />
+
           {/* Student routes */}
           <Route element={<RoleGuard allowedRoles={['student']} />}>
             <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
@@ -97,8 +112,8 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
           </Route>
           
-          {/* Instructor routes */}
-          <Route element={<RoleGuard allowedRoles={['instructor']} />}>
+          {/* Instructor & Admin routes (admin cũng có thể host livestream) */}
+          <Route element={<RoleGuard allowedRoles={['instructor', 'admin']} />}>
             <Route element={<InstructorDashboardLayout />}>
               <Route path={ROUTES.INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
               <Route path={ROUTES.INSTRUCTOR.MY_COURSES} element={<MyCoursesPage />} />
@@ -112,9 +127,10 @@ function AppRoutes() {
               <Route path={ROUTES.INSTRUCTOR.GRADES} element={<GradingPage />} />
               <Route path="/instructor/students" element={<StudentManagementPage />} />
               <Route path={ROUTES.INSTRUCTOR.LIVESTREAM} element={<LiveStreamManagementPage />} />
-              <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />
               <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_HOST} element={<LiveStreamHostPage />} />
             </Route>
+            {/* Livestream create page sử dụng layout riêng giống Facebook */}
+            <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />
           </Route>
           
           {/* Admin routes */}

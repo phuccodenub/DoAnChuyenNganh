@@ -191,8 +191,8 @@ export class AuthController {
   // Forgot password - request password reset
   async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email } = req.body;
-      await this.authService.forgotPassword(email);
+      const { email, mode } = req.body as { email: string; mode?: 'link' | 'password' };
+      await this.authService.forgotPassword(email, mode || 'link');
       
       // Return success message even if email doesn't exist (for security)
       responseUtils.sendSuccess(res, 'Password reset email sent successfully. Please check your email.', null);

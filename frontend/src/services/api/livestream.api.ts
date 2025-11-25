@@ -6,50 +6,110 @@
 
 import { httpClient } from '../http/client';
 
-export interface LivestreamSession {
-  id: number;
-  instructor_id: number;
-  course_id: number | null;
+export interface IceServerConfig {
+  urls: string | string[];
+  username?: string;
+  credential?: string;
+}
+
+export interface WebRTCConfiguration {
+  iceServers?: IceServerConfig[];
+  [key: string]: unknown;
+}
+
+export interface LiveSession {
+  id: string;
+  host_user_id?: string;
+  instructor_name?: string;
+  instructor_avatar?: string;
+  course_id?: string | null;
+  course_title?: string;
   title: string;
-  description: string;
-  scheduled_at: string;
-  duration_minutes: number;
+  description?: string;
+  scheduled_start?: string;
+  scheduled_end?: string;
+  actual_start?: string;
+  actual_end?: string;
   status: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  platform?: string;
+  ingest_type?: 'webrtc' | 'rtmp';
+  webrtc_room_id?: string | null;
+  webrtc_config?: WebRTCConfiguration;
   meeting_url?: string;
-  meeting_id?: string;
   meeting_password?: string;
-  viewer_count: number;
-  started_at?: string;
-  ended_at?: string;
+  max_participants?: number;
+  viewer_count?: number;
+  attendance_count?: number;
+  duration_minutes?: number;
+  is_recorded?: boolean;
+  is_public?: boolean;
   recording_url?: string;
+  thumbnail_url?: string;
+  stream_key?: string | null;
+  playback_url?: string | null;
+  category?: string;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
   course?: {
-    id: number;
+    id: string;
     title: string;
+    category?: string;
   };
-  created_at: string;
-  updated_at: string;
+  host?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    avatar?: string;
+    role?: string;
+  };
+}
+
+export interface LiveSessionsQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}
+
+export interface LiveSessionsResponse {
+  sessions: LiveSession[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface CreateSessionData {
-  course_id?: number | null;
+  course_id?: string | null;
   title: string;
-  description: string;
-  scheduled_at: string;
-  duration_minutes: number;
+  description?: string;
+  scheduled_start?: string;
+  scheduled_end?: string;
+  duration_minutes?: number;
   meeting_url?: string;
-  meeting_id?: string;
   meeting_password?: string;
+  platform?: string;
+  max_participants?: number;
+  is_public?: boolean;
+  category?: string;
+  thumbnail_url?: string;
+  playback_url?: string;
+  stream_key?: string;
+  ingest_type?: 'webrtc' | 'rtmp';
+  webrtc_room_id?: string | null;
+  webrtc_config?: WebRTCConfiguration;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateSessionData {
-  title?: string;
-  description?: string;
-  scheduled_at?: string;
-  duration_minutes?: number;
-  status?: 'scheduled' | 'live' | 'ended' | 'cancelled';
-  meeting_url?: string;
-  meeting_id?: string;
-  meeting_password?: string;
+  status: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  recording_url?: string;
+  actual_start?: string;
+  actual_end?: string;
+  viewer_count?: number;
 }
 
 export interface PaginationParams {
@@ -59,91 +119,69 @@ export interface PaginationParams {
   search?: string;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+const BASE_PATH = '/live-sessions';
 
 export const livestreamApi = {
   /**
    * Get all sessions (instructor's own sessions)
    */
-  getMySessions: async (params?: PaginationParams): Promise<PaginatedResponse<LivestreamSession>> => {
-    const response = await httpClient.get('/livestream/my-sessions', { params });
-    return response.data;
+  getMySessions: async (params?: PaginationParams): Promise<LiveSessionsResponse> => {
+    const response = await httpClient.get(`${BASE_PATH}/my`, { params });
+    return response.data.data;
+  },
+
+  /**
+   * Get public live sessions
+   */
+  getLiveSessions: async (params?: LiveSessionsQuery): Promise<LiveSessionsResponse> => {
+    const response = await httpClient.get(BASE_PATH, { params });
+    return response.data.data;
   },
 
   /**
    * Get single session by ID
    */
-  getSession: async (id: number): Promise<LivestreamSession> => {
-    const response = await httpClient.get(`/livestream/sessions/${id}`);
+  getSession: async (id: string): Promise<LiveSession> => {
+    const response = await httpClient.get(`${BASE_PATH}/${id}`);
     return response.data.data;
   },
 
   /**
    * Create new session
    */
-  createSession: async (data: CreateSessionData): Promise<LivestreamSession> => {
-    const response = await httpClient.post('/livestream/sessions', data);
+  createSession: async (data: CreateSessionData): Promise<LiveSession> => {
+    const response = await httpClient.post(BASE_PATH, data);
     return response.data.data;
   },
 
   /**
    * Update session
    */
-  updateSession: async (id: number, data: UpdateSessionData): Promise<LivestreamSession> => {
-    const response = await httpClient.put(`/livestream/sessions/${id}`, data);
+  updateSession: async (id: string, data: UpdateSessionData): Promise<LiveSession> => {
+    const response = await httpClient.put(`${BASE_PATH}/${id}/status`, data);
     return response.data.data;
   },
 
   /**
    * Delete session
    */
-  deleteSession: async (id: number): Promise<void> => {
-    await httpClient.delete(`/livestream/sessions/${id}`);
+  deleteSession: async (id: string): Promise<void> => {
+    await httpClient.delete(`${BASE_PATH}/${id}`);
   },
 
   /**
    * Start session (change status to live)
    */
-  startSession: async (id: number): Promise<LivestreamSession> => {
-    const response = await httpClient.post(`/livestream/sessions/${id}/start`);
+  getSessionViewers: async (id: string): Promise<{ count: number; viewers: any[] }> => {
+    const response = await httpClient.get(`${BASE_PATH}/${id}/viewers`);
     return response.data.data;
   },
 
-  /**
-   * End session (change status to ended)
-   */
-  endSession: async (id: number): Promise<LivestreamSession> => {
-    const response = await httpClient.post(`/livestream/sessions/${id}/end`);
-    return response.data.data;
+  joinSession: async (id: string): Promise<void> => {
+    await httpClient.post(`${BASE_PATH}/${id}/join`);
   },
 
-  /**
-   * Get session viewers
-   */
-  getSessionViewers: async (id: number): Promise<{ count: number; viewers: any[] }> => {
-    const response = await httpClient.get(`/livestream/sessions/${id}/viewers`);
-    return response.data.data;
-  },
-
-  /**
-   * Join session as viewer
-   */
-  joinSession: async (id: number): Promise<void> => {
-    await httpClient.post(`/livestream/sessions/${id}/join`);
-  },
-
-  /**
-   * Leave session
-   */
-  leaveSession: async (id: number): Promise<void> => {
-    await httpClient.post(`/livestream/sessions/${id}/leave`);
+  leaveSession: async (id: string): Promise<void> => {
+    await httpClient.post(`${BASE_PATH}/${id}/leave`);
   },
 };

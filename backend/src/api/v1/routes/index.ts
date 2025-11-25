@@ -65,7 +65,7 @@ router.use('/categories', categoryRoutes);
 router.use('/course-content', courseContentRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/grades', gradeRoutes);
-router.use('/livestream', liveStreamRoutes);
+router.use('/live-sessions', liveStreamRoutes);
 router.use('/analytics', analyticsRoutes);
 
 // Assignment and quiz routes
