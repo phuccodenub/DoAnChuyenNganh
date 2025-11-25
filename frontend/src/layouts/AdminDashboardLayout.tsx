@@ -12,6 +12,7 @@ import {
   Bell,
   LogOut,
   ChevronDown,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore.enhanced';
@@ -45,6 +46,11 @@ const navItems = [
     path: ROUTES.ADMIN.REPORTS,
     icon: BarChart3,
     label: 'Báo cáo',
+  },
+  {
+    path: ROUTES.ADMIN.ACTIVITY_LOGS,
+    icon: Activity,
+    label: 'Nhật ký hoạt động',
   },
   {
     path: ROUTES.ADMIN.SYSTEM_SETTINGS,

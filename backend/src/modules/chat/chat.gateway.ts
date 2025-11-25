@@ -21,6 +21,7 @@ import {
 } from './chat.types';
 import logger from '../../utils/logger.util';
 import { APP_CONSTANTS } from '../../constants/app.constants';
+import { deliveryTracker } from '../../utils/message-delivery.util';
 
 export class ChatGateway {
   private io: SocketIOServer;
@@ -267,13 +268,25 @@ export class ChatGateway {
           sender_id: user.userId
         });
 
+        if (!message) {
+          socket.emit(ChatSocketEvents.ERROR, {
+            code: ChatErrorCodes.SERVER_ERROR,
+            message: 'Failed to create message'
+          });
+          return;
+        }
+
+        // Track message delivery status (initially 'sent')
+        deliveryTracker.markDelivered(message.id, user.userId);
+
         // Broadcast to room
         this.io.to(`course:${data.course_id}`).emit(ChatSocketEvents.NEW_MESSAGE, message);
 
-        // Confirm to sender
+        // Confirm to sender with delivery status
         socket.emit(ChatSocketEvents.MESSAGE_SENT, {
           tempId: data.reply_to, // Can be used for optimistic updates
-          message
+          message,
+          deliveryStatus: 'sent'
         });
 
         // Update room activity

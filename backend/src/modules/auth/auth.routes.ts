@@ -48,6 +48,22 @@ router.get(
   (req: Request, res: Response, next: NextFunction) => authController.verifyEmail(req, res, next)
 );
 
+// Forgot password - request password reset
+router.post(
+  '/forgot-password',
+  passwordResetRateLimit,
+  validateBody(authSchemas.forgotPassword),
+  (req: Request, res: Response, next: NextFunction) => authController.forgotPassword(req, res, next)
+);
+
+// Reset password - with token
+router.post(
+  '/reset-password',
+  passwordResetRateLimit,
+  validateBody(authSchemas.resetPassword),
+  (req: Request, res: Response, next: NextFunction) => authController.resetPassword(req, res, next)
+);
+
 // ===== PROTECTED ROUTES (Authentication required) =====
 
 // All routes below require authentication

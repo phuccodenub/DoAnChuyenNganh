@@ -2,6 +2,19 @@
 # Uses traditional PostgreSQL with old volume data
 # Includes: PostgreSQL (with old data) + Redis + Backend
 # Usage: npm run dev:test
+#
+# ARCHITECTURE NOTE:
+# ==================
+# Frontend: Uses single image (lms-frontend-dev) for both dev and test
+#   - Frontend is stateless (builds to static HTML/CSS/JS)
+#   - Identical build process for both environments
+#   - Config differs only via environment variables
+#
+# Backend: Must use 2 separate images (backend-dev vs backend-test)
+#   - backend-dev:   Connects to docker-managed postgres-dev + redis-dev
+#   - backend-test:  Connects to Windows host postgres + redis-test
+#   - These have different DB_HOST, REDIS_HOST, and node_modules dependencies
+#   - Cannot share image due to environment and volume differences
 
 # Shared configuration templates
 x-postgres-base: &postgres-base
@@ -97,23 +110,16 @@ services:
     command: ["/bin/sh", "/app/start-backend-test.sh"]
 
   # Frontend React Service (for E2E testing)
+  # OPTIMIZATION: Reuse lms-frontend-dev image (frontend build is identical for both dev and test)
+  # Frontend is stateless - no reason to build twice
   frontend-test:
-    build:
-      context: ../../..
-      dockerfile: frontend/Dockerfile
-      args:
-        VITE_API_URL: "http://localhost:${BACKEND_PORT:-3000}/api/v1.3.0"
-        VITE_SOCKET_URL: "http://localhost:${BACKEND_PORT:-3000}"
-    image: lms-frontend-test:latest
+    image: lms-frontend-dev:latest
     container_name: lms-frontend-test
     restart: unless-stopped
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - REACT_APP_API_URL=http://localhost:${BACKEND_PORT:-3000}/api
       - REACT_APP_WS_URL=http://localhost:${BACKEND_PORT:-3000}
-    volumes:
-      - ../../../frontend:/app
-      - /app/node_modules
     ports:
       - "${FRONTEND_PORT:-3001}:80"
     networks:

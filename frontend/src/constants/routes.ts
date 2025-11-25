@@ -65,6 +65,7 @@ export const ROUTES = {
     CATEGORIES: '/admin/categories',
     SYSTEM_SETTINGS: '/admin/settings',
     REPORTS: '/admin/reports',
+    ACTIVITY_LOGS: '/admin/activity-logs',
     ANALYTICS: '/admin/analytics',
   },
 

@@ -32,6 +32,7 @@ export const QUERY_KEYS = {
     enrolled: (filters?: unknown) => ['courses', 'enrolled', filters] as const,
     instructor: (id?: number) => ['courses', 'instructor', id] as const,
     students: (courseId: number) => ['courses', courseId, 'students'] as const,
+    progress: (courseId: number) => ['courses', courseId, 'progress'] as const,
   },
 
   // Course Content
@@ -149,6 +150,35 @@ export const QUERY_KEYS = {
   // System Settings
   systemSettings: {
     all: ['system-settings'] as const,
+    general: ['system-settings', 'general'] as const,
+    email: ['system-settings', 'email'] as const,
+    security: ['system-settings', 'security'] as const,
+    features: ['system-settings', 'features'] as const,
+  },
+
+  // Reports & Analytics (Admin)
+  reports: {
+    stats: (period?: string) => ['reports', 'stats', period] as const,
+    userGrowth: (days?: number) => ['reports', 'user-growth', days] as const,
+    coursePopularity: (limit?: number) => ['reports', 'course-popularity', limit] as const,
+    userActivity: (days?: number) => ['reports', 'user-activity', days] as const,
+    enrollmentTrends: (months?: number) => ['reports', 'enrollment-trends', months] as const,
+    revenue: (period?: string) => ['reports', 'revenue', period] as const,
+  },
+
+  // Activity Logs (Admin)
+  activityLogs: {
+    all: ['activity-logs'] as const,
+    list: (filters?: unknown) => ['activity-logs', 'list', filters] as const,
+    detail: (logId: number) => ['activity-logs', 'detail', logId] as const,
+  },
+
+  // Admin section
+  admin: {
+    dashboard: ['admin', 'dashboard'] as const,
+    settings: ['admin', 'settings'] as const,
+    reports: ['admin', 'reports'] as const,
+    logs: ['admin', 'logs'] as const,
   },
 } as const;
 

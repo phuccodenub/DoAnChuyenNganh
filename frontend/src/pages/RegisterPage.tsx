@@ -62,10 +62,17 @@ function RegisterPage() {
     
     if (!validateForm()) return
     
+    // Split full_name into first_name and last_name
+    const nameParts = formData.full_name.trim().split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+
     const success = await register({
+      username: formData.email.split('@')[0], // Generate username from email
       email: formData.email,
       password: formData.password,
-      full_name: formData.full_name.trim(),
+      first_name: firstName,
+      last_name: lastName,
       role: formData.role
     })
     
