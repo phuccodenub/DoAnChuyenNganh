@@ -1,9 +1,10 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { CourseContentController } from './course-content.controller';
 import { courseContentValidation } from './course-content.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
+import { uploadMiddleware } from '../files/upload.middleware';
 
 const router = Router();
 const controller = new CourseContentController();
@@ -138,6 +139,20 @@ router.post(
   ]),
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
   controller.addMaterial
+);
+
+// Upload material file to Google Drive and create LessonMaterial (instructor only)
+router.post(
+  '/lessons/:lessonId/materials/upload',
+  // Dùng category DOCUMENT để giới hạn PDF, DOCX, PPT, ZIP...
+  (req: Request, _res: Response, next: NextFunction) => {
+    // Gắn category để upload.middleware biết validate
+    (req as any).body.category = (req as any).body.category || 'DOCUMENT';
+    next();
+  },
+  uploadMiddleware('file', 1),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
+  controller.uploadMaterialFile
 );
 
 // Delete material (instructor only)

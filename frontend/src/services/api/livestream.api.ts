@@ -39,6 +39,8 @@ export interface LiveSession {
   meeting_password?: string;
   max_participants?: number;
   viewer_count?: number;
+  attendance_count?: number;
+  duration_minutes?: number;
   is_recorded?: boolean;
   is_public?: boolean;
   recording_url?: string;

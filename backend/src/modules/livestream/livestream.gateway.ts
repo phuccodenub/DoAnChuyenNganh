@@ -69,16 +69,16 @@ export class LiveStreamGateway {
         }
 
         // Verify JWT token
-        const decoded = jwtUtils.verifyAccessToken(token);
+        const decoded = jwtUtils.verifyAccessToken(token) as any;
         
         // Attach user to socket
         (socket as any).user = {
           userId: decoded.userId,
           email: decoded.email,
           role: decoded.role,
-          firstName: decoded.firstName,
-          lastName: decoded.lastName,
-          avatar: decoded.avatar,
+          firstName: decoded.firstName || '',
+          lastName: decoded.lastName || '',
+          avatar: decoded.avatar || '',
         } as SocketUser;
 
         next();

@@ -12,7 +12,11 @@ import logger from '../../utils/logger.util';
 
 // Determine storage mode
 const storageType = (process.env.STORAGE_TYPE || 'local').toLowerCase();
-const isCloudStorage = storageType === 'google_cloud' || storageType === 'aws_s3' || storageType === 'azure_blob';
+const isCloudStorage =
+  storageType === 'google_cloud' ||
+  storageType === 'aws_s3' ||
+  storageType === 'azure_blob' ||
+  storageType === 'r2';
 
 // Ensure upload directory exists for local storage only
 const uploadDir = process.env.UPLOAD_PATH || './uploads';

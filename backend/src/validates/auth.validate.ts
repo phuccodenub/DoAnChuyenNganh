@@ -39,7 +39,9 @@ export const authValidation = {
   
   // Forgot password schema
   forgotPassword: z.object({
-    email: baseValidation.email
+    email: baseValidation.email,
+    // mode: 'link' -> gửi link đổi mật khẩu, 'password' -> gửi mật khẩu mới ngẫu nhiên
+    mode: z.enum(['link', 'password']).optional().default('link')
   }),
   
   // Reset password schema

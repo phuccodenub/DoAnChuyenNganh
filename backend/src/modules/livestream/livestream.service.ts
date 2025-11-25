@@ -105,8 +105,8 @@ export class LiveStreamService {
     return {
       ...result,
       sessions: result.sessions
-        .map((session) => this.serializeSession(session))
-        .filter((session): session is Record<string, unknown> => !!session),
+        .map((session: any) => this.serializeSession(session))
+        .filter((session: any): session is Record<string, unknown> => !!session),
     };
   }
 
@@ -115,8 +115,8 @@ export class LiveStreamService {
     return {
       ...result,
       sessions: result.sessions
-        .map((session) => this.serializeSession(session))
-        .filter((session): session is Record<string, unknown> => !!session),
+        .map((session: any) => this.serializeSession(session))
+        .filter((session: any): session is Record<string, unknown> => !!session),
     };
   }
 
@@ -340,6 +340,8 @@ export class LiveStreamService {
     };
   }
 }
+
+
 
 
 
