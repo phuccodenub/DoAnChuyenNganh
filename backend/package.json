@@ -38,6 +38,7 @@
     "setup-db-simple": "ts-node -r tsconfig-paths/register src/scripts/setup-db-simple.ts",
     "reset-db-simple": "ts-node -r tsconfig-paths/register src/scripts/reset-db-simple.ts",
     "migrate": "ts-node -r tsconfig-paths/register src/scripts/migrate.ts",
+    "fix:course-id": "ts-node -r tsconfig-paths/register src/scripts/fix-course-id-nullable.ts",
     "seed": "ts-node -r tsconfig-paths/register src/scripts/seed-database.ts",
     "seed:complete-course": "ts-node -r tsconfig-paths/register src/scripts/seed-complete-course.ts",
     "seed:docker": "dotenv -e .env.local -- npx tsx src/scripts/seed-complete-course.ts",

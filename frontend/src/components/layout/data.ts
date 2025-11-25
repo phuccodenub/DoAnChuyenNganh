@@ -60,9 +60,9 @@ export const sidebarMenuItems: SidebarMenuItem[] = [
   },
   {
     id: 'livestream',
-    label: 'Lớp học trực tuyến',
+    label: 'Livestream',
     icon: '📹',
-    link: '/courses?livestream=true',
+    link: '/livestream',
   },
   {
     id: 'about',

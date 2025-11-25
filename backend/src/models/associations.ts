@@ -15,6 +15,9 @@ import LessonMaterial from './lesson-material.model';
 import LessonProgress from './lesson-progress.model';
 import Notification from './notification.model';
 import NotificationRecipient from './notification-recipient.model';
+import LiveSession from './live-session.model';
+import LiveSessionAttendance from './live-session-attendance.model';
+import LiveSessionMessage from './live-session-message.model';
 
 export const setupAssociations = () => {
   // ===================================
@@ -97,6 +100,75 @@ export const setupAssociations = () => {
   (Enrollment as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
+  });
+
+  // Live sessions relationships
+  (User as any).hasMany(LiveSession, {
+    foreignKey: 'host_user_id',
+    as: 'hostedLiveSessions',
+  });
+  (LiveSession as any).belongsTo(User, {
+    foreignKey: 'host_user_id',
+    as: 'host',
+  });
+
+  (Course as any).hasMany(LiveSession, {
+    foreignKey: 'course_id',
+    as: 'liveSessions',
+  });
+  (LiveSession as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course',
+  });
+
+  (LiveSession as any).hasMany(LiveSessionAttendance, {
+    foreignKey: 'session_id',
+    as: 'attendance',
+    onDelete: 'CASCADE',
+  });
+  (LiveSessionAttendance as any).belongsTo(LiveSession, {
+    foreignKey: 'session_id',
+    as: 'session',
+  });
+
+  (User as any).hasMany(LiveSessionAttendance, {
+    foreignKey: 'user_id',
+    as: 'liveSessionAttendance',
+    onDelete: 'CASCADE',
+  });
+  (LiveSessionAttendance as any).belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+  });
+
+  // Live session messages relationships
+  (LiveSession as any).hasMany(LiveSessionMessage, {
+    foreignKey: 'session_id',
+    as: 'messages',
+    onDelete: 'CASCADE',
+  });
+  (LiveSessionMessage as any).belongsTo(LiveSession, {
+    foreignKey: 'session_id',
+    as: 'session',
+  });
+
+  (User as any).hasMany(LiveSessionMessage, {
+    foreignKey: 'sender_id',
+    as: 'liveSessionMessages',
+  });
+  (LiveSessionMessage as any).belongsTo(User, {
+    foreignKey: 'sender_id',
+    as: 'sender',
+  });
+
+  // Live session message self-referencing (replies)
+  (LiveSessionMessage as any).hasMany(LiveSessionMessage, {
+    foreignKey: 'reply_to',
+    as: 'replies',
+  });
+  (LiveSessionMessage as any).belongsTo(LiveSessionMessage, {
+    foreignKey: 'reply_to',
+    as: 'replyTo',
   });
 
   // ===================================

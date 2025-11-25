@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/constants/routes';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import type { LiveSession } from '@/services/api/livestream.api';
 
 type SessionStatus = 'all' | 'scheduled' | 'live' | 'ended' | 'cancelled';
 
@@ -32,7 +33,7 @@ export function LiveStreamManagementPage() {
   const { data: sessionsResponse, isLoading } = useMySessions();
 
   // Extract sessions array
-  const sessionsArray = sessionsResponse?.data || [];
+  const sessionsArray: LiveSession[] = sessionsResponse?.sessions || [];
 
   // Filter sessions
   const filteredSessions = sessionsArray.filter((session: any) => {
@@ -84,7 +85,7 @@ export function LiveStreamManagementPage() {
           </p>
         </div>
         <Button
-          onClick={() => navigate('/instructor/livestream/create')}
+          onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM_CREATE)}
           className="flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -152,7 +153,7 @@ export function LiveStreamManagementPage() {
             }
           </p>
           {!searchQuery && (
-            <Button onClick={() => navigate('/instructor/livestream/create')}>
+            <Button onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM_CREATE)}>
               Tạo phiên mới
             </Button>
           )}
@@ -162,7 +163,7 @@ export function LiveStreamManagementPage() {
       {/* Sessions List */}
       {!isLoading && filteredSessions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSessions.map((session: any) => (
+          {filteredSessions.map((session: LiveSession) => (
             <div
               key={session.id}
               className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
@@ -193,11 +194,15 @@ export function LiveStreamManagementPage() {
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    {format(new Date(session.scheduled_at), 'dd MMM yyyy', { locale: vi })}
+                    {session.scheduled_start
+                      ? format(new Date(session.scheduled_start), 'dd MMM yyyy', { locale: vi })
+                      : 'Chưa xác định'}
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {format(new Date(session.scheduled_at), 'HH:mm', { locale: vi })} • {session.duration_minutes} phút
+                    {session.scheduled_start
+                      ? format(new Date(session.scheduled_start), 'HH:mm', { locale: vi })
+                      : '--:--'} • {session.duration_minutes || 0} phút
                   </div>
                   {session.status === 'ended' && session.attendance_count !== undefined && (
                     <div className="flex items-center gap-2">
@@ -214,7 +219,9 @@ export function LiveStreamManagementPage() {
                 {session.status === 'scheduled' && (
                   <Button
                     size="sm"
-                    onClick={() => navigate(`/instructor/livestream/${session.id}`)}
+                    onClick={() =>
+                      navigate(ROUTES.INSTRUCTOR.LIVESTREAM_HOST.replace(':sessionId', session.id))
+                    }
                     className="flex items-center gap-1"
                   >
                     <Play className="w-4 h-4" />
@@ -225,7 +232,9 @@ export function LiveStreamManagementPage() {
                   <Button
                     size="sm"
                     variant="danger"
-                    onClick={() => navigate(`/instructor/livestream/${session.id}`)}
+                    onClick={() =>
+                      navigate(ROUTES.INSTRUCTOR.LIVESTREAM_HOST.replace(':sessionId', session.id))
+                    }
                     className="flex items-center gap-1"
                   >
                     <Square className="w-4 h-4" />
@@ -251,7 +260,7 @@ export function LiveStreamManagementPage() {
                 <div className="flex items-center gap-2">
                   {session.status === 'scheduled' && (
                     <button
-                      onClick={() => navigate(`/instructor/livestream/${session.id}/edit`)}
+                      onClick={() => navigate(`${ROUTES.INSTRUCTOR.LIVESTREAM_SESSION.replace(':sessionId', session.id)}/edit`)}
                       className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Chỉnh sửa"
                     >
