@@ -19,6 +19,9 @@ import { addIndexesToChatMessagesTable } from './008-add-indexes-to-chat-message
 import { createExtendedLmsTables, dropExtendedLmsTables } from './009-create-extended-lms-tables';
 import { addEmailVerifiedAt, removeEmailVerifiedAt } from './010-add-email-verified-at';
 import { addUserProfileColumns, removeUserProfileColumns } from './011-add-user-profile-columns';
+import { up as updateLiveSessionsSchema, down as revertLiveSessionsSchema } from './017-update-live-sessions-schema';
+import { up as addLivestreamIngestType, down as revertLivestreamIngestType } from './018-add-livestream-ingest-type';
+import { up as createLiveSessionMessagesTable, down as dropLiveSessionMessagesTable } from './019-create-live-session-messages-table';
 
 // Migration interface
 export interface Migration {
@@ -130,6 +133,25 @@ export const migrations: Migration[] = [
     description: 'Add missing user profile columns to users table',
     up: addUserProfileColumns,
     down: removeUserProfileColumns
+  }
+  ,
+  {
+    version: '017',
+    description: 'Update live sessions schema for livestream feature',
+    up: updateLiveSessionsSchema,
+    down: revertLiveSessionsSchema
+  },
+  {
+    version: '018',
+    description: 'Add ingest_type and WebRTC columns to live sessions',
+    up: addLivestreamIngestType,
+    down: revertLivestreamIngestType
+  },
+  {
+    version: '019',
+    description: 'Create live_session_messages table for livestream chat',
+    up: createLiveSessionMessagesTable,
+    down: dropLiveSessionMessagesTable
   }
 ];
 

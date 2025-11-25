@@ -13,44 +13,89 @@ const LiveSession = sequelize.define('LiveSession', {
   },
   course_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
     references: { model: 'courses', key: 'id' },
-    onDelete: 'CASCADE'
+    onDelete: 'SET NULL',
   },
-  instructor_id: {
+  host_user_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: { model: 'users', key: 'id' }
+    references: { model: 'users', key: 'id' },
+    onDelete: 'CASCADE',
   },
   title: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: false,
   },
   description: DataTypes.TEXT,
-  scheduled_at: {
-    type: DataTypes.DATE,
-    allowNull: false
-  },
+  scheduled_start: DataTypes.DATE,
+  scheduled_end: DataTypes.DATE,
+  actual_start: DataTypes.DATE,
+  actual_end: DataTypes.DATE,
   duration_minutes: DataTypes.INTEGER,
   meeting_url: DataTypes.TEXT,
   meeting_id: DataTypes.STRING(100),
   meeting_password: DataTypes.STRING(100),
+  platform: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    defaultValue: 'internal',
+  },
+  ingest_type: {
+    type: DataTypes.ENUM('webrtc', 'rtmp'),
+    allowNull: false,
+    defaultValue: 'webrtc',
+  },
+  webrtc_room_id: {
+    type: DataTypes.STRING(120),
+    allowNull: true,
+  },
+  webrtc_config: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {},
+  },
   status: {
     type: DataTypes.ENUM('scheduled', 'live', 'ended', 'cancelled'),
-    defaultValue: 'scheduled'
+    defaultValue: 'scheduled',
   },
+  viewer_count: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  thumbnail_url: DataTypes.TEXT,
+  stream_key: DataTypes.TEXT,
+  playback_url: DataTypes.TEXT,
   recording_url: DataTypes.TEXT,
-  started_at: DataTypes.DATE,
-  ended_at: DataTypes.DATE
+  max_participants: DataTypes.INTEGER,
+  is_public: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  },
+  is_recorded: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  category: DataTypes.STRING(100),
+  metadata: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {},
+  },
 }, {
   tableName: 'live_sessions',
   timestamps: true,
   underscored: true,
   indexes: [
     { fields: ['course_id'] },
-    { fields: ['instructor_id'] },
-    { fields: ['scheduled_at'] },
-    { fields: ['status'] }
+    { fields: ['host_user_id'] },
+    { fields: ['scheduled_start'] },
+    { fields: ['status'] },
+    { fields: ['ingest_type'] },
+    { fields: ['webrtc_room_id'] },
   ]
 });
 

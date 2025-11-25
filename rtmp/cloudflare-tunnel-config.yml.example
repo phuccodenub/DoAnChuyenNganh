@@ -1,0 +1,33 @@
+# ============================================
+# Cloudflare Tunnel Configuration
+# ============================================
+# Copy file này tới: C:\Users\YourName\.cloudflared\config.yml
+# Sau khi chạy: cloudflared tunnel login
+# Và: cloudflared tunnel create livestream
+
+tunnel: <YOUR-TUNNEL-ID>
+credentials-file: C:\Users\YourName\.cloudflared\<YOUR-TUNNEL-ID>.json
+
+ingress:
+  # HLS endpoint - cho livestream playback
+  - hostname: livestream.yourdomain.com
+    service: http://localhost:8080
+    originRequest:
+      noHappyEyeballs: true
+      keepAliveConnections: 100
+      keepAliveTimeout: 90s
+      httpHostHeader: livestream.yourdomain.com
+  
+  # Backend API (nếu cần expose)
+  - hostname: api.yourdomain.com
+    service: http://localhost:3000
+    originRequest:
+      noHappyEyeballs: true
+      keepAliveConnections: 100
+      keepAliveTimeout: 90s
+  
+  # Catch-all - trả 404 cho các request khác
+  - service: http_status:404
+
+
+

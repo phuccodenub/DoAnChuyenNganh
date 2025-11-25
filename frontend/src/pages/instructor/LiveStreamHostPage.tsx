@@ -11,18 +11,34 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Play, Square, Users, Clock, ExternalLink, 
-  Copy, CheckCircle, Video 
+import {
+  ArrowLeft, Play, Square, Users, Clock, ExternalLink,
+  Copy, CheckCircle, Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useSession, useSessionViewers, useUpdateSession } from '@/hooks/useLivestream';
 import { format, differenceInMinutes } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { ROUTES, generateRoute } from '@/constants/routes';
+import { WebRTCLiveStudio } from '@/components/livestream/WebRTCLiveStudio';
 
 /**
  * LiveStreamHostPage Component
  */
+const getViewerDisplayName = (viewer: any) => {
+  const fullName = `${viewer?.user?.first_name || ''} ${viewer?.user?.last_name || ''}`.trim();
+  if (fullName) return fullName;
+  if (viewer?.user?.email) return viewer.user.email;
+  return 'Không rõ';
+};
+
+const getViewerInitial = (viewer: any) => {
+  const fullName = `${viewer?.user?.first_name || ''} ${viewer?.user?.last_name || ''}`.trim();
+  if (fullName) return fullName.charAt(0).toUpperCase();
+  if (viewer?.user?.email) return viewer.user.email.charAt(0).toUpperCase();
+  return '?';
+};
+
 export function LiveStreamHostPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
@@ -30,17 +46,59 @@ export function LiveStreamHostPage() {
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
 
   // Fetch session data
-  const sessionIdNum = sessionId ? parseInt(sessionId, 10) : 0;
-  const { data: session, isLoading } = useSession(sessionIdNum);
-  const { data: viewersData } = useSessionViewers(sessionIdNum);
+  const { data: session, isLoading } = useSession(sessionId);
+  const { data: viewersData } = useSessionViewers(sessionId);
   const viewers = (viewersData?.viewers || []) as any[];
   const updateSession = useUpdateSession();
+  const [hasAutoStarted, setHasAutoStarted] = useState(false);
+
+  // Auto-start session if "Go live now" (session status = scheduled and just created < 30 seconds)
+  useEffect(() => {
+    if (
+      session &&
+      session.status === 'scheduled' &&
+      !hasAutoStarted &&
+      !updateSession.isPending &&
+      sessionId
+    ) {
+      // Check if session was just created (< 30 seconds ago)
+      const createdAt = session.created_at ? new Date(session.created_at) : null;
+      if (createdAt) {
+        const secondsSinceCreation = (new Date().getTime() - createdAt.getTime()) / 1000;
+        
+        // Auto-start if created less than 30 seconds ago (likely from "Go live now")
+        if (secondsSinceCreation < 30) {
+          console.log('[LiveStreamHostPage] Auto-starting session (Go live now)');
+          setHasAutoStarted(true);
+          
+          updateSession.mutate(
+            {
+              id: sessionId,
+              data: {
+                status: 'live',
+                actual_start: new Date().toISOString(),
+              } as any,
+            },
+            {
+              onSuccess: () => {
+                console.log('[LiveStreamHostPage] Session auto-started successfully');
+              },
+              onError: (error) => {
+                console.error('[LiveStreamHostPage] Auto-start failed:', error);
+                setHasAutoStarted(false); // Reset để có thể retry
+              },
+            }
+          );
+        }
+      }
+    }
+  }, [session, sessionId, hasAutoStarted, updateSession]);
 
   // Timer for live session
   useEffect(() => {
-    if (session?.status === 'live' && session?.started_at) {
+    if (session?.status === 'live' && session?.actual_start) {
       const interval = setInterval(() => {
-        const elapsed = differenceInMinutes(new Date(), new Date(session.started_at!));
+        const elapsed = differenceInMinutes(new Date(), new Date(session.actual_start!));
         setElapsedMinutes(elapsed);
       }, 1000);
 
@@ -57,13 +115,14 @@ export function LiveStreamHostPage() {
 
   // Start session
   const handleStart = async () => {
-    if (!sessionIdNum) return;
+    if (!sessionId) return;
     
     try {
       await updateSession.mutateAsync({
-        id: sessionIdNum,
+        id: sessionId,
         data: {
           status: 'live',
+          actual_start: new Date().toISOString(),
         } as any,
       });
       alert('Đã bắt đầu livestream!');
@@ -75,17 +134,18 @@ export function LiveStreamHostPage() {
 
   // End session
   const handleEnd = async () => {
-    if (!sessionIdNum || !confirm('Bạn có chắc muốn kết thúc livestream?')) return;
+    if (!sessionId || !confirm('Bạn có chắc muốn kết thúc livestream?')) return;
 
     try {
       await updateSession.mutateAsync({
-        id: sessionIdNum,
+        id: sessionId,
         data: {
           status: 'ended',
+          actual_end: new Date().toISOString(),
         } as any,
       });
       alert('Đã kết thúc livestream!');
-      navigate('/instructor/livestream');
+      navigate(ROUTES.INSTRUCTOR.LIVESTREAM);
     } catch (error) {
       console.error('End session error:', error);
       alert('Có lỗi khi kết thúc livestream');
@@ -140,7 +200,7 @@ export function LiveStreamHostPage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Không tìm thấy phiên livestream
           </h3>
-          <Button onClick={() => navigate('/instructor/livestream')}>
+          <Button onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)}>
             Quay lại danh sách
           </Button>
         </div>
@@ -154,7 +214,7 @@ export function LiveStreamHostPage() {
       <div className="mb-8">
         <Button
           variant="ghost"
-          onClick={() => navigate('/instructor/livestream')}
+          onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)}
           className="mb-4 -ml-2"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -179,6 +239,14 @@ export function LiveStreamHostPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {session.ingest_type === 'webrtc' && (
+            <WebRTCLiveStudio
+              sessionId={session.id}
+              displayName={session.title}
+              iceServers={session.webrtc_config?.iceServers as RTCIceServer[] | undefined}
+            />
+          )}
+
           {/* Session Info */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin phiên</h2>
@@ -187,7 +255,9 @@ export function LiveStreamHostPage() {
               <div>
                 <p className="text-sm text-gray-600 mb-1">Lịch trình</p>
                 <p className="font-medium text-gray-900">
-                  {format(new Date(session.scheduled_at), 'dd MMM yyyy, HH:mm', { locale: vi })}
+                  {session.scheduled_start
+                    ? format(new Date(session.scheduled_start), 'dd MMM yyyy, HH:mm', { locale: vi })
+                    : 'Chưa xác định'}
                 </p>
               </div>
 
@@ -198,12 +268,12 @@ export function LiveStreamHostPage() {
                 </p>
               </div>
 
-              {session.status === 'live' && session.started_at && (
+              {session.status === 'live' && session.actual_start && (
                 <>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Bắt đầu lúc</p>
                     <p className="font-medium text-gray-900">
-                      {format(new Date(session.started_at), 'HH:mm', { locale: vi })}
+                      {format(new Date(session.actual_start), 'HH:mm', { locale: vi })}
                     </p>
                   </div>
 
@@ -216,14 +286,14 @@ export function LiveStreamHostPage() {
                 </>
               )}
 
-              {session.status === 'ended' && session.ended_at && (
+              {session.status === 'ended' && session.actual_end && (
                 <>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Thời gian thực tế</p>
                     <p className="font-medium text-gray-900">
                       {formatDuration(differenceInMinutes(
-                        new Date(session.ended_at),
-                        new Date(session.started_at!)
+                        new Date(session.actual_end),
+                        new Date(session.actual_start!)
                       ))}
                     </p>
                   </div>
@@ -251,7 +321,7 @@ export function LiveStreamHostPage() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Điều khiển</h2>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 {session.status === 'scheduled' && (
                   <Button
                     onClick={handleStart}
@@ -265,19 +335,30 @@ export function LiveStreamHostPage() {
                 )}
 
                 {session.status === 'live' && (
-                  <Button
-                    onClick={handleEnd}
-                    disabled={updateSession.isPending}
-                    variant="danger"
-                    className="flex items-center gap-2"
-                    size="lg"
-                  >
-                    <Square className="w-5 h-5" />
-                    Kết thúc livestream
-                  </Button>
+                  <>
+                    <Button
+                      onClick={handleEnd}
+                      disabled={updateSession.isPending}
+                      variant="danger"
+                      className="flex items-center gap-2"
+                      size="lg"
+                    >
+                      <Square className="w-5 h-5" />
+                      Kết thúc livestream
+                    </Button>
+                    <Button
+                      onClick={() => navigate(generateRoute.livestream.session(session.id))}
+                      variant="secondary"
+                      className="flex items-center gap-2"
+                      size="lg"
+                    >
+                      <Video className="w-5 h-5" />
+                      Xem stream
+                    </Button>
+                  </>
                 )}
 
-                {session.status === 'ended' && session.recording_url && (
+                  {session.status === 'ended' && session.recording_url && (
                   <Button
                     onClick={() => window.open(session.recording_url!, '_blank')}
                     variant="secondary"
@@ -298,15 +379,15 @@ export function LiveStreamHostPage() {
             </div>
           )}
 
-          {/* Meeting Info */}
-          {session && (session.meeting_url || session.meeting_id) && (
+          {/* Meeting / streaming Info */}
+          {session.ingest_type === 'rtmp' && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin họp</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin RTMP / OBS</h2>
 
               <div className="space-y-3">
                 {session.meeting_url && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Link họp</p>
+                    <p className="text-sm text-gray-600 mb-1">Server URL</p>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -325,17 +406,17 @@ export function LiveStreamHostPage() {
                   </div>
                 )}
 
-                {session.meeting_id && (
+                {session.meeting_password && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Meeting ID</p>
-                    <p className="font-mono text-gray-900">{session.meeting_id}</p>
+                    <p className="text-sm text-gray-600 mb-1">Stream key</p>
+                    <p className="font-mono text-gray-900 break-words">{session.meeting_password}</p>
                   </div>
                 )}
 
-                {session.meeting_password && (
+                {session.playback_url && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Mật khẩu</p>
-                    <p className="font-mono text-gray-900">{session.meeting_password}</p>
+                    <p className="text-sm text-gray-600 mb-1">Playback URL (HLS)</p>
+                    <p className="font-mono text-gray-900 break-all">{session.playback_url}</p>
                   </div>
                 )}
               </div>
@@ -401,12 +482,12 @@ export function LiveStreamHostPage() {
                     >
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                         <span className="text-sm font-medium text-blue-600">
-                          {viewer.user?.full_name?.charAt(0) || '?'}
+                          {getViewerInitial(viewer)}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {viewer.user?.full_name || 'Unknown'}
+                          {getViewerDisplayName(viewer)}
                         </p>
                         <p className="text-xs text-gray-500">
                           {format(new Date(viewer.joined_at), 'HH:mm', { locale: vi })}

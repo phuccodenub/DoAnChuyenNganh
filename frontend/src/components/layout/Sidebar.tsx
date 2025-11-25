@@ -11,6 +11,7 @@ import {
   Video,
   Info,
   Phone,
+  Radio,
   Menu as MenuIcon
 } from 'lucide-react'
 import { sidebarMenuItems } from './data'
@@ -28,7 +29,7 @@ const iconMap: Record<string, React.ReactNode> = {
   home: <Home className="w-5 h-5" />,
   courses: <BookOpen className="w-5 h-5" />,
   categories: <FolderOpen className="w-5 h-5" />,
-  livestream: <Video className="w-5 h-5" />,
+  livestream: <Radio className="w-5 h-5" />,
   about: <Info className="w-5 h-5" />,
   contact: <Phone className="w-5 h-5" />,
 }

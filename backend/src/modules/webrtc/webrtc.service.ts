@@ -15,14 +15,24 @@ export class WebRTCService {
   async validateUserAccess(userId: string, sessionId: string): Promise<boolean> {
     try {
       // Check if session exists
-      const session = await LiveSession.findByPk(sessionId) as LiveSessionInstance | null;
+      const session = (await LiveSession.findByPk(sessionId)) as LiveSessionInstance | null;
       if (!session) {
         return false;
       }
 
+      // Public sessions allow any authenticated user
+      if (session.is_public) {
+        return true;
+      }
+
+      // Check if user is host
+      if (session.host_user_id === userId) {
+        return true;
+      }
+
       // Check if user is instructor
       const Course = (await import('../../models/course.model')).default;
-      const course = await Course.findByPk(session.course_id) as CourseInstance | null;
+      const course = (await Course.findByPk(session.course_id)) as CourseInstance | null;
       
       if (course && course.instructor_id === userId) {
         return true;
@@ -59,16 +69,18 @@ export class WebRTCService {
       });
 
       if (attendance) {
-        // Update join time
+        // Update join time & reset left_at (user rejoined)
         await (attendance as any).update({
-          joined_at: new Date()
+          joined_at: new Date(),
+          left_at: null,
         });
       } else {
         // Create new attendance record
         await LiveSessionAttendance.create({
           session_id: sessionId,
           user_id: userId,
-          joined_at: new Date()
+          joined_at: new Date(),
+          left_at: null,
         } as any);
       }
 
