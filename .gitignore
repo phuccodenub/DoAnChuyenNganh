@@ -205,6 +205,10 @@ public/uploads/
 /backend/*.crt
 /backend/*.cert
 
+# Backend service account files (chứa thông tin nhạy cảm)
+/backend/config/gdrive-service-account.json
+/backend/config/*-service-account.json
+
 # Backend environment files
 /backend/.env
 /backend/.env.*

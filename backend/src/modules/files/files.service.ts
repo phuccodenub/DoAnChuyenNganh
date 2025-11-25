@@ -16,7 +16,7 @@ import {
   FileErrorCodes
 } from './files.types';
 import logger from '../../utils/logger.util';
-import { GCSStorageService } from '../../services/storage/gcs.service';
+import { StorageFactory, IStorageService } from '../../services/storage/storage.factory';
 
 const unlinkAsync = promisify(fs.unlink);
 const statAsync = promisify(fs.stat);
@@ -26,18 +26,26 @@ export class FilesService {
   private uploadDir: string;
   private storageType: StorageType;
   private publicUrl: string;
-  private gcs?: GCSStorageService;
+  private storageService?: IStorageService;
 
   constructor() {
     this.uploadDir = process.env.UPLOAD_PATH || './uploads';
-    this.storageType = (process.env.STORAGE_TYPE as StorageType) || StorageType.LOCAL;
+    this.storageType = ((process.env.STORAGE_TYPE as StorageType) || StorageType.LOCAL);
     this.publicUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
 
-    // Initialize cloud storage clients if needed
-    if (this.storageType === StorageType.GOOGLE_CLOUD) {
-      this.gcs = new GCSStorageService();
-    } else {
-      // Ensure upload directory exists for local storage
+    // Initialize cloud storage client nếu không phải LOCAL
+    if (this.storageType !== StorageType.LOCAL) {
+      this.storageService = StorageFactory.createStorageService(this.storageType);
+      if (!this.storageService) {
+        logger.warn('No storage service found for storage type, falling back to local storage', {
+          storageType: this.storageType
+        });
+        this.storageType = StorageType.LOCAL;
+      }
+    }
+
+    // Ensure upload directory exists for local storage
+    if (this.storageType === StorageType.LOCAL) {
       if (!fs.existsSync(this.uploadDir)) {
         fs.mkdirSync(this.uploadDir, { recursive: true });
       }
@@ -53,13 +61,12 @@ export class FilesService {
   ): Promise<UploadedFileInfo> {
     try {
       // Cloud storage path
-      if (this.storageType === StorageType.GOOGLE_CLOUD) {
-        if (!this.gcs) throw new Error('GCS service not initialized');
+      if (this.storageType !== StorageType.LOCAL && this.storageService) {
         // Expect memory storage providing file.buffer
         if (!(file as any).buffer) {
           throw new Error('Memory storage required for cloud uploads (file.buffer missing)');
         }
-        const result = await this.gcs.uploadFile(file, options);
+        const result = await this.storageService.uploadFile(file, options);
         return result;
       }
 
@@ -156,6 +163,17 @@ export class FilesService {
    */
   async deleteFile(folder: string, filename: string): Promise<boolean> {
     try {
+      // Cloud storage delete
+      if (this.storageType !== StorageType.LOCAL && this.storageService) {
+        const objectPath = `${folder}/${filename}`;
+        const deleted = await this.storageService.deleteFile(objectPath);
+        if (!deleted) {
+          logger.warn('Remote file not found or could not be deleted:', objectPath);
+        }
+        return deleted;
+      }
+
+      // Local delete
       const filePath = path.join(this.uploadDir, folder, filename);
 
       // Check if file exists
@@ -191,13 +209,12 @@ export class FilesService {
         return this.generateFileUrl(folder, filename);
       }
 
-      if (this.storageType === StorageType.GOOGLE_CLOUD) {
-        if (!this.gcs) throw new Error('GCS service not initialized');
+      if (this.storageService) {
         const objectPath = `${folder}/${filename}`;
-        return await this.gcs.generateSignedUrl(objectPath, expiresIn);
+        return await this.storageService.generateSignedUrl(objectPath, expiresIn);
       }
 
-      // Fallback for other cloud types (not implemented)
+      // Fallback nếu không có storageService
       return `${this.generateFileUrl(folder, filename)}?expires=${Date.now() + expiresIn * 1000}`;
     } catch (error: unknown) {
       logger.error('Error generating signed URL:', error);

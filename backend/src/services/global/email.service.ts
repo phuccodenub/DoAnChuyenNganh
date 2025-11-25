@@ -1,37 +1,43 @@
 import logger from '../../utils/logger.util';
+import { mailConfig, transporter } from '../../config/mail.config';
 
 /**
  * Global Email Service
- * Handles email operations like sending emails, templates
+ * Kết nối cấu hình mail (nodemailer) để gửi email thực tế
  */
 export class EmailService {
   constructor() {
-    // Initialize email service
+    // Có thể gọi verifyMailConnection() tại đây nếu muốn kiểm tra kết nối khi khởi động
   }
 
   /**
-   * Send email
+   * Gửi email chung
    */
   async sendEmail(options: {
     to: string | string[];
     subject: string;
     text?: string;
     html?: string;
-    template?: string;
-    templateData?: Record<string, unknown>;
   }): Promise<void> {
     try {
-      logger.info('Sending email', { 
-        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
-        subject: options.subject 
+      const to = Array.isArray(options.to) ? options.to.join(', ') : options.to;
+
+      logger.info('Sending email', {
+        to,
+        subject: options.subject
       });
 
-      // In a real implementation, you would use an email service like SendGrid, AWS SES, etc.
-      // For now, we'll simulate the email sending
-      
-      logger.info('Email sent successfully', { 
-        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
-        subject: options.subject 
+      await transporter.sendMail({
+        from: mailConfig.from,
+        to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html
+      });
+
+      logger.info('Email sent successfully', {
+        to,
+        subject: options.subject
       });
     } catch (error: unknown) {
       logger.error('Error sending email:', error);
@@ -40,14 +46,15 @@ export class EmailService {
   }
 
   /**
-   * Send verification email
+   * Gửi email xác thực tài khoản
    */
   async sendVerificationEmail(email: string, verificationToken: string): Promise<void> {
     try {
       logger.info('Sending verification email', { email });
 
-      const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-      
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
       await this.sendEmail({
         to: email,
         subject: 'Verify your email address',
@@ -67,22 +74,24 @@ export class EmailService {
   }
 
   /**
-   * Send password reset email
+   * Gửi email chứa link reset mật khẩu
    */
   async sendPasswordResetEmail(email: string, resetToken: string): Promise<void> {
     try {
       logger.info('Sending password reset email', { email });
 
-      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-      
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
       await this.sendEmail({
         to: email,
         subject: 'Reset your password',
         html: `
           <h2>Reset your password</h2>
-          <p>Please click the link below to reset your password:</p>
+          <p>You have requested to reset your password.</p>
+          <p>Click the link below to reset your password:</p>
           <a href="${resetUrl}">Reset Password</a>
-          <p>This link will expire in 1 hour.</p>
+          <p>This link will expire in 24 hours.</p>
           <p>If you didn't request this, please ignore this email.</p>
         `
       });
@@ -95,7 +104,32 @@ export class EmailService {
   }
 
   /**
-   * Send welcome email
+   * Gửi email chứa mật khẩu mới (reset bằng mật khẩu ngẫu nhiên)
+   */
+  async sendNewPasswordEmail(email: string, newPassword: string): Promise<void> {
+    try {
+      logger.info('Sending new password email', { email });
+
+      await this.sendEmail({
+        to: email,
+        subject: 'Your new password',
+        html: `
+          <h2>Your password has been reset</h2>
+          <p>Your account password has been reset by request.</p>
+          <p><strong>New password:</strong> ${newPassword}</p>
+          <p>For security, please log in and change this password immediately.</p>
+        `
+      });
+
+      logger.info('New password email sent successfully', { email });
+    } catch (error: unknown) {
+      logger.error('Error sending new password email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gửi email chào mừng
    */
   async sendWelcomeEmail(email: string, firstName: string): Promise<void> {
     try {
@@ -119,7 +153,7 @@ export class EmailService {
   }
 
   /**
-   * Send notification email
+   * Gửi email thông báo chung
    */
   async sendNotificationEmail(email: string, subject: string, message: string): Promise<void> {
     try {
@@ -127,7 +161,7 @@ export class EmailService {
 
       await this.sendEmail({
         to: email,
-        subject: subject,
+        subject,
         html: `
           <h2>${subject}</h2>
           <p>${message}</p>
@@ -141,4 +175,5 @@ export class EmailService {
     }
   }
 }
+
 
