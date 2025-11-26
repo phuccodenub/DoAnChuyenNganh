@@ -26,13 +26,13 @@ import { ROUTES } from '@/constants/routes';
 type QuestionType = 'multiple_choice' | 'true_false';
 
 interface Answer {
-  id: number;
+  id: string;
   text: string;
   is_correct: boolean;
 }
 
 interface Question {
-  id: number;
+  id: string;
   type: QuestionType;
   question_text: string;
   points: number;
@@ -60,13 +60,13 @@ export function QuizBuilderPage() {
 
   // Question form state
   const [questionForm, setQuestionForm] = useState<Question>({
-    id: 0,
+    id: '0',
     type: 'multiple_choice',
     question_text: '',
     points: 10,
     answers: [
-      { id: 1, text: '', is_correct: false },
-      { id: 2, text: '', is_correct: false },
+      { id: '1', text: '', is_correct: false },
+      { id: '2', text: '', is_correct: false },
     ],
   });
 
@@ -77,13 +77,13 @@ export function QuizBuilderPage() {
 
   const handleAddQuestion = () => {
     setQuestionForm({
-      id: Date.now(),
+      id: Date.now().toString(),
       type: 'multiple_choice',
       question_text: '',
       points: 10,
       answers: [
-        { id: 1, text: '', is_correct: false },
-        { id: 2, text: '', is_correct: false },
+        { id: '1', text: '', is_correct: false },
+        { id: '2', text: '', is_correct: false },
       ],
     });
     setEditingQuestion(null);
@@ -105,7 +105,7 @@ export function QuizBuilderPage() {
     setShowQuestionModal(false);
   };
 
-  const handleDeleteQuestion = (questionId: number) => {
+  const handleDeleteQuestion = (questionId: string) => {
     if (confirm('Xóa câu hỏi này?')) {
       setQuestions(questions.filter(q => q.id !== questionId));
     }
@@ -116,12 +116,12 @@ export function QuizBuilderPage() {
       ...questionForm,
       answers: [
         ...questionForm.answers,
-        { id: Date.now(), text: '', is_correct: false },
+        { id: Date.now().toString(), text: '', is_correct: false },
       ],
     });
   };
 
-  const handleRemoveAnswer = (answerId: number) => {
+  const handleRemoveAnswer = (answerId: string) => {
     if (questionForm.answers.length <= 2) {
       alert('Cần ít nhất 2 đáp án');
       return;
@@ -132,7 +132,7 @@ export function QuizBuilderPage() {
     });
   };
 
-  const handleUpdateAnswer = (answerId: number, text: string) => {
+  const handleUpdateAnswer = (answerId: string, text: string) => {
     setQuestionForm({
       ...questionForm,
       answers: questionForm.answers.map(a => 
@@ -141,7 +141,7 @@ export function QuizBuilderPage() {
     });
   };
 
-  const handleToggleCorrect = (answerId: number) => {
+  const handleToggleCorrect = (answerId: string) => {
     setQuestionForm({
       ...questionForm,
       answers: questionForm.answers.map(a => 
@@ -156,8 +156,8 @@ export function QuizBuilderPage() {
         ...questionForm,
         type,
         answers: [
-          { id: 1, text: 'Đúng', is_correct: false },
-          { id: 2, text: 'Sai', is_correct: false },
+          { id: 'true', text: 'Đúng', is_correct: false },
+          { id: 'false', text: 'Sai', is_correct: false },
         ],
       });
     } else {

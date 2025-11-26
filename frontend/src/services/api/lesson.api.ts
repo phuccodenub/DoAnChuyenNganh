@@ -4,8 +4,8 @@ import { apiClient } from '../http/client';
  * Lesson Types
  */
 export interface Section {
-  id: number;
-  course_id: number;
+  id: string;
+  course_id: string;
   title: string;
   description: string | null;
   order_index: number;
@@ -15,8 +15,8 @@ export interface Section {
 }
 
 export interface Lesson {
-  id: number;
-  section_id: number;
+  id: string;
+  section_id: string;
   title: string;
   description: string | null;
   content_type: 'video' | 'document' | 'quiz' | 'assignment';
@@ -31,7 +31,7 @@ export interface Lesson {
 }
 
 export interface CourseContent {
-  course_id: number;
+  course_id: string;
   course_title: string;
   sections: Section[];
   total_lessons: number;
@@ -41,28 +41,28 @@ export interface CourseContent {
 
 export interface LessonDetail extends Lesson {
   section: {
-    id: number;
+    id: string;
     title: string;
   };
   course: {
-    id: number;
+    id: string;
     title: string;
   };
   next_lesson?: {
-    id: number;
+    id: string;
     title: string;
-    section_id: number;
+    section_id: string;
   };
   prev_lesson?: {
-    id: number;
+    id: string;
     title: string;
-    section_id: number;
+    section_id: string;
   };
 }
 
 export interface LessonProgress {
-  lesson_id: number;
-  user_id: number;
+  lesson_id: string;
+  user_id: string;
   is_completed: boolean;
   progress_percentage: number;
   time_spent_minutes: number;
@@ -86,7 +86,7 @@ export const lessonApi = {
   /**
    * Get course content (all sections and lessons)
    */
-  getCourseContent: async (courseId: number): Promise<CourseContent> => {
+  getCourseContent: async (courseId: string): Promise<CourseContent> => {
     const response = await apiClient.get<CourseContent>(
       `/courses/${courseId}/content`
     );
@@ -96,7 +96,7 @@ export const lessonApi = {
   /**
    * Get lesson detail by ID
    */
-  getLesson: async (lessonId: number): Promise<LessonDetail> => {
+  getLesson: async (lessonId: string): Promise<LessonDetail> => {
     const response = await apiClient.get<LessonDetail>(`/lessons/${lessonId}`);
     return response.data;
   },
@@ -104,7 +104,7 @@ export const lessonApi = {
   /**
    * Get lesson progress for current user
    */
-  getLessonProgress: async (lessonId: number): Promise<LessonProgress> => {
+  getLessonProgress: async (lessonId: string): Promise<LessonProgress> => {
     const response = await apiClient.get<LessonProgress>(
       `/lessons/${lessonId}/progress`
     );
@@ -115,7 +115,7 @@ export const lessonApi = {
    * Update lesson progress
    */
   updateProgress: async (
-    lessonId: number,
+    lessonId: string,
     data: UpdateProgressPayload
   ): Promise<LessonProgress> => {
     const response = await apiClient.put<LessonProgress>(
@@ -128,7 +128,7 @@ export const lessonApi = {
   /**
    * Mark lesson as complete
    */
-  markComplete: async (lessonId: number): Promise<LessonProgress> => {
+  markComplete: async (lessonId: string): Promise<LessonProgress> => {
     const response = await apiClient.post<LessonProgress>(
       `/lessons/${lessonId}/complete`
     );
@@ -138,7 +138,7 @@ export const lessonApi = {
   /**
    * Get all sections for a course
    */
-  getCourseSections: async (courseId: number): Promise<Section[]> => {
+  getCourseSections: async (courseId: string): Promise<Section[]> => {
     const response = await apiClient.get<Section[]>(
       `/courses/${courseId}/sections`
     );
@@ -148,7 +148,7 @@ export const lessonApi = {
   /**
    * Get section with lessons
    */
-  getSection: async (sectionId: number): Promise<Section> => {
+  getSection: async (sectionId: string): Promise<Section> => {
     const response = await apiClient.get<Section>(`/sections/${sectionId}`);
     return response.data;
   },

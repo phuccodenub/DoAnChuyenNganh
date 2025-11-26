@@ -3,7 +3,7 @@ import { FileText, Download } from 'lucide-react';
 import { useMarkLessonComplete } from '@/hooks/useLessonData';
 
 interface DocumentViewerProps {
-  lessonId: number;
+  lessonId: string;
   documentUrl: string;
   documentType?: 'pdf' | 'markdown' | 'html';
   title?: string;

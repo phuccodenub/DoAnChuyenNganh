@@ -8,7 +8,7 @@ export const useActivityLogs = (
   page: number = 1,
   limit: number = 20,
   filters?: {
-    user_id?: number;
+    user_id?: string;
     action?: string;
     resource_type?: string;
     status?: 'success' | 'failed';
@@ -23,7 +23,7 @@ export const useActivityLogs = (
   });
 };
 
-export const useActivityLogDetail = (logId: number) => {
+export const useActivityLogDetail = (logId: string) => {
   return useQuery({
     queryKey: QUERY_KEYS.activityLogs.detail(logId),
     queryFn: () => activityLogsApi.getLogDetail(logId),

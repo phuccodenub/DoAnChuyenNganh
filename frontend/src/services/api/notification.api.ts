@@ -4,8 +4,8 @@ import { apiClient } from '../http/client';
  * Notification Types
  */
 export interface Notification {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   type: 'info' | 'success' | 'warning' | 'error' | 'course' | 'assignment' | 'quiz';
   title: string;
   message: string;
@@ -56,7 +56,7 @@ export const notificationApi = {
   /**
    * Mark notification as read
    */
-  markAsRead: async (notificationId: number): Promise<void> => {
+  markAsRead: async (notificationId: string): Promise<void> => {
     await apiClient.put(`/notifications/${notificationId}/read`);
   },
 
@@ -70,14 +70,14 @@ export const notificationApi = {
   /**
    * Delete notification
    */
-  deleteNotification: async (notificationId: number): Promise<void> => {
+  deleteNotification: async (notificationId: string): Promise<void> => {
     await apiClient.delete(`/notifications/${notificationId}`);
   },
 
   /**
    * Get notification by ID
    */
-  getNotification: async (notificationId: number): Promise<Notification> => {
+  getNotification: async (notificationId: string): Promise<Notification> => {
     const response = await apiClient.get<Notification>(`/notifications/${notificationId}`);
     return response.data;
   },

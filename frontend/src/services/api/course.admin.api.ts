@@ -38,7 +38,7 @@ export const courseAdminApi = {
   /**
    * Get course by ID (with admin-level details)
    */
-  getCourseById: async (courseId: number): Promise<AdminCourseDetail> => {
+  getCourseById: async (courseId: string): Promise<AdminCourseDetail> => {
     const response = await apiClient.get<AdminCourseDetail>(`/admin/courses/${courseId}`);
     return response.data;
   },
@@ -46,7 +46,7 @@ export const courseAdminApi = {
   /**
    * Update course
    */
-  updateCourse: async (courseId: number, data: UpdateCoursePayload): Promise<AdminCourse> => {
+  updateCourse: async (courseId: string, data: UpdateCoursePayload): Promise<AdminCourse> => {
     const response = await apiClient.put<AdminCourse>(`/admin/courses/${courseId}`, data);
     return response.data;
   },
@@ -54,7 +54,7 @@ export const courseAdminApi = {
   /**
    * Delete course
    */
-  deleteCourse: async (courseId: number): Promise<{ success: boolean; message: string }> => {
+  deleteCourse: async (courseId: string): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/admin/courses/${courseId}`
     );
@@ -65,7 +65,7 @@ export const courseAdminApi = {
    * Change course status
    */
   changeCourseStatus: async (
-    courseId: number,
+    courseId: string,
     status: 'draft' | 'published' | 'archived'
   ): Promise<AdminCourse> => {
     const response = await apiClient.patch<AdminCourse>(`/admin/courses/${courseId}/status`, {
@@ -82,7 +82,7 @@ export const courseAdminApi = {
    * Bulk delete courses
    */
   bulkDeleteCourses: async (
-    courseIds: number[]
+    courseIds: string[]
   ): Promise<{ success: boolean; message: string; affected: number }> => {
     const response = await apiClient.post<{
       success: boolean;
@@ -96,7 +96,7 @@ export const courseAdminApi = {
    * Bulk update course status
    */
   bulkUpdateStatus: async (
-    courseIds: number[],
+    courseIds: string[],
     status: 'draft' | 'published' | 'archived'
   ): Promise<{ success: boolean; message: string; affected: number }> => {
     const response = await apiClient.post<{
@@ -137,7 +137,7 @@ export const courseAdminApi = {
    * Get course students (enrollments)
    */
   getCourseStudents: async (
-    courseId: number,
+    courseId: string,
     params: { page?: number; limit?: number } = {}
   ): Promise<{ students: EnrollmentInfo[]; total: number }> => {
     const response = await apiClient.get<{ students: EnrollmentInfo[]; total: number }>(
@@ -150,7 +150,7 @@ export const courseAdminApi = {
   /**
    * Get course analytics
    */
-  getCourseAnalytics: async (courseId: number): Promise<{
+  getCourseAnalytics: async (courseId: string): Promise<{
     total_enrollments: number;
     active_students: number;
     completed_students: number;

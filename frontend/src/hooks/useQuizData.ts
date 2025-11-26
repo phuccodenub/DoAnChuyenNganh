@@ -4,7 +4,7 @@ import { quizApi, QuizAttempt } from '@/services/api/quiz.api';
 /**
  * Hook to fetch quiz by ID
  */
-export function useQuiz(quizId: number) {
+export function useQuiz(quizId: string) {
   return useQuery({
     queryKey: ['quizzes', quizId],
     queryFn: () => quizApi.getQuiz(quizId),
@@ -16,7 +16,7 @@ export function useQuiz(quizId: number) {
 /**
  * Hook to fetch quiz questions
  */
-export function useQuizQuestions(quizId: number) {
+export function useQuizQuestions(quizId: string) {
   return useQuery({
     queryKey: ['quizzes', quizId, 'questions'],
     queryFn: () => quizApi.getQuizQuestions(quizId),
@@ -32,7 +32,7 @@ export function useStartQuiz() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (quizId: number) => quizApi.startQuiz(quizId),
+    mutationFn: (quizId: string) => quizApi.startQuiz(quizId),
     onSuccess: (data, quizId) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', quizId, 'attempts'] });
       queryClient.setQueryData(['quiz-attempts', data.id], data);
@@ -50,8 +50,8 @@ export function useSubmitAnswer() {
       questionId, 
       answer 
     }: { 
-      attemptId: number; 
-      questionId: number; 
+      attemptId: string; 
+      questionId: string; 
       answer: string | string[];
     }) => quizApi.submitAnswer(attemptId, questionId, answer),
   });
@@ -64,7 +64,7 @@ export function useSubmitQuiz() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (attemptId: number) => quizApi.submitQuiz(attemptId),
+    mutationFn: (attemptId: string) => quizApi.submitQuiz(attemptId),
     onSuccess: (result, attemptId) => {
       queryClient.invalidateQueries({ queryKey: ['quiz-attempts', attemptId] });
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
@@ -76,7 +76,7 @@ export function useSubmitQuiz() {
 /**
  * Hook to get quiz attempt by ID
  */
-export function useQuizAttempt(attemptId: number) {
+export function useQuizAttempt(attemptId: string) {
   return useQuery({
     queryKey: ['quiz-attempts', attemptId],
     queryFn: () => quizApi.getAttempt(attemptId),
@@ -88,7 +88,7 @@ export function useQuizAttempt(attemptId: number) {
 /**
  * Hook to get all attempts for a quiz
  */
-export function useQuizAttempts(quizId: number) {
+export function useQuizAttempts(quizId: string) {
   return useQuery({
     queryKey: ['quizzes', quizId, 'attempts'],
     queryFn: () => quizApi.getAttempts(quizId),
@@ -100,7 +100,7 @@ export function useQuizAttempts(quizId: number) {
 /**
  * Hook to get current/active attempt
  */
-export function useCurrentAttempt(quizId: number) {
+export function useCurrentAttempt(quizId: string) {
   return useQuery({
     queryKey: ['quizzes', quizId, 'current-attempt'],
     queryFn: () => quizApi.getCurrentAttempt(quizId),

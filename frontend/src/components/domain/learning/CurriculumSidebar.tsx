@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 
 interface CurriculumSidebarProps {
   sections: Section[];
-  currentLessonId?: number;
-  onLessonClick: (lessonId: number) => void;
+  currentLessonId?: string;
+  onLessonClick: (lessonId: string) => void;
   courseProgress?: {
     total_lessons: number;
     completed_lessons: number;
@@ -30,11 +30,11 @@ export function CurriculumSidebar({
   onLessonClick,
   courseProgress,
 }: CurriculumSidebarProps) {
-  const [expandedSections, setExpandedSections] = useState<Set<number>>(
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(sections.map(s => s.id))
   );
 
-  const toggleSection = (sectionId: number) => {
+  const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => {
       const next = new Set(prev);
       if (next.has(sectionId)) {

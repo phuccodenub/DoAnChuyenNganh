@@ -27,7 +27,7 @@ import {
 interface UserDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: number;
+  userId: string;
   onEdit: (user: AdminUser) => void;
 }
 

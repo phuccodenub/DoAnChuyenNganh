@@ -31,7 +31,7 @@ export const notificationApi = {
   /**
    * Mark single notification as read
    */
-  async markAsRead(notificationId: number) {
+  async markAsRead(notificationId: string) {
     const response = await httpClient.post(`/notifications/${notificationId}/mark-read`);
     return response.data;
   },
@@ -55,7 +55,7 @@ export const notificationApi = {
   /**
    * Archive single notification
    */
-  async archiveNotification(notificationId: number) {
+  async archiveNotification(notificationId: string) {
     const response = await httpClient.post(`/notifications/${notificationId}/archive`);
     return response.data;
   },
@@ -63,7 +63,7 @@ export const notificationApi = {
   /**
    * Delete notification
    */
-  async deleteNotification(notificationId: number) {
+  async deleteNotification(notificationId: string) {
     const response = await httpClient.delete(`/notifications/${notificationId}`);
     return response.data;
   },

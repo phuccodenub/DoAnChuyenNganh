@@ -27,6 +27,7 @@ export const ROUTES = {
     LESSON: '/student/courses/:courseId/lessons/:lessonId',
     QUIZ: '/student/courses/:courseId/quizzes/:quizId',
     QUIZ_RESULTS: '/student/quizzes/:attemptId/results',
+    ASSIGNMENTS: '/student/assignments',
     ASSIGNMENT: '/student/courses/:courseId/assignments/:assignmentId',
     PROFILE: '/student/profile',
     SETTINGS: '/student/settings',
@@ -85,40 +86,40 @@ export const ROUTES = {
  * Helper functions to generate routes with parameters
  */
 export const generateRoute = {
-  courseDetail: (id: number | string) => `/courses/${id}`,
+  courseDetail: (id: string) => `/courses/${id}`,
   
   student: {
-    learning: (courseId: number | string) => `/student/courses/${courseId}/learn`,
-    lesson: (courseId: number | string, lessonId: number | string) => 
+    learning: (courseId: string) => `/student/courses/${courseId}/learn`,
+    lesson: (courseId: string, lessonId: string) => 
       `/student/courses/${courseId}/lessons/${lessonId}`,
-    quiz: (quizId: number | string) => `/student/quizzes/${quizId}`,
-    quizAttempt: (quizId: number | string, attemptId: number | string) => 
+    quiz: (quizId: string) => `/student/quizzes/${quizId}`,
+    quizAttempt: (quizId: string, attemptId: string) => 
       `/student/quizzes/${quizId}/attempt/${attemptId}`,
-    assignment: (assignmentId: number | string) => `/student/assignments/${assignmentId}`,
+    assignment: (assignmentId: string) => `/student/assignments/${assignmentId}`,
   },
   
   instructor: {
-    courseEdit: (courseId: number | string) => `/instructor/courses/${courseId}/edit`,
-    courseStudents: (courseId: number | string) => `/instructor/courses/${courseId}/students`,
-    quizCreate: (courseId: number | string) => `/instructor/courses/${courseId}/quizzes/create`,
-    quizEdit: (quizId: number | string) => `/instructor/quizzes/${quizId}/edit`,
-    quizAttempts: (quizId: number | string) => `/instructor/quizzes/${quizId}/attempts`,
-    assignmentCreate: (courseId: number | string) => 
+    courseEdit: (courseId: string) => `/instructor/courses/${courseId}/edit`,
+    courseStudents: (courseId: string) => `/instructor/courses/${courseId}/students`,
+    quizCreate: (courseId: string) => `/instructor/courses/${courseId}/quizzes/create`,
+    quizEdit: (quizId: string) => `/instructor/quizzes/${quizId}/edit`,
+    quizAttempts: (quizId: string) => `/instructor/quizzes/${quizId}/attempts`,
+    assignmentCreate: (courseId: string) => 
       `/instructor/courses/${courseId}/assignments/create`,
-    assignmentEdit: (assignmentId: number | string) => 
+    assignmentEdit: (assignmentId: string) => 
       `/instructor/assignments/${assignmentId}/edit`,
-    submissions: (assignmentId: number | string) => 
+    submissions: (assignmentId: string) => 
       `/instructor/assignments/${assignmentId}/submissions`,
-    courseGrades: (courseId: number | string) => `/instructor/courses/${courseId}/grades`,
-    livestreamSession: (sessionId: number | string) => `/instructor/livestream/${sessionId}`,
+    courseGrades: (courseId: string) => `/instructor/courses/${courseId}/grades`,
+    livestreamSession: (sessionId: string) => `/instructor/livestream/${sessionId}`,
   },
   livestream: {
-    session: (sessionId: number | string) => `/livestream/${sessionId}`,
+    session: (sessionId: string) => `/livestream/${sessionId}`,
   },
   
   admin: {
-    userDetail: (userId: number | string) => `/admin/users/${userId}`,
-    courseDetail: (courseId: number | string) => `/admin/courses/${courseId}`,
+    userDetail: (userId: string) => `/admin/users/${userId}`,
+    courseDetail: (courseId: string) => `/admin/courses/${courseId}`,
   },
 };
 

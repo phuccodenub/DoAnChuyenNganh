@@ -30,7 +30,7 @@ export const categoryApi = {
   /**
    * Get category by ID
    */
-  getById: async (categoryId: number): Promise<Category> => {
+  getById: async (categoryId: string): Promise<Category> => {
     const response = await apiClient.get<Category>(`/categories/${categoryId}`);
     return response.data;
   },
@@ -46,7 +46,7 @@ export const categoryApi = {
   /**
    * Update category (Admin only)
    */
-  update: async (categoryId: number, data: UpdateCategoryPayload): Promise<Category> => {
+  update: async (categoryId: string, data: UpdateCategoryPayload): Promise<Category> => {
     const response = await apiClient.put<Category>(`/categories/${categoryId}`, data);
     return response.data;
   },
@@ -54,7 +54,7 @@ export const categoryApi = {
   /**
    * Delete category (Admin only)
    */
-  delete: async (categoryId: number): Promise<{ success: boolean; message: string }> => {
+  delete: async (categoryId: string): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/categories/${categoryId}`
     );
@@ -77,11 +77,11 @@ export const categoryApi = {
    * Get courses in a category
    */
   getCategoryCourses: async (
-    categoryId: number,
+    categoryId: string,
     params: { page?: number; limit?: number } = {}
   ): Promise<{
     courses: Array<{
-      id: number;
+      id: string;
       title: string;
       thumbnail_url?: string;
       instructor_name: string;

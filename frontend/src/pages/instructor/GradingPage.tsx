@@ -20,9 +20,9 @@ type SubmissionStatus = 'all' | 'pending' | 'graded';
 type SortBy = 'date' | 'student';
 
 interface Submission {
-  id: number;
+  id: string;
   student: {
-    id: number;
+    id: string;
     full_name: string;
     avatar_url?: string;
   };
@@ -44,7 +44,7 @@ export function GradingPage() {
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus>('pending');
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubmissions, setSelectedSubmissions] = useState<number[]>([]);
+  const [selectedSubmissions, setSelectedSubmissions] = useState<string[]>([]);
   const [showGradingModal, setShowGradingModal] = useState(false);
   const [currentSubmission, setCurrentSubmission] = useState<Submission | null>(null);
 
@@ -57,8 +57,8 @@ export function GradingPage() {
   // Mock submissions
   const mockSubmissions: Submission[] = [
     {
-      id: 1,
-      student: { id: 1, full_name: 'Nguyễn Văn A', avatar_url: '' },
+      id: '1',
+      student: { id: '1', full_name: 'Nguyễn Văn A', avatar_url: '' },
       type: 'assignment',
       title: 'Bài tập 1: Xây dựng component React',
       submitted_at: '2024-01-15T10:30:00',
@@ -69,8 +69,8 @@ export function GradingPage() {
       file_urls: ['file1.pdf', 'file2.zip'],
     },
     {
-      id: 2,
-      student: { id: 2, full_name: 'Trần Thị B', avatar_url: '' },
+      id: '2',
+      student: { id: '2', full_name: 'Trần Thị B', avatar_url: '' },
       type: 'quiz',
       title: 'Kiểm tra giữa kỳ - React Hooks',
       submitted_at: '2024-01-14T15:20:00',
@@ -137,7 +137,7 @@ export function GradingPage() {
     alert('Đang xuất file CSV...');
   };
 
-  const toggleSelection = (id: number) => {
+  const toggleSelection = (id: string) => {
     setSelectedSubmissions(prev =>
       prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
     );

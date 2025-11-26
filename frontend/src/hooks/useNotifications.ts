@@ -4,15 +4,15 @@ import { notificationApi } from '@/services/api/notifications.api';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 
 export interface Notification {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   type: 'info' | 'warning' | 'error' | 'success';
   title: string;
   message: string;
   is_read: boolean;
   is_archived: boolean;
   related_resource_type?: string;
-  related_resource_id?: number;
+  related_resource_id?: string;
   created_at: string;
   updated_at?: string;
 }
@@ -62,7 +62,7 @@ export function useMarkNotificationAsRead() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (notificationId: number) => notificationApi.markAsRead(notificationId),
+    mutationFn: (notificationId: string) => notificationApi.markAsRead(notificationId),
     onSuccess: () => {
       // Invalidate both notifications list and unread count
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all });
@@ -121,7 +121,7 @@ export function useArchiveNotification() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (notificationId: number) => notificationApi.archiveNotification(notificationId),
+    mutationFn: (notificationId: string) => notificationApi.archiveNotification(notificationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all });
     },
@@ -139,7 +139,7 @@ export function useDeleteNotification() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (notificationId: number) => notificationApi.deleteNotification(notificationId),
+    mutationFn: (notificationId: string) => notificationApi.deleteNotification(notificationId),
     onSuccess: () => {
       toast.success('Đã xóa thông báo');
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all });

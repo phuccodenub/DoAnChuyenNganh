@@ -25,7 +25,7 @@ export function InstructorDashboardPage() {
 
   const recentCourses = [
     {
-      id: 1,
+      id: '1',
       title: 'Lập trình Web với React',
       status: 'published',
       students: 89,
@@ -33,7 +33,7 @@ export function InstructorDashboardPage() {
       updated_at: '2024-01-10',
     },
     {
-      id: 2,
+      id: '2',
       title: 'JavaScript nâng cao',
       status: 'draft',
       students: 0,
@@ -41,7 +41,7 @@ export function InstructorDashboardPage() {
       updated_at: '2024-01-09',
     },
     {
-      id: 3,
+      id: '3',
       title: 'TypeScript từ cơ bản đến nâng cao',
       status: 'published',
       students: 124,

@@ -21,7 +21,7 @@ import { ROUTES } from '@/constants/routes';
  */
 
 interface Answer {
-  questionId: number;
+  questionId: string;
   answer: string | string[];
 }
 
@@ -29,9 +29,9 @@ export function QuizPage() {
   const { courseId, quizId } = useParams<{ courseId: string; quizId: string }>();
   const navigate = useNavigate();
   
-  const { data: quiz, isLoading: quizLoading } = useQuiz(Number(quizId));
-  const { data: questions, isLoading: questionsLoading } = useQuizQuestions(Number(quizId));
-  const { data: currentAttempt } = useCurrentAttempt(Number(quizId));
+  const { data: quiz, isLoading: quizLoading } = useQuiz(quizId!);
+  const { data: questions, isLoading: questionsLoading } = useQuizQuestions(quizId!);
+  const { data: currentAttempt } = useCurrentAttempt(quizId!);
   
   const startQuizMutation = useStartQuiz();
   const submitAnswerMutation = useSubmitAnswer();
@@ -42,7 +42,7 @@ export function QuizPage() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [attemptId, setAttemptId] = useState<number | null>(null);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
 
   // Initialize from current attempt if exists
   useEffect(() => {
@@ -75,7 +75,7 @@ export function QuizPage() {
 
   const handleStartQuiz = async () => {
     try {
-      const attempt = await startQuizMutation.mutateAsync(Number(quizId));
+      const attempt = await startQuizMutation.mutateAsync(quizId!);
       setAttemptId(attempt.id);
       setQuizStarted(true);
       setTimeRemaining((quiz?.duration_minutes || 60) * 60);
@@ -86,7 +86,7 @@ export function QuizPage() {
     }
   };
 
-  const handleAnswerChange = (questionId: number, answer: string | string[]) => {
+  const handleAnswerChange = (questionId: string, answer: string | string[]) => {
     setAnswers((prev) => {
       const existing = prev.find(a => a.questionId === questionId);
       if (existing) {
@@ -105,7 +105,7 @@ export function QuizPage() {
     }
   };
 
-  const getCurrentAnswer = (questionId: number): string | string[] => {
+  const getCurrentAnswer = (questionId: string): string | string[] => {
     return answers.find(a => a.questionId === questionId)?.answer || '';
   };
 

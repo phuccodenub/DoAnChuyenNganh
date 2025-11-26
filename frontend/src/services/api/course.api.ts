@@ -8,9 +8,9 @@ import { httpClient } from '../http/client';
 
 // Types
 export interface Course {
-  id: number;
-  instructor_id: number;
-  category_id?: number;
+  id: string;
+  instructor_id: string;
+  category_id?: string;
   title: string;
   description: string;
   thumbnail_url?: string;
@@ -22,12 +22,12 @@ export interface Course {
   created_at: string;
   updated_at: string;
   instructor?: {
-    id: number;
+    id: string;
     full_name: string;
     avatar_url?: string;
   };
   category?: {
-    id: number;
+    id: string;
     name: string;
   };
   _count?: {
@@ -39,7 +39,7 @@ export interface CourseFilters {
   page?: number;
   limit?: number;
   status?: string;
-  category_id?: number;
+  category_id?: string;
   difficulty?: string;
   is_free?: boolean;
   search?: string;
@@ -66,8 +66,8 @@ export interface CourseDetailResponse {
 }
 
 export interface CourseProgress {
-  course_id: number;
-  user_id: number;
+  course_id: string;
+  user_id: string;
   lessons_completed: number;
   total_lessons: number;
   percent: number;
@@ -81,8 +81,8 @@ export interface CourseProgressResponse {
 }
 
 export interface CourseSection {
-  id: number;
-  course_id: number;
+  id: string;
+  course_id: string;
   title: string;
   description?: string;
   order: number;
@@ -98,8 +98,8 @@ export interface SectionsResponse {
 }
 
 export interface CourseQuiz {
-  id: number;
-  course_id: number;
+  id: string;
+  course_id: string;
   title: string;
   description?: string;
   questions_count?: number;
@@ -125,7 +125,7 @@ export const courseApi = {
   /**
    * Lấy chi tiết khóa học
    */
-  getById: (id: number) => {
+  getById: (id: string) => {
     return httpClient.get<CourseDetailResponse>(`/courses/${id}`);
   },
 
@@ -139,28 +139,28 @@ export const courseApi = {
   /**
    * Đăng ký khóa học (student)
    */
-  enroll: (courseId: number) => {
+  enroll: (courseId: string) => {
     return httpClient.post(`/courses/${courseId}/enroll`);
   },
 
   /**
    * Hủy đăng ký khóa học (student)
    */
-  unenroll: (courseId: number) => {
+  unenroll: (courseId: string) => {
     return httpClient.delete(`/courses/${courseId}/unenroll`);
   },
 
   /**
    * Lấy danh sách học viên trong khóa học (instructor)
    */
-  getStudents: (courseId: number) => {
+  getStudents: (courseId: string) => {
     return httpClient.get(`/courses/${courseId}/students`);
   },
 
   /**
    * Lấy khóa học của instructor
    */
-  getInstructorCourses: (instructorId?: number) => {
+  getInstructorCourses: (instructorId?: string) => {
     const url = instructorId
       ? `/courses/instructor/${instructorId}`
       : '/courses/instructor/my-courses';
@@ -177,35 +177,35 @@ export const courseApi = {
   /**
    * Cập nhật khóa học (instructor)
    */
-  update: (id: number, data: Partial<Course>) => {
+  update: (id: string, data: Partial<Course>) => {
     return httpClient.put<CourseDetailResponse>(`/courses/${id}`, data);
   },
 
   /**
    * Xóa khóa học (instructor)
    */
-  delete: (id: number) => {
+  delete: (id: string) => {
     return httpClient.delete(`/courses/${id}`);
   },
 
   /**
    * Lấy tiến độ học tập trong khóa học
    */
-  getProgress: (courseId: number) => {
+  getProgress: (courseId: string) => {
     return httpClient.get<CourseProgressResponse>(`/courses/${courseId}/progress`);
   },
 
   /**
    * Lấy danh sách sections của khóa học
    */
-  getSections: (courseId: number) => {
+  getSections: (courseId: string) => {
     return httpClient.get<SectionsResponse>(`/courses/${courseId}/sections`);
   },
 
   /**
    * Lấy danh sách quizzes của khóa học
    */
-  getQuizzes: (courseId: number) => {
+  getQuizzes: (courseId: string) => {
     return httpClient.get<QuizzesResponse>(`/courses/${courseId}/quizzes`);
   },
 };

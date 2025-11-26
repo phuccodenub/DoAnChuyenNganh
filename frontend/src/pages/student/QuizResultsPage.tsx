@@ -23,11 +23,11 @@ export function QuizResultsPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
   const navigate = useNavigate();
   
-  const { data: attempt, isLoading } = useQuizAttempt(Number(attemptId));
-  const [expandedQuestions, setExpandedQuestions] = useState<number[]>([]);
+  const { data: attempt, isLoading } = useQuizAttempt(attemptId!);
+  const [expandedQuestions, setExpandedQuestions] = useState<string[]>([]);
 
-  const toggleQuestion = (questionId: number) => {
-    setExpandedQuestions(prev =>
+  const handleToggleQuestion = (questionId: string) => {
+    setExpandedQuestions((prev) =>
       prev.includes(questionId)
         ? prev.filter(id => id !== questionId)
         : [...prev, questionId]
@@ -166,7 +166,7 @@ export function QuizResultsPage() {
                     className="border border-gray-200 rounded-lg overflow-hidden"
                   >
                     <button
-                      onClick={() => toggleQuestion(question.id)}
+                      onClick={() => handleToggleQuestion(question.id)}
                       className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-3 flex-1 text-left">

@@ -17,9 +17,9 @@ export const categoryQueryKeys = {
   lists: () => [...categoryQueryKeys.all, 'list'] as const,
   list: (params: { include_inactive?: boolean }) => [...categoryQueryKeys.lists(), params] as const,
   details: () => [...categoryQueryKeys.all, 'detail'] as const,
-  detail: (id: number) => [...categoryQueryKeys.details(), id] as const,
+  detail: (id: string) => [...categoryQueryKeys.details(), id] as const,
   stats: () => [...categoryQueryKeys.all, 'stats'] as const,
-  courses: (categoryId: number) => [...categoryQueryKeys.all, 'courses', categoryId] as const,
+  courses: (categoryId: string) => [...categoryQueryKeys.all, 'courses', categoryId] as const,
 };
 
 // ============================================================================
@@ -40,7 +40,7 @@ export function useCategories(params: { include_inactive?: boolean } = {}) {
 /**
  * Get category by ID
  */
-export function useCategory(categoryId: number, enabled: boolean = true) {
+export function useCategory(categoryId: string, enabled: boolean = true) {
   return useQuery<Category>({
     queryKey: categoryQueryKeys.detail(categoryId),
     queryFn: () => categoryApi.getById(categoryId),
@@ -64,7 +64,7 @@ export function useCategoryStats() {
  * Get category courses
  */
 export function useCategoryCourses(
-  categoryId: number,
+  categoryId: string,
   params: { page?: number; limit?: number } = {}
 ) {
   return useQuery({
@@ -105,7 +105,7 @@ export function useUpdateCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ categoryId, data }: { categoryId: number; data: UpdateCategoryPayload }) =>
+    mutationFn: ({ categoryId, data }: { categoryId: string; data: UpdateCategoryPayload }) =>
       categoryApi.update(categoryId, data),
     onSuccess: (updatedCategory) => {
       // Update category in cache
@@ -128,7 +128,7 @@ export function useDeleteCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (categoryId: number) => categoryApi.delete(categoryId),
+    mutationFn: (categoryId: string) => categoryApi.delete(categoryId),
     onSuccess: () => {
       // Invalidate all category queries
       queryClient.invalidateQueries({ queryKey: categoryQueryKeys.all });

@@ -22,8 +22,8 @@ export default function CourseManagementPage() {
   });
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput, 300);
-  const [selectedRows, setSelectedRows] = useState<(string | number)[]>([]);
-  const [viewingCourseId, setViewingCourseId] = useState<number | null>(null);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [viewingCourseId, setViewingCourseId] = useState<string | null>(null);
 
   const finalFilters = useMemo(
     () => ({ ...filters, search: debouncedSearch || undefined }),
@@ -60,7 +60,7 @@ export default function CourseManagementPage() {
     if (selectedRows.length === 0) return;
     if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedRows.length} khóa học?`)) return;
     await bulkActionMutation.mutateAsync({
-      course_ids: selectedRows.map(Number),
+      course_ids: selectedRows,
       action: 'delete',
     });
     setSelectedRows([]);
@@ -69,7 +69,7 @@ export default function CourseManagementPage() {
   const handleBulkStatusChange = async (action: 'publish' | 'archive' | 'draft') => {
     if (selectedRows.length === 0) return;
     await bulkActionMutation.mutateAsync({
-      course_ids: selectedRows.map(Number),
+      course_ids: selectedRows,
       action,
     });
     setSelectedRows([]);
@@ -208,7 +208,7 @@ export default function CourseManagementPage() {
           </select>
           <select
             value={filters.category_id || ''}
-            onChange={(e) => handleFilterChange('category_id', e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => handleFilterChange('category_id', e.target.value || undefined)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Tất cả danh mục</option>
@@ -276,7 +276,7 @@ export default function CourseManagementPage() {
           defaultSortOrder={filters.sort_order}
           selectable={true}
           selectedRows={selectedRows}
-          onSelectionChange={setSelectedRows}
+          onSelectionChange={(ids) => setSelectedRows(ids.map(String))}
           pagination={
             coursesData
               ? {

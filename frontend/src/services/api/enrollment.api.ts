@@ -7,16 +7,16 @@ import { httpClient } from '../http/client';
  */
 
 export interface Enrollment {
-  id: number;
-  user_id: number;
-  course_id: number;
+  id: string;
+  user_id: string;
+  course_id: string;
   status: 'enrolled' | 'completed' | 'dropped';
   progress_percentage: number;
   enrolled_at: string;
   completed_at?: string;
   updated_at: string;
   course?: {
-    id: number;
+    id: string;
     title: string;
     thumbnail_url?: string;
     instructor?: {
@@ -43,70 +43,70 @@ export const enrollmentApi = {
   /**
    * Lấy chi tiết enrollment
    */
-  getById: (id: number) => {
+  getById: (id: string) => {
     return httpClient.get(`/enrollments/${id}`);
   },
 
   /**
    * Lấy enrollments của user
    */
-  getByUser: (userId: number) => {
+  getByUser: (userId: string) => {
     return httpClient.get(`/enrollments/user/${userId}`);
   },
 
   /**
    * Lấy enrollments của course
    */
-  getByCourse: (courseId: number) => {
+  getByCourse: (courseId: string) => {
     return httpClient.get(`/enrollments/course/${courseId}`);
   },
 
   /**
    * Kiểm tra user đã enroll course chưa
    */
-  checkEnrollment: (userId: number, courseId: number) => {
+  checkEnrollment: (userId: string, courseId: string) => {
     return httpClient.get(`/enrollments/user/${userId}/course/${courseId}`);
   },
 
   /**
    * Lấy enrollment cụ thể của user trong course
    */
-  getEnrollment: (userId: number, courseId: number) => {
+  getEnrollment: (userId: string, courseId: string) => {
     return httpClient.get(`/enrollments/user/${userId}/course/${courseId}/enrollment`);
   },
 
   /**
    * Tạo enrollment mới (admin)
    */
-  create: (data: { user_id: number; course_id: number }) => {
+  create: (data: { user_id: string; course_id: string }) => {
     return httpClient.post('/enrollments', data);
   },
 
   /**
    * Cập nhật enrollment
    */
-  update: (id: number, data: Partial<Enrollment>) => {
+  update: (id: string, data: Partial<Enrollment>) => {
     return httpClient.put(`/enrollments/${id}`, data);
   },
 
   /**
    * Xóa enrollment
    */
-  delete: (id: number) => {
+  delete: (id: string) => {
     return httpClient.delete(`/enrollments/${id}`);
   },
 
   /**
    * Đánh dấu enrollment hoàn thành
    */
-  markComplete: (id: number) => {
+  markComplete: (id: string) => {
     return httpClient.patch(`/enrollments/${id}/complete`);
   },
 
   /**
    * Cập nhật tiến độ
    */
-  updateProgress: (id: number, progress: number) => {
+  updateProgress: (id: string, progress: number) => {
     return httpClient.put(`/enrollments/${id}/progress`, { progress_percentage: progress });
   },
 
@@ -123,14 +123,14 @@ export const enrollmentApi = {
   /**
    * Thống kê enrollments theo course
    */
-  getStatsByCourse: (courseId: number) => {
+  getStatsByCourse: (courseId: string) => {
     return httpClient.get(`/enrollments/stats/course/${courseId}`);
   },
 
   /**
    * Thống kê enrollments theo user
    */
-  getStatsByUser: (userId: number) => {
+  getStatsByUser: (userId: string) => {
     return httpClient.get(`/enrollments/stats/user/${userId}`);
   },
 };

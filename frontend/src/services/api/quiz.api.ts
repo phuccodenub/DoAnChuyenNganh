@@ -4,9 +4,9 @@ import { apiClient } from '../http/client';
  * Quiz Types
  */
 export interface Quiz {
-  id: number;
-  course_id: number;
-  section_id?: number;
+  id: string;
+  course_id: string;
+  section_id?: string;
   title: string;
   description: string | null;
   duration_minutes: number;
@@ -25,8 +25,8 @@ export interface Quiz {
 }
 
 export interface Question {
-  id: number;
-  quiz_id: number;
+  id: string;
+  quiz_id: string;
   question_type: 'multiple_choice' | 'true_false' | 'essay' | 'fill_blank';
   question_text: string;
   points: number;
@@ -42,9 +42,9 @@ export interface QuestionOption {
 }
 
 export interface QuizAttempt {
-  id: number;
-  quiz_id: number;
-  user_id: number;
+  id: string;
+  quiz_id: string;
+  user_id: string;
   started_at: string;
   submitted_at: string | null;
   score: number | null;
@@ -56,29 +56,29 @@ export interface QuizAttempt {
 }
 
 export interface QuizAnswer {
-  question_id: number;
+  question_id: string;
   answer: string | string[];
   is_correct?: boolean;
   points_earned?: number;
 }
 
 export interface StartQuizPayload {
-  quiz_id: number;
+  quiz_id: string;
 }
 
 export interface SubmitAnswerPayload {
-  attempt_id: number;
-  question_id: number;
+  attempt_id: string;
+  question_id: string;
   answer: string | string[];
 }
 
 export interface SubmitQuizPayload {
-  attempt_id: number;
+  attempt_id: string;
 }
 
 export interface QuizAttemptResult extends QuizAttempt {
   quiz: {
-    id: number;
+    id: string;
     title: string;
     passing_score: number;
   };
@@ -93,7 +93,7 @@ export const quizApi = {
   /**
    * Get quiz by ID
    */
-  getQuiz: async (quizId: number): Promise<Quiz> => {
+  getQuiz: async (quizId: string): Promise<Quiz> => {
     const response = await apiClient.get<Quiz>(`/quizzes/${quizId}`);
     return response.data;
   },
@@ -101,7 +101,7 @@ export const quizApi = {
   /**
    * Get quiz questions (only available during active attempt)
    */
-  getQuizQuestions: async (quizId: number): Promise<Question[]> => {
+  getQuizQuestions: async (quizId: string): Promise<Question[]> => {
     const response = await apiClient.get<Question[]>(
       `/quizzes/${quizId}/questions`
     );
@@ -111,7 +111,7 @@ export const quizApi = {
   /**
    * Start a new quiz attempt
    */
-  startQuiz: async (quizId: number): Promise<QuizAttempt> => {
+  startQuiz: async (quizId: string): Promise<QuizAttempt> => {
     const response = await apiClient.post<QuizAttempt>(
       `/quizzes/${quizId}/start`
     );
@@ -122,8 +122,8 @@ export const quizApi = {
    * Submit answer for a question
    */
   submitAnswer: async (
-    attemptId: number,
-    questionId: number,
+    attemptId: string,
+    questionId: string,
     answer: string | string[]
   ): Promise<{ success: boolean }> => {
     const response = await apiClient.post<{ success: boolean }>(
@@ -136,7 +136,7 @@ export const quizApi = {
   /**
    * Submit quiz (finish attempt)
    */
-  submitQuiz: async (attemptId: number): Promise<QuizAttemptResult> => {
+  submitQuiz: async (attemptId: string): Promise<QuizAttemptResult> => {
     const response = await apiClient.post<QuizAttemptResult>(
       `/quiz-attempts/${attemptId}/submit`
     );
@@ -146,7 +146,7 @@ export const quizApi = {
   /**
    * Get quiz attempt by ID
    */
-  getAttempt: async (attemptId: number): Promise<QuizAttemptResult> => {
+  getAttempt: async (attemptId: string): Promise<QuizAttemptResult> => {
     const response = await apiClient.get<QuizAttemptResult>(
       `/quiz-attempts/${attemptId}`
     );
@@ -156,7 +156,7 @@ export const quizApi = {
   /**
    * Get all attempts for a quiz by current user
    */
-  getAttempts: async (quizId: number): Promise<QuizAttempt[]> => {
+  getAttempts: async (quizId: string): Promise<QuizAttempt[]> => {
     const response = await apiClient.get<QuizAttempt[]>(
       `/quizzes/${quizId}/attempts`
     );
@@ -166,7 +166,7 @@ export const quizApi = {
   /**
    * Get current/active attempt for a quiz
    */
-  getCurrentAttempt: async (quizId: number): Promise<QuizAttempt | null> => {
+  getCurrentAttempt: async (quizId: string): Promise<QuizAttempt | null> => {
     try {
       const response = await apiClient.get<QuizAttempt>(
         `/quizzes/${quizId}/current-attempt`
