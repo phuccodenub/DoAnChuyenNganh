@@ -12,8 +12,8 @@ const HomePage = lazy(() => import('@/pages/HomePage/index'));
 const Home = lazy(() => import('@/pages/Home/index'));
 const CourseCatalogPage = lazy(() => import('@/pages/CourseCatalogPage'));
 const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
-const LiveStreamLobbyPage = lazy(() => import('@/pages/LiveStreamLobbyPage'));
-const LiveStreamSessionPage = lazy(() => import('@/pages/LiveStreamSessionPage'));
+const LiveStreamLobbyPage = lazy(() => import('@/pages/livestream/lobby/LobbyPage'));
+const LiveStreamSessionPage = lazy(() => import('@/pages/livestream/session/SessionPage'));
 
 // Student pages
 const StudentDashboard = lazy(() => import('@/pages/student/DashboardPage'));
@@ -38,7 +38,7 @@ const GradingPage = lazy(() => import('@/pages/instructor/GradingPage'));
 const StudentManagementPage = lazy(() => import('@/pages/instructor/StudentManagementPage'));
 const LiveStreamManagementPage = lazy(() => import('@/pages/instructor/LiveStreamManagementPage'));
 const CreateLiveStreamPage = lazy(() => import('@/pages/instructor/CreateLiveStreamPage'));
-const LiveStreamHostPage = lazy(() => import('@/pages/instructor/LiveStreamHostPage'));
+const LiveStreamHostPage = lazy(() => import('@/pages/livestream/host/HostPage'));
 
 // Admin pages
 const AdminDashboardLayout = lazy(() => import('@/layouts/AdminDashboardLayout'));

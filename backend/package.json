@@ -86,6 +86,7 @@
     "sqlite3": "^5.1.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
+    "twilio": "^5.10.6",
     "uuid": "^13.0.0",
     "winston": "^3.18.3",
     "zod": "^4.1.12",

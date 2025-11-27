@@ -10,6 +10,8 @@ import env from '../../config/env.config';
 import LiveSessionMessage from '../../models/live-session-message.model';
 import User from '../../models/user.model';
 import logger from '../../utils/logger.util';
+import { FileService, UploadedFile } from '../../services/global/file.service';
+import twilio from 'twilio';
 
 type IceServerConfig = {
   urls: string | string[];
@@ -25,10 +27,12 @@ const DEFAULT_STUN_SERVERS = [
 export class LiveStreamService {
   private repo: LiveStreamRepository;
   private readonly defaultIceServers: IceServerConfig[];
+  private readonly fileService: FileService;
 
   constructor() {
     this.repo = new LiveStreamRepository();
     this.defaultIceServers = this.buildEnvIceServers();
+    this.fileService = new FileService();
   }
 
   /**
@@ -162,6 +166,30 @@ export class LiveStreamService {
 
   async deleteSession(id: string) {
     return await this.repo.deleteSession(id);
+  }
+
+  async updateThumbnail(sessionId: string, file: UploadedFile, userId: string) {
+    if (!file) {
+      throw new Error('Thumbnail file is required');
+    }
+
+    const session = await this.repo.getSessionById(sessionId);
+    if (!session) {
+      throw new Error('Live session not found');
+    }
+
+    const uploadResult = await this.fileService.uploadFile(file, {
+      folder: `livestreams/${sessionId}`,
+      userId,
+      allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+      maxSize: 5 * 1024 * 1024,
+    });
+
+    const updated = await this.repo.updateSession(sessionId, {
+      thumbnail_url: uploadResult.url,
+    } as Partial<LiveSessionCreationAttributes>);
+
+    return this.serializeSession(updated);
   }
 
   /**
@@ -338,6 +366,78 @@ export class LiveStreamService {
       ...config,
       iceServers: this.defaultIceServers,
     };
+  }
+
+  /**
+   * Generate Twilio NTS Token and return ICE servers
+   * This method generates a Network Traversal Service token from Twilio
+   * and converts it to WebRTC-compatible ICE servers format
+   */
+  async getTwilioIceServers(): Promise<IceServerConfig[]> {
+    const twilioConfig = env.livestream.webrtc?.twilio;
+
+    if (!twilioConfig?.enabled || !twilioConfig.accountSid || !twilioConfig.authToken) {
+      logger.warn('[LiveStreamService] Twilio NTS is not configured, falling back to default ICE servers');
+      return this.defaultIceServers;
+    }
+
+    try {
+      const client = twilio(twilioConfig.accountSid, twilioConfig.authToken);
+      logger.info('[LiveStreamService] Generating Twilio NTS token...');
+
+      // Generate NTS Token
+      // TTL: 3600 seconds (1 hour) - tokens are short-lived for security
+      const tokensClient = (client as any).networkTraversal?.v1?.tokens ?? client.tokens;
+      if (!tokensClient) {
+        throw new Error('Twilio networkTraversal client is not available. Check SDK version.');
+      }
+
+      const tokenCreate = typeof tokensClient.create === 'function'
+        ? tokensClient.create.bind(tokensClient)
+        : (tokensClient as any)?.list?.bind(tokensClient); // fallback (should not hit)
+
+      if (typeof tokenCreate !== 'function') {
+        throw new Error('Twilio tokens client does not provide create() method');
+      }
+
+      const token = await tokenCreate({
+        ttl: 3600,
+      });
+
+      // Parse the token to extract ICE servers
+      // Twilio NTS token contains iceServers in the format:
+      // {
+      //   iceServers: [
+      //     { urls: 'stun:...', ... },
+      //     { urls: 'turn:...', username: '...', credential: '...' }
+      //   ]
+      // }
+      if (token.iceServers && Array.isArray(token.iceServers)) {
+        const iceServers: IceServerConfig[] = token.iceServers.map((server: any) => {
+          const config: IceServerConfig = {
+            urls: server.urls || server.url || [],
+          };
+          if (server.username) {
+            config.username = server.username;
+          }
+          if (server.credential || server.password) {
+            config.credential = server.credential || server.password;
+          }
+          return config;
+        });
+
+        logger.info(`[LiveStreamService] Generated Twilio NTS token with ${iceServers.length} ICE servers`);
+        logger.debug('[LiveStreamService] Twilio ICE servers:', iceServers);
+        return iceServers;
+      }
+
+      logger.warn('[LiveStreamService] Twilio NTS token does not contain valid iceServers, falling back to default');
+      return this.defaultIceServers;
+    } catch (error) {
+      logger.error('[LiveStreamService] Failed to generate Twilio NTS token:', error);
+      // Fallback to default ICE servers on error
+      return this.defaultIceServers;
+    }
   }
 }
 

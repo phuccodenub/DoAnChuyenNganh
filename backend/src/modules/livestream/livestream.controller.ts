@@ -112,6 +112,35 @@ export class LiveStreamController {
       next(error);
     }
   };
+
+  uploadThumbnail = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { sessionId } = req.params;
+      const userId = req.user!.userId;
+      const file = req.file;
+      if (!file) {
+        return responseUtils.sendValidationError(res, 'Thumbnail file is required');
+      }
+      const session = await this.service.updateThumbnail(sessionId, file as any, userId);
+      return responseUtils.success(res, session, 'Thumbnail updated');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Get ICE servers for WebRTC (with Twilio NTS support)
+   * This endpoint generates a Twilio NTS token and returns ICE servers
+   * that can be used for cross-network WebRTC connections
+   */
+  getIceServers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const iceServers = await this.service.getTwilioIceServers();
+      return responseUtils.success(res, { iceServers }, 'ICE servers retrieved');
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 
