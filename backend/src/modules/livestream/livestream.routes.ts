@@ -4,6 +4,7 @@ import { liveStreamValidation } from './livestream.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
+import { uploadMiddleware } from '../files/upload.middleware';
 
 const router = Router();
 const controller = new LiveStreamController();
@@ -48,6 +49,14 @@ router.delete(
   controller.delete
 );
 
+router.post(
+  '/:sessionId/thumbnail',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
+  validate(liveStreamValidation.sessionId),
+  uploadMiddleware('thumbnail'),
+  controller.uploadThumbnail
+);
+
 // Join session (student)
 router.post('/:sessionId/join', validate(liveStreamValidation.sessionId), controller.join);
 
@@ -56,6 +65,9 @@ router.post('/:sessionId/leave', validate(liveStreamValidation.sessionId), contr
 
 // Viewers list
 router.get('/:sessionId/viewers', validate(liveStreamValidation.sessionId), controller.getViewers);
+
+// Get ICE servers for WebRTC (Twilio NTS)
+router.get('/webrtc/ice-servers', controller.getIceServers);
 
 export default router;
 

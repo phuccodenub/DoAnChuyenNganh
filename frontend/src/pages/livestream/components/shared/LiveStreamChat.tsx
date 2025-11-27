@@ -205,7 +205,7 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 shadow-sm">
+    <div className="flex flex-col h-[calc(85vh-200px)] bg-white rounded-lg border border-gray-200 shadow-sm">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
         <h3 className="text-sm font-semibold text-gray-900">Chat trực tiếp</h3>
@@ -234,7 +234,6 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
       <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
-        style={{ maxHeight: '400px' }}
       >
         {allMessages.length === 0 ? (
           <div className="text-center text-gray-500 text-sm py-8">
@@ -290,7 +289,7 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
       </div>
 
       {/* Emoji reactions bar */}
-      <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
+      <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 overflow-x-hidden">
         <div className="flex items-center gap-2">
           {EMOJI_REACTIONS.map((emoji) => (
             <button

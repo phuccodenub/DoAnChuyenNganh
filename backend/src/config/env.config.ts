@@ -140,6 +140,12 @@ export const env = {
         username: process.env.WEBRTC_TURN_USERNAME || process.env.TURN_SERVER_USERNAME,
         credential: process.env.WEBRTC_TURN_PASSWORD || process.env.WEBRTC_TURN_CREDENTIAL || process.env.TURN_SERVER_PASSWORD,
       },
+      // Twilio Network Traversal Service (NTS) - for cross-network WebRTC
+      twilio: {
+        enabled: toBool(process.env.TWILIO_NTS_ENABLED, false),
+        accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+        authToken: process.env.TWILIO_AUTH_TOKEN || '',
+      },
     },
   }
 };
