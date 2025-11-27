@@ -30,6 +30,7 @@ const SettingsPage = lazy(() => import('@/pages/student/SettingsPage'));
 const InstructorDashboardLayout = lazy(() => import('@/layouts/InstructorDashboardLayout'));
 const InstructorDashboard = lazy(() => import('@/pages/instructor/DashboardPage'));
 const MyCoursesPage = lazy(() => import('@/pages/instructor/MyCoursesPage'));
+const InstructorCourseDetailPage = lazy(() => import('@/pages/instructor/InstructorCourseDetailPage'));
 const CourseEditorPage = lazy(() => import('@/pages/instructor/CourseEditorPage'));
 const CurriculumBuilderPage = lazy(() => import('@/pages/instructor/CurriculumBuilderPage'));
 const QuizBuilderPage = lazy(() => import('@/pages/instructor/QuizBuilderPage'));
@@ -88,7 +89,7 @@ function AppRoutes() {
         <Route path={ROUTES.TWO_FACTOR} element={<TwoFactorSetupPage />} />
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
-        
+
         {/* Temporary Public Learning Route - ONLY FOR TESTING UI */}
         <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
 
@@ -111,12 +112,13 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.SETTINGS} element={<SettingsPage />} />
             <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
           </Route>
-          
+
           {/* Instructor & Admin routes (admin cũng có thể host livestream) */}
           <Route element={<RoleGuard allowedRoles={['instructor', 'admin']} />}>
             <Route element={<InstructorDashboardLayout />}>
               <Route path={ROUTES.INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
               <Route path={ROUTES.INSTRUCTOR.MY_COURSES} element={<MyCoursesPage />} />
+              <Route path={ROUTES.INSTRUCTOR.COURSE_DETAIL} element={<InstructorCourseDetailPage />} />
               <Route path={ROUTES.INSTRUCTOR.COURSE_EDIT} element={<CourseEditorPage />} />
               <Route path={ROUTES.INSTRUCTOR.COURSE_CREATE} element={<CourseEditorPage />} />
               <Route path={ROUTES.INSTRUCTOR.CURRICULUM} element={<CurriculumBuilderPage />} />
@@ -132,7 +134,7 @@ function AppRoutes() {
             {/* Livestream create page sử dụng layout riêng giống Facebook */}
             <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />
           </Route>
-          
+
           {/* Admin routes */}
           <Route element={<RoleGuard allowedRoles={['admin', 'super_admin']} />}>
             <Route element={<AdminDashboardLayout />}>

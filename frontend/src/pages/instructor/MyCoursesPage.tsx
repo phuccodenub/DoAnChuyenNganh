@@ -146,11 +146,10 @@ export function MyCoursesPage() {
                   <button
                     key={option.value}
                     onClick={() => setFilter(option.value as typeof filter)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      filter === option.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === option.value
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -191,7 +190,7 @@ export function MyCoursesPage() {
               {/* Content */}
               <CardContent className="p-4">
                 <div className="mb-3">
-                  <Link 
+                  <Link
                     to={generateRoute.instructor.courseEdit(course.id)}
                     className="hover:text-blue-600"
                   >
@@ -199,7 +198,7 @@ export function MyCoursesPage() {
                       {course.title}
                     </h3>
                   </Link>
-                  
+
                   <div className="flex items-center gap-2 mb-3">
                     <Badge variant={statusColors[course.status as keyof typeof statusColors]}>
                       {statusLabels[course.status as keyof typeof statusLabels]}
@@ -230,8 +229,8 @@ export function MyCoursesPage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
-                  <Link 
-                    to={generateRoute.courseDetail(course.id)}
+                  <Link
+                    to={generateRoute.instructor.courseDetail(course.id)}
                     className="flex-1"
                   >
                     <Button size="sm" variant="outline" fullWidth className="gap-2">
@@ -240,7 +239,7 @@ export function MyCoursesPage() {
                     </Button>
                   </Link>
 
-                  <Link 
+                  <Link
                     to={generateRoute.instructor.courseEdit(course.id)}
                     className="flex-1"
                   >
@@ -276,7 +275,7 @@ export function MyCoursesPage() {
           <CardContent className="p-12 text-center">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {searchQuery || filter !== 'all' 
+              {searchQuery || filter !== 'all'
                 ? 'Không tìm thấy khóa học nào'
                 : 'Bạn chưa có khóa học nào'
               }
