@@ -184,4 +184,23 @@ export const livestreamApi = {
   leaveSession: async (id: string): Promise<void> => {
     await httpClient.post(`${BASE_PATH}/${id}/leave`);
   },
+
+  uploadThumbnail: async (id: string, file: File): Promise<LiveSession> => {
+    const formData = new FormData();
+    formData.append('thumbnail', file);
+    const response = await httpClient.post(`${BASE_PATH}/${id}/thumbnail`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Get ICE servers for WebRTC (with Twilio NTS support)
+   * This endpoint generates a Twilio NTS token and returns ICE servers
+   * that can be used for cross-network WebRTC connections
+   */
+  getIceServers: async (): Promise<{ iceServers: IceServerConfig[] }> => {
+    const response = await httpClient.get(`${BASE_PATH}/webrtc/ice-servers`);
+    return response.data.data;
+  },
 };

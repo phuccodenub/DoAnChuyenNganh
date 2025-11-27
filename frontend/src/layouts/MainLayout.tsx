@@ -70,7 +70,7 @@ export function MainLayout({ children, showSidebar = true }: MainLayoutProps) {
       </div>
 
       {/* Footer */}
-      <Footer />
+      {/* <Footer /> */}
     </div>
   )
 }

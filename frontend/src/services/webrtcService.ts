@@ -114,17 +114,17 @@ class WebRTCService {
       const preferredMic = skipPreferred ? null : this.getPreferredDevice(this.preferredMicrophoneKey);
 
       const baseVideo: MediaTrackConstraints = {
-        width: { ideal: 1280, max: 1920 },
-        height: { ideal: 720, max: 1080 },
-        frameRate: { ideal: 30, max: 60 },
-        facingMode: 'user',
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, max: 60 },
+          facingMode: 'user',
       };
       const baseAudio: MediaTrackConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        sampleRate: 48000,
-        channelCount: 2,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 2,
       };
 
       let videoConstraints: MediaTrackConstraints | boolean =
@@ -647,7 +647,7 @@ class WebRTCService {
           console.error('[WebRTCService] Answer retry failed:', retryError);
         }
       } else {
-        console.error(`[WebRTCService] Error handling answer from ${fromUserId}:`, error);
+      console.error(`[WebRTCService] Error handling answer from ${fromUserId}:`, error);
       }
     }
   }

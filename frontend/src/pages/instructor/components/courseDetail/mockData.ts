@@ -4,7 +4,7 @@
  * TODO: Thay thế bằng API calls thực tế
  */
 
-import { CourseDetail, CourseStats, Section, Student, Review } from './types';
+import { CourseDetail, CourseStats, Section, Student, Review, Submission, AssignmentStats, Assignment } from './types';
 
 // TODO: Replace with API call - GET /api/instructor/courses/:courseId
 export const MOCK_COURSE: CourseDetail = {
@@ -86,4 +86,131 @@ export const MOCK_REVIEWS: Review[] = [
   { id: '1', user_name: 'Nguyễn Văn A', rating: 5, comment: 'Khóa học rất hay và chi tiết. Giảng viên giảng dễ hiểu.', created_at: '2024-11-20', reply: 'Cảm ơn bạn đã đánh giá!', replied_at: '2024-11-21' },
   { id: '2', user_name: 'Trần Thị B', rating: 4, comment: 'Nội dung tốt, nhưng mong có thêm bài tập thực hành.', created_at: '2024-11-18' },
   { id: '3', user_name: 'Lê Văn C', rating: 5, comment: 'Đây là khóa học React tốt nhất mình từng học!', created_at: '2024-11-15', reply: 'Rất vui vì bạn thấy hữu ích!', replied_at: '2024-11-16' },
+];
+
+// TODO: Replace with API call - GET /api/instructor/courses/:courseId/assignments/:assignmentId/submissions
+export const MOCK_SUBMISSIONS: Submission[] = [
+  {
+    id: '1',
+    student_id: '1',
+    student_name: 'Nguyễn Văn A',
+    student_mssv: '2024001',
+    assignment_title: 'Bài tập 1: Xây dựng component React',
+    assignment_type: 'assignment',
+    submitted_at: '2024-11-20T10:30:00Z',
+    is_late: false,
+    status: 'pending',
+    max_points: 100,
+    submission_text: 'Đây là bài làm của em...',
+    file_urls: ['assignment1.pdf', 'code.zip'],
+  },
+  {
+    id: '2',
+    student_id: '2',
+    student_name: 'Trần Thị B',
+    student_mssv: '2024002',
+    assignment_title: 'Bài tập 1: Xây dựng component React',
+    assignment_type: 'assignment',
+    submitted_at: '2024-11-19T15:20:00Z',
+    is_late: true,
+    late_duration: '1 ngày',
+    status: 'graded',
+    score: 85,
+    max_points: 100,
+    feedback: 'Bài làm tốt, cần cải thiện phần styling.',
+  },
+  {
+    id: '3',
+    student_id: '3',
+    student_name: 'Lê Văn C',
+    student_mssv: '2024003',
+    assignment_title: 'Bài tập 1: Xây dựng component React',
+    assignment_type: 'assignment',
+    submitted_at: '2024-11-18T09:15:00Z',
+    is_late: false,
+    status: 'graded',
+    score: 95,
+    max_points: 100,
+    feedback: 'Xuất sắc! Code clean và logic đúng.',
+  },
+  {
+    id: '4',
+    student_id: '4',
+    student_name: 'Phạm Thị D',
+    student_mssv: '2024004',
+    assignment_title: 'Bài tập 1: Xây dựng component React',
+    assignment_type: 'assignment',
+    submitted_at: '', // Chưa nộp
+    is_late: true,
+    late_duration: '3 ngày',
+    status: 'missing',
+    max_points: 100,
+  },
+  {
+    id: '5',
+    student_id: '5',
+    student_name: 'Hoàng Văn E',
+    student_mssv: '2024005',
+    assignment_title: 'Bài tập 1: Xây dựng component React',
+    assignment_type: 'assignment',
+    submitted_at: '2024-11-21T14:45:00Z',
+    is_late: false,
+    status: 'pending',
+    max_points: 100,
+    file_urls: ['submission.pdf'],
+  },
+];
+
+// TODO: Replace with API call - GET /api/instructor/courses/:courseId/assignments/:assignmentId/stats
+export const MOCK_ASSIGNMENT_STATS: AssignmentStats = {
+  total_students: 60,
+  submitted_count: 55,
+  pending_grading_count: 12,
+  average_score: 8.5,
+  due_date: '2024-11-25T23:59:59Z',
+  is_overdue: false,
+  time_remaining: '2 ngày còn lại',
+};
+
+// TODO: Replace with API call - GET /api/instructor/courses/:courseId/assignments
+export const MOCK_ASSIGNMENTS: Assignment[] = [
+  {
+    id: '1',
+    title: 'Bài tập 1: Xây dựng component React',
+    description: 'Tạo một component React đơn giản với props và state',
+    type: 'assignment',
+    due_date: '2024-11-25T23:59:59Z',
+    max_points: 100,
+    is_active: true,
+    created_at: '2024-11-15T10:00:00Z',
+    lesson_id: '9',
+    lesson_title: 'Bài tập thực hành',
+    section_title: 'TypeScript với React',
+  },
+  {
+    id: '2',
+    title: 'Bài kiểm tra giữa kỳ - React Hooks',
+    description: 'Kiểm tra kiến thức về React Hooks',
+    type: 'quiz',
+    due_date: '2024-11-20T23:59:59Z',
+    max_points: 50,
+    is_active: true,
+    created_at: '2024-11-10T10:00:00Z',
+    lesson_id: '6',
+    lesson_title: 'Bài kiểm tra: React Basics',
+    section_title: 'React Fundamentals',
+  },
+  {
+    id: '3',
+    title: 'Bài tập 2: TypeScript Interfaces',
+    description: 'Định nghĩa và sử dụng TypeScript interfaces',
+    type: 'assignment',
+    due_date: '2024-12-01T23:59:59Z',
+    max_points: 80,
+    is_active: true,
+    created_at: '2024-11-20T10:00:00Z',
+    lesson_id: '8',
+    lesson_title: 'Typing React Components',
+    section_title: 'TypeScript với React',
+  },
 ];

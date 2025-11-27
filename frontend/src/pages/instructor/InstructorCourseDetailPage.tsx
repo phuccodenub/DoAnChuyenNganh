@@ -21,17 +21,21 @@ import {
     Section,
     Lesson,
     statusLabels,
+    Assignment,
     // Mock data
     MOCK_COURSE,
     MOCK_STATS,
     MOCK_SECTIONS,
     MOCK_STUDENTS,
-    MOCK_REVIEWS,
+    MOCK_ASSIGNMENTS,
+    MOCK_SUBMISSIONS,
+    MOCK_ASSIGNMENT_STATS,
     // Tab Components
     OverviewTab,
     CurriculumTab,
     StudentsTab,
-    ReviewsTab,
+    AssignmentsListTab,
+    SubmissionsTab,
     SettingsTab,
     // Modal Components
     SectionModal,
@@ -56,6 +60,7 @@ export function InstructorCourseDetailPage() {
     // ================== STATE ==================
     const [activeTab, setActiveTab] = useState<TabType>('overview');
     const [sections, setSections] = useState<Section[]>(MOCK_SECTIONS);
+    const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
 
     // Section Modal State
     const [showSectionModal, setShowSectionModal] = useState(false);
@@ -77,7 +82,9 @@ export function InstructorCourseDetailPage() {
     const course = MOCK_COURSE;
     const stats = MOCK_STATS;
     const students = MOCK_STUDENTS;
-    const reviews = MOCK_REVIEWS;
+    const assignments = MOCK_ASSIGNMENTS;
+    const submissions = MOCK_SUBMISSIONS;
+    const assignmentStats = MOCK_ASSIGNMENT_STATS;
 
     // ================== SECTION HANDLERS ==================
 
@@ -201,7 +208,7 @@ export function InstructorCourseDetailPage() {
         { key: 'overview', label: 'Tổng quan', icon: BarChart3 },
         { key: 'curriculum', label: 'Nội dung', icon: BookOpen },
         { key: 'students', label: 'Học viên', icon: Users },
-        { key: 'reviews', label: 'Đánh giá', icon: Star },
+        { key: 'submissions', label: 'Bài nộp', icon: Star },
         { key: 'settings', label: 'Cài đặt', icon: Settings },
     ];
 
@@ -285,11 +292,23 @@ export function InstructorCourseDetailPage() {
                     <StudentsTab students={students} />
                 )}
 
-                {activeTab === 'reviews' && (
-                    <ReviewsTab
-                        reviews={reviews}
-                        onReplyReview={handleReplyReview}
-                    />
+                {activeTab === 'submissions' && (
+                    selectedAssignment ? (
+                        <SubmissionsTab
+                            submissions={submissions}
+                            assignmentStats={assignmentStats}
+                            assignmentTitle={selectedAssignment.title}
+                            courseTitle={course.title}
+                            courseId={courseId || '1'}
+                            assignmentId={selectedAssignment.id}
+                            onBack={() => setSelectedAssignment(null)}
+                        />
+                    ) : (
+                        <AssignmentsListTab
+                            assignments={assignments}
+                            onSelectAssignment={setSelectedAssignment}
+                        />
+                    )
                 )}
 
                 {activeTab === 'settings' && (

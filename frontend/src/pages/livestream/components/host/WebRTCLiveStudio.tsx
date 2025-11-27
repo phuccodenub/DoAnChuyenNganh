@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Mic, MicOff, Video, VideoOff, MonitorUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import webrtcService from '@/services/webrtcService';
+import { livestreamApi } from '@/services/api/livestream.api';
 
 interface WebRTCLiveStudioProps {
   sessionId: string;
@@ -34,8 +35,16 @@ export function WebRTCLiveStudio({ sessionId, displayName, iceServers }: WebRTCL
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
   const [isAudioOn, setIsAudioOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
+  const thumbnailUploadedRef = useRef(false);
+  const thumbnailAttemptsRef = useRef(0);
+  const thumbnailRetryTimeoutRef = useRef<number | null>(null);
+  const MAX_THUMBNAIL_ATTEMPTS = 5;
   const remoteEntries = Object.entries(remoteStreams);
   const viewerCount = remoteEntries.length;
+
+  useEffect(() => {
+    thumbnailUploadedRef.current = false;
+  }, [sessionId]);
 
   // Configure ICE servers
   useEffect(() => {
@@ -96,6 +105,80 @@ export function WebRTCLiveStudio({ sessionId, displayName, iceServers }: WebRTCL
       webrtcService.leaveSession(sessionId).catch(console.error);
     };
   }, [sessionId, displayName]);
+
+  const captureAndUploadThumbnail = useCallback(async (): Promise<boolean> => {
+    if (thumbnailUploadedRef.current || !sessionId) return false;
+    const video = localVideoRef.current;
+    if (!video) return false;
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+    if (width === 0 || height === 0) return false;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
+    if (video.readyState < 2) {
+      return false;
+    }
+    ctx.drawImage(video, 0, 0, width, height);
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    let brightnessSum = 0;
+    const pixelCount = data.length / 4;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      // perceived brightness
+      brightnessSum += 0.299 * r + 0.587 * g + 0.114 * b;
+    }
+    const averageBrightness = brightnessSum / pixelCount;
+    if (averageBrightness < 15) {
+      // frame is too dark (likely still black screen)
+      return false;
+    }
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.85)
+    );
+    if (!blob) return false;
+    const file = new File([blob], `livestream-thumbnail-${sessionId}.jpg`, {
+      type: 'image/jpeg',
+    });
+    try {
+      await livestreamApi.uploadThumbnail(sessionId, file);
+      thumbnailUploadedRef.current = true;
+      console.log('[WebRTCLiveStudio] Thumbnail uploaded automatically');
+      return true;
+    } catch (error) {
+      console.error('[WebRTCLiveStudio] Failed to upload thumbnail', error);
+    }
+    return false;
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!localStream) return () => undefined;
+    thumbnailAttemptsRef.current = 0;
+
+    const attemptUpload = async () => {
+      if (thumbnailUploadedRef.current) return;
+      if (thumbnailAttemptsRef.current >= MAX_THUMBNAIL_ATTEMPTS) return;
+      thumbnailAttemptsRef.current += 1;
+      const success = await captureAndUploadThumbnail();
+      if (!success && thumbnailAttemptsRef.current < MAX_THUMBNAIL_ATTEMPTS) {
+        thumbnailRetryTimeoutRef.current = window.setTimeout(attemptUpload, 1500);
+      }
+    };
+
+    attemptUpload();
+
+    return () => {
+      if (thumbnailRetryTimeoutRef.current) {
+        window.clearTimeout(thumbnailRetryTimeoutRef.current);
+        thumbnailRetryTimeoutRef.current = null;
+      }
+    };
+  }, [localStream, captureAndUploadThumbnail]);
 
   const toggleAudio = () => {
     const next = !isAudioOn;
@@ -168,26 +251,6 @@ export function WebRTCLiveStudio({ sessionId, displayName, iceServers }: WebRTCL
             </div>
           )}
         </div>
-        {/* <div className="space-y-3 bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
-          <div className="flex items-center justify-between text-sm text-white font-semibold">
-            <p>Người xem kết nối</p>
-            <span className="text-lg font-bold text-emerald-300">{viewerCount}</span>
-          </div>
-
-          {viewerCount === 0 ? (
-            <p className="text-xs text-slate-300">Chưa có ai tham gia. Chia sẻ link cho học viên nhé!</p>
-          ) : (
-            <p className="text-xs text-slate-300">
-              Đã kết nối {viewerCount} {viewerCount === 1 ? 'người xem' : 'người xem'} – danh sách cập nhật theo thời gian thực.
-            </p>
-          )}
-
-          <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
-            {remoteEntries.map(([userId, stream]) => (
-              <RemoteVideo key={userId} stream={stream} label={`Viewer ${userId.slice(0, 4)}`} />
-            ))}
-          </div>
-        </div> */}
       </div>
     </div>
   );

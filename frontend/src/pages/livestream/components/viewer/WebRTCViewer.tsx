@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import webrtcService from '@/services/webrtcService';
-import { ReactionOverlay } from './ReactionOverlay';
-import { Button } from '@/components/ui/Button';
+import { ReactionOverlay } from '../shared/ReactionOverlay';
 
 interface WebRTCViewerProps {
   sessionId: string;
@@ -15,12 +14,25 @@ interface RemoteTileProps {
   stream: MediaStream;
   label: string;
   muted: boolean;
+  volume: number;
   userId: string;
   registerRef: (userId: string, element: HTMLVideoElement | null) => void;
   onAutoplayBlocked: () => void;
+  onToggleMute: () => void;
+  onVolumeChange: (value: number) => void;
 }
 
-function RemoteTile({ stream, label, muted, userId, registerRef, onAutoplayBlocked }: RemoteTileProps) {
+function RemoteTile({
+  stream,
+  label,
+  muted,
+  volume,
+  userId,
+  registerRef,
+  onAutoplayBlocked,
+  onToggleMute,
+  onVolumeChange,
+}: RemoteTileProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
@@ -93,7 +105,7 @@ function RemoteTile({ stream, label, muted, userId, registerRef, onAutoplayBlock
   };
 
   return (
-    <div className="relative bg-black rounded-2xl overflow-hidden border border-gray-800 aspect-video min-h-[400px]">
+    <div className="relative bg-black rounded-xl overflow-hidden border border-gray-800 aspect-video min-h-[480px] w-full">
       <video
         ref={videoRef}
         autoPlay
@@ -103,7 +115,7 @@ function RemoteTile({ stream, label, muted, userId, registerRef, onAutoplayBlock
         muted={muted}
         style={{ minHeight: '400px' }}
       />
-      <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">{label}</div>
+      {/* <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">{label}</div> */}
 
       {!hasVideo && stream && (
         <div className="absolute inset-0 flex items-center justify-center text-white bg-black/50">
@@ -125,6 +137,28 @@ function RemoteTile({ stream, label, muted, userId, registerRef, onAutoplayBlock
           </div>
         </button>
       )}
+
+      <div className="absolute bottom-3 left-2 flex items-center gap-2 bg-black/60 text-white rounded-full px-2 py-1 backdrop-blur-sm z-20 group">
+        <button
+          type="button"
+          onClick={onToggleMute}
+          className="p-1 rounded-full hover:bg-white/10 transition-colors"
+        >
+          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+        <div className="w-0 group-hover:w-24 overflow-hidden transition-all duration-200 ease-out flex items-center">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={muted ? 0 : Math.round(volume * 100)}
+            onChange={(event) => onVolumeChange(Number(event.target.value) / 100)}
+            className="w-24 h-1 accent-white bg-white/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none group-hover:pointer-events-auto"
+            style={{ margin: 0 }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -132,6 +166,7 @@ function RemoteTile({ stream, label, muted, userId, registerRef, onAutoplayBlock
 export function WebRTCViewer({ sessionId, displayName, reactions = [], iceServers }: WebRTCViewerProps) {
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
   const [isMuted, setIsMuted] = useState(true);
+  const [volume, setVolume] = useState(0.5);
   const [autoplayWarning, setAutoplayWarning] = useState(false);
   const remoteVideoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
@@ -190,66 +225,62 @@ export function WebRTCViewer({ sessionId, displayName, reactions = [], iceServer
   const registerVideoRef = useCallback((userId: string, element: HTMLVideoElement | null) => {
     if (element) {
       remoteVideoRefs.current[userId] = element;
+      element.volume = volume;
+      element.muted = isMuted || volume === 0;
     } else {
       delete remoteVideoRefs.current[userId];
     }
+  }, [volume, isMuted]);
+
+  const handleAutoplayBlocked = useCallback(() => {
+    setAutoplayWarning(true);
   }, []);
+
+  useEffect(() => {
+    Object.values(remoteVideoRefs.current).forEach((videoElement) => {
+      if (!videoElement) return;
+      videoElement.volume = volume;
+      videoElement.muted = isMuted || volume === 0;
+    });
+  }, [volume, isMuted]);
 
   const toggleMute = () => {
     const next = !isMuted;
     setIsMuted(next);
     setAutoplayWarning(false);
-
-    // Chỉ đổi mute, không gọi play() lại để tránh lỗi Autoplay
-    Object.values(remoteVideoRefs.current).forEach((videoElement) => {
-      if (!videoElement) return;
-      videoElement.muted = next;
-    });
   };
+
+  const handleVolumeChange = useCallback((nextVolume: number) => {
+    setVolume(nextVolume);
+    if (nextVolume > 0 && isMuted) {
+      setIsMuted(false);
+    }
+    if (nextVolume === 0 && !isMuted) {
+      setIsMuted(true);
+    }
+  }, [isMuted]);
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-600">
-            Bạn đang xem livestream qua WebRTC. Nếu video chưa phát, hãy nhấn vào video hoặc nút "Bật âm thanh".
-          </p>
-          {Object.keys(remoteStreams).length > 0 && (
-            <Button
-              type="button"
-              size="sm"
-              variant={isMuted ? 'secondary' : 'primary'}
-              onClick={toggleMute}
-              className="flex items-center gap-2 self-start"
-            >
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              {isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
-            </Button>
-          )}
-        </div>
-        {autoplayWarning && (
-          <p className="text-xs text-amber-600 mt-2">
-            Trình duyệt chặn autoplay có âm thanh. Vui lòng nhấn vào video hoặc nút "Bật âm thanh" sau khi tương tác.
-          </p>
-        )}
-      </div>
-
       {Object.keys(remoteStreams).length === 0 ? (
         <div className="bg-gray-900 text-white rounded-2xl h-96 flex items-center justify-center text-sm relative">
           Đang chờ host phát trực tiếp...
           <ReactionOverlay reactions={reactions} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col items-center gap-6 w-full">
           {Object.entries(remoteStreams).map(([userId, stream]) => (
-            <div key={userId} className="relative">
+            <div key={userId} className="relative w-full">
               <RemoteTile
                 stream={stream}
                 label={`Host ${userId.slice(0, 4)}`}
                 muted={isMuted}
+                volume={volume}
                 userId={userId}
                 registerRef={registerVideoRef}
-                onAutoplayBlocked={() => setAutoplayWarning(true)}
+                onAutoplayBlocked={handleAutoplayBlocked}
+                onToggleMute={toggleMute}
+                onVolumeChange={handleVolumeChange}
               />
               <ReactionOverlay reactions={reactions} />
             </div>
