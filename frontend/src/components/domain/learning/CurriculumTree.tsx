@@ -73,7 +73,8 @@ export function CurriculumTree({
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-200">
       {sections.map((section) => {
         const isExpanded = expandedSections.has(section.id);
-        const lessonCount = section.lessons.length;
+        const sectionLessons = section.lessons || [];
+        const lessonCount = sectionLessons.length;
 
         return (
           <div key={section.id}>
@@ -105,9 +106,9 @@ export function CurriculumTree({
             </button>
 
             {/* Lesson Items - Accordion Content */}
-            {isExpanded && (
+            {isExpanded && sectionLessons.length > 0 && (
               <div className="bg-gray-50/50 border-t border-gray-100">
-                {section.lessons.map((lesson) => {
+                {sectionLessons.map((lesson) => {
                   const isActive = lesson.id === activeLessonId;
 
                   return (
@@ -135,8 +136,8 @@ export function CurriculumTree({
                         {lesson.title}
                       </span>
 
-                      {/* Preview badge (optional) */}
-                      {lesson.is_preview && isPreviewMode && (
+                      {/* Preview badge (optional) - use is_free_preview from backend */}
+                      {lesson.is_free_preview && isPreviewMode && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
                           Xem trước
                         </span>

@@ -1,28 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Users, 
-  Clock, 
-  Award, 
+import {
+  BookOpen,
+  Users,
+  Clock,
+  Award,
   CheckCircle,
   PlayCircle,
   FileText,
   DollarSign,
   Share2
 } from 'lucide-react';
-import { useCourse, useEnrollCourse, useCourseProgress, useCourseQuizzes } from '@/hooks/useCoursesData';
+import { useCourse, useEnrollCourse, useCourseProgress } from '@/hooks/useCoursesData';
 import { useCourseContent } from '@/hooks/useLessonData';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import Modal, { ModalBody, ModalFooter } from '@/components/ui/Modal';
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
-import { CurriculumSidebar } from '@/components/domain/learning/CurriculumSidebar';
+import { CurriculumTree } from '@/components/domain/learning/CurriculumTree';
 import type { Section } from '@/services/api/lesson.api';
 import type { Course } from '@/services/api/course.api';
 import { MainLayout } from '@/layouts/MainLayout';
@@ -53,18 +52,20 @@ export function CourseDetailPage() {
 
   const { mutate: enrollCourse, isPending: isEnrolling } = useEnrollCourse();
 
-  // Fetch additional data
+  // Fetch additional data - chỉ khi user đã enrolled và authenticated
   const { data: progressData } = useCourseProgress(courseId, isUserEnrolled);
-  const { data: courseContent } = useCourseContent(courseId);
-  const { data: quizzesData } = useCourseQuizzes(courseId, true);
 
+  // useCourseContent đã tự động check authentication bên trong hook
+  // Không cần truyền điều kiện ở đây nữa
+  const { data: courseContent, isLoading: isContentLoading } = useCourseContent(courseId);
+
+  // Sử dụng sections từ courseContent (nếu authenticated) hoặc course.sections (public fallback)
   const curriculumSections = courseContent?.sections ?? course?.sections ?? [];
   const learningPath = courseId ? generateRoute.student.learning(courseId) : ROUTES.COURSES;
-  
+
   // Extract counts from API data
   const totalSections = courseContent?.sections?.length || 0;
   const totalLessons = courseContent?.total_lessons || 0;
-  const totalQuizzes = quizzesData?.length || 0;
   const completedLessons = courseContent?.completed_lessons || 0;
   const progressPercentage = progressData?.percent || courseContent?.progress_percentage || 0;
 
@@ -98,7 +99,7 @@ export function CourseDetailPage() {
       navigate(ROUTES.LOGIN, { state: { from: location.pathname } });
       return;
     }
-    
+
     // Enroll trực tiếp không cần modal
     enrollCourse(courseId, {
       onSuccess: () => {
@@ -211,7 +212,7 @@ export function CourseDetailPage() {
                 <Badge variant={course.difficulty === 'beginner' ? 'success' : 'warning'}>
                   {difficultyLabels[course.difficulty]}
                 </Badge>
-                
+
                 {course._count && (
                   <div className="flex items-center gap-2 text-blue-50">
                     <Users className="w-5 h-5" />
@@ -308,22 +309,20 @@ export function CourseDetailPage() {
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
-            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === 'overview'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'overview'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             Tổng quan
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('curriculum')}
-            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === 'curriculum'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'curriculum'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             Mục lục khóa học
           </button>
@@ -390,17 +389,57 @@ export function CourseDetailPage() {
                 </Card>
               </div>
             ) : (
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-                <CurriculumSidebar
+              // Curriculum tab - hiển thị nội dung hoặc thông báo
+              curriculumSections.length > 0 ? (
+                <CurriculumTree
                   sections={curriculumSections}
                   onLessonClick={handleLessonPreviewClick}
+                  isPreviewMode={true}
                 />
-                {curriculumSections.length === 0 && (
-                  <div className="p-6 text-center text-gray-500 text-sm border-t border-gray-100">
-                    Mục lục khóa học đang được cập nhật.
-                  </div>
-                )}
-              </div>
+              ) : isContentLoading ? (
+                <Card>
+                  <CardContent className="py-12">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <Spinner size="lg" />
+                      <p className="mt-4">Đang tải nội dung khóa học...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : !isAuthenticated ? (
+                <Card>
+                  <CardContent className="py-12">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <BookOpen className="w-12 h-12 mb-4 text-gray-400" />
+                      <p className="text-lg font-medium text-gray-700 mb-2">
+                        Đăng nhập để xem nội dung chi tiết
+                      </p>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Vui lòng đăng nhập để xem mục lục khóa học đầy đủ
+                      </p>
+                      <Button
+                        onClick={() => navigate(ROUTES.LOGIN, { state: { from: location.pathname } })}
+                        variant="primary"
+                      >
+                        Đăng nhập ngay
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-12">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <BookOpen className="w-12 h-12 mb-4 text-gray-400" />
+                      <p className="text-lg font-medium text-gray-700">
+                        Chưa có nội dung
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Khóa học đang được cập nhật nội dung
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
             )}
           </div>
 
@@ -487,15 +526,6 @@ export function CourseDetailPage() {
                       </div>
                     </li>
                   )}
-                  {totalQuizzes > 0 && (
-                    <li className="flex items-start gap-3 text-gray-700">
-                      <FileText className="w-5 h-5 text-blue-600 mt-1" />
-                      <div>
-                        <p className="font-semibold">{totalQuizzes} bài kiểm tra</p>
-                        <p className="text-sm text-gray-500">Đánh giá kiến thức định kỳ</p>
-                      </div>
-                    </li>
-                  )}
                   <li className="flex items-start gap-3 text-gray-700">
                     <PlayCircle className="w-5 h-5 text-blue-600 mt-1" />
                     <div>
@@ -579,5 +609,4 @@ export function CourseDetailPage() {
   );
 }
 
-export default CourseDetailPage; 
- 
+export default CourseDetailPage;
