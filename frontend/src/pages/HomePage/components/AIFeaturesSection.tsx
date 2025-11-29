@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ROUTES } from '@/constants/routes'
 import { 
   Bot, 
   Sparkles, 
@@ -110,14 +111,14 @@ export function AIFeaturesSection() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                to="/chat"
+                to={ROUTES.CHAT}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-indigo-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
               >
                 <Bot className="w-5 h-5" />
                 Thử AI Assistant
               </Link>
               <Link
-                to="/courses?featured=ai-recommended"
+                to={`${ROUTES.COURSES}?featured=ai-recommended`}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >
                 Xem gợi ý cho tôi

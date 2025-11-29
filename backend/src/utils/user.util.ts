@@ -37,7 +37,10 @@ type PublicUserFields = Pick<
   | 'address'
   | 'emergency_contact'
   | 'emergency_phone'
->;
+> & {
+  avatar_url?: string; // Alias for avatar for frontend compatibility
+  full_name?: string;  // Computed full name for frontend
+};
 
 /**
  * User utility functions
@@ -82,15 +85,20 @@ export const userUtils = {
       emergency_phone
     } = user;
 
+    // Compute full_name
+    const fullName = [first_name, last_name].filter(Boolean).join(' ').trim() || undefined;
+
     return {
       id,
       email,
       username,
       first_name,
       last_name,
+      full_name: fullName, // Computed field for frontend
       phone,
       bio,
       avatar,
+      avatar_url: avatar, // Alias for frontend compatibility
       role,
       status,
       email_verified,

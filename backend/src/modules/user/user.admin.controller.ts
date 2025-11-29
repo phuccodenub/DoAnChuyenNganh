@@ -274,4 +274,73 @@ export class UserAdminController {
       next(error);
     }
   }
+
+  /**
+   * Get admin dashboard statistics
+   */
+  async getDashboardStats(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const stats = await this.userService.getDashboardStats();
+      responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, stats);
+    } catch (error: unknown) {
+      logger.error('Error getting dashboard stats:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get recent activities
+   */
+  async getRecentActivities(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const activities = await this.userService.getRecentActivities(limit);
+      responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, activities);
+    } catch (error: unknown) {
+      logger.error('Error getting recent activities:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get user growth data
+   */
+  async getUserGrowth(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const data = await this.userService.getUserGrowth(days);
+      responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, data);
+    } catch (error: unknown) {
+      logger.error('Error getting user growth:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get enrollment trend data
+   */
+  async getEnrollmentTrend(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const data = await this.userService.getEnrollmentTrend(days);
+      responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, data);
+    } catch (error: unknown) {
+      logger.error('Error getting enrollment trend:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get top instructors
+   */
+  async getTopInstructors(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const data = await this.userService.getTopInstructors(limit);
+      responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.SUCCESS, data);
+    } catch (error: unknown) {
+      logger.error('Error getting top instructors:', error);
+      next(error);
+    }
+  }
 }

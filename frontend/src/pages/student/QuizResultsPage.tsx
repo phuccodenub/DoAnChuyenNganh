@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ROUTES, generateRoute } from '@/constants/routes';
 // Badge component - simplified inline
 import { useQuizAttempt } from '@/hooks/useQuizData';
 
@@ -232,11 +233,23 @@ export function QuizResultsPage() {
 
       {/* Actions */}
       <div className="flex justify-center gap-3">
-        <Button variant="outline" onClick={() => navigate('/student/dashboard')}>
+        <Button
+          variant="outline"
+          onClick={() => navigate(ROUTES.STUDENT.DASHBOARD)}
+        >
           Về Dashboard
         </Button>
         {quiz && (
-          <Button variant="outline" onClick={() => navigate(`/student/courses/${(quiz as any).course_id}`)}>
+          <Button
+            variant="outline"
+            onClick={() =>
+              navigate(
+                (quiz as any).course_id
+                  ? generateRoute.student.learning(String((quiz as any).course_id))
+                  : ROUTES.STUDENT.DASHBOARD
+              )
+            }
+          >
             Về khóa học
           </Button>
         )}

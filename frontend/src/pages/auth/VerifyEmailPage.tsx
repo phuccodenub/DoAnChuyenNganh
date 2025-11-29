@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ROUTES } from '@/constants/routes';
 import { Mail, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { httpClient } from '@/services/http/client';
 import { toast } from 'react-hot-toast';
@@ -28,7 +29,7 @@ export default function VerifyEmailPage() {
         
         // Redirect to login after 3 seconds
         setTimeout(() => {
-          navigate('/auth/login');
+          navigate(ROUTES.LOGIN);
         }, 3000);
       } catch (error: any) {
         setStatus('error');
@@ -68,7 +69,7 @@ export default function VerifyEmailPage() {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('verification_failed')}</h1>
               <p className="text-gray-600 mb-6">{message}</p>
               <button
-                onClick={() => navigate('/auth/login')}
+                onClick={() => navigate(ROUTES.LOGIN)}
                 className="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 {t('back_to_login')}

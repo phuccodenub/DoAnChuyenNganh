@@ -1,8 +1,9 @@
-import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/Button'
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/Button';
+import { ROUTES } from '@/constants/routes';
 
 function NotFoundPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -12,12 +13,12 @@ function NotFoundPage() {
         <p className="text-gray-600 mb-8">
           Trang bạn đang tìm kiếm không tồn tại hoặc đã được chuyển đi.
         </p>
-        <Button onClick={() => navigate('/')}>
+        <Button onClick={() => navigate(ROUTES.LANDING_PAGE)}>
           Về trang chủ
         </Button>
       </div>
     </div>
-  )
+  );
 }
 
-export default NotFoundPage
+export default NotFoundPage;

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link } from 'react-router-dom';
+import { ROUTES } from '@/constants/routes';
 import { useForgotPassword } from '@/hooks/auth/useForgotPassword';
 import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -95,7 +96,7 @@ export default function ForgotPasswordPage() {
 
             {/* Back to Login Button */}
             <Link
-              to="/login"
+              to={ROUTES.LOGIN}
               className="block w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-center"
             >
               Back to Login
@@ -113,7 +114,7 @@ export default function ForgotPasswordPage() {
           {/* Header */}
           <div className="mb-8">
             <Link
-              to="/login"
+              to={ROUTES.LOGIN}
               className="inline-flex items-center text-slate-600 hover:text-slate-900 mb-6 text-sm font-medium"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -195,7 +196,7 @@ export default function ForgotPasswordPage() {
           {/* Footer Links */}
           <div className="mt-6 text-center text-sm text-slate-600">
             Remember your password?{' '}
-            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to={ROUTES.LOGIN} className="text-blue-600 hover:text-blue-700 font-medium">
               Log in here
             </Link>
           </div>

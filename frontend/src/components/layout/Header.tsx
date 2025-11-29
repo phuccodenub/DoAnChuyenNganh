@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import useAuth from '@/hooks/useAuth'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { ROUTES } from '@/constants/routes'
+import { getDashboardByRole } from '@/utils/navigation'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -38,33 +39,16 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
   const handleLogout = async () => {
     await logout()
     setIsProfileOpen(false)
-    navigate('/home')
+    navigate(ROUTES.LANDING_PAGE)
   }
 
   const getDashboardRoute = () => {
     if (!user) return ROUTES.STUDENT.DASHBOARD
-    switch (user.role) {
-      case 'admin':
-      case 'super_admin':
-        return ROUTES.ADMIN.DASHBOARD
-      case 'instructor':
-        return ROUTES.INSTRUCTOR.DASHBOARD
-      default:
-        return ROUTES.STUDENT.DASHBOARD
-    }
+    return getDashboardByRole(user.role)
   }
 
   const getProfileRoute = () => {
-    if (!user) return ROUTES.STUDENT.PROFILE
-    switch (user.role) {
-      case 'admin':
-      case 'super_admin':
-        return ROUTES.ADMIN.DASHBOARD
-      case 'instructor':
-        return ROUTES.INSTRUCTOR.DASHBOARD
-      default:
-        return ROUTES.STUDENT.PROFILE
-    }
+    return ROUTES.PROFILE
   }
 
   const getInitials = (name?: string) => {

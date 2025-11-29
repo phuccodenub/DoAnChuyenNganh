@@ -81,6 +81,18 @@ router.get(
   (req: Request, res: Response, next: NextFunction) => authController.verifyToken(req, res, next)
 );
 
+// Get user profile
+router.get(
+  '/profile',
+  (req: Request, res: Response, next: NextFunction) => authController.getProfile(req, res, next)
+);
+
+// Update user profile
+router.put(
+  '/profile',
+  (req: Request, res: Response, next: NextFunction) => authController.updateProfile(req, res, next)
+);
+
 // Change password
 router.post(
   '/change-password',

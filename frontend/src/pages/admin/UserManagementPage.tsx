@@ -266,7 +266,6 @@ export default function UserManagementPage() {
               <option value="student">Học viên</option>
               <option value="instructor">Giảng viên</option>
               <option value="admin">Quản trị viên</option>
-              <option value="super_admin">Quản trị cấp cao</option>
             </select>
           </div>
 

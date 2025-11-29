@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ROUTES } from '@/constants/routes'
 import { 
   MessageSquare, 
   Zap, 
@@ -137,7 +138,7 @@ export function InteractiveLearningSection() {
             </div>
 
             <Link
-              to="/chat"
+              to={ROUTES.CHAT}
               className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm"
             >
               Thử chat ngay
@@ -191,7 +192,7 @@ export function InteractiveLearningSection() {
             </div>
 
             <Link
-              to="/quiz"
+              to={ROUTES.COURSES}
               className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium text-sm"
             >
               Tham gia quiz

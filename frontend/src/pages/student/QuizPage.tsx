@@ -134,7 +134,7 @@ export function QuizPage() {
 
     try {
       const result = await submitQuizMutation.mutateAsync(attemptId);
-      navigate(`/student/quizzes/${attemptId}/results`);
+      navigate(ROUTES.STUDENT.QUIZ_RESULTS.replace(':attemptId', attemptId));
     } catch (error) {
       console.error('Failed to submit quiz:', error);
       alert('Không thể nộp bài. Vui lòng thử lại.');
@@ -146,7 +146,7 @@ export function QuizPage() {
     try {
       await submitQuizMutation.mutateAsync(attemptId);
       alert('Hết giờ! Bài kiểm tra đã được nộp tự động.');
-      navigate(`/student/quizzes/${attemptId}/results`);
+      navigate(ROUTES.STUDENT.QUIZ_RESULTS.replace(':attemptId', attemptId));
     } catch (error) {
       console.error('Auto-submit failed:', error);
     }

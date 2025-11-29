@@ -6,10 +6,11 @@ import { RoleGuard } from './RoleGuard';
 import { ROUTES, generateRoute } from '@/constants/routes';
 
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
+const ForbiddenPage = lazy(() => import('@/pages/ForbiddenPage'));
 
 // Public course pages
 const HomePage = lazy(() => import('@/pages/HomePage/index'));
-const Home = lazy(() => import('@/pages/Home/index'));
 const CourseCatalogPage = lazy(() => import('@/pages/CourseCatalogPage'));
 const CourseDetailPage = lazy(() => import('@/pages/CourseDetailPage'));
 const LiveStreamLobbyPage = lazy(() => import('@/pages/livestream/lobby/LobbyPage'));
@@ -23,8 +24,8 @@ const LearningPage = lazy(() => import('@/pages/student/LearningPage'));
 const QuizPage = lazy(() => import('@/pages/student/QuizPage'));
 const QuizResultsPage = lazy(() => import('@/pages/student/QuizResultsPage'));
 const AssignmentPage = lazy(() => import('@/pages/student/AssignmentPage'));
-const ProfilePage = lazy(() => import('@/pages/student/ProfilePage'));
-const SettingsPage = lazy(() => import('@/pages/student/SettingsPage'));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 
 // Instructor pages
 const InstructorDashboardLayout = lazy(() => import('@/layouts/InstructorDashboardLayout'));
@@ -51,6 +52,8 @@ const ReportsPage = lazy(() => import('@/pages/admin/ReportsPage'));
 const ActivityLogsPage = lazy(() => import('@/pages/admin/ActivityLogsPage'));
 
 // Auth pages (Batch 9)
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const VerifyEmailPage = lazy(() => import('@/pages/auth/VerifyEmailPage'));
 const TwoFactorSetupPage = lazy(() => import('@/pages/auth/TwoFactorSetupPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
@@ -79,19 +82,18 @@ function AppRoutes() {
       <Routes>
         {/* Public routes - temporarily removed auth until implemented */}
         <Route path={ROUTES.LANDING_PAGE} element={<HomePage />} />
-        <Route path={ROUTES.HOME} element={<Home />} />
+        {/* NOTE: /home route removed - using / as single entry point for unauthenticated users */}
         <Route path={ROUTES.COURSES} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSE_DETAIL} element={<CourseDetailPage />} />
 
         {/* Auth routes - Public (no authentication required) */}
+        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
         <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
         <Route path={ROUTES.TWO_FACTOR} element={<TwoFactorSetupPage />} />
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
         
-        {/* Temporary Public Learning Route - ONLY FOR TESTING UI */}
-        <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
-
         {/* Protected routes - Cần authentication */}
         <Route element={<ProtectedRoute />}>
           {/* Shared livestream hub */}
@@ -99,17 +101,21 @@ function AppRoutes() {
           <Route path={ROUTES.LIVESTREAM.SESSION} element={<LiveStreamSessionPage />} />
           <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_SESSION} element={<InstructorLivestreamRedirect />} />
 
+          {/* Universal profile route for all authenticated users */}
+          <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+
           {/* Student routes */}
           <Route element={<RoleGuard allowedRoles={['student']} />}>
+            <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
             <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
             <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentMyCoursesPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENTS} element={<StudentAssignmentsPage />} />
             <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
             <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
-            <Route path={ROUTES.STUDENT.PROFILE} element={<ProfilePage />} />
             <Route path={ROUTES.STUDENT.SETTINGS} element={<SettingsPage />} />
             <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
+            {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
           </Route>
           
           {/* Instructor & Admin routes (admin cũng có thể host livestream) */}
@@ -125,7 +131,7 @@ function AppRoutes() {
               <Route path={ROUTES.INSTRUCTOR.ASSIGNMENT_CREATE} element={<AssignmentBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.ASSIGNMENT_EDIT} element={<AssignmentBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.GRADES} element={<GradingPage />} />
-              <Route path="/instructor/students" element={<StudentManagementPage />} />
+              <Route path={ROUTES.INSTRUCTOR.STUDENTS} element={<StudentManagementPage />} />
               <Route path={ROUTES.INSTRUCTOR.LIVESTREAM} element={<LiveStreamManagementPage />} />
               <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_HOST} element={<LiveStreamHostPage />} />
             </Route>
@@ -146,6 +152,10 @@ function AppRoutes() {
             </Route>
           </Route>
         </Route>
+
+        {/* Error pages */}
+        <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
+        <Route path={ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
 
         {/* 404 Not Found */}
         <Route path={ROUTES.NOT_FOUND} element={<NotFoundPage />} />

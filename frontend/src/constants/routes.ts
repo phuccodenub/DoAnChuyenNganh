@@ -6,8 +6,7 @@
 
 export const ROUTES = {
   // Public routes
-  HOME: '/',
-  LANDING_PAGE: '/home',
+  LANDING_PAGE: '/',  // Main landing page - removed /home route
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
@@ -29,7 +28,6 @@ export const ROUTES = {
     QUIZ_RESULTS: '/student/quizzes/:attemptId/results',
     ASSIGNMENTS: '/student/assignments',
     ASSIGNMENT: '/student/courses/:courseId/assignments/:assignmentId',
-    PROFILE: '/student/profile',
     SETTINGS: '/student/settings',
     NOTIFICATIONS: '/student/notifications',
   },
@@ -49,6 +47,7 @@ export const ROUTES = {
     ASSIGNMENT_EDIT: '/instructor/assignments/:assignmentId/edit',
     SUBMISSIONS: '/instructor/assignments/:assignmentId/submissions',
     GRADES: '/instructor/courses/:courseId/grades',
+    STUDENTS: '/instructor/students',
     ANALYTICS: '/instructor/analytics',
     LIVESTREAM: '/instructor/livestream',
     LIVESTREAM_CREATE: '/instructor/livestream/create',
@@ -75,6 +74,15 @@ export const ROUTES = {
     HUB: '/livestream',
     SESSION: '/livestream/:sessionId',
   },
+
+  // Shared user routes (for all authenticated users)
+  PROFILE: '/profile',
+
+  // Future feature routes (for marketing pages)
+  ABOUT: '/about',
+  CERTIFICATES: '/certificates',
+  CERTIFICATES_VERIFY: '/certificates/verify',
+  CHAT: '/chat',  // AI Chat feature
 
   // Common routes
   NOT_FOUND: '/404',

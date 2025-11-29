@@ -1,6 +1,7 @@
 import { httpClient } from './client';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore.enhanced';
+import { ROUTES } from '@/constants/routes';
 
 /**
  * Axios Interceptors
@@ -44,7 +45,9 @@ const isPublicEndpoint = (url?: string, method?: string): boolean => {
   if (url.includes('/courses') && 
       method === 'get' &&
       !url.includes('/courses/enrolled') && 
-      !url.includes('/courses/instructor')) {
+      !url.includes('/courses/instructor') &&
+      // Quan trọng: không treat các endpoint admin như public
+      !url.includes('/admin/courses')) {
     return true;
   }
   
@@ -200,7 +203,7 @@ const handleLogout = () => {
   useAuthStore.getState().clearAuth();
   
   // Redirect to login page
-  window.location.href = '/login';
+  window.location.href = ROUTES.LOGIN;
   
   toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại');
 };

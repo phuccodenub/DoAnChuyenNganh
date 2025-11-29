@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ROUTES } from '@/constants/routes'
 import { 
   Shield, 
   CheckCircle2, 
@@ -131,7 +132,7 @@ export function BlockchainCertificatesSection() {
               ))}
             </div>
             <Link
-              to="/certificates"
+              to={ROUTES.CERTIFICATES}
               className="mt-6 inline-flex items-center gap-2 text-indigo-300 hover:text-indigo-200 text-sm font-medium"
             >
               Xem tất cả chứng chỉ
@@ -152,14 +153,14 @@ export function BlockchainCertificatesSection() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                to="/courses"
+                to={ROUTES.COURSES}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-indigo-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Khám phá khóa học
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
-                to="/certificates/verify"
+                to={ROUTES.CERTIFICATES_VERIFY}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >
                 Xác minh chứng chỉ

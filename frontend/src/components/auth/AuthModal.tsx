@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { X, Mail, Check, Lock, User, Eye, EyeOff } from 'lucide-react'
+import { ROUTES } from '@/constants/routes'
 import { useAuthStore } from '@/stores/authStore.enhanced'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { Button } from '@/components/ui/Button'
@@ -62,7 +63,7 @@ export function AuthModal() {
       closeModal()
       // Small delay to allow modal to close smoothly
       setTimeout(() => {
-        navigate('/', { replace: true })
+        navigate(ROUTES.LANDING_PAGE, { replace: true })
       }, 200)
     }
   }, [isAuthenticated, isOpen, closeModal, navigate])

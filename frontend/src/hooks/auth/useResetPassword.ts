@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/constants/routes';
 import { authApi } from '@/services/api/auth.api';
 
 interface ResetPasswordData {
@@ -30,7 +31,7 @@ export function useResetPassword(): UseResetPasswordResult {
     onSuccess: () => {
       // Redirect to login after successful reset
       setTimeout(() => {
-        navigate('/login', { replace: true });
+        navigate(ROUTES.LOGIN, { replace: true });
       }, 2000);
     },
     onError: (error: Error) => {

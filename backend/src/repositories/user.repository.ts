@@ -416,6 +416,82 @@ export class UserRepository extends BaseRepository<UserInstance> {
       throw error;
     }
   }
+
+  /**
+   * Count users with optional filters
+   */
+  async countUsers(filters?: any): Promise<number> {
+    try {
+      const whereClause = filters || {};
+      const count = await (User as any).count({ where: whereClause });
+      return count;
+    } catch (error: unknown) {
+      logger.error('Error counting users:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get recent users
+   */
+  async getRecentUsers(limit: number = 10): Promise<UserInstance[]> {
+    try {
+      const users = await (User as any).findAll({
+        limit,
+        order: [['updated_at', 'DESC']],
+        attributes: ['id', 'first_name', 'last_name', 'email', 'role', 'updated_at']
+      });
+      return users;
+    } catch (error: unknown) {
+      logger.error('Error getting recent users:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get top instructors by enrollment count
+   */
+  async getTopInstructors(limit: number = 5): Promise<any[]> {
+    try {
+      const { Sequelize } = await import('sequelize');
+      const sequelize = new Sequelize();
+      
+      const result = await (User as any).findAll({
+        where: { role: 'instructor' },
+        attributes: [
+          'id',
+          'first_name',
+          'last_name',
+          'email',
+          [Sequelize.fn('COUNT', Sequelize.col('instructor_courses.id')), 'course_count']
+        ],
+        include: [
+          {
+            model: require('../models').default.Course || require('../models/course.model').default,
+            as: 'instructor_courses',
+            attributes: [],
+            required: false
+          }
+        ],
+        group: ['User.id'],
+        subQuery: false,
+        order: [[Sequelize.fn('COUNT', Sequelize.col('instructor_courses.id')), 'DESC']],
+        limit,
+        raw: true
+      });
+      
+      return result.map((instructor: any) => ({
+        id: instructor.id,
+        name: `${instructor.first_name} ${instructor.last_name}`,
+        email: instructor.email,
+        course_count: parseInt(instructor.course_count) || 0
+      }));
+    } catch (error: unknown) {
+      logger.error('Error getting top instructors:', error);
+      // Return empty array with default instructors
+      return [];
+    }
+  }
 }
 
 // Export singleton instance and alias methods for backward compatibility
@@ -429,5 +505,8 @@ export const deleteUser = (id: string) => userRepository.delete(id);
 export const findAllUsers = (options: ({ page?: number; limit?: number } & FindOptions)) => userRepository.paginate(options.page ?? 1, options.limit ?? 10, options);
 export const findUsersByRole = (role: string, options?: FindOptions) => userRepository.findByRole(role, options);
 export const getUserStatistics = () => userRepository.getUserStats();
+export const countUsers = (filters?: any) => userRepository.countUsers(filters);
+export const getRecentUsers = (limit?: number) => userRepository.getRecentUsers(limit);
+export const getTopInstructors = (limit?: number) => userRepository.getTopInstructors(limit);
 
 export default userRepository;

@@ -134,6 +134,37 @@ export function useUserStats(userId: string, enabled: boolean = true) {
 // ============================================================================
 
 /**
+ * Extract detailed error message from API response
+ */
+function extractErrorMessage(error: any, defaultMessage: string): string {
+  const response = error?.response?.data;
+  
+  // Check for validation errors array
+  if (response?.errors && Array.isArray(response.errors) && response.errors.length > 0) {
+    // Get the first error message
+    const firstError = response.errors[0];
+    if (typeof firstError === 'string') {
+      return firstError;
+    }
+    if (firstError?.message) {
+      return firstError.message;
+    }
+  }
+  
+  // Check for message
+  if (response?.message && response.message !== 'Validation failed') {
+    return response.message;
+  }
+  
+  // Check for error string
+  if (response?.error) {
+    return response.error;
+  }
+  
+  return defaultMessage;
+}
+
+/**
  * Create new user
  */
 export function useCreateUser() {
@@ -146,8 +177,8 @@ export function useCreateUser() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.all });
       toast.success('Tạo người dùng thành công');
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      const message = error?.response?.data?.message || 'Tạo người dùng thất bại';
+    onError: (error: any) => {
+      const message = extractErrorMessage(error, 'Tạo người dùng thất bại');
       toast.error(message);
     },
   });
@@ -169,8 +200,8 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({ queryKey: [...adminQueryKeys.all, 'users'] });
       toast.success('Cập nhật người dùng thành công');
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      const message = error?.response?.data?.message || 'Cập nhật người dùng thất bại';
+    onError: (error: any) => {
+      const message = extractErrorMessage(error, 'Cập nhật người dùng thất bại');
       toast.error(message);
     },
   });
@@ -189,8 +220,8 @@ export function useDeleteUser() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.all });
       toast.success('Xóa người dùng thành công');
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      const message = error?.response?.data?.message || 'Xóa người dùng thất bại';
+    onError: (error: any) => {
+      const message = extractErrorMessage(error, 'Xóa người dùng thất bại');
       toast.error(message);
     },
   });
@@ -228,7 +259,7 @@ export function useChangeUserRole() {
       queryClient.invalidateQueries({ queryKey: [...adminQueryKeys.all, 'users'] });
       toast.success('Thay đổi vai trò thành công');
     },
-    onError: (error: { response?: { data?: { message?: string } } }, _variables, context) => {
+    onError: (error: any, _variables, context) => {
       // Rollback on error
       if (context?.previousUser) {
         queryClient.setQueryData(
@@ -236,7 +267,7 @@ export function useChangeUserRole() {
           context.previousUser
         );
       }
-      const message = error?.response?.data?.message || 'Thay đổi vai trò thất bại';
+      const message = extractErrorMessage(error, 'Thay đổi vai trò thất bại');
       toast.error(message);
     },
   });
@@ -275,7 +306,7 @@ export function useChangeUserStatus() {
       queryClient.invalidateQueries({ queryKey: [...adminQueryKeys.all, 'users'] });
       toast.success('Thay đổi trạng thái thành công');
     },
-    onError: (error: { response?: { data?: { message?: string } } }, _variables, context) => {
+    onError: (error: any, _variables, context) => {
       // Rollback on error
       if (context?.previousUser) {
         queryClient.setQueryData(
@@ -283,7 +314,7 @@ export function useChangeUserStatus() {
           context.previousUser
         );
       }
-      const message = error?.response?.data?.message || 'Thay đổi trạng thái thất bại';
+      const message = extractErrorMessage(error, 'Thay đổi trạng thái thất bại');
       toast.error(message);
     },
   });
@@ -298,8 +329,8 @@ export function useResetUserPassword() {
     onSuccess: (response) => {
       toast.success(response.message || 'Đã gửi email đặt lại mật khẩu');
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      const message = error?.response?.data?.message || 'Gửi email đặt lại mật khẩu thất bại';
+    onError: (error: any) => {
+      const message = extractErrorMessage(error, 'Gửi email đặt lại mật khẩu thất bại');
       toast.error(message);
     },
   });
@@ -320,8 +351,8 @@ export function useSendUserNotification() {
     onSuccess: (response) => {
       toast.success(response.message || 'Gửi thông báo thành công');
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      const message = error?.response?.data?.message || 'Gửi thông báo thất bại';
+    onError: (error: any) => {
+      const message = extractErrorMessage(error, 'Gửi thông báo thất bại');
       toast.error(message);
     },
   });
@@ -340,8 +371,8 @@ export function useBulkAction() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.all });
       toast.success(response.message || `Đã thực hiện trên ${response.affected} người dùng`);
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      const message = error?.response?.data?.message || 'Thao tác hàng loạt thất bại';
+    onError: (error: any) => {
+      const message = extractErrorMessage(error, 'Thao tác hàng loạt thất bại');
       toast.error(message);
     },
   });
@@ -365,8 +396,8 @@ export function useExportUsers() {
       window.URL.revokeObjectURL(url);
       toast.success('Xuất dữ liệu thành công');
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      const message = error?.response?.data?.message || 'Xuất dữ liệu thất bại';
+    onError: (error: any) => {
+      const message = extractErrorMessage(error, 'Xuất dữ liệu thất bại');
       toast.error(message);
     },
   });

@@ -187,7 +187,7 @@ export function CourseDetailPage() {
             <div className="lg:col-span-2">
               {/* Breadcrumb */}
               <div className="flex items-center gap-2 text-sm text-blue-100 mb-4">
-                <Link to={ROUTES.HOME} className="hover:text-white">
+                <Link to={ROUTES.LANDING_PAGE} className="hover:text-white">
                   Trang chủ
                 </Link>
                 <span>/</span>
@@ -259,12 +259,16 @@ export function CourseDetailPage() {
                         src={course.thumbnail_url}
                         alt={course.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="w-16 h-16 text-gray-400" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div className={`w-full h-full flex items-center justify-center ${course.thumbnail_url ? 'hidden' : ''}`}>
+                      <BookOpen className="w-16 h-16 text-gray-400" />
+                    </div>
                   </div>
 
                   {/* Price */}

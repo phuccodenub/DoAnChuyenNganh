@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { ROUTES } from '@/constants/routes';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useResetPassword } from '@/hooks/auth/useResetPassword';
@@ -128,7 +129,7 @@ export default function ResetPasswordPage() {
 
             {/* Action Button */}
             <Link
-              to="/forgot-password"
+              to={ROUTES.FORGOT_PASSWORD}
               className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-center"
             >
               Request New Reset Link
@@ -136,7 +137,7 @@ export default function ResetPasswordPage() {
 
             {/* Back to Login */}
             <Link
-              to="/login"
+              to={ROUTES.LOGIN}
               className="block w-full mt-3 bg-slate-200 hover:bg-slate-300 text-slate-900 font-medium py-2.5 px-4 rounded-lg transition-colors text-center"
             >
               Back to Login
@@ -297,7 +298,7 @@ export default function ResetPasswordPage() {
 
           {/* Footer Links */}
           <div className="mt-6 text-center text-sm text-slate-600">
-            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to={ROUTES.LOGIN} className="text-blue-600 hover:text-blue-700 font-medium">
               Back to Login
             </Link>
           </div>

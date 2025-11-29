@@ -172,7 +172,6 @@ export default function UserFormModal({ isOpen, onClose, user }: UserFormModalPr
             <option value="student">Học viên</option>
             <option value="instructor">Giảng viên</option>
             <option value="admin">Quản trị viên</option>
-            <option value="super_admin">Quản trị cấp cao</option>
           </select>
           {errors.role && (
             <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
