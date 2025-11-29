@@ -1,16 +1,53 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { lessonApi, CourseContent, LessonDetail, LessonProgress, UpdateProgressPayload } from '@/services/api/lesson.api';
 import { QUERY_KEYS } from '@/constants/queryKeys';
+import { useAuthStore } from '@/stores/authStore.enhanced';
 
 /**
  * Hook to fetch course content (sections and lessons)
+ * Yêu cầu authentication - chỉ gọi khi user đã đăng nhập
  */
-export function useCourseContent(courseId: string) {
+export function useCourseContent(courseId: string, options?: { enabled?: boolean }) {
+  // Lấy trạng thái auth từ store
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const tokens = useAuthStore((state) => state.tokens);
+  
+  // Chỉ enabled khi:
+  // 1. courseId có giá trị
+  // 2. Auth đã initialized
+  // 3. User đã authenticated
+  // 4. Có token
+  // 5. options.enabled !== false
+  const shouldFetch = !!courseId && 
+                      isInitialized && 
+                      isAuthenticated && 
+                      !!tokens?.accessToken &&
+                      options?.enabled !== false;
+
+  // Debug log (có thể bỏ sau khi fix xong)
+  if (process.env.NODE_ENV === 'development' && courseId) {
+    console.log('[useCourseContent] Auth state:', {
+      courseId,
+      isInitialized,
+      isAuthenticated,
+      hasToken: !!tokens?.accessToken,
+      shouldFetch
+    });
+  }
+
   return useQuery({
     queryKey: QUERY_KEYS.lessons.content(courseId),
     queryFn: () => lessonApi.getCourseContent(courseId),
     staleTime: 2 * 60 * 1000, // 2 minutes
-    enabled: !!courseId,
+    enabled: shouldFetch,
+    retry: (failureCount, error: any) => {
+      // Không retry nếu là lỗi 401 (Unauthorized)
+      if (error?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 }
 

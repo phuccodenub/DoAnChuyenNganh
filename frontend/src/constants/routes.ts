@@ -17,7 +17,7 @@ export const ROUTES = {
   // Course catalog (public)
   COURSES: '/courses',
   COURSE_DETAIL: '/courses/:id',
-  
+  LEARNING: '/student/courses/:courseId/learn',
   // Student routes
   STUDENT: {
     DASHBOARD: '/student/dashboard',
@@ -37,6 +37,7 @@ export const ROUTES = {
     DASHBOARD: '/instructor/dashboard',
     MY_COURSES: '/instructor/my-courses',
     COURSE_CREATE: '/instructor/courses/create',
+    COURSE_DETAIL: '/instructor/courses/:courseId',
     COURSE_EDIT: '/instructor/courses/:courseId/edit',
     CURRICULUM: '/instructor/courses/:courseId/curriculum',
     COURSE_STUDENTS: '/instructor/courses/:courseId/students',
@@ -107,6 +108,7 @@ export const generateRoute = {
   },
   
   instructor: {
+    courseDetail: (courseId: string) => `/instructor/courses/${courseId}`,
     courseEdit: (courseId: string) => `/instructor/courses/${courseId}/edit`,
     courseStudents: (courseId: string) => `/instructor/courses/${courseId}/students`,
     quizCreate: (courseId: string) => `/instructor/courses/${courseId}/quizzes/create`,

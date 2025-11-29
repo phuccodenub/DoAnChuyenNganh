@@ -41,7 +41,13 @@ const isPublicEndpoint = (url?: string, method?: string): boolean => {
     return true;
   }
   
+  // /course-content/* KHÔNG phải public - cần authentication
+  if (url.includes('/course-content')) {
+    return false;
+  }
+  
   // Public course endpoints (GET /courses, GET /courses/:id)
+  // Nhưng KHÔNG bao gồm /courses/enrolled, /courses/instructor
   if (url.includes('/courses') && 
       method === 'get' &&
       !url.includes('/courses/enrolled') && 

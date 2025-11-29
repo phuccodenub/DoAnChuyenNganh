@@ -190,16 +190,24 @@ export const courseApi = {
 
   /**
    * Lấy tiến độ học tập trong khóa học
+   * Note: Progress is now in course-content module
+   * Use lessonApi.getCourseProgress instead
+   * @deprecated Use lessonApi.getCourseProgress() from lesson.api.ts
    */
   getProgress: (courseId: string) => {
-    return httpClient.get<CourseProgressResponse>(`/courses/${courseId}/progress`);
+    // Redirect to course-content endpoint
+    return httpClient.get<CourseProgressResponse>(`/course-content/courses/${courseId}/progress`);
   },
 
   /**
    * Lấy danh sách sections của khóa học
+   * Note: Sections are now in course-content module
+   * Use lessonApi.getCourseSections instead
+   * @deprecated Use lessonApi.getCourseSections() from lesson.api.ts
    */
   getSections: (courseId: string) => {
-    return httpClient.get<SectionsResponse>(`/courses/${courseId}/sections`);
+    // Redirect to course-content endpoint
+    return httpClient.get<SectionsResponse>(`/course-content/courses/${courseId}/sections`);
   },
 
   /**
