@@ -14,7 +14,7 @@ export function StudioPanel({ ingestType, sessionId, sessionTitle, iceServers }:
 
   return (
     <WebRTCLiveStudio
-      sessionId={sessionId}
+      sessionId={String(sessionId)}
       displayName={sessionTitle}
       iceServers={iceServers}
     />

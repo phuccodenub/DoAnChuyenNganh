@@ -56,7 +56,7 @@ const studentMenuItems: SidebarMenuItem[] = [
     id: 'profile',
     label: 'Hồ sơ',
     icon: 'profile',
-    link: ROUTES.STUDENT.PROFILE,
+    link: ROUTES.PROFILE,
   },
   {
     id: 'settings',

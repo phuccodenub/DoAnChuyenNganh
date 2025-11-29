@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { livestreamApi } from '@/services/api/livestream.api';
-import type { RTCIceServer } from 'webrtc';
 
 /**
  * Hook to fetch and merge ICE servers from Twilio NTS and session config

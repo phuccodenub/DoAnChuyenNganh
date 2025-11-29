@@ -722,7 +722,7 @@ export function ViewerSection({
   if (mode === 'webrtc') {
     return (
       <WebRTCViewer
-        sessionId={sessionId}
+        sessionId={String(sessionId)}
         displayName={sessionTitle}
         reactions={reactions}
         iceServers={iceServers}
