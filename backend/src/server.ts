@@ -28,6 +28,9 @@ import { ChatGateway } from './modules/chat/chat.gateway';
 import { WebRTCGateway } from './modules/webrtc/webrtc.gateway';
 import { LiveStreamGateway } from './modules/livestream/livestream.gateway';
 
+// Import AI Service to check status on startup
+import { AIService } from './modules/ai/ai.service';
+
 const PORT = process.env.PORT || 3000;
 
 async function startServer() {
@@ -69,6 +72,18 @@ async function startServer() {
     // Export gateway instance for use in controllers/services
     (global as any).livestreamGateway = livestreamGateway;
     logger.info('Socket.IO gateways initialized');
+    
+    // Initialize and check AI Service status
+    logger.info('Initializing AI Service...');
+    const aiService = new AIService();
+    if (aiService.isAvailable()) {
+      logger.info('✅ AI Service: Available (Gemini API connected)');
+      logger.info(`   Model: ${process.env.GEMINI_MODEL || 'gemini-1.5-flash'}`);
+    } else {
+      logger.warn('⚠️  AI Service: Not available (GEMINI_API_KEY not configured)');
+      logger.warn('   To enable AI features, add GEMINI_API_KEY to your .env file');
+      logger.warn('   Get your API key at: https://aistudio.google.com/');
+    }
     
     // Start HTTP server (this will also start Socket.IO)
     httpServer.listen(PORT, () => {
