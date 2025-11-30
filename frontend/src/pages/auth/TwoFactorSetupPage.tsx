@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ROUTES } from '@/constants/routes';
 import { Shield, Copy, Check, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -44,7 +45,7 @@ export default function TwoFactorSetupPage() {
       setStep('success');
       toast.success(t('two_factor_enabled_successfully'));
       setTimeout(() => {
-        navigate('/');
+        navigate(ROUTES.LANDING_PAGE);
       }, 3000);
     },
     onError: (error: any) => {
@@ -250,7 +251,7 @@ export default function TwoFactorSetupPage() {
 
               {/* Done Button */}
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate(ROUTES.LANDING_PAGE)}
                 className="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 {t('done')}

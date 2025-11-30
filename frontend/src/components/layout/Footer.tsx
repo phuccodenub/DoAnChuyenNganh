@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ROUTES } from '@/constants/routes'
 import { Facebook, Linkedin, Twitter } from 'lucide-react'
 
 export function Footer() {
@@ -22,37 +23,37 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-semibold text-white">Technical Skills</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
-                <Link to="/courses?category=ai-ml" className="hover:text-white transition-colors">ChatGPT</Link>
+                <Link to={`${ROUTES.COURSES}?category=ai-ml`} className="hover:text-white transition-colors">ChatGPT</Link>
               </li>
               <li>
-                <Link to="/courses?category=web-dev" className="hover:text-white transition-colors">Coding</Link>
+                <Link to={`${ROUTES.COURSES}?category=web-dev`} className="hover:text-white transition-colors">Coding</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors inline-flex items-center gap-1">
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors inline-flex items-center gap-1">
                   Computer
                   <span className="rounded bg-slate-700 px-1.5 py-0.5 text-xs text-slate-300">New</span>
                 </Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">Cybersecurity</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Cybersecurity</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">Ethical Hacking</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Ethical Hacking</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">Python</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Python</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">Java Programming</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Java Programming</Link>
               </li>
               <li>
-                <Link to="/courses?category=web-dev" className="hover:text-white transition-colors">Web Development</Link>
+                <Link to={`${ROUTES.COURSES}?category=web-dev`} className="hover:text-white transition-colors">Web Development</Link>
               </li>
               <li>
-                <Link to="/courses?category=design" className="hover:text-white transition-colors">Product Design</Link>
+                <Link to={`${ROUTES.COURSES}?category=design`} className="hover:text-white transition-colors">Product Design</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">IT Specialist</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">IT Specialist</Link>
               </li>
             </ul>
           </div>
@@ -62,28 +63,28 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-semibold text-white">Analytical Skills</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
-                <Link to="/courses?category=ai-ml" className="hover:text-white transition-colors">AI</Link>
+                <Link to={`${ROUTES.COURSES}?category=ai-ml`} className="hover:text-white transition-colors">AI</Link>
               </li>
               <li>
-                <Link to="/courses?category=data-science" className="hover:text-white transition-colors">Big Data</Link>
+                <Link to={`${ROUTES.COURSES}?category=data-science`} className="hover:text-white transition-colors">Big Data</Link>
               </li>
               <li>
-                <Link to="/courses?category=business" className="hover:text-white transition-colors">Business Analysis</Link>
+                <Link to={`${ROUTES.COURSES}?category=business`} className="hover:text-white transition-colors">Business Analysis</Link>
               </li>
               <li>
-                <Link to="/courses?category=data-science" className="hover:text-white transition-colors">Data Science</Link>
+                <Link to={`${ROUTES.COURSES}?category=data-science`} className="hover:text-white transition-colors">Data Science</Link>
               </li>
               <li>
-                <Link to="/courses?category=ai-ml" className="hover:text-white transition-colors">Machine Learning</Link>
+                <Link to={`${ROUTES.COURSES}?category=ai-ml`} className="hover:text-white transition-colors">Machine Learning</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">Microsoft Excel</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Microsoft Excel</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">SQL</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">SQL</Link>
               </li>
               <li>
-                <Link to="/courses?category=marketing" className="hover:text-white transition-colors">SEO</Link>
+                <Link to={`${ROUTES.COURSES}?category=marketing`} className="hover:text-white transition-colors">SEO</Link>
               </li>
             </ul>
           </div>
@@ -93,31 +94,31 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-semibold text-white">Business Skills</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">Accounting</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Accounting</Link>
               </li>
               <li>
-                <Link to="/courses?category=marketing" className="hover:text-white transition-colors">Digital Marketing</Link>
+                <Link to={`${ROUTES.COURSES}?category=marketing`} className="hover:text-white transition-colors">Digital Marketing</Link>
               </li>
               <li>
-                <Link to="/courses?category=business" className="hover:text-white transition-colors">E-Commerce</Link>
+                <Link to={`${ROUTES.COURSES}?category=business`} className="hover:text-white transition-colors">E-Commerce</Link>
               </li>
               <li>
-                <Link to="/courses?category=business" className="hover:text-white transition-colors">Finance</Link>
+                <Link to={`${ROUTES.COURSES}?category=business`} className="hover:text-white transition-colors">Finance</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">Google</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Google</Link>
               </li>
               <li>
-                <Link to="/courses?category=design" className="hover:text-white transition-colors">Graphic Design</Link>
+                <Link to={`${ROUTES.COURSES}?category=design`} className="hover:text-white transition-colors">Graphic Design</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">IBM</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">IBM</Link>
               </li>
               <li>
-                <Link to="/courses?category=business" className="hover:text-white transition-colors">Project Management</Link>
+                <Link to={`${ROUTES.COURSES}?category=business`} className="hover:text-white transition-colors">Project Management</Link>
               </li>
               <li>
-                <Link to="/courses?category=marketing" className="hover:text-white transition-colors">Media Marketing</Link>
+                <Link to={`${ROUTES.COURSES}?category=marketing`} className="hover:text-white transition-colors">Media Marketing</Link>
               </li>
             </ul>
           </div>
@@ -152,19 +153,19 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-semibold text-white">GekLearn</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
-                <Link to="/about" className="hover:text-white transition-colors">About</Link>
+                <Link to={ROUTES.ABOUT} className="hover:text-white transition-colors">About</Link>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">What We Offer</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">What We Offer</Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-white transition-colors">Leadership</Link>
+                <Link to={ROUTES.ABOUT} className="hover:text-white transition-colors">Leadership</Link>
               </li>
               <li>
                 <a href="#" className="hover:text-white transition-colors">Careers</a>
               </li>
               <li>
-                <Link to="/courses" className="hover:text-white transition-colors">Catalog</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Catalog</Link>
               </li>
               <li>
                 <a href="#" className="hover:text-white transition-colors">GekLearn Plus</a>

@@ -6,8 +6,7 @@
 
 export const ROUTES = {
   // Public routes
-  HOME: '/',
-  LANDING_PAGE: '/home',
+  LANDING_PAGE: '/',  // Main landing page - removed /home route
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
@@ -18,7 +17,7 @@ export const ROUTES = {
   // Course catalog (public)
   COURSES: '/courses',
   COURSE_DETAIL: '/courses/:id',
-  
+  LEARNING: '/student/courses/:courseId/learn',
   // Student routes
   STUDENT: {
     DASHBOARD: '/student/dashboard',
@@ -29,9 +28,9 @@ export const ROUTES = {
     QUIZ_RESULTS: '/student/quizzes/:attemptId/results',
     ASSIGNMENTS: '/student/assignments',
     ASSIGNMENT: '/student/courses/:courseId/assignments/:assignmentId',
-    PROFILE: '/student/profile',
     SETTINGS: '/student/settings',
     NOTIFICATIONS: '/student/notifications',
+    CHAT: '/student/chat',
   },
   
   // Instructor routes
@@ -39,6 +38,7 @@ export const ROUTES = {
     DASHBOARD: '/instructor/dashboard',
     MY_COURSES: '/instructor/my-courses',
     COURSE_CREATE: '/instructor/courses/create',
+    COURSE_DETAIL: '/instructor/courses/:courseId',
     COURSE_EDIT: '/instructor/courses/:courseId/edit',
     CURRICULUM: '/instructor/courses/:courseId/curriculum',
     COURSE_STUDENTS: '/instructor/courses/:courseId/students',
@@ -49,6 +49,7 @@ export const ROUTES = {
     ASSIGNMENT_EDIT: '/instructor/assignments/:assignmentId/edit',
     SUBMISSIONS: '/instructor/assignments/:assignmentId/submissions',
     GRADES: '/instructor/courses/:courseId/grades',
+    STUDENTS: '/instructor/students',
     ANALYTICS: '/instructor/analytics',
     LIVESTREAM: '/livestream',
     LIVESTREAM_CREATE: '/livestream/create',
@@ -75,6 +76,15 @@ export const ROUTES = {
     SESSION: '/livestream/:sessionId',
   },
 
+  // Shared user routes (for all authenticated users)
+  PROFILE: '/profile',
+
+  // Future feature routes (for marketing pages)
+  ABOUT: '/about',
+  CERTIFICATES: '/certificates',
+  CERTIFICATES_VERIFY: '/certificates/verify',
+  CHAT: '/chat',  // AI Chat feature
+
   // Common routes
   NOT_FOUND: '/404',
   UNAUTHORIZED: '/unauthorized',
@@ -95,10 +105,14 @@ export const generateRoute = {
     quizAttempt: (quizId: string, attemptId: string) => 
       `/student/quizzes/${quizId}/attempt/${attemptId}`,
     assignment: (assignmentId: string) => `/student/assignments/${assignmentId}`,
+    chat: (courseId?: string) => 
+      courseId ? `/student/chat?courseId=${courseId}` : '/student/chat',
   },
   
   instructor: {
+    courseDetail: (courseId: string) => `/instructor/courses/${courseId}`,
     courseEdit: (courseId: string) => `/instructor/courses/${courseId}/edit`,
+    curriculum: (courseId: string) => `/instructor/courses/${courseId}/curriculum`,
     courseStudents: (courseId: string) => `/instructor/courses/${courseId}/students`,
     quizCreate: (courseId: string) => `/instructor/courses/${courseId}/quizzes/create`,
     quizEdit: (quizId: string) => `/instructor/quizzes/${quizId}/edit`,
@@ -111,6 +125,8 @@ export const generateRoute = {
       `/instructor/assignments/${assignmentId}/submissions`,
     courseGrades: (courseId: string) => `/instructor/courses/${courseId}/grades`,
     livestreamSession: (sessionId: string) => `/instructor/livestream/${sessionId}`,
+    chat: (courseId?: string) => 
+      courseId ? `/instructor/chat?courseId=${courseId}` : '/instructor/chat',
   },
   livestream: {
     session: (sessionId: string) => `/livestream/${sessionId}`,

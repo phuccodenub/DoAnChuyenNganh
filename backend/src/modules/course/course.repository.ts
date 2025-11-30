@@ -357,5 +357,177 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       popular_content: []
     };
   }
+
+  /**
+   * Find all courses with admin filters
+   */
+  async findAllAdminView(filters: any): Promise<any> {
+    try {
+      const { Op } = await import('sequelize');
+      
+      const page = filters.page || 1;
+      const limit = filters.limit || 25;
+      const offset = (page - 1) * limit;
+      const sort_by = filters.sort_by || 'created_at';
+      const sort_order = filters.sort_order || 'desc';
+
+      // Build where clause
+      const whereClause: WhereOptions<CourseAttributes> = {};
+      
+      if (filters.status) {
+        whereClause.status = filters.status;
+      }
+      
+      if (filters.search) {
+        (whereClause as any)[Op.or] = [
+          { title: { [Op.iLike]: `%${filters.search}%` } },
+          { description: { [Op.iLike]: `%${filters.search}%` } }
+        ];
+      }
+      
+      if (filters.category_id) {
+        whereClause.category_id = filters.category_id;
+      }
+
+      const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
+      const { count, rows } = await (CourseModel as any).findAndCountAll({
+        where: whereClause,
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            // Backend chỉ có cột avatar, không có avatar_url
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
+          }
+        ],
+        limit,
+        offset,
+        order: [[sort_by, sort_order.toUpperCase()]]
+      });
+
+      // Add student_count to each course
+      const coursesWithCount = rows.map((course: any) => ({
+        ...course.toJSON(),
+        student_count: 0 // Default, can be enhanced with actual enrollment count
+      }));
+
+      return {
+        data: coursesWithCount,
+        pagination: {
+          page,
+          per_page: limit,
+          total: count,
+          totalPages: Math.ceil(count / limit)
+        }
+      };
+    } catch (error: unknown) {
+      logger.error('Error finding courses for admin view:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get admin course statistics
+   */
+  async getAdminStats(): Promise<any> {
+    try {
+      const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
+      
+      const total_courses = await (CourseModel as any).count();
+      const published_courses = await (CourseModel as any).count({ where: { status: 'published' } });
+      const draft_courses = await (CourseModel as any).count({ where: { status: 'draft' } });
+      const archived_courses = await (CourseModel as any).count({ where: { status: 'archived' } });
+
+      // Get total students across all courses
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+      const total_students = await (EnrollmentModel as any).count({
+        distinct: true,
+        col: 'user_id'
+      });
+
+      return {
+        total_courses,
+        published_courses,
+        draft_courses,
+        archived_courses,
+        total_students
+      };
+    } catch (error: unknown) {
+      logger.error('Error getting admin course statistics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk delete courses
+   */
+  async bulkDelete(courseIds: string[]): Promise<void> {
+    try {
+      const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
+      await (CourseModel as any).destroy({
+        where: {
+          id: { [await import('sequelize').then(m => m.Op.in)]: courseIds }
+        }
+      });
+    } catch (error: unknown) {
+      logger.error('Error bulk deleting courses:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk update course status/fields
+   */
+  async bulkUpdateCourses(courseIds: string[], updates: any): Promise<void> {
+    try {
+      const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
+      const { Op } = await import('sequelize');
+      await (CourseModel as any).update(updates, {
+        where: {
+          id: { [Op.in]: courseIds }
+        }
+      });
+    } catch (error: unknown) {
+      logger.error('Error bulk updating courses:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get course students (enrollments)
+   */
+  async getCourseStudents(courseId: string, page: number, limit: number): Promise<any> {
+    try {
+      const offset = (page - 1) * limit;
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+      
+      const { count, rows } = await (EnrollmentModel as any).findAndCountAll({
+        where: { course_id: courseId },
+        include: [
+          {
+            model: User,
+            as: 'student', // Match the alias defined in associations.ts
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
+          }
+        ],
+        limit,
+        offset,
+        order: [['created_at', 'DESC']]
+      });
+
+      return {
+        students: rows,
+        total: count,
+        pagination: {
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit)
+        }
+      };
+    } catch (error: unknown) {
+      logger.error('Error getting course students:', error);
+      throw error;
+    }
+  }
 }
 

@@ -372,4 +372,118 @@ export class GlobalUserService {
       throw error;
     }
   }
+
+  // ===== ADMIN DASHBOARD STATISTICS =====
+
+  /**
+   * Get admin dashboard statistics
+   */
+  async getDashboardStats(): Promise<any> {
+    try {
+      const totalUsers = await userRepository.countUsers();
+      const activeUsers = await userRepository.countUsers({ status: 'active' });
+      const students = await userRepository.countUsers({ role: 'student' });
+      const instructors = await userRepository.countUsers({ role: 'instructor' });
+
+      return {
+        total_users: totalUsers,
+        active_users: activeUsers,
+        students,
+        instructors,
+        last_updated: new Date()
+      };
+    } catch (error: unknown) {
+      logger.error('Error getting dashboard stats:', error);
+      return {
+        total_users: 0,
+        active_users: 0,
+        students: 0,
+        instructors: 0,
+        last_updated: new Date()
+      };
+    }
+  }
+
+  /**
+   * Get recent activities
+   */
+  async getRecentActivities(limit: number = 10): Promise<any> {
+    try {
+      // This would typically come from an activity log table
+      // For now, return mock data based on recent user activity
+      const recentUsers = await userRepository.getRecentUsers(limit);
+      return recentUsers.map((user: any) => ({
+        id: user.id,
+        type: 'user_activity',
+        description: `User ${user.first_name} ${user.last_name} activity`,
+        user_name: `${user.first_name} ${user.last_name}`,
+        timestamp: user.updated_at,
+        created_at: user.updated_at
+      }));
+    } catch (error: unknown) {
+      logger.error('Error getting recent activities:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user growth data for the last N days
+   */
+  async getUserGrowth(days: number = 30): Promise<any[]> {
+    try {
+      // Return mock growth data - in production, this would aggregate from database
+      const data = [];
+      const now = new Date();
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        data.push({
+          date: date.toISOString().split('T')[0],
+          new_users: Math.floor(Math.random() * 20) + 5,
+          total_users: 100 + (days - i) * 2
+        });
+      }
+      return data;
+    } catch (error: unknown) {
+      logger.error('Error getting user growth:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get enrollment trend data
+   */
+  async getEnrollmentTrend(days: number = 30): Promise<any[]> {
+    try {
+      // Return mock enrollment trend data
+      const data = [];
+      const now = new Date();
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        data.push({
+          date: date.toISOString().split('T')[0],
+          enrollments: Math.floor(Math.random() * 50) + 10,
+          completions: Math.floor(Math.random() * 20) + 3
+        });
+      }
+      return data;
+    } catch (error: unknown) {
+      logger.error('Error getting enrollment trend:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get top instructors by enrollment count
+   */
+  async getTopInstructors(limit: number = 5): Promise<any[]> {
+    try {
+      // Get top instructors based on course enrollments
+      return await userRepository.getTopInstructors(limit);
+    } catch (error: unknown) {
+      logger.error('Error getting top instructors:', error);
+      return [];
+    }
+  }
 }

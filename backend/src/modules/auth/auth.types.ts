@@ -24,6 +24,14 @@ export interface ChangePasswordData {
   newPassword: string;
 }
 
+export interface UpdateProfileData {
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  bio?: string;
+  avatar?: string;
+}
+
 export interface UserProfile {
   id: string;
   username: string;

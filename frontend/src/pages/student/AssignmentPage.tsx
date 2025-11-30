@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 // Badge simplified inline
 import { useAssignment, useSubmission, useSubmitAssignment, useUploadFile } from '@/hooks/useAssignmentData';
+import { ROUTES, generateRoute } from '@/constants/routes';
 
 /**
  * AssignmentPage - Student
@@ -108,7 +109,7 @@ export function AssignmentPage() {
       });
       
       alert('Nộp bài thành công!');
-      navigate(`/student/courses/${courseId}`);
+      navigate(courseId ? generateRoute.student.learning(courseId) : ROUTES.STUDENT.ASSIGNMENTS);
     } catch (error) {
       console.error('Submit failed:', error);
       alert('Nộp bài thất bại. Vui lòng thử lại.');
@@ -355,7 +356,7 @@ export function AssignmentPage() {
           <div className="flex justify-end gap-3">
             <Button
               variant="outline"
-              onClick={() => navigate(`/student/courses/${courseId}`)}
+              onClick={() => navigate(courseId ? generateRoute.student.learning(courseId) : ROUTES.STUDENT.ASSIGNMENTS)}
             >
               Hủy
             </Button>

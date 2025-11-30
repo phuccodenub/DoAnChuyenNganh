@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Menu, 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle,
   FileText,
   MessageSquare,
@@ -16,15 +16,16 @@ import { toast } from 'react-hot-toast';
 import { useCourseContent, useLesson, useLessonProgress, useMarkLessonComplete } from '@/hooks/useLessonData';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
-import { 
-  VideoPlayer, 
-  DocumentViewer, 
-  CurriculumTree, 
-  DiscussionTab, 
+import {
+  VideoPlayer,
+  DocumentViewer,
+  CurriculumTree,
+  DiscussionTab,
   FileTab,
-  type Section 
+  type Section
 } from '@/components/domain/learning';
-import { ROUTES } from '@/constants/routes';
+import { ROUTES, generateRoute } from '@/constants/routes';
+import { ChatFloatingButton } from '@/features/chat';
 
 /**
  * LearningPage - Main learning interface
@@ -40,7 +41,7 @@ import { ROUTES } from '@/constants/routes';
 export function LearningPage() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId?: string }>();
   const navigate = useNavigate();
-  
+
   const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<'content' | 'discussion' | 'files'>('content');
   const [currentLessonId, setCurrentLessonId] = useState<string | undefined>(
@@ -49,7 +50,7 @@ export function LearningPage() {
 
   // Fetch course content
   const { data: courseContent, isLoading: isLoadingContent } = useCourseContent(courseId || '');
-  
+
   // Fetch current lesson
   const { data: lesson, isLoading: isLoadingLesson } = useLesson(
     currentLessonId || ''
@@ -61,23 +62,24 @@ export function LearningPage() {
   // Mark complete mutation
   const { mutate: markComplete, isPending: isMarkingComplete } = useMarkLessonComplete();
 
-  // Flatten lessons for navigation
+  // Flatten lessons for navigation (filter out undefined)
   const flatLessons = useMemo(() => {
     if (!courseContent) return [];
-    return courseContent.sections.flatMap((s) => s.lessons);
+    return courseContent.sections.flatMap((s) => s.lessons || []).filter(Boolean);
   }, [courseContent]);
 
   // Auto-select first lesson if no lesson selected
   if (!currentLessonId && courseContent && courseContent.sections.length > 0) {
     const firstSection = courseContent.sections[0];
-    if (firstSection.lessons.length > 0) {
-      setCurrentLessonId(firstSection.lessons[0].id);
+    const firstLessons = firstSection.lessons || [];
+    if (firstLessons.length > 0) {
+      setCurrentLessonId(firstLessons[0].id);
     }
   }
 
   // Get current lesson index
   const currentIndex = useMemo(() => {
-    return flatLessons.findIndex((l) => l.id === currentLessonId);
+    return flatLessons.findIndex((l) => l?.id === currentLessonId);
   }, [flatLessons, currentLessonId]);
 
   const handleLessonClick = (lessonId: string) => {
@@ -90,7 +92,7 @@ export function LearningPage() {
 
   const handleMarkComplete = () => {
     if (!currentLessonId) return;
-    
+
     markComplete(currentLessonId, {
       onSuccess: () => {
         toast.success('Đã đánh dấu hoàn thành bài học!');
@@ -103,26 +105,32 @@ export function LearningPage() {
 
   const handlePrevLesson = () => {
     if (currentIndex > 0) {
-      setCurrentLessonId(flatLessons[currentIndex - 1].id);
+      const prevLesson = flatLessons[currentIndex - 1];
+      if (prevLesson) {
+        setCurrentLessonId(prevLesson.id);
+      }
     }
   };
 
   const handleNextLesson = () => {
     if (currentIndex >= 0 && currentIndex < flatLessons.length - 1) {
+      const nextLesson = flatLessons[currentIndex + 1];
+      if (!nextLesson) return;
+
       // Auto mark complete current lesson before moving to next
-      if (currentLessonId && !lessonProgress?.is_completed) {
+      if (currentLessonId && !lessonProgress?.completed) {
         markComplete(currentLessonId, {
           onSuccess: () => {
             toast.success('Đã hoàn thành bài học!');
-            setCurrentLessonId(flatLessons[currentIndex + 1].id);
+            setCurrentLessonId(nextLesson.id);
           },
           onError: () => {
             toast.error('Không thể đánh dấu hoàn thành');
-            setCurrentLessonId(flatLessons[currentIndex + 1].id);
+            setCurrentLessonId(nextLesson.id);
           }
         });
       } else {
-        setCurrentLessonId(flatLessons[currentIndex + 1].id);
+        setCurrentLessonId(nextLesson.id);
       }
     }
   };
@@ -160,7 +168,7 @@ export function LearningPage() {
       <header className="h-16 border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0 bg-white">
         <div className="flex items-center gap-4">
           {/* Back to courses */}
-          <button 
+          <button
             onClick={handleBackToCourse}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             title="Quay lại"
@@ -179,7 +187,7 @@ export function LearningPage() {
           {/* Course & Lesson Info */}
           <div className="flex flex-col">
             <h1 className="text-lg font-semibold text-gray-900 line-clamp-1">
-              {courseContent.course_title}
+              {lesson?.course?.title || 'Đang tải...'}
             </h1>
             <p className="text-xs text-gray-500">
               Bài {currentIndex + 1}/{flatLessons.length}
@@ -212,11 +220,10 @@ export function LearningPage() {
                 <button
                   key={key}
                   onClick={() => setSidebarTab(key)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors border-b-2 ${
-                    sidebarTab === key
-                      ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors border-b-2 ${sidebarTab === key
+                    ? 'text-blue-600 border-blue-600 bg-blue-50'
+                    : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{label}</span>
@@ -227,7 +234,7 @@ export function LearningPage() {
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto">
               {sidebarTab === 'content' && (
-                <CurriculumTree 
+                <CurriculumTree
                   sections={courseContent.sections as Section[]}
                   activeLessonId={currentLessonId || null}
                   onLessonClick={handleLessonClick}
@@ -280,24 +287,24 @@ export function LearningPage() {
                 </div>
 
                 {/* Content viewer */}
-                {lesson.content_type === 'video' && lesson.content_url && (
+                {lesson.content_type === 'video' && lesson.video_url && (
                   <VideoPlayer
                     lessonId={lesson.id}
-                    videoUrl={lesson.content_url}
-                    lastPosition={lessonProgress?.last_position_seconds || 0}
+                    videoUrl={lesson.video_url}
+                    lastPosition={lessonProgress?.last_position || 0}
                   />
                 )}
 
-                {lesson.content_type === 'document' && lesson.content_url && (
+                {lesson.content_type === 'document' && (lesson.content || lesson.video_url) && (
                   <DocumentViewer
                     lessonId={lesson.id}
-                    documentUrl={lesson.content_url}
+                    documentUrl={lesson.content || lesson.video_url || ''}
                     title={lesson.title}
                   />
                 )}
 
                 {/* Mark complete button */}
-                {!lessonProgress?.is_completed && (
+                {!lessonProgress?.completed && (
                   <div className="flex justify-center">
                     <Button
                       onClick={handleMarkComplete}
@@ -311,7 +318,7 @@ export function LearningPage() {
                   </div>
                 )}
 
-                {lessonProgress?.is_completed && (
+                {lessonProgress?.completed && (
                   <div className="flex justify-center">
                     <div className="flex items-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg">
                       <CheckCircle className="w-5 h-5" />
@@ -361,6 +368,13 @@ export function LearningPage() {
           </div>
         </div>
       </div>
+
+      {/* Chat Floating Button - Entry point to chat with instructor */}
+      {courseId && (
+        <ChatFloatingButton
+          onClick={() => navigate(generateRoute.student.chat(courseId))}
+        />
+      )}
     </div>
   );
 }

@@ -65,8 +65,9 @@ export function CurriculumSidebar({
   };
 
   const getSectionProgress = (section: Section) => {
-    const completedLessons = section.lessons.filter(l => l.is_completed).length;
-    const totalLessons = section.lessons.length;
+    const sectionLessons = section.lessons || [];
+    const completedLessons = sectionLessons.filter(l => l.is_completed).length;
+    const totalLessons = sectionLessons.length;
     return { completed: completedLessons, total: totalLessons };
   };
 
@@ -122,11 +123,11 @@ export function CurriculumSidebar({
               </button>
 
               {/* Lessons list */}
-              {isExpanded && (
+              {isExpanded && (section.lessons || []).length > 0 && (
                 <div className="bg-gray-50">
-                  {section.lessons.map((lesson) => {
+                  {(section.lessons || []).map((lesson) => {
                     const isActive = lesson.id === currentLessonId;
-                    const isLocked = !lesson.is_preview && false; // TODO: Add lock logic
+                    const isLocked = !lesson.is_free_preview && false; // TODO: Add lock logic
 
                     return (
                       <button
@@ -159,7 +160,7 @@ export function CurriculumSidebar({
                           >
                             {lesson.title}
                           </h4>
-                          
+
                           {/* Meta info */}
                           <div className="flex items-center gap-2 mt-1">
                             {lesson.duration_minutes && (
@@ -168,8 +169,8 @@ export function CurriculumSidebar({
                                 <span>{lesson.duration_minutes} phút</span>
                               </div>
                             )}
-                            
-                            {lesson.is_preview && (
+
+                            {lesson.is_free_preview && (
                               <span className="text-xs text-green-600 font-medium">
                                 Xem trước
                               </span>
@@ -177,17 +178,17 @@ export function CurriculumSidebar({
                           </div>
 
                           {/* Progress bar for video lessons */}
-                          {lesson.content_type === 'video' && 
-                           lesson.progress_percentage !== undefined && 
-                           lesson.progress_percentage > 0 && 
-                           lesson.progress_percentage < 100 && (
-                            <div className="w-full bg-gray-200 rounded-full h-1 mt-2">
-                              <div
-                                className="bg-blue-600 h-1 rounded-full"
-                                style={{ width: `${lesson.progress_percentage}%` }}
-                              />
-                            </div>
-                          )}
+                          {lesson.content_type === 'video' &&
+                            lesson.progress_percentage !== undefined &&
+                            lesson.progress_percentage > 0 &&
+                            lesson.progress_percentage < 100 && (
+                              <div className="w-full bg-gray-200 rounded-full h-1 mt-2">
+                                <div
+                                  className="bg-blue-600 h-1 rounded-full"
+                                  style={{ width: `${lesson.progress_percentage}%` }}
+                                />
+                              </div>
+                            )}
                         </div>
                       </button>
                     );

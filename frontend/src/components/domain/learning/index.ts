@@ -11,4 +11,4 @@ export { FileTab } from './FileTab';
 export { VideoPlayer } from './VideoPlayer';
 
 // Re-export types
-export type { Section, Lesson } from './CurriculumTree';
+export type { Section, Lesson } from '@/services/api/lesson.api';

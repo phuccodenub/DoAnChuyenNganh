@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthModuleService } from './auth.service';
-import { LoginCredentials, RegisterData, ChangePasswordData } from './auth.types';
+import { LoginCredentials, RegisterData, ChangePasswordData, UpdateProfileData } from './auth.types';
 import { responseUtils } from '@utils/response.util';
 import { RESPONSE_CONSTANTS } from '@constants/response.constants';
 import logger from '@utils/logger.util';
@@ -10,6 +10,41 @@ export class AuthController {
 
   constructor() {
     this.authService = new AuthModuleService();
+  }
+
+  // Get user profile
+  async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        return;
+      }
+
+      const profile = await this.authService.getProfile(userId);
+      responseUtils.sendSuccess(res, 'Profile retrieved successfully', { user: profile });
+    } catch (error: unknown) {
+      logger.error('Error getting profile:', error);
+      next(error);
+    }
+  }
+
+  // Update user profile
+  async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
+        return;
+      }
+
+      const data: UpdateProfileData = req.body;
+      const updatedProfile = await this.authService.updateProfile(userId, data);
+      responseUtils.sendSuccess(res, 'Profile updated successfully', { user: updatedProfile });
+    } catch (error: unknown) {
+      logger.error('Error updating profile:', error);
+      next(error);
+    }
   }
 
   // Register new user

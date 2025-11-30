@@ -7,6 +7,7 @@ import { ApiError } from '../../errors/api.error';
 import { userUtils } from '../../utils/user.util';
 import logger from '../../utils/logger.util';
 import { randomUUID } from 'crypto';
+import { UpdateProfileData } from './auth.types';
 
 /**
  * Auth Module Service
@@ -285,6 +286,69 @@ export class AuthModuleService {
       logger.info('User logged out successfully', { userId });
     } catch (error: unknown) {
       logger.error('Error logging out user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user profile
+   */
+  async getProfile(userId: string): Promise<AuthTypes.UserProfile> {
+    try {
+      logger.info('Getting user profile', { userId });
+
+      const user = await this.authRepository.getUserProfile(userId);
+      if (!user) {
+        throw ApiError.notFound('User not found');
+      }
+
+      const userProfile = userUtils.getPublicProfile(user as any) as AuthTypes.UserProfile;
+
+      logger.info('User profile retrieved successfully', { userId });
+      return userProfile;
+    } catch (error: unknown) {
+      logger.error('Error getting user profile:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(userId: string, data: UpdateProfileData): Promise<AuthTypes.UserProfile> {
+    try {
+      logger.info('Updating user profile', { userId });
+
+      const user = await this.authRepository.getUserForAuth(userId);
+      if (!user) {
+        throw ApiError.notFound('User not found');
+      }
+
+      // Only allow updating specific fields
+      const allowedUpdates: Record<string, any> = {};
+      if (data.first_name !== undefined) allowedUpdates.first_name = data.first_name;
+      if (data.last_name !== undefined) allowedUpdates.last_name = data.last_name;
+      if (data.phone !== undefined) allowedUpdates.phone = data.phone;
+      if (data.bio !== undefined) allowedUpdates.bio = data.bio;
+      // Support both 'avatar' and 'avatar_url' from frontend
+      if (data.avatar !== undefined) allowedUpdates.avatar = data.avatar;
+      if ((data as any).avatar_url !== undefined) allowedUpdates.avatar = (data as any).avatar_url;
+
+      // Update user
+      const updatedUser = await this.authRepository.update(userId, allowedUpdates);
+      
+      // Clear user cache to reflect new data
+      await globalServices.user.clearUserCache(userId);
+      
+      // Re-cache with updated data
+      await globalServices.user.cacheUser(userId, updatedUser);
+
+      const userProfile = userUtils.getPublicProfile(updatedUser as any) as AuthTypes.UserProfile;
+
+      logger.info('User profile updated successfully', { userId });
+      return userProfile;
+    } catch (error: unknown) {
+      logger.error('Error updating user profile:', error);
       throw error;
     }
   }

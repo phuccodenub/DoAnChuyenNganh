@@ -11,6 +11,7 @@ import { useCategories } from '@/hooks/useCategories';
 import type { AdminCourse, CourseAdminFilters, CourseStatus } from '@/types/course.admin.types';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useNavigate } from 'react-router-dom';
+import { generateRoute } from '@/constants/routes';
 
 export default function CourseManagementPage() {
   const navigate = useNavigate();
@@ -212,9 +213,9 @@ export default function CourseManagementPage() {
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Tất cả danh mục</option>
-            {categories?.map((cat) => (
+            {Array.isArray(categories) ? categories.map((cat) => (
               <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
+            )) : null}
           </select>
         </div>
       </div>
@@ -300,7 +301,7 @@ export default function CourseManagementPage() {
           onEdit={(course) => {
             setViewingCourseId(null);
             // Navigate to instructor course editor
-            navigate(`/instructor/courses/${course.id}/edit`);
+            navigate(generateRoute.instructor.courseEdit(course.id));
           }}
         />
       )}

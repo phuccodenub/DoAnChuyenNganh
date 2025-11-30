@@ -13,8 +13,11 @@ import sectionRoutes from './section.routes';
 import assignmentRoutes from './assignment.routes';
 import quizRoutes from './quiz.routes';
 import { userAdminRoutes, UserModuleController } from '../../../modules/user';
+import { UserAdminController } from '../../../modules/user/user.admin.controller';
+import { courseAdminRoutes } from '../../../modules/course/course.admin.routes';
 import { AuthController } from '../../../modules/auth/auth.controller';
-import { authMiddleware } from '../../../middlewares/auth.middleware';
+import { authMiddleware, authorizeRoles } from '../../../middlewares/auth.middleware';
+import { UserRole } from '../../../constants/roles.enum';
 import { validateBody } from '../../../middlewares/validate.middleware';
 import { userValidation as userSchemas } from '../../../validates/user.validate';
 import { authSchemas } from '../../../validates/auth.validate';
@@ -49,6 +52,19 @@ router.use('/users', userRoutes);  // User self-service routes
 // Admin user management routes
 logger.info('Registering v1 admin at /admin/users');
 router.use('/admin/users', userAdminRoutes);
+
+// Admin dashboard and analytics routes
+logger.info('Registering v1 admin dashboard at /admin/dashboard');
+const userAdminControllerInstance = new UserAdminController();
+router.get('/admin/dashboard/stats', authMiddleware, authorizeRoles(['admin', 'super_admin']), (req: Request, res: Response, next: NextFunction) => userAdminControllerInstance.getDashboardStats(req, res, next));
+router.get('/admin/activities/recent', authMiddleware, authorizeRoles(['admin', 'super_admin']), (req: Request, res: Response, next: NextFunction) => userAdminControllerInstance.getRecentActivities(req, res, next));
+router.get('/admin/analytics/user-growth', authMiddleware, authorizeRoles(['admin', 'super_admin']), (req: Request, res: Response, next: NextFunction) => userAdminControllerInstance.getUserGrowth(req, res, next));
+router.get('/admin/analytics/enrollment-trend', authMiddleware, authorizeRoles(['admin', 'super_admin']), (req: Request, res: Response, next: NextFunction) => userAdminControllerInstance.getEnrollmentTrend(req, res, next));
+router.get('/admin/analytics/top-instructors', authMiddleware, authorizeRoles(['admin', 'super_admin']), (req: Request, res: Response, next: NextFunction) => userAdminControllerInstance.getTopInstructors(req, res, next));
+
+// Admin course management routes
+logger.info('Registering v1 admin courses at /admin/courses');
+router.use('/admin/courses', courseAdminRoutes);
 
 // Backward-compatible alias: some tests expect admin endpoints under /users (e.g., GET /api/users)
 // Mount admin routes under /users as well (order after self-service to avoid conflicts)

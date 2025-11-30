@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom'
+import { ROUTES } from '@/constants/routes'
+import { getDashboardByRole } from '@/utils/navigation'
 import useAuth from '@/hooks/useAuth'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { AuthModal } from '@/components/auth/AuthModal'
@@ -17,15 +19,19 @@ import { BecomeInstructor } from './components/BecomeInstructor'
 import { FAQ } from './components/FAQ'
 import { FinalCTA } from './components/FinalCTA'
 import { Footer } from './components/Footer'
+// Advanced Technology Sections (from Home)
+import { AIFeaturesSection } from './components/AIFeaturesSection'
+import { BlockchainCertificatesSection } from './components/BlockchainCertificatesSection'
+import { InteractiveLearningSection } from './components/InteractiveLearningSection'
 
 function HomePage() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
   const { openModal } = useAuthModal()
 
   const handlePrimaryCta = () => {
-    if (isAuthenticated) {
-      navigate('/dashboard')
+    if (isAuthenticated && user) {
+      navigate(getDashboardByRole(user.role))
       return
     }
     openModal('signup')
@@ -33,7 +39,7 @@ function HomePage() {
 
   const handleSecondaryCta = () => {
     if (isAuthenticated) {
-      navigate('/courses')
+      navigate(ROUTES.COURSES)
       return
     }
     openModal('signin')
@@ -58,6 +64,12 @@ function HomePage() {
       <DiscoverCourses onSecondaryCta={handleSecondaryCta} />
       <FeatureOverview onSecondaryCta={handleSecondaryCta} />
       <LiveCourses onSecondaryCta={handleSecondaryCta} />
+      
+      {/* Advanced Technology Sections */}
+      <InteractiveLearningSection />
+      <AIFeaturesSection />
+      <BlockchainCertificatesSection />
+      
       <Testimonials />
       <Resources onSecondaryCta={handleSecondaryCta} />
       <Pricing onPrimaryCta={handlePrimaryCta} onSecondaryCta={handleSecondaryCta} />

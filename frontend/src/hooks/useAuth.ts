@@ -19,6 +19,7 @@ export function useAuth() {
   const register = useAuthStore((state) => state.register);
   const logout = useAuthStore((state) => state.logout);
   const updateProfile = useAuthStore((state) => state.updateProfile);
+  const updateUserData = useAuthStore((state) => state.updateUserData);
   const changePassword = useAuthStore((state) => state.changePassword);
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
 
@@ -33,6 +34,7 @@ export function useAuth() {
     register,
     logout,
     updateProfile,
+    updateUserData,
     changePassword,
     initializeAuth,
   };

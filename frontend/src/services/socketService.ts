@@ -87,6 +87,16 @@ class SocketService {
       return this.socket;
     }
 
+    // Nếu đang trong quá trình kết nối trước đó, đợi tối đa 2s rồi trả về socket hiện tại
+    if (this.socket && !this.socket.connected) {
+      console.log('[SocketService] Connection in progress, waiting for existing socket...');
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (this.socket?.connected) {
+        console.log('[SocketService] Existing socket connected after wait:', this.socket.id);
+        return this.socket;
+      }
+    }
+
     // Lấy token từ auth store
     const state = useAuthStore.getState();
     let token = state.tokens?.accessToken;
@@ -131,7 +141,7 @@ class SocketService {
       // Tạo socket connection với authentication
       this.socket = io(socketUrl, {
         auth: {
-          token: token,
+          token,
         },
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -140,7 +150,7 @@ class SocketService {
         path: '/socket.io', // Socket.IO default path
       });
 
-      // Setup event listeners
+      // Setup event listeners (chỉ đăng ký một lần cho mỗi instance)
       this.setupEventListeners();
 
       console.log('[SocketService] Socket.IO connection initiated');
@@ -158,6 +168,12 @@ class SocketService {
     if (!this.socket) return;
 
     // Connection events
+    this.socket.off('connect');
+    this.socket.off('disconnect');
+    this.socket.off('connect_error');
+    this.socket.off('auth_error');
+    this.socket.off('error');
+
     this.socket.on('connect', () => {
       console.log('[SocketService] ✅ Connected with ID:', this.socket?.id);
       const socketUrl = this.getSocketUrl();

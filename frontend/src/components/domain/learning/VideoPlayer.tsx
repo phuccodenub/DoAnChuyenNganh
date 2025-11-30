@@ -64,9 +64,9 @@ export function VideoPlayer({
           updateProgress({
             lessonId,
             data: {
-              progress_percentage: Math.round(progress),
-              last_position_seconds: Math.round(videoRef.current.currentTime),
-              time_spent_minutes: Math.round(timeSpent / 60),
+              completion_percentage: Math.round(progress),
+              last_position: Math.round(videoRef.current.currentTime),
+              time_spent_seconds: timeSpent,
             },
           });
           onProgress?.(progress, timeSpent);
@@ -100,9 +100,8 @@ export function VideoPlayer({
     updateProgress({
       lessonId,
       data: {
-        progress_percentage: 100,
-        is_completed: true,
-        time_spent_minutes: Math.round(timeSpent / 60),
+        completion_percentage: 100,
+        time_spent_seconds: timeSpent,
       },
     });
     onComplete?.();

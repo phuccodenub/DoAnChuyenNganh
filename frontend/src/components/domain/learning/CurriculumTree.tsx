@@ -1,130 +1,146 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle, Circle, FileText } from 'lucide-react';
-
-export interface Lesson {
-  id: string;
-  section_id: string;
-  title: string;
-  description: string | null;
-  content_type: string;
-  content_url: string | null;
-  duration_minutes: number | null;
-  order_index: number;
-  is_preview: boolean;
-  created_at: string;
-  updated_at: string;
-  is_completed: boolean;
-}
-
-export interface Section {
-  id: string;
-  course_id: string;
-  title: string;
-  description: string | null;
-  order_index: number;
-  created_at: string;
-  updated_at: string;
-  lessons: Lesson[];
-}
+import { ChevronDown, ChevronUp, PlayCircle, FileText, Monitor, BookOpen, HelpCircle, ClipboardList } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { Section, Lesson } from '@/services/api/lesson.api';
 
 interface CurriculumTreeProps {
   sections: Section[];
-  activeLessonId: string | null;
-  onLessonClick: (lessonId: string) => void;
+  activeLessonId?: string | null;
+  onLessonClick?: (lessonId: string) => void;
+  isPreviewMode?: boolean;
 }
 
 /**
- * CurriculumTree - Hiển thị danh sách sections và lessons dạng cây
+ * Lấy icon tương ứng với loại bài học
+ */
+const getLessonIcon = (contentType: string) => {
+  switch (contentType) {
+    case 'video':
+      return <Monitor className="w-4 h-4 text-gray-500" />;
+    case 'document':
+    case 'text':
+      return <FileText className="w-4 h-4 text-gray-500" />;
+    case 'quiz':
+      return <HelpCircle className="w-4 h-4 text-gray-500" />;
+    case 'assignment':
+      return <ClipboardList className="w-4 h-4 text-gray-500" />;
+    default:
+      return <BookOpen className="w-4 h-4 text-gray-500" />;
+  }
+};
+
+/**
+ * CurriculumTree - Hiển thị danh sách sections và lessons dạng Accordion
  * 
  * Features:
- * - Expand/collapse sections
- * - Highlight active lesson
- * - Show completion status
- * - Display lesson duration and type
+ * - Expand/collapse sections (Accordion style)
+ * - Section header with lesson count
+ * - Lesson items with type icons
+ * - Clean, modern UI with borders and rounded corners
  */
-export function CurriculumTree({ sections, activeLessonId, onLessonClick }: CurriculumTreeProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>(() => 
-    sections.map(s => s.id) // Expand all by default
+export function CurriculumTree({
+  sections,
+  activeLessonId,
+  onLessonClick,
+  isPreviewMode = true
+}: CurriculumTreeProps) {
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() =>
+    new Set(sections.length > 0 ? [sections[0].id] : []) // Mở section đầu tiên mặc định
   );
 
   const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => 
-      prev.includes(sectionId) 
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    );
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
   };
 
+  if (sections.length === 0) {
+    return (
+      <div className="p-6 text-center text-gray-500">
+        <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+        <p className="text-sm">Mục lục khóa học đang được cập nhật.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="py-2">
-      {sections.map((section, sectionIndex) => {
-        const isExpanded = expandedSections.includes(section.id);
-        const completedCount = section.lessons.filter(l => l.is_completed).length;
-        const totalCount = section.lessons.length;
-        
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-200">
+      {sections.map((section) => {
+        const isExpanded = expandedSections.has(section.id);
+        const sectionLessons = section.lessons || [];
+        const lessonCount = sectionLessons.length;
+
         return (
-          <div key={section.id} className="mb-1">
-            {/* Section Header */}
+          <div key={section.id}>
+            {/* Section Header - Accordion Trigger */}
             <button
               onClick={() => toggleSection(section.id)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors text-left"
+              className={cn(
+                "w-full px-5 py-4 flex items-center justify-between",
+                "hover:bg-gray-50 transition-colors text-left",
+                isExpanded && "bg-gray-50"
+              )}
             >
-              <div className="flex items-center gap-2 flex-1">
+              {/* Left: Section Title */}
+              <h3 className="font-semibold text-gray-900 text-sm flex-1 pr-4">
+                {section.title}
+              </h3>
+
+              {/* Right: Metadata + Chevron */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <span className="text-xs text-gray-500">
+                  {lessonCount} bài học
+                </span>
                 {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                  <ChevronUp className="w-4 h-4 text-gray-400" />
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
                 )}
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Phần {sectionIndex + 1}: {section.title}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {completedCount}/{totalCount} bài học
-                  </p>
-                </div>
               </div>
             </button>
 
-            {/* Lessons List */}
-            {isExpanded && (
-              <div className="bg-white">
-                {section.lessons.map((lesson, lessonIndex) => {
+            {/* Lesson Items - Accordion Content */}
+            {isExpanded && sectionLessons.length > 0 && (
+              <div className="bg-gray-50/50 border-t border-gray-100">
+                {sectionLessons.map((lesson) => {
                   const isActive = lesson.id === activeLessonId;
-                  const isCompleted = lesson.is_completed;
 
                   return (
                     <button
                       key={lesson.id}
-                      onClick={() => onLessonClick(lesson.id)}
-                      className={`w-full px-4 py-3 pl-12 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${
-                        isActive ? 'bg-blue-50 border-l-2 border-blue-600' : ''
-                      }`}
-                    >
-                      {/* Completion Icon */}
-                      {isCompleted ? (
-                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-gray-300 flex-shrink-0" />
+                      onClick={() => onLessonClick?.(lesson.id)}
+                      disabled={!onLessonClick}
+                      className={cn(
+                        "w-full px-5 py-3 flex items-center gap-3 text-left transition-colors",
+                        "hover:bg-gray-100 border-b border-gray-100 last:border-b-0",
+                        isActive && "bg-blue-50 border-l-2 border-l-blue-600",
+                        !onLessonClick && "cursor-default"
                       )}
-
-                      {/* Lesson Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${
-                          isActive ? 'text-blue-600' : 'text-gray-900'
-                        }`}>
-                          {lessonIndex + 1}. {lesson.title}
-                        </p>
-                        {lesson.duration_minutes && (
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {lesson.duration_minutes} phút
-                          </p>
-                        )}
+                    >
+                      {/* Icon loại bài học */}
+                      <div className="flex-shrink-0">
+                        {getLessonIcon(lesson.content_type)}
                       </div>
 
-                      {/* Content Type Icon */}
-                      {lesson.content_type === 'video' && (
-                        <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      {/* Tên bài học */}
+                      <span className={cn(
+                        "text-sm flex-1",
+                        isActive ? "text-blue-600 font-medium" : "text-gray-700"
+                      )}>
+                        {lesson.title}
+                      </span>
+
+                      {/* Preview badge (optional) - use is_free_preview from backend */}
+                      {lesson.is_free_preview && isPreviewMode && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+                          Xem trước
+                        </span>
                       )}
                     </button>
                   );

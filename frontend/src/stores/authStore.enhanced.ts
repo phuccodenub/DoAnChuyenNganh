@@ -50,6 +50,7 @@ interface AuthActions {
   }) => Promise<boolean>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<boolean>;
+  updateUserData: (data: Partial<User>) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   initializeAuth: () => Promise<void>;
   setLoading: (loading: boolean) => void;
@@ -214,6 +215,15 @@ export const useAuthStore = create<AuthStore>()(
           toast.error(getErrorMessage(error, 'Cập nhật thông tin thất bại'));
           set({ isLoading: false });
           return false;
+        }
+      },
+
+      updateUserData: (data: Partial<User>) => {
+        const currentUser = get().user;
+        if (currentUser) {
+          set({
+            user: { ...currentUser, ...data },
+          });
         }
       },
 

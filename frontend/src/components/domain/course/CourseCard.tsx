@@ -70,12 +70,17 @@ export function CourseCard({
               src={course.thumbnail_url}
               alt={course.title}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                // Hide broken image and show fallback
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.nextElementSibling?.classList.remove('hidden');
+              }}
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <BookOpen className="w-16 h-16 text-gray-400" />
-            </div>
-          )}
+          ) : null}
+          <div className={`w-full h-full flex items-center justify-center ${course.thumbnail_url ? 'hidden' : ''}`}>
+            <BookOpen className="w-16 h-16 text-gray-400" />
+          </div>
           
           {/* Badges overlay */}
           <div className="absolute top-2 right-2 flex gap-2">
