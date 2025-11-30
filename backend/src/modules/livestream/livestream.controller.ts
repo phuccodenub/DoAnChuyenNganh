@@ -65,6 +65,15 @@ export class LiveStreamController {
     try {
       const { sessionId } = req.params;
       const session = await this.service.updateStatus(sessionId, req.body);
+      
+      // Emit SESSION_ENDED event if status is 'ended'
+      if (req.body.status === 'ended') {
+        const livestreamGateway = (global as any).livestreamGateway;
+        if (livestreamGateway) {
+          livestreamGateway.emitSessionEnded(sessionId);
+        }
+      }
+      
       return responseUtils.success(res, session, 'Live session updated');
     } catch (error: unknown) {
       next(error);

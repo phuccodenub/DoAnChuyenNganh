@@ -28,6 +28,7 @@ import { default as liveStreamRoutes } from '../../../modules/livestream/livestr
 import { default as analyticsRoutes } from '../../../modules/analytics/analytics.routes';
 import systemSettingsRoutes from '../../../modules/system-settings/system.settings.routes';
 import categoryRoutes from '../../../modules/category/category.routes';
+import { aiRoutes } from '../../../modules/ai';
 import logger from '../../../utils/logger.util';
 
 const router = Router();
@@ -87,5 +88,8 @@ router.use('/analytics', analyticsRoutes);
 // Assignment and quiz routes
 router.use('/assignments', assignmentRoutes);
 router.use('/quizzes', quizRoutes);
+
+// AI routes
+router.use('/ai', aiRoutes);
 
 export default router;

@@ -269,36 +269,49 @@ export class LiveStreamGateway {
    * Handle send message
    */
   private handleSendMessage(socket: Socket): void {
-    socket.on(LiveStreamSocketEvents.SEND_MESSAGE, async (data: SendChatMessageDto) => {
+    socket.on(LiveStreamSocketEvents.SEND_MESSAGE, async (data: SendChatMessageDto, ack?: (response: { success: boolean; error?: string; messageId?: string }) => void) => {
       try {
+        logger.info(`[LiveStreamGateway] Received SEND_MESSAGE event`, {
+          session_id: data.session_id,
+          sender_id: data.sender_id,
+          message_type: data.message_type,
+          message_length: data.message?.length || 0,
+        });
+
         const user = (socket as any).user as SocketUser;
         const { session_id, message } = data;
 
         if (!session_id || !message || !message.trim()) {
-          socket.emit(LiveStreamSocketEvents.ERROR, {
+          const errorResponse = {
             code: LiveStreamErrorCodes.INVALID_DATA,
             message: 'Session ID and message are required'
-          });
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
           return;
         }
 
         // Verify session exists
         const session = await this.liveStreamService.getSession(session_id);
         if (!session) {
-          socket.emit(LiveStreamSocketEvents.ERROR, {
+          const errorResponse = {
             code: LiveStreamErrorCodes.SESSION_NOT_FOUND,
             message: 'Session not found'
-          });
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
           return;
         }
 
         // Check if user is in session
         const room = this.sessions.get(session_id);
         if (!room || !room.viewers.has(user.userId)) {
-          socket.emit(LiveStreamSocketEvents.ERROR, {
+          const errorResponse = {
             code: LiveStreamErrorCodes.NOT_JOINED,
             message: 'You must join the session first'
-          });
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
           return;
         }
 
@@ -312,10 +325,12 @@ export class LiveStreamGateway {
         });
 
         if (!savedMessage) {
-          socket.emit(LiveStreamSocketEvents.ERROR, {
+          const errorResponse = {
             code: LiveStreamErrorCodes.INVALID_DATA,
             message: 'Failed to save message'
-          });
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
           return;
         }
 
@@ -347,18 +362,27 @@ export class LiveStreamGateway {
         // Broadcast message to all viewers in session
         this.io.to(`livestream:${session_id}`).emit(LiveStreamSocketEvents.NEW_MESSAGE, messageData);
 
-        // Confirm to sender
+        // Confirm to sender via ACK callback (if provided) and event
+        ack?.({ success: true, messageId: messageData.id });
         socket.emit(LiveStreamSocketEvents.MESSAGE_SENT, {
           messageId: messageData.id,
         });
 
-        logger.debug(`Message sent in session ${session_id} by user ${user.userId}`);
-      } catch (error: unknown) {
-        logger.error('Send message error:', error);
-        socket.emit(LiveStreamSocketEvents.ERROR, {
-          code: LiveStreamErrorCodes.INVALID_DATA,
-          message: error instanceof Error ? error.message : 'Failed to send message'
+        logger.info(`[LiveStreamGateway] Message sent successfully in session ${session_id} by user ${user.userId}`, {
+          messageId: messageData.id,
+          session_id,
+          sender_id: user.userId,
         });
+      } catch (error: unknown) {
+        logger.error('[LiveStreamGateway] Send message error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+        const errorResponse = {
+          code: LiveStreamErrorCodes.INVALID_DATA,
+          message: errorMessage
+        };
+        socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+        // Send ACK with error if callback exists
+        ack?.({ success: false, error: errorMessage });
       }
     });
   }
@@ -549,6 +573,16 @@ export class LiveStreamGateway {
       total += room.viewers.size;
     }
     return total;
+  }
+
+  /**
+   * Emit SESSION_ENDED event to all viewers in a session
+   */
+  public emitSessionEnded(sessionId: string): void {
+    this.io.to(`livestream:${sessionId}`).emit(LiveStreamSocketEvents.SESSION_ENDED, {
+      sessionId,
+    });
+    logger.info(`[LiveStreamGateway] Emitted SESSION_ENDED for session ${sessionId}`);
   }
 }
 

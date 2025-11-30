@@ -1,94 +1,75 @@
 /**
  * LiveStreamChat Component
- * 
- * Real-time chat component cho livestream với:
- * - Message list với auto-scroll
- * - Message input với typing indicator
- * - Reactions (emoji)
- * - User avatars
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Smile } from 'lucide-react';
-import { useLivestreamSocket, ChatMessage } from '@/hooks/useLivestreamSocket';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Gift, MoreHorizontal, Send, Smile } from 'lucide-react';
+import { ChatMessage } from '@/hooks/useLivestreamSocket';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore.enhanced';
 
+export interface LiveStreamChatState {
+  isJoined: boolean;
+  messages: ChatMessage[];
+  typingUsers: string[];
+  sendMessage: (message: string, messageType?: 'text' | 'emoji' | 'system', replyTo?: string) => void;
+  sendReaction: (emoji: string) => void;
+  setTyping: (isTyping: boolean) => void;
+}
+
 interface LiveStreamChatProps {
-  sessionId: string;
+  sessionId: string | number;
   enabled?: boolean;
-  sessionStatus?: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  chatState: LiveStreamChatState;
+  variant?: 'panel' | 'fullscreenDesktop' | 'fullscreenMobile';
+  recentReactions?: Array<{ emoji: string; userName: string; timestamp: number }>;
+  className?: string;
+  sessionTitle?: string;
+  sessionDescription?: string;
 }
 
 const EMOJI_REACTIONS = ['👍', '❤️', '🔥', '👏', '🎉', '😄', '😮', '💯'];
 
-export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: LiveStreamChatProps) {
+export function LiveStreamChat({
+  sessionId,
+  enabled = true,
+  chatState,
+  variant = 'panel',
+  recentReactions,
+  className = '',
+  sessionTitle = '',
+  sessionDescription = '',
+}: LiveStreamChatProps) {
   const [message, setMessage] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
-  const [recentReactions, setRecentReactions] = useState<Array<{ emoji: string; userName: string; timestamp: number }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const user = useAuthStore((state) => state.user);
+  const [isTitleExpanded, setIsTitleExpanded] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  
+  // Check if text needs truncation (more than 3 lines)
+  const needsTruncation = (text: string, maxLines: number = 3) => {
+    const lines = text.split('\n');
+    return lines.length > maxLines || text.length > 150; // Rough estimate
+  };
+  
+  const truncateText = (text: string, maxLines: number = 3) => {
+    const lines = text.split('\n');
+    if (lines.length <= maxLines && text.length <= 150) return text;
+    return lines.slice(0, maxLines).join('\n') + '...';
+  };
 
-  const { messages, typingUsers, sendMessage, sendReaction, setTyping, isJoined } = useLivestreamSocket({
-    sessionId,
-    enabled,
-    sessionStatus,
-    onNewMessage: (newMessage) => {
-      // Remove optimistic messages that match this real message
-      // Match by sender_id, message content, and approximate timestamp
-      setOptimisticMessages((prev) => {
-        const messageTime = new Date(newMessage.timestamp).getTime();
-        return prev.filter((msg) => {
-          // If it's from the same sender and similar content, remove it
-          if (msg.sender_id === newMessage.sender_id && msg.message === newMessage.message) {
-            const optimisticTime = new Date(msg.timestamp).getTime();
-            // Remove if timestamp is within 5 seconds (optimistic message was just sent)
-            if (Math.abs(messageTime - optimisticTime) < 5000) {
-              return false; // Remove this optimistic message
-            }
-          }
-          return true; // Keep this optimistic message
-        });
-      });
-      // Auto scroll to bottom on new message
-      scrollToBottom();
-    },
-    onReaction: (data) => {
-      // Show reaction notification
-      const reactionId = Date.now();
-      setRecentReactions((prev) => [
-        ...prev.slice(-4), // Keep only last 5
-        { emoji: data.emoji, userName: data.userName, timestamp: reactionId }
-      ]);
-      
-      // Auto remove after 3 seconds
-      setTimeout(() => {
-        setRecentReactions((prev) => prev.filter((r) => r.timestamp !== reactionId));
-      }, 3000);
-    },
-  });
+  const { messages, typingUsers, sendMessage, sendReaction, setTyping, isJoined } = chatState;
+  const isPanel = variant === 'panel';
+  const isFullscreenDesktop = variant === 'fullscreenDesktop';
+  const isFullscreenMobile = variant === 'fullscreenMobile';
+  const showHeader = isPanel;
 
-  // Combine real messages with optimistic messages, remove duplicates
-  const allMessages = [...messages, ...optimisticMessages]
-    .filter((msg, index, self) => {
-      // Remove duplicates by ID first
-      const idIndex = self.findIndex((m) => m.id === msg.id);
-      if (idIndex !== index) return false;
-      
-      // Also check for duplicate by sender + message + timestamp (within 1 second)
-      const duplicate = self.find((m, i) => 
-        i !== index &&
-        m.sender_id === msg.sender_id &&
-        m.message === msg.message &&
-        Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000
-      );
-      return !duplicate;
-    })
-    .sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+  // Use messages directly from chatState (hook already handles optimistic updates)
+  const allMessages = useMemo(() => {
+    return [...messages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [messages]);
 
   // Auto scroll to bottom
   const scrollToBottom = () => {
@@ -98,47 +79,29 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
   // Auto scroll on mount and when messages change
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [allMessages]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !enabled || !isJoined) return;
 
     const messageText = message.trim();
-    const tempId = `temp-${user?.id}-${Date.now()}`;
-    
-    // Create optimistic message
-    const optimisticMessage: ChatMessage = {
-      id: tempId,
-      session_id: sessionId,
-      sender_id: user?.id || '',
-      sender_name: user?.full_name || 'Bạn',
-      sender_avatar: user?.avatar_url || undefined,
-      message: messageText,
-      message_type: 'text',
-      reply_to: null,
-      timestamp: new Date().toISOString(),
-    };
 
-    // Add optimistic message immediately
-    setOptimisticMessages((prev) => [...prev, optimisticMessage]);
-    scrollToBottom();
-
-    // Send message via socket
+    // Send message via socket (hook will handle optimistic update)
     sendMessage(messageText);
     setMessage('');
     setTyping(false);
+    
+    // Scroll to bottom after a short delay to ensure optimistic message is rendered
+    setTimeout(() => {
+      scrollToBottom();
+    }, 50);
 
     // Clear typing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
-
-    // Remove optimistic message after a delay (in case real message doesn't arrive)
-    setTimeout(() => {
-      setOptimisticMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-    }, 5000);
   };
 
   // Debounced typing indicator
@@ -204,22 +167,126 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
       .slice(0, 2);
   };
 
+  const containerClasses = cn(
+    'flex flex-col',
+    isPanel
+      ? 'h-full bg-white rounded-lg border border-gray-200 shadow-sm'
+      : isFullscreenDesktop
+        ? 'h-full bg-black/20 text-white border border-white/10 backdrop-blur-md shadow-2xl'
+        : 'h-full text-white'
+  );
+
+  const nameClasses = variant === 'panel' ? 'text-sm font-medium text-gray-900' : 'text-sm font-semibold text-white drop-shadow';
+  const timeClasses = variant === 'panel' ? 'text-xs text-gray-500' : 'text-xs text-white/70';
+  const messageTextClasses = variant === 'panel' ? 'text-sm text-gray-700' : 'text-sm text-white drop-shadow';
+
+  const messageWrapperClasses = cn(
+    'flex-1 overflow-y-auto space-y-3',
+    isPanel
+      ? 'px-4 py-3 text-gray-900'
+      : isFullscreenDesktop
+        ? 'px-2 sm:px-4 py-4 text-white [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]'
+        : 'px-3 py-2 text-white text-sm space-y-2 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]'
+  );
+
+  const messageMask =
+    isFullscreenDesktop || isFullscreenMobile
+      ? {
+          maskImage: 'linear-gradient(to top, rgba(0,0,0,1) 35%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,1) 35%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0) 100%)',
+        }
+      : undefined;
+
+  const emojiBarClasses =
+    isPanel
+      ? 'px-4 py-2 border-t border-gray-200 bg-gray-50 overflow-x-hidden'
+      : isFullscreenDesktop
+        ? 'px-2 sm:px-4 py-2 border-t border-white/10 bg-transparent overflow-x-hidden'
+        : 'px-3 py-2 border-t border-white/5 bg-transparent';
+
+  const inputWrapperClasses =
+    isPanel
+      ? 'px-4 py-3 border-t border-gray-200 bg-white'
+      : isFullscreenDesktop
+        ? 'px-2 sm:px-4 py-3 border-t border-white/10 bg-transparent'
+        : 'px-3 pb-3 pt-1 bg-transparent';
+
+  const inputClasses =
+    isPanel
+      ? 'flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed'
+      : isFullscreenDesktop
+        ? 'flex-1 px-3 py-2 rounded-full bg-black/40 border border-white/20 text-sm text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-black/10 disabled:text-white/50'
+        : 'flex-1 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-pink-400 disabled:bg-white/5 disabled:text-white/40';
+
+  const sendButtonClasses =
+    isPanel
+      ? 'p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors'
+      : isFullscreenDesktop
+        ? 'p-2 bg-white/20 text-white rounded-full hover:bg-white/30 disabled:bg-white/10 disabled:cursor-not-allowed transition-colors'
+        : 'p-2.5 bg-pink-500 text-white rounded-full shadow-lg shadow-pink-500/30 hover:bg-pink-400 transition-colors disabled:bg-white/20';
+
   return (
-    <div className="flex flex-col h-[calc(85vh-200px)] bg-white rounded-lg border border-gray-200 shadow-sm">
-      {/* Header */}
+    <div className={cn(containerClasses, className)}>
+      {showHeader && (
       <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-        <h3 className="text-sm font-semibold text-gray-900">Chat trực tiếp</h3>
+        {/* Title */}
+        {sessionTitle && (
+          <div className="mb-2">
+            <h3 
+              className={cn(
+                'text-sm font-semibold text-gray-900 break-words',
+                !isTitleExpanded && needsTruncation(sessionTitle) ? 'line-clamp-3' : ''
+              )}
+            >
+              {isTitleExpanded || !needsTruncation(sessionTitle) 
+                ? sessionTitle 
+                : truncateText(sessionTitle)}
+            </h3>
+            {needsTruncation(sessionTitle) && (
+              <button
+                onClick={() => setIsTitleExpanded(!isTitleExpanded)}
+                className="text-xs mt-1 text-blue-600 hover:underline"
+              >
+                {isTitleExpanded ? 'Thu gọn' : 'Xem thêm'}
+              </button>
+            )}
+          </div>
+        )}
+        
+        {/* Description */}
+        {sessionDescription && (
+          <div className="mb-2">
+            <p 
+              className={cn(
+                'text-xs text-gray-600 break-words whitespace-pre-wrap',
+                !isDescriptionExpanded && needsTruncation(sessionDescription) ? 'line-clamp-3' : ''
+              )}
+            >
+              {isDescriptionExpanded || !needsTruncation(sessionDescription)
+                ? sessionDescription
+                : truncateText(sessionDescription)}
+            </p>
+            {needsTruncation(sessionDescription) && (
+              <button
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                className="text-xs mt-1 text-blue-600 hover:underline"
+              >
+                {isDescriptionExpanded ? 'Thu gọn' : 'Xem thêm'}
+              </button>
+            )}
+          </div>
+        )}
+        
         {typingUsers.length > 0 && (
           <p className="text-xs text-gray-500 mt-1">
             {typingUsers.join(', ')} {typingUsers.length === 1 ? 'đang gõ' : 'đang gõ'}...
           </p>
         )}
-        {/* Recent reactions */}
-        {recentReactions.length > 0 && (
+          {recentReactions && recentReactions.length > 0 && (
           <div className="flex items-center gap-1 mt-2">
-            {recentReactions.map((reaction, idx) => (
+              {recentReactions.map((reaction) => (
               <div
-                key={idx}
+                  key={reaction.timestamp}
                 className="text-lg animate-bounce"
                 title={`${reaction.userName} đã gửi ${reaction.emoji}`}
               >
@@ -229,14 +296,15 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
           </div>
         )}
       </div>
+      )}
 
-      {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
+        className={messageWrapperClasses}
+        style={messageMask}
       >
         {allMessages.length === 0 ? (
-          <div className="text-center text-gray-500 text-sm py-8">
+          <div className={variant === 'panel' ? 'text-center text-gray-500 text-sm py-8' : 'text-center text-white/70 text-sm py-8'}>
             {!enabled || !isJoined ? (
               'Đang kết nối...'
             ) : (
@@ -271,15 +339,17 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
                 {/* Message content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className={nameClasses}>
                       {isOwnMessage ? 'Bạn' : msg.sender_name}
                     </span>
-                    <span className="text-xs text-gray-500">{formatTime(msg.timestamp)}</span>
+                    <span className={timeClasses}>{formatTime(msg.timestamp)}</span>
                     {isOptimistic && (
-                      <span className="text-xs text-gray-400 italic">Đang gửi...</span>
+                      <span className={variant === 'panel' ? 'text-xs text-gray-400 italic' : 'text-xs text-white/60 italic'}>
+                        Đang gửi...
+                      </span>
                     )}
                   </div>
-                  <div className="text-sm text-gray-700 break-words">{msg.message}</div>
+                  <div className={`${messageTextClasses} break-words`}>{msg.message}</div>
                 </div>
               </div>
             );
@@ -288,8 +358,7 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Emoji reactions bar */}
-      <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 overflow-x-hidden">
+      <div className={emojiBarClasses}>
         <div className="flex items-center gap-2">
           {EMOJI_REACTIONS.map((emoji) => (
             <button
@@ -301,13 +370,14 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
                 }
               }}
               disabled={!enabled || !isJoined}
-              className={`
-                text-xl p-1 rounded transition-all
-                ${enabled && isJoined 
+              className={cn(
+                'text-xl p-1 rounded transition-all',
+                enabled && isJoined
+                  ? variant === 'panel'
                   ? 'hover:scale-125 hover:bg-gray-200 active:scale-110 cursor-pointer' 
+                    : 'hover:scale-125 hover:bg-white/20 active:scale-110 cursor-pointer'
                   : 'opacity-50 cursor-not-allowed'
-                }
-              `}
+              )}
               title={enabled && isJoined ? `Gửi ${emoji}` : 'Đang kết nối...'}
             >
               {emoji}
@@ -316,8 +386,7 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
         </div>
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSend} className="px-4 py-3 border-t border-gray-200">
+      <form onSubmit={handleSend} className={inputWrapperClasses}>
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -325,19 +394,50 @@ export function LiveStreamChat({ sessionId, enabled = true, sessionStatus }: Liv
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
             onBlur={handleBlur}
-            placeholder={!enabled || !isJoined ? "Đang kết nối..." : "Nhập tin nhắn..."}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            placeholder={!enabled || !isJoined ? 'Đang kết nối...' : 'Nhập tin nhắn...'}
+            className={inputClasses}
             disabled={!enabled || !isJoined}
           />
+          {isFullscreenMobile && (
+            <div className="flex items-center gap-2 text-white/80">
+              <button
+                type="button"
+                onClick={() => sendReaction('❤️')}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                aria-label="Gửi cảm xúc"
+              >
+                <Smile className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                aria-label="Tặng quà"
+              >
+                <Gift className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <button
             type="submit"
             disabled={!message.trim() || !enabled || !isJoined}
-            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-            title={!enabled || !isJoined ? "Đang kết nối..." : "Gửi tin nhắn"}
+            className={sendButtonClasses}
+            title={!enabled || !isJoined ? 'Đang kết nối...' : 'Gửi tin nhắn'}
           >
             <Send className="w-4 h-4" />
           </button>
         </div>
+        {/* {isFullscreenMobile && (
+          <div className="flex items-center justify-between text-xs text-white/60 mt-2 px-1">
+            <span>Vuốt lên để xem thêm bình luận</span>
+            <button
+              type="button"
+              className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 text-white"
+            >
+              <MoreHorizontal className="w-3 h-3" />
+              Tuỳ chọn
+            </button>
+          </div>
+        )} */}
       </form>
     </div>
   );

@@ -5,7 +5,7 @@ import { AuthModalProvider } from '@/contexts/AuthModalContext';
 import { setupInterceptors } from '@/services/http/interceptors';
 import { useAuthStore } from '@/stores/authStore.enhanced';
 import { socketService } from '@/services/socketService';
-import { SocketStatus } from '@/components/debug/SocketStatus';
+// import { SocketStatus } from '@/components/debug/SocketStatus';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -80,7 +80,7 @@ export function AppProviders({ children }: AppProvidersProps) {
     <QueryProvider>
       <AuthModalProvider>
         {children}
-        <SocketStatus />
+        {/* <SocketStatus /> */}
         <Toaster
           position="top-right"
           toastOptions={{

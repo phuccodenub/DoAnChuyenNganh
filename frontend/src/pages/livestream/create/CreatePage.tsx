@@ -2,25 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import {
-  ArrowLeft,
-  Camera,
-  Monitor,
-  Video,
-  Radio,
-  Users,
-  MapPin,
-  Smile,
-  Share2,
-  Globe,
-  Bell,
-  Lock,
-  Mic,
-  Settings,
-  MessageSquare,
-  Clock3,
-  ImageIcon,
-} from 'lucide-react';
+import { ArrowLeft, Video, Radio, Settings, Clock3 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useCreateSession } from '@/hooks/useLivestream';
 import { useCourses } from '@/hooks/useCoursesData';
@@ -28,69 +10,9 @@ import { ROUTES } from '@/constants/routes';
 import { livestreamApi } from '@/services/api/livestream.api';
 import { useQueryClient } from '@tanstack/react-query';
 import { livestreamQueryKeys } from '@/hooks/useLivestream';
-
-type VideoSource = 'webcam' | 'software';
-type AudienceType = 'public' | 'followers' | 'private';
-type GoLiveTiming = 'now' | 'schedule';
-
-const DEFAULT_SERVER_URL = 'rtmp://127.0.0.1/live';
-const DEFAULT_PLAYBACK_BASE = 'http://localhost:8080/hls';
-const HLS_HTTP_BASE = DEFAULT_PLAYBACK_BASE.replace(/\/hls.*$/, '');
-
-/**
- * Sanitize stream key để dùng làm filename an toàn
- * Chỉ giữ lại alphanumeric, dash, underscore
- */
-function sanitizeStreamKeyForFilename(key: string): string {
-  return key.replace(/[^a-zA-Z0-9_-]/g, '_');
-}
-
-/**
- * Generate stream key an toàn cho RTMP
- * Format: LS-{random_alphanumeric} (24 ký tự sau LS-)
- */
-function generateStreamKey() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = 'LS-';
-  for (let i = 0; i < 24; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-function generateRoomId() {
-  return `rtc-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
-}
-
-interface CreateSessionForm {
-  course_id?: string;
-  title: string;
-  description?: string;
-  scheduled_start: string;
-  duration_minutes: number;
-  meeting_url?: string;
-  meeting_password?: string;
-  platform?: string;
-  category?: string;
-  thumbnail_url?: string;
-  videoSource: VideoSource;
-  cameraDevice: string;
-  microphoneDevice: string;
-  shareScreen: boolean;
-  shareToStory: boolean;
-  notifyFollowers: boolean;
-  crosspostGroup: boolean;
-  audience: AudienceType;
-  goLiveTiming: GoLiveTiming;
-  presetCommentEnabled: boolean;
-  presetComment?: string;
-  stream_key: string;
-  server_url: string;
-  usePersistentKey: boolean;
-  enableBackupStream: boolean;
-  playback_url?: string;
-  webrtcRoomId: string;
-}
+import { VideoSourceSelector, PostDetailsForm } from './components';
+import { generateStreamKey, generateRoomId, sanitizeStreamKeyForFilename, DEFAULT_SERVER_URL, DEFAULT_PLAYBACK_BASE, HLS_HTTP_BASE } from './utils';
+import type { CreateSessionForm } from './types';
 
 export function CreateLiveStreamPage() {
   const navigate = useNavigate();
@@ -132,6 +54,7 @@ export function CreateLiveStreamPage() {
       scheduled_start: '',
     },
   });
+
 
   const goLiveTiming = watch('goLiveTiming');
   const audience = watch('audience');
@@ -989,9 +912,9 @@ export function CreateLiveStreamPage() {
             // Vẫn redirect dù auto-start fail, user có thể start thủ công
           }
           
-          console.log('[CreateLiveStreamPage] Redirecting to host page:', createdSession.id);
-          // Redirect đến trang host session
-          navigate(ROUTES.INSTRUCTOR.LIVESTREAM_HOST.replace(':sessionId', createdSession.id));
+          console.log('[CreateLiveStreamPage] Redirecting to session page:', createdSession.id);
+          // Redirect đến trang session (tự động detect host/viewer)
+          navigate(ROUTES.LIVESTREAM.SESSION.replace(':sessionId', createdSession.id));
         } else {
           // Nếu schedule, redirect đến danh sách
           console.log('[CreateLiveStreamPage] Redirecting to list page (scheduled)');
@@ -1012,22 +935,24 @@ export function CreateLiveStreamPage() {
     }
   };
 
-  const steps = [
-    { label: 'Connect video source', description: 'Chọn camera & micro', icon: Video },
-    { label: 'Complete post details', description: 'Điền nội dung hiển thị', icon: MessageSquare },
-    { label: 'Go live', description: 'Xem lại & phát', icon: Radio },
-  ];
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div>
-          <Button variant="ghost" onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)} className="-ml-2 mb-3 text-gray-700 hover:text-blue-600">
+    <div className="bg-gray-50 min-h-screen">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)} 
+            className="mb-4 text-gray-600 hover:text-gray-900"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Quay lại danh sách
+            Quay lại
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Create live video</h1>
-          <p className="text-gray-600">Thiết lập livestream đồng nhất với giao diện hệ thống.</p>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Tạo livestream mới</h1>
+            <p className="text-sm text-gray-500">Thiết lập và cấu hình buổi phát trực tiếp của bạn</p>
+          </div>
         </div>
 
         <form onSubmit={(e) => {
@@ -1049,116 +974,47 @@ export function CreateLiveStreamPage() {
             }
           )(e);
         }}>
-          <div className="grid grid-cols-1 xl:grid-cols-[260px_minmax(0,1fr)_360px] gap-6">
-            <aside className="bg-white rounded-2xl p-6 space-y-6 border border-gray-200 shadow-sm">
-              <div className="space-y-4">
-                {steps.map((step, index) => (
-                  <div key={step.label} className="flex items-start gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center border ${
-                        index === 0 ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-700 border-blue-100'
-                      }`}
-                    >
-                      <step.icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{step.label}</p>
-                      <p className="text-xs text-gray-500">{step.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+            {/* Main Content */}
+            <main className="space-y-4">
+              {/* Video Source Selection */}
+              <VideoSourceSelector
+                value={videoSource}
+                onChange={(value) => setValue('videoSource', value)}
+              />
 
-              <div className="border-t border-gray-100 pt-4 space-y-3 text-sm text-gray-700">
-                <label className="flex items-center justify-between">
-                  <span>Share to story</span>
-                  <input type="checkbox" {...register('shareToStory')} className="accent-blue-600" />
-                </label>
-                <label className="flex items-center justify-between">
-                  <span>Notify followers</span>
-                  <input type="checkbox" {...register('notifyFollowers')} className="accent-blue-600" />
-                </label>
-                <label className="flex items-center justify-between">
-                  <span>Crosspost to group</span>
-                  <input type="checkbox" {...register('crosspostGroup')} className="accent-blue-600" />
-                </label>
-              </div>
-            </aside>
-
-            <main className="space-y-6">
-              <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                <div className="flex items-center justify-between mb-6">
+              {/* {videoSource === 'webcam' && (
+                <section className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 space-y-4">
                   <div>
-                    <p className="text-lg font-semibold text-gray-900">Select a video source</p>
-                    <p className="text-sm text-gray-500">Chọn cách bạn gửi video vào livestream.</p>
-                  </div>
-                  <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
-                    Source connected
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { id: 'webcam', label: 'Webcam', description: 'Dùng camera & micro trên máy', icon: Camera },
-                    { id: 'software', label: 'Streaming software', description: 'Dùng OBS/Streamlabs với stream key', icon: Monitor },
-                  ].map((option) => (
-                    <label
-                      key={option.id}
-                      className={`border rounded-xl p-4 cursor-pointer transition ${
-                        videoSource === option.id ? 'border-blue-500 bg-blue-50 shadow' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            videoSource === option.id ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          <option.icon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">{option.label}</p>
-                          <p className="text-xs text-gray-500">{option.description}</p>
-                        </div>
-                        <input type="radio" value={option.id} className="hidden" {...register('videoSource')} />
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </section>
-
-              {videoSource === 'webcam' && (
-                <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-lg font-semibold text-gray-900">WebRTC livestream</p>
-                      <p className="text-sm text-gray-500">Phát trực tiếp ngay trên trình duyệt với độ trễ thấp.</p>
-                    </div>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">WebRTC livestream</h3>
+                    <p className="text-sm text-gray-500">Phát trực tiếp ngay trên trình duyệt với độ trễ thấp</p>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Mã phòng WebRTC</label>
-                    <div className="flex flex-col md:flex-row gap-3">
+                    <label className="text-sm font-medium text-gray-700 block">Mã phòng WebRTC</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
                         readOnly
                         {...register('webrtcRoomId', { required: true })}
-                        className="flex-1 px-4 py-2 border rounded-lg font-mono text-sm bg-gray-50"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50 text-gray-700"
                       />
                       <div className="flex gap-2">
                         <Button
                           type="button"
                           variant="secondary"
+                          size="sm"
                           onClick={() => handleCopy(webrtcRoomId || '', 'room')}
                         >
-                          {copyFeedback === 'room' ? 'Đã copy' : 'Copy room'}
+                          {copyFeedback === 'room' ? 'Đã copy' : 'Copy'}
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
+                          size="sm"
                           onClick={() => setValue('webrtcRoomId', generateRoomId())}
                         >
-                          Tạo mã mới
+                          Tạo mới
                         </Button>
                       </div>
                     </div>
@@ -1166,66 +1022,54 @@ export function CreateLiveStreamPage() {
                       Mã phòng dùng cho signaling WebRTC. Hệ thống sẽ tự đồng bộ tới trang host/view.
                     </p>
                   </div>
-
-                  <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-                    <li>Instructor/admin có thể phát trực tiếp ngay khi vào trang host.</li>
-                    <li>Sinh viên truy cập trang xem sẽ tự kết nối WebRTC và thấy video theo thời gian thực.</li>
-                    <li>Nếu cần thay đổi mã phòng, hãy cập nhật lại trước khi tạo phiên.</li>
-                  </ul>
                 </section>
-              )}
+              )} */}
 
               {videoSource === 'webcam' && (
-                <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
-                  <div className="flex items-center gap-3">
-                    <Video className="w-5 h-5 text-blue-500" />
+                <section className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                      <Video className="w-4 h-4 text-blue-600" />
+                      Điều khiển camera
+                    </h3>
+                    <p className="text-sm text-gray-500">Kiểm tra camera & micro của bạn</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <p className="text-lg font-semibold text-gray-900">Camera controls</p>
-                      <p className="text-sm text-gray-500">Kiểm tra camera & micro của bạn.</p>
+                      <label className="text-sm font-medium text-gray-700 mb-1.5 block">Camera</label>
+                      <select
+                        {...register('cameraDevice')}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        {cameraOptions.map((option) => (
+                          <option key={option.deviceId} value={option.deviceId}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1.5 block">Microphone</label>
+                      <select
+                        {...register('microphoneDevice')}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        {microphoneOptions.map((option) => (
+                          <option key={option.deviceId} value={option.deviceId}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Camera</label>
-                      <div className="relative">
-                        <select
-                          {...register('cameraDevice')}
-                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          {cameraOptions.map((option) => (
-                            <option key={option.deviceId} value={option.deviceId}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <Camera className="w-4 h-4 text-gray-400 absolute right-3 top-3" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Microphone</label>
-                      <div className="relative">
-                        <select
-                          {...register('microphoneDevice')}
-                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          {microphoneOptions.map((option) => (
-                            <option key={option.deviceId} value={option.deviceId}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <Mic className="w-4 h-4 text-gray-400 absolute right-3 top-3" />
-                      </div>
-                    </div>
-                  </div>
+                  {/* <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                    <input type="checkbox" {...register('shareScreen')} className="w-4 h-4 accent-blue-600 cursor-pointer" />
+                    Bật chia sẻ màn hình
+                  </label> */}
 
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                    <input type="checkbox" {...register('shareScreen')} className="w-4 h-4 accent-blue-600" />
-                    Start screen share
-                  </label>
-
-                  <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden w-full aspect-video min-h-[360px]">
+                  <div className="bg-gray-50 rounded-lg border border-dashed border-gray-300 flex items-center justify-center relative overflow-hidden w-full aspect-video min-h-[300px]">
                     {!cameraPreviewError ? (
                       <>
                         {cameraPreviewLoading && (
@@ -1265,14 +1109,14 @@ export function CreateLiveStreamPage() {
 
               {videoSource === 'software' && (
                 <>
-                  {/* Live stream preview section - hiển thị trước */}
-                  <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+                  {/* Live stream preview section */}
+                  <section className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 space-y-4">
                     <div>
-                      <p className="text-lg font-semibold text-gray-900">Live stream preview</p>
-                      <p className="text-sm text-gray-500">
-                        Xem trực tiếp luồng từ OBS để kiểm tra tín hiệu trước khi go live.
+                      <h3 className="text-base font-semibold text-gray-900 mb-1">Xem trước livestream</h3>
+                      <p className="text-sm text-gray-500 mb-3">
+                        Xem trực tiếp luồng từ OBS để kiểm tra tín hiệu trước khi phát sóng
                       </p>
-                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <p className="text-xs font-medium text-blue-900 mb-1">📋 Hướng dẫn:</p>
                         <ol className="text-xs text-blue-800 list-decimal list-inside space-y-1">
                           <li>Copy <strong>Server URL</strong> và <strong>Stream Key</strong> ở trên (phải copy key MỚI NHẤT)</li>
@@ -1286,7 +1130,7 @@ export function CreateLiveStreamPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden w-full aspect-video min-h-[360px]">
+                    <div className="bg-gray-50 rounded-lg border border-dashed border-gray-300 flex items-center justify-center relative overflow-hidden w-full aspect-video min-h-[300px]">
                       {streamPreviewLoading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
                           <div className="text-center space-y-3">
@@ -1482,12 +1326,12 @@ export function CreateLiveStreamPage() {
                     </div>
                   </section>
 
-                  {/* Streaming software setup section - hiển thị sau Live stream preview */}
-                  <section className="bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-lg p-6 space-y-6">
+                  {/* Streaming software setup section */}
+                  <section className="bg-gray-900 text-white rounded-lg border border-gray-800 shadow-sm p-5 space-y-4">
                     <div>
-                      <p className="text-lg font-semibold">Streaming software setup</p>
-                      <p className="text-sm text-slate-300">
-                        Sao chép thông tin này và dán vào OBS, Streamlabs hoặc phần mềm RTMP khác.
+                      <h3 className="text-base font-semibold mb-1">Cấu hình phần mềm streaming</h3>
+                      <p className="text-sm text-gray-300">
+                        Sao chép thông tin này và dán vào OBS, Streamlabs hoặc phần mềm RTMP khác
                       </p>
                     </div>
 
@@ -1583,26 +1427,26 @@ export function CreateLiveStreamPage() {
                     </div>
                   </section>
 
-                  <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                    <p className="text-sm font-semibold text-gray-900 mb-3">Hướng dẫn kết nối OBS/Streamlabs</p>
+                  <section className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Hướng dẫn kết nối OBS/Streamlabs</h3>
                     <ol className="list-decimal text-sm text-gray-600 pl-5 space-y-2">
-                      <li>Mở OBS &gt; Settings &gt; Stream.</li>
-                      <li>Chọn Service là `Custom...`, dán `Server URL` và `Stream Key` ở trên.</li>
-                      <li>Nếu muốn backup stream, bật chế độ này trong OBS và cấu hình luồng phụ.</li>
-                      <li>Nhãn bitrate đề xuất 4500 - 6000 kbps, encoder H.264.</li>
-                      <li>Nhấn `Start Streaming` để gửi tín hiệu preview về nền tảng này.</li>
+                      <li>Mở OBS → Settings → Stream</li>
+                      <li>Chọn Service là "Custom...", dán "Server URL" và "Stream Key" ở trên</li>
+                      <li>Nếu muốn backup stream, bật chế độ này trong OBS và cấu hình luồng phụ</li>
+                      <li>Bitrate đề xuất: 4500 - 6000 kbps, encoder H.264</li>
+                      <li>Nhấn "Start Streaming" để gửi tín hiệu preview về nền tảng này</li>
                     </ol>
                   </section>
                 </>
               )}
 
-              <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  <Settings className="w-5 h-5 text-blue-500" />
-                  <div>
-                    <p className="text-lg font-semibold text-gray-900">Stream / meeting setup</p>
-                    <p className="text-sm text-gray-500">Điền link họp hoặc stream key nếu dùng nền tảng khác.</p>
-                  </div>
+              {/* <section className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 space-y-4">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-blue-600" />
+                    Cấu hình stream / meeting
+                  </h3>
+                  <p className="text-sm text-gray-500">Điền link họp hoặc stream key nếu dùng nền tảng khác</p>
                 </div>
 
                 {videoSource === 'software' ? (
@@ -1632,201 +1476,23 @@ export function CreateLiveStreamPage() {
                     </div>
                   </div>
                 )}
-              </section>
+              </section> */}
             </main>
 
-            <aside className="space-y-6">
-              <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-lg font-semibold text-gray-900">Add post details</p>
-                    <p className="text-sm text-gray-500">Thông tin hiển thị tới người xem.</p>
-                  </div>
-                  <Share2 className="w-4 h-4 text-gray-400" />
-                </div>
-
-                <div>
-                  <label className="text-xs uppercase text-gray-500 mb-1 block">What's your live video about?</label>
-                  <input
-                    type="text"
-                    {...register('title', {
-                      required: 'Vui lòng nhập tiêu đề',
-                      maxLength: { value: 255, message: 'Tối đa 255 ký tự' },
-                    })}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.title ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    placeholder="Tên buổi phát trực tiếp"
-                  />
-                  {errors.title && (
-                    <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>
-                  )}
-                </div>
-
-                <textarea
-                  {...register('description')}
-                  rows={4}
-                  placeholder="Mô tả livestream..."
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-
-                <div className="flex flex-wrap gap-2 text-sm text-blue-600">
-                  <button type="button" className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50">
-                    <Users className="w-3 h-3" />
-                    Tag people
-                  </button>
-                  <button type="button" className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50">
-                    <MapPin className="w-3 h-3" />
-                    Check in
-                  </button>
-                  <button type="button" className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50">
-                    <Smile className="w-3 h-3" />
-                    Feeling/activity
-                  </button>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Gắn với khóa học</label>
-                  <select
-                    {...register('course_id')}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Không gắn khóa học</option>
-                    {courses.map((course: any) => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Audience</p>
-                  {[
-                    { id: 'public', label: 'Public', icon: Globe, description: 'Bất kỳ ai cũng xem được' },
-                    { id: 'followers', label: 'Followers', icon: Bell, description: 'Chỉ người theo dõi' },
-                    { id: 'private', label: 'Only me / nhóm riêng', icon: Lock, description: 'Giới hạn người xem' },
-                  ].map((item) => (
-                    <label
-                      key={item.id}
-                      className={`flex items-center gap-3 border rounded-xl px-3 py-2 cursor-pointer ${
-                        audience === item.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                      }`}
-                    >
-                      <input type="radio" value={item.id} {...register('audience')} className="accent-blue-600" />
-                      <div>
-                        <div className="flex items-center gap-1 font-medium text-gray-900">
-                          <item.icon className="w-4 h-4" />
-                          {item.label}
-                        </div>
-                        <p className="text-xs text-gray-500">{item.description}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Khi nào bạn muốn lên sóng?</label>
-                    <select
-                      {...register('goLiveTiming')}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="now">Now</option>
-                      <option value="schedule">Schedule for later</option>
-                    </select>
-                  </div>
-
-                  {goLiveTiming === 'schedule' && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Thời gian phát</label>
-                      <input
-                        type="datetime-local"
-                        {...register('scheduled_start', { required: 'Vui lòng chọn thời gian' })}
-                        min={new Date().toISOString().slice(0, 16)}
-                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent ${
-                          errors.scheduled_start ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      {errors.scheduled_start && (
-                        <p className="text-red-500 text-xs mt-1">{errors.scheduled_start.message}</p>
-                      )}
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Thời lượng dự kiến (phút)</label>
-                    <input
-                      type="number"
-                      {...register('duration_minutes', {
-                        required: 'Vui lòng nhập thời lượng',
-                        min: { value: 15, message: 'Tối thiểu 15 phút' },
-                        max: { value: 480, message: 'Tối đa 480 phút' },
-                      })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent ${
-                        errors.duration_minutes ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.duration_minutes && (
-                      <p className="text-red-500 text-xs mt-1">{errors.duration_minutes.message}</p>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-lg font-semibold text-gray-900">Preset pinned comment</p>
-                    <p className="text-sm text-gray-500">Comment sẽ tự động pin khi bạn live.</p>
-                  </div>
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                    Enable
-                    <input type="checkbox" {...register('presetCommentEnabled')} className="w-4 h-4 accent-blue-600" />
-                  </label>
-                </div>
-
-                {presetCommentEnabled && (
-                  <textarea
-                    {...register('presetComment')}
-                    rows={3}
-                    placeholder="Ví dụ: Chào mọi người, hãy đặt câu hỏi tại đây!"
-                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus-border-transparent"
-                  />
-                )}
-              </section>
-
-              <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Danh mục / Tag</label>
-                  <input
-                    type="text"
-                    {...register('category')}
-                    placeholder="Q&A, Workshop..."
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                    <ImageIcon className="w-4 h-4 text-gray-400" />
-                    Thumbnail URL
-                  </label>
-                  <input
-                    type="url"
-                    {...register('thumbnail_url')}
-                    placeholder="https://example.com/thumbnail.jpg"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent"
-                  />
-                </div>
-              </section>
-            </aside>
+            {/* Right Sidebar - Form Details */}
+            <PostDetailsForm
+              register={register}
+              errors={errors}
+              watch={watch}
+              courses={courses}
+            />
           </div>
 
-          {/* Form actions - di chuyển vào trong form */}
-          <div className="sticky bottom-0 mt-8 bg-white/90 backdrop-blur border-t border-gray-200 py-4 px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-3 text-sm text-gray-600">
+          {/* Form Actions */}
+          <div className="sticky bottom-0 mt-6 bg-white border-t border-gray-200 py-4 px-4 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
               <Clock3 className="w-4 h-4" />
-              {goLiveTiming === 'now' ? 'Ready to go live now' : 'Bạn đang lên lịch livestream'}
+              <span>{goLiveTiming === 'now' ? 'Sẵn sàng phát sóng ngay' : 'Bạn đang lên lịch livestream'}</span>
             </div>
             <div className="flex items-center gap-3">
               <Button
@@ -1840,17 +1506,17 @@ export function CreateLiveStreamPage() {
               <Button 
                 type="submit" 
                 disabled={isSubmitting} 
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 min-w-[140px] justify-center"
               >
                 {isSubmitting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Đang tạo...
+                    <span>Đang tạo...</span>
                   </>
                 ) : (
                   <>
                     <Radio className="w-4 h-4" />
-                    {goLiveTiming === 'now' ? 'Go live now' : 'Schedule live video'}
+                    <span>{goLiveTiming === 'now' ? 'Phát sóng ngay' : 'Lên lịch'}</span>
                   </>
                 )}
               </Button>
@@ -1864,353 +1530,3 @@ export function CreateLiveStreamPage() {
 }
 
 export default CreateLiveStreamPage;
-/**
- * CreateLiveStreamPage - Instructor
- * 
- * Trang tạo phiên livestream mới
- * Features:
- * - Form with validation
- * - Course selector
- * - Schedule future session
- * - Meeting info configuration
- */
-
-// import { useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { useForm } from 'react-hook-form';
-// import { ArrowLeft, Calendar, Clock, Video, Save } from 'lucide-react';
-// import { Button } from '@/components/ui/Button';
-// import { useCreateSession } from '@/hooks/useLivestream';
-// import { useCourses } from '@/hooks/useCoursesData';
-// import { ROUTES } from '@/constants/routes';
-
-// interface CreateSessionForm {
-//   course_id?: string;
-//   title: string;
-//   description?: string;
-//   scheduled_start: string;
-//   duration_minutes: number;
-//   meeting_url?: string;
-//   meeting_password?: string;
-//   platform?: string;
-//   category?: string;
-//   thumbnail_url?: string;
-//   is_public?: boolean;
-// }
-
-// /**
-//  * CreateLiveStreamPage Component
-//  */
-// export function CreateLiveStreamPage() {
-//   const navigate = useNavigate();
-//   const [isSubmitting, setIsSubmitting] = useState(false);
-
-//   // Fetch instructor's courses
-//   const { data: coursesResponse } = useCourses();
-//   const courses = coursesResponse?.data?.courses || [];
-
-//   // Create session mutation
-//   const createSession = useCreateSession();
-
-//   // Form
-//   const { register, handleSubmit, formState: { errors } } = useForm<CreateSessionForm>({
-//     defaultValues: {
-//       duration_minutes: 60,
-//       is_public: true,
-//     },
-//   });
-
-//   // Submit handler
-//   const onSubmit = async (data: CreateSessionForm) => {
-//     try {
-//       setIsSubmitting(true);
-
-//       // Validate scheduled time is in future
-//       const scheduledDate = new Date(data.scheduled_start);
-//       if (scheduledDate <= new Date()) {
-//         alert('Thời gian bắt đầu phải là thời điểm trong tương lai');
-//         setIsSubmitting(false);
-//         return;
-//       }
-
-//       await createSession.mutateAsync({
-//         course_id: data.course_id || null,
-//         title: data.title,
-//         description: data.description,
-//         scheduled_start: data.scheduled_start,
-//         duration_minutes: Number(data.duration_minutes),
-//         meeting_url: data.meeting_url,
-//         meeting_password: data.meeting_password,
-//         platform: data.platform,
-//         category: data.category,
-//         thumbnail_url: data.thumbnail_url,
-//         is_public: data.is_public,
-//       });
-
-//       alert('Tạo phiên livestream thành công!');
-//       navigate(ROUTES.INSTRUCTOR.LIVESTREAM);
-//     } catch (error: any) {
-//       console.error('Create session error:', error);
-//       alert(error.message || 'Có lỗi xảy ra khi tạo phiên livestream');
-//     } finally {
-//       setIsSubmitting(false);
-//     }
-//   };
-
-//   return (
-//     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-//       {/* Header */}
-//       <div className="mb-8">
-//         <Button
-//           variant="ghost"
-//           onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)}
-//           className="mb-4 -ml-2"
-//         >
-//           <ArrowLeft className="w-4 h-4 mr-2" />
-//           Quay lại danh sách
-//         </Button>
-//         <h1 className="text-3xl font-bold text-gray-900">Tạo phiên Livestream mới</h1>
-//         <p className="text-gray-600 mt-2">
-//           Lên lịch một phiên livestream để kết nối trực tiếp với học viên
-//         </p>
-//       </div>
-
-//       {/* Form */}
-//       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-//         {/* Basic Information Card */}
-//         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-//           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-//             <Video className="w-5 h-5" />
-//             Thông tin cơ bản
-//           </h2>
-
-//           <div className="space-y-4">
-//             {/* Course Selector */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Khóa học (tùy chọn)
-//               </label>
-//               <select
-//                 {...register('course_id')}
-//                 className="
-//                   w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent
-//                   border-gray-300
-//                 "
-//               >
-//                 <option value="">Chọn khóa học (nếu áp dụng)</option>
-//                 {courses.map((course: any) => (
-//                   <option key={course.id} value={course.id}>
-//                     {course.title}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-
-//             {/* Title */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Tiêu đề phiên livestream <span className="text-red-500">*</span>
-//               </label>
-//               <input
-//                 type="text"
-//                 {...register('title', { 
-//                   required: 'Vui lòng nhập tiêu đề',
-//                   maxLength: { value: 255, message: 'Tiêu đề không được quá 255 ký tự' }
-//                 })}
-//                 placeholder="VD: Ôn tập giữa kỳ - Chương 1-3"
-//                 className={`
-//                   w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent
-//                   ${errors.title ? 'border-red-500' : 'border-gray-300'}
-//                 `}
-//               />
-//               {errors.title && (
-//                 <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
-//               )}
-//             </div>
-
-//             {/* Description */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Mô tả (tùy chọn)
-//               </label>
-//               <textarea
-//                 {...register('description')}
-//                 rows={4}
-//                 placeholder="Mô tả nội dung sẽ được thảo luận trong phiên livestream..."
-//                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-//               />
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Schedule Card */}
-//         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-//           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-//             <Calendar className="w-5 h-5" />
-//             Lịch trình
-//           </h2>
-
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//             {/* Scheduled Date & Time */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Thời gian bắt đầu <span className="text-red-500">*</span>
-//               </label>
-//               <input
-//                 type="datetime-local"
-//                 {...register('scheduled_start', { required: 'Vui lòng chọn thời gian' })}
-//                 min={new Date().toISOString().slice(0, 16)}
-//                 className={`
-//                   w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent
-//                   ${errors.scheduled_start ? 'border-red-500' : 'border-gray-300'}
-//                 `}
-//               />
-//               {errors.scheduled_start && (
-//                 <p className="text-red-500 text-sm mt-1">{errors.scheduled_start.message}</p>
-//               )}
-//             </div>
-
-//             {/* Duration */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Thời lượng (phút) <span className="text-red-500">*</span>
-//               </label>
-//               <input
-//                 type="number"
-//                 {...register('duration_minutes', { 
-//                   required: 'Vui lòng nhập thời lượng',
-//                   min: { value: 15, message: 'Thời lượng tối thiểu 15 phút' },
-//                   max: { value: 480, message: 'Thời lượng tối đa 8 giờ (480 phút)' }
-//                 })}
-//                 placeholder="60"
-//                 className={`
-//                   w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent
-//                   ${errors.duration_minutes ? 'border-red-500' : 'border-gray-300'}
-//                 `}
-//               />
-//               {errors.duration_minutes && (
-//                 <p className="text-red-500 text-sm mt-1">{errors.duration_minutes.message}</p>
-//               )}
-//               <p className="text-gray-500 text-xs mt-1">
-//                 Đề xuất: 60 phút cho phiên thông thường
-//               </p>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Meeting Information Card */}
-//         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-//           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-//             <Clock className="w-5 h-5" />
-//             Thông tin họp (tùy chọn)
-//           </h2>
-
-//           <p className="text-sm text-gray-600 mb-4">
-//             Nếu bạn sử dụng nền tảng bên thứ ba (Zoom, Google Meet), điền thông tin bên dưới
-//           </p>
-
-//           <div className="space-y-4">
-//             {/* Meeting URL */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Link họp
-//               </label>
-//               <input
-//                 type="url"
-//                 {...register('meeting_url')}
-//                 placeholder="https://zoom.us/j/123456789"
-//                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               />
-//             </div>
-
-//             {/* Meeting Password */}
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">
-//                 Mật khẩu
-//               </label>
-//               <input
-//                 type="text"
-//                 {...register('meeting_password')}
-//                 placeholder="••••••"
-//                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               />
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Advanced options */}
-//         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-//           <h2 className="text-lg font-semibold text-gray-900 mb-4">Tùy chọn nâng cao</h2>
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">Nền tảng</label>
-//               <input
-//                 type="text"
-//                 placeholder="internal, zoom, youtube..."
-//                 {...register('platform')}
-//                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
-//               <input
-//                 type="text"
-//                 placeholder="Q&A, Ôn tập, Workshop..."
-//                 {...register('category')}
-//                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               />
-//             </div>
-//             <div>
-//               <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail URL</label>
-//               <input
-//                 type="url"
-//                 placeholder="https://example.com/thumbnail.jpg"
-//                 {...register('thumbnail_url')}
-//                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//               />
-//             </div>
-//             <label className="flex items-center gap-2 text-sm text-gray-700">
-//               <input
-//                 type="checkbox"
-//                 {...register('is_public')}
-//                 className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-//               />
-//               Công khai (cho phép mọi người xem)
-//             </label>
-//           </div>
-//         </div>
-
-//         {/* Actions */}
-//         <div className="flex items-center justify-end gap-4">
-//           <Button
-//             type="button"
-//             variant="ghost"
-//             onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)}
-//             disabled={isSubmitting}
-//           >
-//             Hủy
-//           </Button>
-//           <Button
-//             type="submit"
-//             disabled={isSubmitting}
-//             className="flex items-center gap-2"
-//           >
-//             {isSubmitting ? (
-//               <>
-//                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-//                 Đang tạo...
-//               </>
-//             ) : (
-//               <>
-//                 <Save className="w-4 h-4" />
-//                 Lưu và lên lịch
-//               </>
-//             )}
-//           </Button>
-//         </div>
-//       </form>
-//     </div>
-//   );
-// }
-
-// export default CreateLiveStreamPage;

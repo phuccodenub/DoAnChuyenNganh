@@ -51,11 +51,9 @@ export const ROUTES = {
     GRADES: '/instructor/courses/:courseId/grades',
     STUDENTS: '/instructor/students',
     ANALYTICS: '/instructor/analytics',
-    LIVESTREAM: '/instructor/livestream',
-    LIVESTREAM_CREATE: '/instructor/livestream/create',
-    LIVESTREAM_HOST: '/instructor/livestream/:sessionId/host',
-    LIVESTREAM_SESSION: '/instructor/livestream/:sessionId',
-    CHAT: '/instructor/chat',
+    LIVESTREAM: '/livestream',
+    LIVESTREAM_CREATE: '/livestream/create',
+    LIVESTREAM_SESSION: '/livestream/:sessionId',
   },
   
   // Admin routes
