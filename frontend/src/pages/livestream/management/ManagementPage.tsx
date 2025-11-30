@@ -1,5 +1,5 @@
 /**
- * LiveStreamManagementPage - Instructor
+ * ManagementPage - Livestream Management
  * 
  * Trang quản lý các phiên livestream của giảng viên
  * Features:
@@ -22,9 +22,9 @@ import type { LiveSession } from '@/services/api/livestream.api';
 type SessionStatus = 'all' | 'scheduled' | 'live' | 'ended' | 'cancelled';
 
 /**
- * LiveStreamManagementPage Component
+ * ManagementPage Component
  */
-export function LiveStreamManagementPage() {
+export function ManagementPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<SessionStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,7 +220,7 @@ export function LiveStreamManagementPage() {
                   <Button
                     size="sm"
                     onClick={() =>
-                      navigate(ROUTES.INSTRUCTOR.LIVESTREAM_HOST.replace(':sessionId', session.id))
+                      navigate(ROUTES.LIVESTREAM.SESSION.replace(':sessionId', session.id))
                     }
                     className="flex items-center gap-1"
                   >
@@ -233,7 +233,7 @@ export function LiveStreamManagementPage() {
                     size="sm"
                     variant="danger"
                     onClick={() =>
-                      navigate(ROUTES.INSTRUCTOR.LIVESTREAM_HOST.replace(':sessionId', session.id))
+                      navigate(ROUTES.LIVESTREAM.SESSION.replace(':sessionId', session.id))
                     }
                     className="flex items-center gap-1"
                   >
@@ -290,4 +290,4 @@ export function LiveStreamManagementPage() {
   );
 }
 
-export default LiveStreamManagementPage;
+export default ManagementPage;

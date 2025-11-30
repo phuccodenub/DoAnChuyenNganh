@@ -65,7 +65,9 @@ async function startServer() {
     logger.info('Initializing Socket.IO gateways...');
     new ChatGateway(io);
     new WebRTCGateway(io);
-    new LiveStreamGateway(io);
+    const livestreamGateway = new LiveStreamGateway(io);
+    // Export gateway instance for use in controllers/services
+    (global as any).livestreamGateway = livestreamGateway;
     logger.info('Socket.IO gateways initialized');
     
     // Start HTTP server (this will also start Socket.IO)

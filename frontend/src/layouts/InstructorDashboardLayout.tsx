@@ -218,7 +218,7 @@ export function InstructorDashboardLayout() {
           sidebarOpen ? 'lg:pl-64' : 'lg:pl-20'
         )}
       >
-        <div className="p-6">
+        <div>
           <Outlet />
         </div>
       </main>
