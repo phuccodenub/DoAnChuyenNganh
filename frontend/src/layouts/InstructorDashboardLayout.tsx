@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, ReactNode } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Users, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Users,
   BarChart3,
   Settings,
   Menu,
@@ -14,13 +14,15 @@ import {
   Video,
   ChevronLeft,
   ChevronRight,
-  Search
+  Search,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/routes';
 import { getDashboardByRole } from '@/utils/navigation';
 import { cn } from '@/lib/utils';
 import { NotificationPanel } from '@/components/notifications/NotificationPanel';
+import { MessagePanel } from '@/components/messages/MessagePanel';
 
 interface NavItem {
   label: string;
@@ -61,6 +63,11 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
       label: 'Khóa học của tôi',
       path: ROUTES.INSTRUCTOR.MY_COURSES,
       icon: <BookOpen className="w-5 h-5" />,
+    },
+    {
+      label: 'Tin nhắn',
+      path: ROUTES.INSTRUCTOR.CHAT,
+      icon: <MessageCircle className="w-5 h-5" />,
     },
     {
       label: 'Livestream',
@@ -273,6 +280,9 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
 
             {/* Right side items */}
             <div className="flex items-center gap-4">
+              {/* Message Panel */}
+              <MessagePanel />
+
               {/* Notification Panel */}
               <NotificationPanel />
 

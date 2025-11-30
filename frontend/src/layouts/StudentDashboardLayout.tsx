@@ -1,25 +1,27 @@
 import { ReactNode, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Home, 
-  BookOpen, 
-  User, 
-  Settings, 
-  LogOut, 
-  Menu, 
+import {
+  Home,
+  BookOpen,
+  User,
+  Settings,
+  LogOut,
+  Menu,
   X,
   Bell,
   ClipboardList,
   ChevronLeft,
   ChevronRight,
   Search,
-  LayoutDashboard
+  LayoutDashboard,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/routes';
 import { getDashboardByRole } from '@/utils/navigation';
 import { cn } from '@/lib/utils';
 import { NotificationPanel } from '@/components/notifications/NotificationPanel';
+import { MessagePanel } from '@/components/messages/MessagePanel';
 
 interface StudentDashboardLayoutProps {
   children: ReactNode;
@@ -29,6 +31,7 @@ const navigation = [
   { name: 'Trang chủ', href: ROUTES.STUDENT.DASHBOARD, icon: Home },
   { name: 'Khóa học của tôi', href: ROUTES.STUDENT.MY_COURSES, icon: BookOpen },
   { name: 'Bài tập', href: ROUTES.STUDENT.ASSIGNMENTS, icon: ClipboardList },
+  { name: 'Tin nhắn', href: ROUTES.STUDENT.CHAT, icon: MessageCircle },
   { name: 'Thông báo', href: ROUTES.STUDENT.NOTIFICATIONS, icon: Bell },
   { name: 'Hồ sơ', href: ROUTES.PROFILE, icon: User },
   { name: 'Cài đặt', href: ROUTES.STUDENT.SETTINGS, icon: Settings },
@@ -241,6 +244,9 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
 
             {/* Right side items */}
             <div className="flex items-center gap-4">
+              {/* Message Panel */}
+              <MessagePanel />
+
               {/* Notification Panel */}
               <NotificationPanel />
 

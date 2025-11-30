@@ -9,7 +9,8 @@ import {
   PlayCircle,
   FileText,
   DollarSign,
-  Share2
+  Share2,
+  MessageCircle
 } from 'lucide-react';
 import { useCourse, useEnrollCourse, useCourseProgress } from '@/hooks/useCoursesData';
 import { useCourseContent } from '@/hooks/useLessonData';
@@ -477,6 +478,19 @@ export function CourseDetailPage() {
                       <span>1000+ học viên</span>
                     </div>
                   </div>
+
+                  {/* Nút nhắn tin với giảng viên - chỉ hiển thị khi đã enrolled */}
+                  {isUserEnrolled && (
+                    <Button
+                      variant="outline"
+                      fullWidth
+                      className="mt-4 gap-2"
+                      onClick={() => navigate(generateRoute.student.chat(courseId))}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Nhắn tin với giảng viên
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
