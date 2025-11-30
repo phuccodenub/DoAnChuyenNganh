@@ -24,6 +24,7 @@ const LearningPage = lazy(() => import('@/pages/student/LearningPage'));
 const QuizPage = lazy(() => import('@/pages/student/QuizPage'));
 const QuizResultsPage = lazy(() => import('@/pages/student/QuizResultsPage'));
 const AssignmentPage = lazy(() => import('@/pages/student/AssignmentPage'));
+const StudentChatPage = lazy(() => import('@/pages/student/ChatPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 
@@ -41,6 +42,7 @@ const StudentManagementPage = lazy(() => import('@/pages/instructor/StudentManag
 const LiveStreamManagementPage = lazy(() => import('@/pages/instructor/LiveStreamManagementPage'));
 const CreateLiveStreamPage = lazy(() => import('@/pages/instructor/CreateLiveStreamPage'));
 const LiveStreamHostPage = lazy(() => import('@/pages/livestream/host/HostPage'));
+const InstructorChatPage = lazy(() => import('@/pages/instructor/InstructorChatPage'));
 
 // Admin pages
 const AdminDashboardLayout = lazy(() => import('@/layouts/AdminDashboardLayout'));
@@ -119,6 +121,7 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
             <Route path={ROUTES.STUDENT.SETTINGS} element={<SettingsPage />} />
             <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
+            <Route path={ROUTES.STUDENT.CHAT} element={<StudentChatPage />} />
             {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
           </Route>
 
@@ -139,6 +142,7 @@ function AppRoutes() {
               <Route path={ROUTES.INSTRUCTOR.STUDENTS} element={<StudentManagementPage />} />
               <Route path={ROUTES.INSTRUCTOR.LIVESTREAM} element={<LiveStreamManagementPage />} />
               <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_HOST} element={<LiveStreamHostPage />} />
+              <Route path={ROUTES.INSTRUCTOR.CHAT} element={<InstructorChatPage />} />
             </Route>
             {/* Livestream create page sử dụng layout riêng giống Facebook */}
             <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />

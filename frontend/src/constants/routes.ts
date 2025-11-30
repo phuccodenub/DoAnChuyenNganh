@@ -30,6 +30,7 @@ export const ROUTES = {
     ASSIGNMENT: '/student/courses/:courseId/assignments/:assignmentId',
     SETTINGS: '/student/settings',
     NOTIFICATIONS: '/student/notifications',
+    CHAT: '/student/chat',
   },
   
   // Instructor routes
@@ -54,6 +55,7 @@ export const ROUTES = {
     LIVESTREAM_CREATE: '/instructor/livestream/create',
     LIVESTREAM_HOST: '/instructor/livestream/:sessionId/host',
     LIVESTREAM_SESSION: '/instructor/livestream/:sessionId',
+    CHAT: '/instructor/chat',
   },
   
   // Admin routes
@@ -105,11 +107,14 @@ export const generateRoute = {
     quizAttempt: (quizId: string, attemptId: string) => 
       `/student/quizzes/${quizId}/attempt/${attemptId}`,
     assignment: (assignmentId: string) => `/student/assignments/${assignmentId}`,
+    chat: (courseId?: string) => 
+      courseId ? `/student/chat?courseId=${courseId}` : '/student/chat',
   },
   
   instructor: {
     courseDetail: (courseId: string) => `/instructor/courses/${courseId}`,
     courseEdit: (courseId: string) => `/instructor/courses/${courseId}/edit`,
+    curriculum: (courseId: string) => `/instructor/courses/${courseId}/curriculum`,
     courseStudents: (courseId: string) => `/instructor/courses/${courseId}/students`,
     quizCreate: (courseId: string) => `/instructor/courses/${courseId}/quizzes/create`,
     quizEdit: (quizId: string) => `/instructor/quizzes/${quizId}/edit`,
@@ -122,6 +127,8 @@ export const generateRoute = {
       `/instructor/assignments/${assignmentId}/submissions`,
     courseGrades: (courseId: string) => `/instructor/courses/${courseId}/grades`,
     livestreamSession: (sessionId: string) => `/instructor/livestream/${sessionId}`,
+    chat: (courseId?: string) => 
+      courseId ? `/instructor/chat?courseId=${courseId}` : '/instructor/chat',
   },
   livestream: {
     session: (sessionId: string) => `/livestream/${sessionId}`,

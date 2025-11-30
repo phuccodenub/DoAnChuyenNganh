@@ -6,6 +6,8 @@ import useAuth from '@/hooks/useAuth'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { ROUTES } from '@/constants/routes'
 import { getDashboardByRole } from '@/utils/navigation'
+import { NotificationPanel } from '@/components/notifications/NotificationPanel'
+import { MessagePanel } from '@/components/messages/MessagePanel'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -76,7 +78,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
               <Menu className="h-6 w-6 text-gray-700" />
             </button>
           )}
-          
+
           <div className="flex items-center gap-2">
             <img src="/GekLearn.png" alt="GekLearn logo" className="h-10 w-auto object-contain" />
           </div>
@@ -97,132 +99,141 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
         {/* Right section: User avatar/buttons */}
         <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
           {isAuthenticated && user ? (
-            <div className="relative" ref={profileRef}>
-              <button
-                type="button"
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full transition-all hover:ring-2 hover:ring-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-indigo-600 ring-2 ring-white">
-                  {user.avatar_url ? (
-                    <img
-                      src={user.avatar_url}
-                      alt={user.first_name + ' ' + user.last_name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-sm font-semibold text-white">
-                      {getInitials(user.first_name + ' ' + user.last_name)}
-                    </span>
-                  )}
-                </div>
-              </button>
+            <>
+              {/* Message Panel */}
+              <MessagePanel />
 
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white shadow-2xl border border-slate-200 overflow-hidden">
-                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-indigo-600 ring-4 ring-white shadow-md">
-                        {user.avatar_url ? (
-                          <img
-                            src={user.avatar_url}
-                            alt={user.first_name + ' ' + user.last_name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xl font-semibold text-white">
-                            {getInitials(user.first_name + ' ' + user.last_name)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-semibold text-slate-900 truncate">
-                          {user.first_name + ' ' + user.last_name}
-                        </p>
-                        <p className="text-sm text-slate-600 truncate">{user.email}</p>
-                        {user.role && (
-                          <p className="text-xs text-slate-500 mt-0.5 capitalize">
-                            {user.role === 'super_admin' ? 'Super Admin' : user.role}
+              {/* Notification Panel */}
+              <NotificationPanel />
+
+              {/* Profile Menu */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="relative flex h-10 w-10 items-center justify-center rounded-full transition-all hover:ring-2 hover:ring-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-indigo-600 ring-2 ring-white">
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url}
+                        alt={user.first_name + ' ' + user.last_name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-semibold text-white">
+                        {getInitials(user.first_name + ' ' + user.last_name)}
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white shadow-2xl border border-slate-200 overflow-hidden">
+                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 border-b border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-indigo-600 ring-4 ring-white shadow-md">
+                          {user.avatar_url ? (
+                            <img
+                              src={user.avatar_url}
+                              alt={user.first_name + ' ' + user.last_name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xl font-semibold text-white">
+                              {getInitials(user.first_name + ' ' + user.last_name)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-semibold text-slate-900 truncate">
+                            {user.first_name + ' ' + user.last_name}
                           </p>
-                        )}
+                          <p className="text-sm text-slate-600 truncate">{user.email}</p>
+                          {user.role && (
+                            <p className="text-xs text-slate-500 mt-0.5 capitalize">
+                              {user.role === 'super_admin' ? 'Super Admin' : user.role}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    <div className="py-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate(getProfileRoute())
+                          setIsProfileOpen(false)
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
+                          <User className="h-5 w-5 text-slate-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">Hồ sơ của tôi</p>
+                          <p className="text-xs text-slate-500">Xem và chỉnh sửa hồ sơ</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate(getDashboardRoute())
+                          setIsProfileOpen(false)
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
+                          <LayoutDashboard className="h-5 w-5 text-slate-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">Bảng điều khiển</p>
+                          <p className="text-xs text-slate-500">Quản lý khóa học và hoạt động</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const settingsRoute = user?.role === 'student'
+                            ? ROUTES.STUDENT.SETTINGS
+                            : getDashboardRoute()
+                          navigate(settingsRoute)
+                          setIsProfileOpen(false)
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
+                          <Settings className="h-5 w-5 text-slate-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">Cài đặt</p>
+                          <p className="text-xs text-slate-500">Quản lý tài khoản và quyền riêng tư</p>
+                        </div>
+                      </button>
+
+                      <div className="my-2 border-t border-slate-200" />
+
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-50">
+                          <LogOut className="h-5 w-5 text-red-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">Đăng xuất</p>
+                          <p className="text-xs text-red-500">Thoát khỏi tài khoản</p>
+                        </div>
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="py-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigate(getProfileRoute())
-                        setIsProfileOpen(false)
-                      }}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                    >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
-                        <User className="h-5 w-5 text-slate-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">Hồ sơ của tôi</p>
-                        <p className="text-xs text-slate-500">Xem và chỉnh sửa hồ sơ</p>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigate(getDashboardRoute())
-                        setIsProfileOpen(false)
-                      }}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                    >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
-                        <LayoutDashboard className="h-5 w-5 text-slate-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">Bảng điều khiển</p>
-                        <p className="text-xs text-slate-500">Quản lý khóa học và hoạt động</p>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const settingsRoute = user?.role === 'student' 
-                          ? ROUTES.STUDENT.SETTINGS 
-                          : getDashboardRoute()
-                        navigate(settingsRoute)
-                        setIsProfileOpen(false)
-                      }}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                    >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
-                        <Settings className="h-5 w-5 text-slate-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">Cài đặt</p>
-                        <p className="text-xs text-slate-500">Quản lý tài khoản và quyền riêng tư</p>
-                      </div>
-                    </button>
-
-                    <div className="my-2 border-t border-slate-200" />
-
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
-                    >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-50">
-                        <LogOut className="h-5 w-5 text-red-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">Đăng xuất</p>
-                        <p className="text-xs text-red-500">Thoát khỏi tài khoản</p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </>
           ) : (
             <>
               <Button

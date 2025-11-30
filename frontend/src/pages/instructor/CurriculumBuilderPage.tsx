@@ -16,7 +16,9 @@ import {
   StepWizard,
 } from '@/components/courseEditor';
 
-import { ROUTES } from '@/constants/routes';
+import { LessonModal } from './components/courseDetail/LessonModal';
+import { ContentType as LessonContentType } from './components/courseDetail/types';
+import { ROUTES, generateRoute } from '@/constants/routes';
 
 /**
  * CurriculumBuilderPage
@@ -106,6 +108,23 @@ export function CurriculumBuilderPage() {
       ],
     },
   ]);
+
+  // ================== LESSON MODAL STATE ==================
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+  const [editingContentItem, setEditingContentItem] = useState<{
+    sectionId: string;
+    lessonId: string;
+    contentItem: ContentItemData;
+  } | null>(null);
+
+  // Form state for LessonModal
+  const [lessonForm, setLessonForm] = useState({
+    title: '',
+    content_type: 'video' as LessonContentType,
+    duration_minutes: 0,
+    is_preview: false,
+    video_url: '',
+  });
 
   // Step wizard data
   const steps = [
@@ -263,6 +282,75 @@ export function CurriculumBuilderPage() {
         }
         : s
     ));
+  };
+
+  /**
+   * Xử lý khi click Edit trên content item
+   * - Nếu là quiz: điều hướng đến QuizBuilderPage
+   * - Nếu là video/document: mở LessonModal để chỉnh sửa
+   * - Assignment: TODO
+   * @param sectionId - ID của section chứa content item
+   * @param lessonId - ID của lesson chứa content item
+   * @param contentItem - Content item cần chỉnh sửa
+   */
+  const handleEditContentItem = (sectionId: string, lessonId: string, contentItem: ContentItemData) => {
+    if (contentItem.type === 'quiz' && courseId) {
+      // Điều hướng đến QuizBuilderPage với quizId (nếu có) hoặc tạo mới
+      // TODO: Khi tích hợp API, cần lấy quizId thực từ contentItem
+      navigate(generateRoute.instructor.quizCreate(courseId));
+      return;
+    }
+
+    if (contentItem.type === 'video' || contentItem.type === 'document') {
+      // Mở LessonModal để chỉnh sửa video/document
+      setEditingContentItem({ sectionId, lessonId, contentItem });
+      setLessonForm({
+        title: contentItem.title,
+        content_type: contentItem.type as LessonContentType,
+        duration_minutes: contentItem.duration_minutes || 0,
+        is_preview: contentItem.is_preview || false,
+        video_url: '', // TODO: Lấy từ contentItem khi có API
+      });
+      setIsLessonModalOpen(true);
+      return;
+    }
+
+    // TODO: Mở modal chỉnh sửa cho assignment
+    console.log('Edit content:', contentItem);
+  };
+
+  /**
+   * Đóng LessonModal và reset state
+   */
+  const handleCloseLessonModal = () => {
+    setIsLessonModalOpen(false);
+    setEditingContentItem(null);
+    setLessonForm({
+      title: '',
+      content_type: 'video',
+      duration_minutes: 0,
+      is_preview: false,
+      video_url: '',
+    });
+  };
+
+  /**
+   * Lưu thay đổi từ LessonModal
+   */
+  const handleSaveLessonModal = () => {
+    if (!editingContentItem) return;
+
+    const { sectionId, lessonId, contentItem } = editingContentItem;
+
+    // Cập nhật content item với dữ liệu từ form
+    handleUpdateContentItem(sectionId, lessonId, contentItem.id, {
+      title: lessonForm.title,
+      type: lessonForm.content_type as ContentType,
+      duration_minutes: lessonForm.duration_minutes,
+      is_preview: lessonForm.is_preview,
+    });
+
+    handleCloseLessonModal();
   };
 
   /**
@@ -442,10 +530,7 @@ export function CurriculumBuilderPage() {
                                   title={contentItem.title}
                                   duration={contentItem.duration_minutes}
                                   isPreview={contentItem.is_preview}
-                                  onEdit={() => {
-                                    // TODO: Open content editor modal
-                                    console.log('Edit content:', contentItem);
-                                  }}
+                                  onEdit={() => handleEditContentItem(section.id, lesson.id, contentItem)}
                                   onDelete={() => handleDeleteContentItem(section.id, lesson.id, contentItem.id)}
                                 />
                               ))}
@@ -488,6 +573,24 @@ export function CurriculumBuilderPage() {
           </Button>
         </div>
       </div>
+
+      {/* Lesson Modal for editing video/document content */}
+      <LessonModal
+        isOpen={isLessonModalOpen}
+        editingLesson={editingContentItem ? {
+          id: editingContentItem.contentItem.id,
+          title: editingContentItem.contentItem.title,
+          content_type: editingContentItem.contentItem.type as LessonContentType,
+          duration_minutes: editingContentItem.contentItem.duration_minutes || 0,
+          is_preview: editingContentItem.contentItem.is_preview || false,
+          order_index: 0,
+          video_url: '',
+        } : null}
+        lessonForm={lessonForm}
+        onFormChange={setLessonForm}
+        onSave={handleSaveLessonModal}
+        onClose={handleCloseLessonModal}
+      />
     </PageWrapper>
   );
 }

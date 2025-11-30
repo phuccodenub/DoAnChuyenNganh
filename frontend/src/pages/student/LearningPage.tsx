@@ -24,7 +24,8 @@ import {
   FileTab,
   type Section
 } from '@/components/domain/learning';
-import { ROUTES } from '@/constants/routes';
+import { ROUTES, generateRoute } from '@/constants/routes';
+import { ChatFloatingButton } from '@/features/chat';
 
 /**
  * LearningPage - Main learning interface
@@ -220,8 +221,8 @@ export function LearningPage() {
                   key={key}
                   onClick={() => setSidebarTab(key)}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors border-b-2 ${sidebarTab === key
-                      ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
+                    ? 'text-blue-600 border-blue-600 bg-blue-50'
+                    : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -367,6 +368,13 @@ export function LearningPage() {
           </div>
         </div>
       </div>
+
+      {/* Chat Floating Button - Entry point to chat with instructor */}
+      {courseId && (
+        <ChatFloatingButton
+          onClick={() => navigate(generateRoute.student.chat(courseId))}
+        />
+      )}
     </div>
   );
 }
