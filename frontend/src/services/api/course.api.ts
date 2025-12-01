@@ -21,9 +21,13 @@ export interface Course {
   is_free: boolean;
   created_at: string;
   updated_at: string;
+  rating?: number;
+  total_ratings?: number;
   instructor?: {
     id: string;
-    full_name: string;
+    full_name?: string;
+    first_name?: string;
+    last_name?: string;
     avatar_url?: string;
   };
   category?: {

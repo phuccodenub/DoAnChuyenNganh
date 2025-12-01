@@ -17,6 +17,7 @@ import {
 } from '@/components/courseEditor';
 
 import { ROUTES } from '@/constants/routes';
+import { MainLayout } from '@/layouts/MainLayout';
 
 /**
  * CourseEditorPage
@@ -27,7 +28,7 @@ import { ROUTES } from '@/constants/routes';
  * - Form với các components mới
  * - FormFooter với các nút hành động
  */
-export function CourseEditorPage() {
+export function EditorPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const isEditMode = !!courseId;
@@ -113,16 +114,17 @@ export function CourseEditorPage() {
   };
 
   const handleCancel = () => {
-    navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+    navigate(ROUTES.COURSE_MANAGEMENT);
   };
 
   return (
+    <MainLayout showSidebar>
     <PageWrapper>
       {/* Page Header */}
       <PageHeader
         title={isEditMode ? 'Edit Course' : 'Create New Course'}
         breadcrumbs={['Courses', isEditMode ? 'Edit Course' : 'Create New Course']}
-        onCreateNew={() => navigate(ROUTES.INSTRUCTOR.COURSE_EDIT.replace(':courseId', 'new'))}
+        onCreateNew={() => navigate(ROUTES.COURSE_CREATE)}
       />
 
       {/* Step Wizard */}
@@ -234,7 +236,8 @@ export function CourseEditorPage() {
         />
       </div>
     </PageWrapper>
+    </MainLayout>
   );
 }
 
-export default CourseEditorPage;
+export default EditorPage;

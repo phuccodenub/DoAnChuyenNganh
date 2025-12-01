@@ -17,6 +17,10 @@ export const ROUTES = {
   // Course catalog (public)
   COURSES: '/courses',
   COURSE_DETAIL: '/courses/:id',
+  COURSE_CREATE: '/courses/create',
+  // Course management (instructor)
+  COURSE_MANAGEMENT: '/course-management',
+  COURSE_MANAGEMENT_DETAIL: '/course-management/:courseId',
   LEARNING: '/student/courses/:courseId/learn',
   // Student routes
   STUDENT: {
@@ -96,6 +100,8 @@ export const ROUTES = {
  */
 export const generateRoute = {
   courseDetail: (id: string) => `/courses/${id}`,
+  courseManagement: (courseId?: string) =>
+    courseId ? `/course-management/${courseId}` : '/course-management',
   
   student: {
     learning: (courseId: string) => `/student/courses/${courseId}/learn`,

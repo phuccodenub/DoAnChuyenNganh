@@ -10,7 +10,8 @@ import { ROUTES } from '@/constants/routes';
 import { livestreamApi } from '@/services/api/livestream.api';
 import { useQueryClient } from '@tanstack/react-query';
 import { livestreamQueryKeys } from '@/hooks/useLivestream';
-import { VideoSourceSelector, PostDetailsForm } from './components';
+import { MainLayout } from '@/layouts/MainLayout';
+import { VideoSourceSelector, PostDetailsForm, ModerationSettings, type ModerationSettingsData } from './components';
 import { generateStreamKey, generateRoomId, sanitizeStreamKeyForFilename, DEFAULT_SERVER_URL, DEFAULT_PLAYBACK_BASE, HLS_HTTP_BASE } from './utils';
 import type { CreateSessionForm } from './types';
 
@@ -21,6 +22,22 @@ export function CreateLiveStreamPage() {
   const courses = coursesResponse?.data?.courses || [];
   const createSession = useCreateSession();
   const queryClient = useQueryClient();
+  
+  // Moderation settings state
+  const [moderationSettings, setModerationSettings] = useState<ModerationSettingsData>({
+    comment_moderation_enabled: true,
+    comment_ai_moderation: true,
+    comment_manual_moderation: false,
+    comment_blocked_keywords: [],
+    comment_max_length: 500,
+    comment_min_interval_seconds: 2,
+    content_moderation_enabled: true,
+    content_ai_moderation: true,
+    content_blocked_keywords: [],
+    auto_block_violations: true,
+    auto_warn_violations: true,
+    violation_threshold: 3,
+  });
 
   const {
     register,
@@ -889,6 +906,18 @@ export function CreateLiveStreamPage() {
       const createdSession = await createSession.mutateAsync(payload);
       console.log('[CreateLiveStreamPage] Session created successfully:', createdSession);
 
+      // Update moderation policy after session is created
+      if (createdSession?.id) {
+        try {
+          const { moderationApi } = await import('@/services/api/moderation.api');
+          await moderationApi.updatePolicy(createdSession.id, moderationSettings);
+          console.log('[CreateLiveStreamPage] Moderation policy updated successfully');
+        } catch (error) {
+          console.error('[CreateLiveStreamPage] Failed to update moderation policy:', error);
+          // Don't block session creation if policy update fails
+        }
+      }
+
       // Redirect đến trang host session sau khi tạo thành công
       if (createdSession?.id) {
         // Nếu "go live now", tự động start session ngay và redirect đến trang host
@@ -937,23 +966,24 @@ export function CreateLiveStreamPage() {
 
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)} 
-            className="mb-4 text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Quay lại
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Tạo livestream mới</h1>
-            <p className="text-sm text-gray-500">Thiết lập và cấu hình buổi phát trực tiếp của bạn</p>
+    <MainLayout showSidebar>
+      <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Header */}
+          <div className="mb-6">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)} 
+              className="mb-4 text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Quay lại
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">Tạo livestream mới</h1>
+              <p className="text-sm text-gray-500">Thiết lập và cấu hình buổi phát trực tiếp của bạn</p>
+            </div>
           </div>
-        </div>
 
         <form onSubmit={(e) => {
           console.log('[CreateLiveStreamPage] 🔵 Form submit event fired');
@@ -1480,12 +1510,20 @@ export function CreateLiveStreamPage() {
             </main>
 
             {/* Right Sidebar - Form Details */}
-            <PostDetailsForm
-              register={register}
-              errors={errors}
-              watch={watch}
-              courses={courses}
-            />
+            <aside className="space-y-6">
+              <PostDetailsForm
+                register={register}
+                errors={errors}
+                watch={watch}
+                courses={courses}
+              />
+
+              {/* Moderation Settings */}
+              <ModerationSettings
+                value={moderationSettings}
+                onChange={setModerationSettings}
+              />
+            </aside>
           </div>
 
           {/* Form Actions */}
@@ -1526,6 +1564,7 @@ export function CreateLiveStreamPage() {
         
       </div>
     </div>
+    </MainLayout>
   );
 }
 

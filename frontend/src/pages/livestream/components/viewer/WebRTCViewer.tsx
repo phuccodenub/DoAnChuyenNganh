@@ -437,6 +437,7 @@ export function WebRTCViewer({
   const [isMuted, setIsMuted] = useState(true);
   const [volume, setVolume] = useState(0.5);
   const [autoplayWarning, setAutoplayWarning] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'waiting' | 'connected'>('connecting');
   const remoteVideoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
   useEffect(() => {

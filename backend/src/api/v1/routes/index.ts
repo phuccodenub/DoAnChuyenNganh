@@ -29,6 +29,7 @@ import { default as analyticsRoutes } from '../../../modules/analytics/analytics
 import systemSettingsRoutes from '../../../modules/system-settings/system.settings.routes';
 import categoryRoutes from '../../../modules/category/category.routes';
 import { aiRoutes } from '../../../modules/ai';
+import moderationRoutes from '../../../modules/moderation/moderation.routes';
 import logger from '../../../utils/logger.util';
 
 const router = Router();
@@ -91,5 +92,8 @@ router.use('/quizzes', quizRoutes);
 
 // AI routes
 router.use('/ai', aiRoutes);
+
+// Moderation routes
+router.use('/moderation', moderationRoutes);
 
 export default router;

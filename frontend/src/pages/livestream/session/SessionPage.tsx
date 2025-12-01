@@ -13,8 +13,9 @@ import { LiveStreamChatState } from '../components/shared/LiveStreamChat';
 import { ReactionOverlay } from '../components/shared/ReactionOverlay';
 import { useAuthStore } from '@/stores/authStore.enhanced';
 import { MeetStyleControls } from '@/pages/livestream/components/host/MeetStyleControls';
-import { StudioPanel, HostChatPanel } from '../host/components';
+import { StudioPanel, HostChatPanel, ModerationPanel } from '../host/components';
 import type { LiveSession } from '@/services/api/livestream.api';
+import toast from 'react-hot-toast';
 
 type Reaction = { emoji: string; userName: string; userId?: string };
 
@@ -32,6 +33,7 @@ export function LiveStreamSessionPage() {
   // Host page states
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<'chat' | 'moderation'>('chat');
   const [isAudioOn, setIsAudioOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [currentAudioDeviceId, setCurrentAudioDeviceId] = useState<string | undefined>();
@@ -133,6 +135,14 @@ export function LiveStreamSessionPage() {
     onViewerCountUpdate: handleViewerCountUpdate,
     onReaction: handleReaction,
     onSessionEnded: handleSessionEnded,
+    onError: (error) => {
+      // Show toast notification for moderation errors
+      if (error.code === 'INVALID_DATA' || error.message?.includes('không phù hợp') || error.message?.includes('bị chặn')) {
+        // You can integrate a toast library here
+        console.warn('[SessionPage] Comment moderation error:', error.message);
+        alert(error.message || 'Comment của bạn không phù hợp với quy tắc cộng đồng');
+      }
+    },
   });
 
   const sendReaction = useCallback(
@@ -182,6 +192,30 @@ export function LiveStreamSessionPage() {
     [userId]
   );
 
+  // Handle comment blocked notification for host
+  const handleCommentBlocked = useCallback((data: {
+    sessionId: string;
+    userId: string;
+    userName: string;
+    message: string;
+    reason?: string;
+    riskScore?: number;
+    riskCategories?: string[];
+    timestamp: string;
+  }) => {
+    // Show toast notification
+    toast.error(
+      `Comment bị chặn từ ${data.userName}: "${data.message.substring(0, 50)}${data.message.length > 50 ? '...' : ''}"\nLý do: ${data.reason || 'Nội dung không phù hợp'}`,
+      {
+        duration: 5000,
+        icon: '🚫',
+      }
+    );
+    
+    // Log for debugging
+    console.log('[LiveStreamSessionPage] Comment blocked:', data);
+  }, []);
+
   // Host page socket (different from viewer)
   const {
     isJoined: hostIsJoined,
@@ -196,6 +230,7 @@ export function LiveStreamSessionPage() {
     enabled: !!sessionId && !!session && session.status === 'live' && isHost,
     sessionStatus: session?.status,
     onReaction: handleHostReaction,
+    onCommentBlocked: isHost ? handleCommentBlocked : undefined, // Only for host
   });
 
   // Calculate elapsed time for live session
@@ -452,23 +487,67 @@ export function LiveStreamSessionPage() {
                 }}
               >
                 {isChatOpen && (
-                  <HostChatPanel
-                    sessionId={currentSession.id}
-                    chatState={hostChatState}
-                    className="h-full bg-white border border-gray-200 rounded-lg"
-                    onClose={() => setIsChatOpen(false)}
-                    sessionTitle={currentSession.title}
-                    sessionDescription={currentSession.description || ''}
-                    isHost={isHost}
-                    onUpdateSession={async (data) => {
-                      if (updateSession && sessionId) {
-                        await updateSession.mutateAsync({
-                          id: sessionId,
-                          data: data as any,
-                        });
-                      }
-                    }}
-                  />
+                  <div className="h-full bg-white border border-gray-200 rounded-lg flex flex-col">
+                    {/* Tab Navigation */}
+                    <div className="flex border-b border-gray-200">
+                      <button
+                        onClick={() => setActiveTab('chat')}
+                        className={cn(
+                          'flex-1 px-4 py-2 text-sm font-medium transition-colors',
+                          activeTab === 'chat'
+                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        Chat
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('moderation')}
+                        className={cn(
+                          'flex-1 px-4 py-2 text-sm font-medium transition-colors',
+                          activeTab === 'moderation'
+                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        Kiểm duyệt
+                      </button>
+                      <button
+                        onClick={() => setIsChatOpen(false)}
+                        className="px-3 py-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="flex-1 overflow-hidden">
+                      {activeTab === 'chat' ? (
+                        <HostChatPanel
+                          sessionId={currentSession.id}
+                          chatState={hostChatState}
+                          className="h-full"
+                          onClose={() => setIsChatOpen(false)}
+                          sessionTitle={currentSession.title}
+                          sessionDescription={currentSession.description || ''}
+                          isHost={isHost}
+                          onUpdateSession={async (data) => {
+                            if (updateSession && sessionId) {
+                              await updateSession.mutateAsync({
+                                id: sessionId,
+                                data: data as any,
+                              });
+                            }
+                          }}
+                        />
+                      ) : (
+                        <ModerationPanel
+                          sessionId={currentSession.id}
+                          className="h-full"
+                        />
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             )}

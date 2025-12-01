@@ -15,7 +15,7 @@ export function PostDetailsForm({ register, errors, watch, courses }: PostDetail
   const presetCommentEnabled = watch('presetCommentEnabled');
 
   return (
-    <aside className="space-y-4">
+    <div className="space-y-4">
       <section className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 space-y-4">
         <div>
           <h3 className="text-base font-semibold text-gray-900 mb-1">Chi tiết bài đăng</h3>
@@ -184,7 +184,7 @@ export function PostDetailsForm({ register, errors, watch, courses }: PostDetail
           />
         </div>
       </section> */}
-    </aside>
+    </div>
   );
 }
 

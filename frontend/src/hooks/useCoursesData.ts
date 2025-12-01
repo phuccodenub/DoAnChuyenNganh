@@ -50,6 +50,21 @@ export function useEnrolledCourses(filters?: { page?: number; limit?: number }) 
 }
 
 /**
+ * Hook lấy courses của instructor hiện tại
+ */
+export function useInstructorCourses(enabled: boolean = true, instructorId?: string) {
+  return useQuery({
+    queryKey: QUERY_KEYS.courses.instructor(instructorId),
+    queryFn: async () => {
+      const response = await courseApi.getInstructorCourses(instructorId);
+      return response.data;
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
  * Hook đăng ký course
  */
 export function useEnrollCourse() {

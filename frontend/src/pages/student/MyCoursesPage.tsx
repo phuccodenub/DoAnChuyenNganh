@@ -9,7 +9,7 @@ import {
   List,
   FileText
 } from 'lucide-react';
-import { MaterialCard, Material, MaterialStatus } from '@/components/domain/learning/MaterialCard';
+import { MaterialCard, Material, MaterialStatus } from '@/components/domain/lesson/MaterialCard';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';

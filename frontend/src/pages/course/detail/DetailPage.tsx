@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/Button';
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
-import { CurriculumTree } from '@/components/domain/learning/CurriculumTree';
+import { CurriculumTree } from '@/components/domain/lesson/CurriculumTree';
 import type { Section } from '@/services/api/lesson.api';
 import type { Course } from '@/services/api/course.api';
 import { MainLayout } from '@/layouts/MainLayout';
@@ -39,7 +39,7 @@ import { MainLayout } from '@/layouts/MainLayout';
  */
 type DetailedCourse = Course & { sections?: Section[]; is_enrolled?: boolean };
 
-export function CourseDetailPage() {
+export function DetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -627,4 +627,4 @@ export function CourseDetailPage() {
   );
 }
 
-export default CourseDetailPage;
+export default DetailPage;
