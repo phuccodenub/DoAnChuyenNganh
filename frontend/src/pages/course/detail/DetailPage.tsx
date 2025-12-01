@@ -173,10 +173,11 @@ export function DetailPage() {
     );
   }
 
-  const difficultyLabels = {
+  const difficultyLabels: Record<string, string> = {
     beginner: 'Cơ bản',
     intermediate: 'Trung cấp',
     advanced: 'Nâng cao',
+    expert: 'Chuyên gia',
   };
 
   return (
@@ -210,8 +211,8 @@ export function DetailPage() {
 
               {/* Meta info */}
               <div className="flex flex-wrap items-center gap-4 mb-6">
-                <Badge variant={course.difficulty === 'beginner' ? 'success' : 'warning'}>
-                  {difficultyLabels[course.difficulty]}
+                <Badge variant={(course.difficulty || course.level) === 'beginner' ? 'success' : 'warning'}>
+                  {difficultyLabels[course.difficulty || course.level || 'beginner'] || 'Cơ bản'}
                 </Badge>
 
                 {course._count && (
@@ -240,7 +241,7 @@ export function DetailPage() {
               {course.instructor && (
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-semibold">
-                    {course.instructor.full_name.charAt(0).toUpperCase()}
+                    {course.instructor.full_name?.charAt(0).toUpperCase() || 'I'}
                   </div>
                   <div>
                     <p className="text-sm text-blue-100">Giảng viên</p>
@@ -458,7 +459,7 @@ export function DetailPage() {
                 <CardContent>
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-2xl font-semibold text-blue-600">
-                      {course.instructor.full_name.charAt(0).toUpperCase()}
+                      {course.instructor.full_name?.charAt(0).toUpperCase() || 'I'}
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">

@@ -351,16 +351,16 @@ export class LiveStreamGateway {
             sessionId: session_id,
             userId: user.userId,
             message: message.trim(),
-            messageId: null, // No messageId since comment was blocked
+            // messageId is undefined since comment was blocked before saving
           });
           
           // Notify host about blocked comment (if host is in the session)
           const session = this.sessions.get(session_id);
           if (session) {
-            // Get host socket if available
+            // Get host socket if available - check userRole property
             const hostSockets = Array.from(session.viewers.values())
-              .filter(v => v.role === 'INSTRUCTOR' || v.role === 'ADMIN')
-              .map(v => v.socketId);
+              .filter(v => (v as any).userRole === 'INSTRUCTOR' || (v as any).userRole === 'ADMIN')
+              .map(v => (v as any).socketId || '');
             
             for (const hostSocketId of hostSockets) {
               const hostSocket = this.io.sockets.sockets.get(hostSocketId);

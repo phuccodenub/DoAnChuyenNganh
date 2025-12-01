@@ -10,23 +10,34 @@ export const courseValidation = {
       .min(3, 'Course title must be at least 3 characters')
       .max(200, 'Course title must be less than 200 characters'),
     description: z.string()
-      .min(10, 'Course description must be at least 10 characters')
-      .max(2000, 'Course description must be less than 2000 characters'),
+      .max(5000, 'Course description must be less than 5000 characters')
+      .optional(),
+    short_description: z.string()
+      .max(500, 'Short description must be less than 500 characters')
+      .optional(),
     category: z.string()
       .min(2, 'Category must be at least 2 characters')
       .max(50, 'Category must be less than 50 characters')
       .optional(),
-    level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+    category_id: z.string().optional(), // Can be UUID or category slug
+    level: z.enum(['beginner', 'intermediate', 'advanced', 'expert']).optional(),
     duration: z.number()
       .int('Duration must be an integer')
-      .min(1, 'Duration must be at least 1 hour')
-      .max(1000, 'Duration must be less than 1000 hours')
+      .min(0, 'Duration cannot be negative')
+      .max(10000, 'Duration must be less than 10000 hours')
       .optional(),
     price: z.number()
       .min(0, 'Price cannot be negative')
-      .max(10000, 'Price must be less than 10000')
+      .max(10000000, 'Price must be less than 10,000,000')
       .optional(),
-    thumbnail: baseValidation.url.optional(),
+    is_free: z.boolean().optional(),
+    thumbnail: z.string().optional(),
+    thumbnail_url: z.string().optional(),
+    language: z.string().max(50).optional(),
+    prerequisites: z.array(z.string()).optional(),
+    learning_objectives: z.array(z.string()).optional(),
+    tags: z.array(z.string()).optional(),
+    status: z.enum(['draft', 'published', 'archived']).optional(),
     isPublished: z.boolean().default(false)
   }),
   
@@ -37,24 +48,33 @@ export const courseValidation = {
       .max(200, 'Course title must be less than 200 characters')
       .optional(),
     description: z.string()
-      .min(10, 'Course description must be at least 10 characters')
-      .max(2000, 'Course description must be less than 2000 characters')
+      .max(5000, 'Course description must be less than 5000 characters')
+      .optional(),
+    short_description: z.string()
+      .max(500, 'Short description must be less than 500 characters')
       .optional(),
     category: z.string()
       .min(2, 'Category must be at least 2 characters')
       .max(50, 'Category must be less than 50 characters')
       .optional(),
-    level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+    category_id: z.string().optional(), // Can be UUID or category slug
+    level: z.enum(['beginner', 'intermediate', 'advanced', 'expert']).optional(),
     duration: z.number()
       .int('Duration must be an integer')
-      .min(1, 'Duration must be at least 1 hour')
-      .max(1000, 'Duration must be less than 1000 hours')
+      .min(0, 'Duration cannot be negative')
+      .max(10000, 'Duration must be less than 10000 hours')
       .optional(),
     price: z.number()
       .min(0, 'Price cannot be negative')
-      .max(10000, 'Price must be less than 10000')
       .optional(),
-    thumbnail: baseValidation.url.optional(),
+    is_free: z.boolean().optional(),
+    thumbnail: z.string().optional(),
+    thumbnail_url: z.string().optional(),
+    status: z.enum(['draft', 'published', 'archived']).optional(),
+    language: z.string().max(50).optional(),
+    prerequisites: z.array(z.string()).optional(),
+    learning_objectives: z.array(z.string()).optional(),
+    tags: z.array(z.string()).optional(),
     isPublished: z.boolean().optional()
   }),
   

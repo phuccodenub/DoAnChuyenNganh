@@ -4,6 +4,10 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { 
+  Users, BookOpen, Award, DollarSign, TrendingUp, Download, Printer, 
+  Calendar, Activity, Star, ArrowUpRight, ArrowDownRight 
+} from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -27,19 +31,32 @@ export const ReportsPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('reports_analytics')}</h1>
-          <p className="mt-2 text-gray-600">{t('platform_analytics_overview')}</p>
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+            <Activity className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              {t('admin.reports.reports_analytics')}
+            </h1>
+            <p className="mt-1 text-gray-600 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              {t('admin.reports.platform_analytics_overview')}
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(['today', 'week', 'month', 'year'] as const).map((p) => (
             <Button
               key={p}
               variant={period === p ? 'primary' : 'secondary'}
               onClick={() => setPeriod(p)}
+              className={`transition-all duration-200 ${
+                period === p ? 'shadow-md scale-105' : 'hover:scale-102'
+              }`}
             >
-              {t(`period_${p}`)}
+              {t(`period.period_${p}`)}
             </Button>
           ))}
         </div>
@@ -47,35 +64,71 @@ export const ReportsPage: React.FC = () => {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-gray-600 text-sm font-medium">{t('total_users')}</div>
-            <div className="text-3xl font-bold text-gray-900 mt-2">{stats.total_users?.toLocaleString()}</div>
-            <div className="text-green-600 text-sm mt-2">
-              +{stats.active_users_month} {t('this_month')}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-6">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-500 opacity-10 rounded-full" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-green-600" />
+              </div>
+              <div className="text-blue-700 text-sm font-semibold uppercase tracking-wide">{t('admin.reports.total_users')}</div>
+              <div className="text-3xl font-bold text-blue-900 mt-2">{stats.total_users?.toLocaleString()}</div>
+              <div className="flex items-center gap-1 text-green-700 text-sm font-medium mt-3">
+                <TrendingUp className="w-4 h-4" />
+                +{stats.active_users_month} {t('admin.reports.this_month')}
+              </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-gray-600 text-sm font-medium">{t('total_courses')}</div>
-            <div className="text-3xl font-bold text-gray-900 mt-2">{stats.total_courses?.toLocaleString()}</div>
-            <div className="text-gray-500 text-sm mt-2">{t('courses_available')}</div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-gray-600 text-sm font-medium">{t('total_enrollments')}</div>
-            <div className="text-3xl font-bold text-gray-900 mt-2">{stats.total_enrollments?.toLocaleString()}</div>
-            <div className="text-gray-500 text-sm mt-2">
-              {((stats.completion_rate || 0) * 100).toFixed(1)}% {t('completion_rate')}
+          <div className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-6">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-purple-500 opacity-10 rounded-full" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-purple-500 rounded-lg">
+                  <BookOpen className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div className="text-purple-700 text-sm font-semibold uppercase tracking-wide">{t('admin.reports.total_courses')}</div>
+              <div className="text-3xl font-bold text-purple-900 mt-2">{stats.total_courses?.toLocaleString()}</div>
+              <div className="text-purple-600 text-sm font-medium mt-3">{t('admin.reports.courses_available')}</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-gray-600 text-sm font-medium">{t('total_revenue')}</div>
-            <div className="text-3xl font-bold text-gray-900 mt-2">
-              {(stats.total_revenue || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+          <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-6">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-orange-500 opacity-10 rounded-full" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-orange-500 rounded-lg">
+                  <Award className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div className="text-orange-700 text-sm font-semibold uppercase tracking-wide">{t('admin.reports.total_enrollments')}</div>
+              <div className="text-3xl font-bold text-orange-900 mt-2">{stats.total_enrollments?.toLocaleString()}</div>
+              <div className="flex items-center gap-1 text-orange-600 text-sm font-medium mt-3">
+                <Star className="w-4 h-4 fill-orange-600" />
+                {((stats.completion_rate || 0) * 100).toFixed(1)}% {t('admin.reports.completion_rate')}
+              </div>
             </div>
-            <div className="text-gray-500 text-sm mt-2">{t('from_paid_courses')}</div>
+          </div>
+
+          <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-6">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-green-500 opacity-10 rounded-full" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-green-500 rounded-lg">
+                  <DollarSign className="w-5 h-5 text-white" />
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-green-700" />
+              </div>
+              <div className="text-green-700 text-sm font-semibold uppercase tracking-wide">{t('admin.reports.total_revenue')}</div>
+              <div className="text-3xl font-bold text-green-900 mt-2">
+                {(stats.total_revenue || 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+              </div>
+              <div className="text-green-600 text-sm font-medium mt-3">{t('admin.reports.from_paid_courses')}</div>
+            </div>
           </div>
         </div>
       )}
@@ -85,7 +138,7 @@ export const ReportsPage: React.FC = () => {
         {/* User Growth Chart */}
         {userGrowth && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('user_growth')}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.reports.user_growth')}</h2>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={userGrowth}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -97,14 +150,14 @@ export const ReportsPage: React.FC = () => {
                   type="monotone"
                   dataKey="count"
                   stroke="#3b82f6"
-                  name={t('new_users')}
+                  name={t('admin.reports.new_users')}
                   dot={false}
                 />
                 <Line
                   type="monotone"
                   dataKey="cumulative"
                   stroke="#10b981"
-                  name={t('cumulative_users')}
+                  name={t('admin.reports.cumulative_users')}
                   dot={false}
                 />
               </LineChart>
@@ -115,7 +168,7 @@ export const ReportsPage: React.FC = () => {
         {/* User Activity Chart */}
         {userActivity && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('user_activity')}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.reports.user_activity')}</h2>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={userActivity}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -123,9 +176,9 @@ export const ReportsPage: React.FC = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="logins" fill="#3b82f6" name={t('logins')} />
-                <Bar dataKey="registrations" fill="#10b981" name={t('registrations')} />
-                <Bar dataKey="course_enrollments" fill="#f59e0b" name={t('enrollments')} />
+                <Bar dataKey="logins" fill="#3b82f6" name={t('admin.reports.logins')} />
+                <Bar dataKey="registrations" fill="#10b981" name={t('admin.reports.registrations')} />
+                <Bar dataKey="course_enrollments" fill="#f59e0b" name={t('admin.reports.enrollments')} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -135,15 +188,15 @@ export const ReportsPage: React.FC = () => {
       {/* Top Courses */}
       {topCourses && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('top_courses')}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.reports.top_courses')}</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('course_name')}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('enrollments')}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('rating')}</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('revenue')}</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('admin.reports.course_name')}</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('admin.reports.enrollments')}</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('admin.reports.rating')}</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('admin.reports.revenue')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -168,12 +221,18 @@ export const ReportsPage: React.FC = () => {
       )}
 
       {/* Export Button */}
-      <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={() => window.print()}>
-          {t('print_report')}
+      <div className="flex justify-end gap-3">
+        <Button 
+          variant="secondary" 
+          onClick={() => window.print()}
+          className="flex items-center gap-2"
+        >
+          <Printer className="w-4 h-4" />
+          {t('admin.reports.print_report')}
         </Button>
-        <Button>
-          {t('export_as_csv')}
+        <Button className="flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          {t('admin.reports.export_as_csv')}
         </Button>
       </div>
     </div>

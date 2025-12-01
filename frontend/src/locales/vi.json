@@ -585,7 +585,11 @@
     "today": "Hôm nay",
     "week": "Tuần này",
     "month": "Tháng này",
-    "year": "Năm này"
+    "year": "Năm này",
+    "period_today": "Hôm nay",
+    "period_week": "Tuần",
+    "period_month": "Tháng",
+    "period_year": "Năm"
   },
   "time": {
     "thisMonth": "tháng này",
@@ -621,6 +625,64 @@
     "closeMenu": "Đóng menu",
     "toggleDarkMode": "Chuyển đổi chế độ tối",
     "clearSearch": "Xóa tìm kiếm"
+  },
+  "admin": {
+    "reports": {
+      "reports_analytics": "Báo Cáo & Phân Tích",
+      "platform_analytics_overview": "Tổng quan phân tích nền tảng",
+      "total_users": "Tổng người dùng",
+      "total_courses": "Tổng khóa học",
+      "total_enrollments": "Tổng lượt đăng ký",
+      "total_revenue": "Tổng doanh thu",
+      "this_month": "tháng này",
+      "courses_available": "khóa học có sẵn",
+      "completion_rate": "tỷ lệ hoàn thành",
+      "from_paid_courses": "từ khóa học trả phí",
+      "user_growth": "Tăng trưởng người dùng",
+      "new_users": "Người dùng mới",
+      "cumulative_users": "Tổng tích lũy",
+      "user_activity": "Hoạt động người dùng",
+      "logins": "Đăng nhập",
+      "registrations": "Đăng ký",
+      "enrollments": "Đăng ký khóa học",
+      "top_courses": "Khóa học hàng đầu",
+      "course_name": "Tên khóa học",
+      "rating": "Đánh giá",
+      "revenue": "Doanh thu",
+      "print_report": "In báo cáo",
+      "export_as_csv": "Xuất CSV"
+    },
+    "activityLogs": {
+      "activity_logs": "Nhật Ký Hoạt Động",
+      "system_activity_tracking": "Theo dõi hoạt động hệ thống",
+      "filters": "Bộ lọc",
+      "action": "Hành động",
+      "resource_type": "Loại tài nguyên",
+      "status": "Trạng thái",
+      "all_actions": "Tất cả hành động",
+      "all_types": "Tất cả loại",
+      "all_statuses": "Tất cả trạng thái",
+      "success": "Thành công",
+      "failed": "Thất bại",
+      "export_csv": "Xuất CSV",
+      "export_json": "Xuất JSON",
+      "clear_old_logs": "Xóa log cũ",
+      "confirm_clear_old_logs": "Bạn có chắc muốn xóa các log cũ hơn 90 ngày?",
+      "activity_history": "Lịch sử hoạt động",
+      "no_activity_logs": "Không có nhật ký hoạt động",
+      "timestamp": "Thời gian",
+      "user": "Người dùng",
+      "ip_address": "Địa chỉ IP"
+    },
+    "systemSettings": {
+      "system_settings": "Cài Đặt Hệ Thống",
+      "system_settings_desc": "Quản lý cấu hình và tùy chọn hệ thống",
+      "general_settings": "Cài đặt chung",
+      "email_settings": "Cài đặt Email",
+      "security_settings": "Cài đặt Bảo mật",
+      "feature_flags": "Quản lý Tính năng",
+      "error_loading_settings": "Lỗi khi tải cài đặt"
+    }
   }
 }
 

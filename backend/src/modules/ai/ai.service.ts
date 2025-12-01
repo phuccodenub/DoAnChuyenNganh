@@ -92,8 +92,8 @@ export class AIService {
         },
       });
 
-      // Get response
-      const result = await chat.sendMessage(messageWithContext);
+      // Get response - use request.message
+      const result = await chat.sendMessage(request.message);
       const response = result.response;
       const text = response.text();
 

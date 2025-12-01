@@ -442,7 +442,8 @@ Nội dung cần kiểm duyệt (${contentType}):`;
     }
 
     const now = new Date();
-    const lastMessageTime = new Date(lastMessage.created_at || lastMessage.createdAt);
+    // Use created_at which is the correct field name from the model
+    const lastMessageTime = new Date(lastMessage.created_at);
     const diffSeconds = (now.getTime() - lastMessageTime.getTime()) / 1000;
 
     if (diffSeconds < policy.comment_min_interval_seconds) {

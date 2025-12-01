@@ -64,12 +64,15 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - DB_HOST=postgres-dev
-      - DB_PORT=5432
-      - DB_NAME=${POSTGRES_DB:-lms_db}
-      - DB_USER=${POSTGRES_USER:-lms_user}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-123456}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-123456}@postgres-dev:5432/${POSTGRES_DB:-lms_db}
+      # DB settings - Using Supabase from .env file (volume mounted)
+      # The DATABASE_URL in backend/.env will be used instead of Docker PostgreSQL
+      # Uncomment below to use Docker PostgreSQL instead of Supabase:
+      # - DB_HOST=postgres-dev
+      # - DB_PORT=5432
+      # - DB_NAME=${POSTGRES_DB:-lms_db}
+      # - DB_USER=${POSTGRES_USER:-lms_user}
+      # - DB_PASSWORD=${POSTGRES_PASSWORD:-123456}
+      # - DATABASE_URL=postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-123456}@postgres-dev:5432/${POSTGRES_DB:-lms_db}
       - REDIS_HOST=redis-dev
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-dev:6379
@@ -84,8 +87,10 @@ services:
     networks:
       - lms-dev-network
     depends_on:
-      postgres-dev:
-        condition: service_healthy
+      # Note: postgres-dev dependency removed - using Supabase instead
+      # Uncomment if switching back to Docker PostgreSQL:
+      # postgres-dev:
+      #   condition: service_healthy
       redis-dev:
         condition: service_healthy
     healthcheck:

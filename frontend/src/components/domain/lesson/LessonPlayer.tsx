@@ -103,8 +103,8 @@ export function LessonPlayer({
           {videoMaterials.length > 0 && (
             <div className="aspect-video bg-black rounded-t-lg">
               <VideoPlayer
-                src={videoMaterials[0].file_url || ''}
-                title={videoMaterials[0].title || lesson.title}
+                lessonId={lesson.id}
+                videoUrl={videoMaterials[0].file_url || ''}
                 onComplete={onComplete}
               />
             </div>
@@ -114,8 +114,9 @@ export function LessonPlayer({
           {documentMaterials.length > 0 && !videoMaterials.length && (
             <div className="min-h-[600px]">
               <DocumentViewer
-                src={documentMaterials[0].file_url || ''}
-                title={documentMaterials[0].title || lesson.title}
+                lessonId={lesson.id}
+                documentUrl={documentMaterials[0].file_url || ''}
+                title={documentMaterials[0].file_name || lesson.title}
               />
             </div>
           )}
@@ -161,7 +162,7 @@ export function LessonPlayer({
                   {getMaterialIcon(material)}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">
-                      {material.title || `Tài liệu ${index + 1}`}
+                      {material.file_name || `Tài liệu ${index + 1}`}
                     </p>
                     {material.description && (
                       <p className="text-sm text-gray-600 truncate">{material.description}</p>
@@ -196,7 +197,7 @@ export function LessonPlayer({
                   <LinkIcon className="w-5 h-5 text-blue-600" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">
-                      {material.title || material.file_url}
+                      {material.file_name || material.file_url}
                     </p>
                     {material.description && (
                       <p className="text-sm text-gray-600 truncate">{material.description}</p>

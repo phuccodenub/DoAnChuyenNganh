@@ -1,27 +1,25 @@
-# Development Dockerfile for Backend
+# Lightweight Development Dockerfile for Backend
+# node_modules sẽ được mount từ host hoặc tạo bởi start script
 FROM node:20-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Install curl for health checks and other dev tools
+ENV NODE_ENV=development
+
+# Chỉ cài tools hệ thống cần thiết (curl cho healthcheck, pg-client cho DB scripts)
 RUN apk add --no-cache curl postgresql-client
 
-# Copy package files
+# KHÔNG copy node_modules hay cài npm install ở đây
+# Vì docker-compose đã mount volume: ../../../backend:/app
+# node_modules sẽ được cài bởi start-backend-dev.sh script
+
+# Copy package files (để start script biết cần cài gì)
 COPY backend/package*.json ./
 
-# Install ALL dependencies (including devDependencies for development)
-RUN npm install
-
-# Copy source code
-COPY backend/ .
-
-# Expose port
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=5 \
   CMD curl -f http://127.0.0.1:3000/health || exit 1
 
-# Start the application in development mode
-CMD ["npm", "run", "dev"]
+# Script sẽ kiểm tra và cài node_modules nếu cần, rồi chạy dev server
+CMD ["/bin/sh", "/app/start-backend-dev.sh"]

@@ -300,6 +300,64 @@ router.delete('/:id',
 );
 
 // ===== INSTRUCTOR ROUTES =====
+// IMPORTANT: /instructor/my-courses MUST be before /instructor/:instructorId to avoid route conflict
+
+/**
+ * @swagger
+ * /api/courses/instructor/my-courses:
+ *   get:
+ *     summary: Get my courses (instructor)
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of courses per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published, archived]
+ *         description: Course status filter
+ *     responses:
+ *       200:
+ *         description: My courses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     courses:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Course'
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/instructor/my-courses', 
+  authMiddleware, 
+  authorizeRoles(['instructor', 'admin', 'super_admin']),
+  courseController.getMyCoursesAsInstructor
+);
 
 /**
  * @swagger
@@ -358,69 +416,6 @@ router.delete('/:id',
  *       401:
  *         description: Unauthorized
  */
-/**
- * @swagger
- * /api/courses/instructor/my-courses:
- *   get:
- *     summary: Get my courses (instructor)
- *     tags: [Courses]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Number of courses per page
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [draft, published, archived]
- *         description: Course status filter
- *     responses:
- *       200:
- *         description: My courses retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     courses:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Course'
- *                     pagination:
- *                       $ref: '#/components/schemas/Pagination'
- *       401:
- *         description: Unauthorized
- */
-router.get('/instructor/my-courses', 
-  authMiddleware, 
-  authorizeRoles(['instructor', 'admin', 'super_admin']),
-  courseController.getCoursesByInstructor
-);
-
-router.get('/instructor/:instructorId', 
-  authMiddleware, 
-  authorizeRoles(['instructor', 'admin', 'super_admin']),
-  courseController.getCoursesByInstructor
-);
-
 /**
  * @swagger
  * /api/courses/{courseId}/enroll:
@@ -619,6 +614,65 @@ router.get('/:id/enrollments',
   authMiddleware, 
   authorizeRoles(['instructor', 'admin', 'super_admin']),
   enrollmentController.getCourseEnrollments.bind(enrollmentController)
+);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/stats:
+ *   get:
+ *     summary: Get course statistics for instructor
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total_students:
+ *                       type: integer
+ *                     total_revenue:
+ *                       type: number
+ *                     average_rating:
+ *                       type: number
+ *                     total_reviews:
+ *                       type: integer
+ *                     completion_rate:
+ *                       type: number
+ *                     avg_progress:
+ *                       type: number
+ *                     avg_score:
+ *                       type: number
+ *                     pending_grading:
+ *                       type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Course not found
+ */
+router.get('/:courseId/stats', 
+  authMiddleware, 
+  authorizeRoles(['instructor', 'admin', 'super_admin']),
+  courseController.getCourseStats
 );
 
 export { router as courseRoutes };

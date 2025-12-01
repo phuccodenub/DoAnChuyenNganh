@@ -1,4 +1,4 @@
-import { WebRTCLiveStudio, WebRTCLiveStudioHandle } from '@/pages/livestream/components/host';
+import { WebRTCLiveStudio, type WebRTCLiveStudioHandle } from '@/pages/livestream/components/host';
 import { useRef, useEffect } from 'react';
 
 interface StudioPanelProps {
@@ -47,7 +47,7 @@ export function StudioPanel({
   return (
     <WebRTCLiveStudio
       ref={webRTCRef}
-      sessionId={sessionId}
+      sessionId={String(sessionId)}
       displayName={sessionTitle}
       iceServers={iceServers}
       onEndCall={onEndCall}

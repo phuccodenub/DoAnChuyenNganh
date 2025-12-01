@@ -738,7 +738,7 @@ export function ViewerSection({
     return (
       <div className="w-full h-full">
         <WebRTCViewer
-          sessionId={sessionId}
+          sessionId={String(sessionId)}
           displayName={sessionTitle}
           reactions={reactions}
           iceServers={iceServers}

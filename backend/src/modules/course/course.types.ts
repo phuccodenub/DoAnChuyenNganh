@@ -102,14 +102,25 @@ export namespace CourseTypes {
   export interface CreateCourseData {
     title: string;
     description?: string;
+    short_description?: string;
     instructor_id: string;
     status?: CourseStatus;
     start_date?: Date;
     end_date?: Date;
     max_students?: number;
+    thumbnail?: string;
     thumbnail_url?: string;
     tags?: string[];
     settings?: CourseSettings;
+    category?: string;
+    category_id?: string;
+    level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    price?: number;
+    is_free?: boolean;
+    language?: string;
+    prerequisites?: string[];
+    learning_objectives?: string[];
+    metadata?: Record<string, any>;
   }
 
   // Course query parameters
@@ -319,6 +330,22 @@ export interface StudentsResponse {
     total: number;
     totalPages: number;
   };
+}
+
+/**
+ * Course statistics response for instructor dashboard
+ */
+export interface CourseStatsResponse {
+  total_students: number;
+  total_revenue: number;
+  average_rating: number;
+  total_reviews: number;
+  completion_rate: number;
+  avg_progress: number;
+  avg_score: number;
+  pending_grading: number;
+  max_students: number;
+  new_students_this_week: number;
 }
 
 // Aliases to support namespace-qualified imports elsewhere

@@ -2,15 +2,57 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import io, { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/stores/authStore.enhanced';
+import { QUERY_KEYS } from '@/constants/queryKeys';
 
 /**
  * Real-time Notifications via WebSocket (Socket.IO)
  * Handles: incoming messages, online status, typing indicators, notifications
  */
 
+/**
+ * Notification payload from server
+ */
+export interface NotificationPayload {
+  id: string;
+  notification_type: string;
+  title: string;
+  message: string;
+  link_url?: string;
+  priority?: string;
+  category?: string;
+  related_resource_type?: string;
+  related_resource_id?: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  sender?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    avatar?: string;
+  } | null;
+}
+
+/**
+ * Socket events matching backend NotificationSocketEvents
+ */
+export const NotificationSocketEvents = {
+  // Server -> Client
+  NEW_NOTIFICATION: 'notification:new',
+  UNREAD_COUNT_UPDATE: 'notification:count',
+  NOTIFICATION_READ: 'notification:read',
+  
+  // Client -> Server
+  SUBSCRIBE: 'notification:subscribe',
+  UNSUBSCRIBE: 'notification:unsubscribe',
+  MARK_READ: 'notification:mark-read',
+  MARK_ALL_READ: 'notification:mark-all-read'
+} as const;
+
 export interface WebSocketEvents {
-  'notification:new': (data: any) => void;
-  'notification:read': (data: any) => void;
+  'notification:new': (data: NotificationPayload) => void;
+  'notification:count': (data: { count: number }) => void;
+  'notification:read': (data: { notificationId: string; read_at: string }) => void;
   'user:online': (data: any) => void;
   'user:offline': (data: any) => void;
   'chat:message': (data: any) => void;
@@ -29,15 +71,18 @@ function initializeSocket(token: string): Socket {
     return socketInstance;
   }
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // Use VITE_WS_URL for WebSocket, fallback to localhost
+  // Note: VITE_API_URL includes /api path which is NOT suitable for Socket.IO
+  const wsUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
 
-  socketInstance = io(apiUrl, {
+  socketInstance = io(wsUrl, {
     auth: { token },
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     reconnectionAttempts: 5,
     transports: ['websocket', 'polling'],
+    path: '/socket.io',
   });
 
   socketInstance.on('connect', () => {
@@ -59,7 +104,8 @@ function initializeSocket(token: string): Socket {
  * Hook to manage real-time WebSocket connection
  */
 export function useNotificationSocket(enabled = true) {
-  const { user, token } = { user: null, token: '' }; // Placeholder - integrate with actual auth store
+  const { tokens } = useAuthStore();
+  const token = tokens?.accessToken;
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket | null>(null);
 
@@ -70,22 +116,40 @@ export function useNotificationSocket(enabled = true) {
       socketRef.current = initializeSocket(token);
       const socket = socketRef.current;
 
-      // Notification events
-      socket.on('notification:new', (notification) => {
+      // New notification received
+      socket.on(NotificationSocketEvents.NEW_NOTIFICATION, (notification: NotificationPayload) => {
         console.log('[Socket] New notification:', notification);
-        // Invalidate notifications query
+        
+        // Invalidate notifications query to refetch
         queryClient.invalidateQueries({
-          queryKey: ['notifications'],
+          queryKey: QUERY_KEYS.notifications.all,
         });
-        // Show toast
-        toast.success(notification.title, {
+        queryClient.invalidateQueries({
+          queryKey: QUERY_KEYS.notifications.unreadCount,
+        });
+        
+        // Show toast notification
+        const toastIcon = getNotificationIcon(notification.notification_type);
+        toast(notification.title, {
           duration: 5000,
+          icon: toastIcon,
+          style: {
+            borderLeft: `4px solid ${getPriorityColor(notification.priority)}`,
+          },
         });
       });
 
-      socket.on('notification:read', (data) => {
+      // Unread count updated
+      socket.on(NotificationSocketEvents.UNREAD_COUNT_UPDATE, (data: { count: number }) => {
+        console.log('[Socket] Unread count update:', data.count);
+        queryClient.setQueryData(QUERY_KEYS.notifications.unreadCount, data.count);
+      });
+
+      // Notification marked as read
+      socket.on(NotificationSocketEvents.NOTIFICATION_READ, (data: { notificationId: string; read_at: string }) => {
+        console.log('[Socket] Notification read:', data);
         queryClient.invalidateQueries({
-          queryKey: ['notifications'],
+          queryKey: QUERY_KEYS.notifications.all,
         });
       });
 
@@ -141,8 +205,9 @@ export function useNotificationSocket(enabled = true) {
 
       return () => {
         if (socket) {
-          socket.off('notification:new');
-          socket.off('notification:read');
+          socket.off(NotificationSocketEvents.NEW_NOTIFICATION);
+          socket.off(NotificationSocketEvents.UNREAD_COUNT_UPDATE);
+          socket.off(NotificationSocketEvents.NOTIFICATION_READ);
           socket.off('chat:message');
           socket.off('chat:typing');
           socket.off('chat:typing-stop');
@@ -172,12 +237,60 @@ export function useNotificationSocket(enabled = true) {
     }
   }, []);
 
+  /**
+   * Mark notification as read via socket
+   */
+  const markAsRead = useCallback((notificationId: string) => {
+    emit(NotificationSocketEvents.MARK_READ, { notificationId });
+  }, [emit]);
+
+  /**
+   * Mark all notifications as read via socket
+   */
+  const markAllAsRead = useCallback(() => {
+    emit(NotificationSocketEvents.MARK_ALL_READ, {});
+  }, [emit]);
+
   return {
     socket: socketRef.current,
     emit,
     disconnect,
     isConnected: socketRef.current?.connected || false,
+    markAsRead,
+    markAllAsRead,
   };
+}
+
+/**
+ * Get icon emoji based on notification type
+ */
+function getNotificationIcon(type: string): string {
+  const icons: Record<string, string> = {
+    course: '📚',
+    assignment: '📝',
+    quiz: '❓',
+    grade: '🎯',
+    announcement: '📢',
+    achievement: '🏆',
+    certificate: '🎓',
+    message: '💬',
+    system: 'ℹ️',
+    reminder: '⏰',
+  };
+  return icons[type] || '🔔';
+}
+
+/**
+ * Get color based on priority
+ */
+function getPriorityColor(priority?: string): string {
+  const colors: Record<string, string> = {
+    urgent: '#ef4444', // red
+    high: '#f97316', // orange
+    normal: '#3b82f6', // blue
+    low: '#6b7280', // gray
+  };
+  return colors[priority || 'normal'] || colors.normal;
 }
 
 /**

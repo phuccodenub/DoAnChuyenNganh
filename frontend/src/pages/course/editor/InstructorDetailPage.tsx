@@ -1,5 +1,5 @@
 // InstructorCourseDetailPage - Course management for instructors
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     BookOpen,
@@ -9,10 +9,36 @@ import {
     BarChart3,
     Eye,
     ArrowLeft,
+    Loader2,
+    AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ROUTES } from '@/constants/routes';
+
+// Import hooks
+import {
+    useInstructorCourseDetail,
+    useCourseStats,
+    useCourseStudents,
+    useCourseSections,
+    useCreateSection,
+    useUpdateSection,
+    useDeleteSection,
+    useCreateLesson,
+    useUpdateLesson,
+    useDeleteLesson,
+    useUpdateCourse,
+    usePublishCourse,
+    useUnpublishCourse,
+} from '@/hooks/useInstructorCourse';
+import {
+    useCourseAssignments,
+    useCoursePendingGrading,
+    useGradeSubmission,
+} from '@/hooks/useAssignments';
+import { mediaApi } from '@/services/api/media.api';
+import toast from 'react-hot-toast';
 
 // Import components từ courseDetail
 import {
@@ -22,14 +48,10 @@ import {
     Lesson,
     statusLabels,
     Assignment,
-    // Mock data
-    MOCK_COURSE,
-    MOCK_STATS,
-    MOCK_SECTIONS,
-    MOCK_STUDENTS,
-    MOCK_ASSIGNMENTS,
-    MOCK_SUBMISSIONS,
-    MOCK_ASSIGNMENT_STATS,
+    CourseStats,
+    Student,
+    Submission,
+    AssignmentStats,
     // Tab Components
     OverviewTab,
     CurriculumTab,
@@ -57,9 +79,51 @@ export function InstructorDetailPage() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
 
+    // ================== API QUERIES ==================
+    const { 
+        data: courseResponse, 
+        isLoading: courseLoading, 
+        error: courseError 
+    } = useInstructorCourseDetail(courseId || '');
+    
+    const { 
+        data: statsResponse, 
+        isLoading: statsLoading 
+    } = useCourseStats(courseId || '');
+    
+    const { 
+        data: studentsResponse, 
+        isLoading: studentsLoading 
+    } = useCourseStudents(courseId || '');
+    
+    const { 
+        data: sectionsResponse, 
+        isLoading: sectionsLoading 
+    } = useCourseSections(courseId || '');
+
+    // Assignment queries
+    const {
+        data: assignmentsResponse,
+        isLoading: assignmentsLoading
+    } = useCourseAssignments(courseId || '');
+
+    const {
+        data: pendingGradingResponse,
+        isLoading: pendingGradingLoading
+    } = useCoursePendingGrading(courseId || '');
+
+    // ================== MUTATIONS ==================
+    const createSectionMutation = useCreateSection();
+    const updateSectionMutation = useUpdateSection(courseId || '');
+    const deleteSectionMutation = useDeleteSection(courseId || '');
+    const createLessonMutation = useCreateLesson(courseId || '');
+    const updateLessonMutation = useUpdateLesson(courseId || '');
+    const deleteLessonMutation = useDeleteLesson(courseId || '');
+    const updateCourseMutation = useUpdateCourse();
+
     // ================== STATE ==================
     const [activeTab, setActiveTab] = useState<TabType>('overview');
-    const [sections, setSections] = useState<Section[]>(MOCK_SECTIONS);
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
     const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
 
     // Section Modal State
@@ -78,20 +142,177 @@ export function InstructorDetailPage() {
         video_url: '',
     });
 
-    // Mock data
-    const course = MOCK_COURSE;
-    const stats = MOCK_STATS;
-    const students = MOCK_STUDENTS;
-    const assignments = MOCK_ASSIGNMENTS;
-    const submissions = MOCK_SUBMISSIONS;
-    const assignmentStats = MOCK_ASSIGNMENT_STATS;
+    // ================== DERIVED DATA ==================
+    // Transform API data to match component types
+    const course = useMemo(() => {
+        if (!courseResponse?.data) return null;
+        const c = courseResponse.data;
+        return {
+            id: c.id,
+            title: c.title,
+            description: c.description || '',
+            thumbnail_url: c.thumbnail_url,
+            status: c.status as 'draft' | 'published' | 'archived',
+            difficulty: (c.difficulty || 'beginner') as 'beginner' | 'intermediate' | 'advanced',
+            is_free: c.is_free,
+            price: c.price,
+            created_at: c.created_at,
+            updated_at: c.updated_at,
+        };
+    }, [courseResponse]);
+
+    const stats: CourseStats = useMemo(() => {
+        if (!statsResponse?.data) {
+            return {
+                total_students: 0,
+                total_revenue: 0,
+                average_rating: 0,
+                total_reviews: 0,
+                completion_rate: 0,
+                avg_progress: 0,
+                avg_score: 0,
+                pending_grading: 0,
+                max_students: 100,
+                new_students_this_week: 0,
+            };
+        }
+        return statsResponse.data;
+    }, [statsResponse]);
+
+    const students: Student[] = useMemo(() => {
+        if (!studentsResponse?.data) return [];
+        // API returns { data: { data: [...], pagination: {...} } } or { data: { students: [...] } }
+        const responseData = studentsResponse.data as any;
+        const studentsData = responseData?.data || responseData?.students || [];
+        return studentsData.map((s: any) => ({
+            id: s.id,
+            name: s.name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'Unknown',
+            email: s.email,
+            avatar_url: s.avatar_url,
+            enrolled_at: s.enrolled_at || s.enrollments?.[0]?.created_at,
+            progress_percent: s.progress_percent || 0,
+            last_activity_at: s.last_activity_at || s.enrolled_at,
+        }));
+    }, [studentsResponse]);
+
+    const sections: Section[] = useMemo(() => {
+        if (!sectionsResponse?.data) return [];
+        // API returns { data: [...], pagination: {...} } or just array
+        const responseData = sectionsResponse.data as any;
+        const sectionsData = Array.isArray(responseData) 
+            ? responseData 
+            : responseData?.data || [];
+        return sectionsData.map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            order_index: s.order_index,
+            isExpanded: expandedSections.has(s.id),
+            lessons: (s.lessons || []).map((l: any) => ({
+                id: l.id,
+                title: l.title,
+                content_type: l.content_type as 'video' | 'document' | 'quiz' | 'assignment',
+                duration_minutes: l.duration_minutes || 0,
+                is_preview: l.is_free_preview || false,
+                order_index: l.order_index,
+                video_url: l.video_url || '',
+            })),
+        }));
+    }, [sectionsResponse, expandedSections]);
+
+    // Transform assignments data from API
+    const assignments: Assignment[] = useMemo(() => {
+        if (!assignmentsResponse) return [];
+        const data = Array.isArray(assignmentsResponse) ? assignmentsResponse : [];
+        return data.map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            description: a.description || '',
+            type: 'assignment' as const,
+            due_date: a.due_date || '',
+            max_points: a.max_score || 100,
+            is_active: a.is_published || false,
+            created_at: a.created_at || '',
+            lesson_id: a.lesson_id,
+            lesson_title: a.lesson?.title,
+            section_title: a.lesson?.section?.title,
+        }));
+    }, [assignmentsResponse]);
+
+    // Transform submissions data from pending grading
+    const submissions: Submission[] = useMemo(() => {
+        if (!pendingGradingResponse?.rows) return [];
+        return pendingGradingResponse.rows.map((s: any) => ({
+            id: s.id,
+            student_id: s.user_id || s.student?.id || '',
+            student_name: s.student ? `${s.student.first_name} ${s.student.last_name}` : 'Unknown',
+            student_avatar: s.student?.avatar_url,
+            student_mssv: s.student?.student_id,
+            assignment_title: s.assignment?.title || '',
+            assignment_type: 'assignment' as const,
+            submitted_at: s.submitted_at || '',
+            is_late: s.is_late || false,
+            late_duration: s.late_duration,
+            status: s.status || 'pending',
+            score: s.score,
+            max_points: s.assignment?.max_score || 100,
+            submission_text: s.submission_text,
+            file_urls: s.file_url ? [s.file_url] : [],
+            feedback: s.feedback,
+            graded_at: s.graded_at,
+        }));
+    }, [pendingGradingResponse]);
+
+    // Calculate assignment stats
+    const assignmentStats: AssignmentStats = useMemo(() => {
+        const totalStudents = (studentsResponse?.data as any)?.students?.length || (studentsResponse?.data as any)?.length || 0;
+        const submittedCount = submissions.filter(s => s.status !== 'missing').length;
+        const pendingCount = submissions.filter(s => s.status === 'pending').length;
+        const gradedSubmissions = submissions.filter(s => s.status === 'graded');
+        const avgScore = gradedSubmissions.length > 0
+            ? gradedSubmissions.reduce((sum, s) => sum + (s.score || 0), 0) / gradedSubmissions.length
+            : 0;
+
+        return {
+            total_students: totalStudents,
+            submitted_count: submittedCount,
+            pending_grading_count: pendingCount,
+            average_score: avgScore,
+            due_date: selectedAssignment?.due_date || '',
+            is_overdue: selectedAssignment?.due_date ? new Date(selectedAssignment.due_date) < new Date() : false,
+            time_remaining: selectedAssignment?.due_date 
+                ? getTimeRemaining(selectedAssignment.due_date) 
+                : undefined,
+        };
+    }, [submissions, studentsResponse, selectedAssignment]);
+
+    // Helper function to calculate time remaining
+    function getTimeRemaining(dueDate: string): string {
+        const now = new Date();
+        const due = new Date(dueDate);
+        const diffMs = due.getTime() - now.getTime();
+        
+        if (diffMs <= 0) return 'Đã quá hạn';
+        
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        if (days > 0) return `${days} ngày ${hours} giờ`;
+        if (hours > 0) return `${hours} giờ`;
+        return 'Sắp hết hạn';
+    }
 
     // ================== SECTION HANDLERS ==================
 
     const toggleSection = (sectionId: string) => {
-        setSections(sections.map(s =>
-            s.id === sectionId ? { ...s, isExpanded: !s.isExpanded } : s
-        ));
+        setExpandedSections(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(sectionId)) {
+                newSet.delete(sectionId);
+            } else {
+                newSet.add(sectionId);
+            }
+            return newSet;
+        });
     };
 
     const handleAddSection = () => {
@@ -106,30 +327,35 @@ export function InstructorDetailPage() {
         setShowSectionModal(true);
     };
 
-    const handleSaveSection = () => {
-        // TODO: API call - POST /api/instructor/courses/:courseId/sections (create)
-        // TODO: API call - PUT /api/instructor/courses/:courseId/sections/:sectionId (update)
-        if (editingSection) {
-            setSections(sections.map(s =>
-                s.id === editingSection.id ? { ...s, title: sectionTitle } : s
-            ));
-        } else {
-            const newSection: Section = {
-                id: Date.now().toString(),
-                title: sectionTitle,
-                lessons: [],
-                order_index: sections.length + 1,
-                isExpanded: true,
-            };
-            setSections([...sections, newSection]);
+    const handleSaveSection = async () => {
+        if (!courseId) return;
+        
+        try {
+            if (editingSection) {
+                await updateSectionMutation.mutateAsync({
+                    sectionId: editingSection.id,
+                    data: { title: sectionTitle }
+                });
+            } else {
+                await createSectionMutation.mutateAsync({
+                    course_id: courseId,
+                    title: sectionTitle,
+                    order_index: sections.length + 1
+                });
+            }
+            setShowSectionModal(false);
+        } catch (error) {
+            console.error('Error saving section:', error);
         }
-        setShowSectionModal(false);
     };
 
-    const handleDeleteSection = (sectionId: string) => {
-        // TODO: API call - DELETE /api/instructor/courses/:courseId/sections/:sectionId
+    const handleDeleteSection = async (sectionId: string) => {
         if (confirm('Xóa chương này? Tất cả bài học trong chương sẽ bị xóa.')) {
-            setSections(sections.filter(s => s.id !== sectionId));
+            try {
+                await deleteSectionMutation.mutateAsync(sectionId);
+            } catch (error) {
+                console.error('Error deleting section:', error);
+            }
         }
     };
 
@@ -153,53 +379,136 @@ export function InstructorDetailPage() {
         setShowLessonModal(true);
     };
 
-    const handleSaveLesson = () => {
-        // TODO: API call - POST /api/instructor/sections/:sectionId/lessons (create)
-        // TODO: API call - PUT /api/instructor/lessons/:lessonId (update)
-        if (!editingLesson) return;
+    const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
-        setSections(sections.map(s => {
-            if (s.id === editingLesson.sectionId) {
-                if (editingLesson.lesson) {
-                    return {
-                        ...s,
-                        lessons: s.lessons.map(l =>
-                            l.id === editingLesson.lesson!.id ? { ...l, ...lessonForm } : l
-                        ),
-                    };
-                } else {
-                    const newLesson: Lesson = {
-                        id: Date.now().toString(),
-                        ...lessonForm,
-                        order_index: s.lessons.length + 1,
-                    };
-                    return { ...s, lessons: [...s.lessons, newLesson] };
+    const handleSaveLesson = async () => {
+        console.log('[handleSaveLesson] Called with editingLesson:', editingLesson);
+        console.log('[handleSaveLesson] lessonForm:', lessonForm);
+        
+        if (!editingLesson) {
+            console.error('[handleSaveLesson] editingLesson is null, aborting');
+            return;
+        }
+
+        try {
+            let videoUrl = lessonForm.video_url;
+
+            // Upload video file to R2 if there's a new file
+            if (lessonForm.video_file && lessonForm.video_url?.startsWith('blob:')) {
+                setIsUploadingVideo(true);
+                setUploadProgress(0);
+                toast.loading('Đang tải video lên...', { id: 'upload-video' });
+                
+                try {
+                    const uploadResult = await mediaApi.uploadLessonVideo(
+                        lessonForm.video_file,
+                        courseId,
+                        editingLesson.lesson?.id,
+                        (progress) => setUploadProgress(progress)
+                    );
+                    videoUrl = uploadResult.data.url;
+                    toast.success('Tải video thành công!', { id: 'upload-video' });
+                } catch (uploadError) {
+                    console.error('Error uploading video:', uploadError);
+                    toast.error('Không thể tải video lên. Vui lòng thử lại.', { id: 'upload-video' });
+                    setIsUploadingVideo(false);
+                    return;
                 }
+                setIsUploadingVideo(false);
             }
-            return s;
-        }));
-        setShowLessonModal(false);
+
+            if (editingLesson.lesson) {
+                console.log('[handleSaveLesson] Updating existing lesson:', editingLesson.lesson.id);
+                await updateLessonMutation.mutateAsync({
+                    lessonId: editingLesson.lesson.id,
+                    data: {
+                        title: lessonForm.title,
+                        content_type: lessonForm.content_type,
+                        duration_minutes: lessonForm.duration_minutes,
+                        is_free_preview: lessonForm.is_preview,
+                        video_url: videoUrl,
+                    }
+                });
+                toast.success('Cập nhật bài học thành công!');
+            } else {
+                console.log('[handleSaveLesson] Creating new lesson in section:', editingLesson.sectionId);
+                const lessonData = {
+                    section_id: editingLesson.sectionId,
+                    title: lessonForm.title,
+                    content_type: lessonForm.content_type,
+                    duration_minutes: lessonForm.duration_minutes || 0,
+                    is_free_preview: lessonForm.is_preview,
+                    video_url: videoUrl || undefined,
+                };
+                console.log('[handleSaveLesson] Lesson data to send:', lessonData);
+                const result = await createLessonMutation.mutateAsync(lessonData);
+                console.log('[handleSaveLesson] Lesson created successfully:', result);
+                toast.success('Tạo bài học thành công!');
+            }
+            setShowLessonModal(false);
+        } catch (error: any) {
+            console.error('[handleSaveLesson] Error saving lesson:', error);
+            console.error('[handleSaveLesson] Error response:', error?.response?.data);
+            toast.error(`Lỗi khi lưu bài học: ${error?.response?.data?.message || error?.message || 'Unknown error'}`);
+        }
     };
 
-    const handleDeleteLesson = (sectionId: string, lessonId: string) => {
-        // TODO: API call - DELETE /api/instructor/lessons/:lessonId
+    const handleDeleteLesson = async (sectionId: string, lessonId: string) => {
         if (confirm('Xóa bài học này?')) {
-            setSections(sections.map(s =>
-                s.id === sectionId ? { ...s, lessons: s.lessons.filter(l => l.id !== lessonId) } : s
-            ));
+            try {
+                await deleteLessonMutation.mutateAsync(lessonId);
+            } catch (error) {
+                console.error('Error deleting lesson:', error);
+            }
         }
     };
 
     // ================== OTHER HANDLERS ==================
 
-    const handleReplyReview = (reviewId: string, replyText: string) => {
-        // TODO: API call - POST /api/instructor/reviews/:reviewId/reply
-        console.log('Reply to review:', reviewId, replyText);
+    const handleSaveSettings = async (data: {
+        title: string;
+        description: string;
+        is_free: boolean;
+        price?: number;
+        thumbnail_url?: string;
+    }) => {
+        if (!courseId) return;
+        
+        await updateCourseMutation.mutateAsync({
+            courseId,
+            data: {
+                title: data.title,
+                description: data.description,
+                is_free: data.is_free,
+                price: data.price,
+                thumbnail_url: data.thumbnail_url,
+            }
+        });
     };
 
-    const handleSaveSettings = () => {
-        // TODO: API call - PUT /api/instructor/courses/:courseId
-        console.log('Save settings');
+    const handlePublishCourse = async () => {
+        if (!courseId) return;
+        try {
+            await updateCourseMutation.mutateAsync({
+                courseId,
+                data: { status: 'published' }
+            });
+        } catch (error) {
+            console.error('Error publishing course:', error);
+        }
+    };
+
+    const handleUnpublishCourse = async () => {
+        if (!courseId) return;
+        try {
+            await updateCourseMutation.mutateAsync({
+                courseId,
+                data: { status: 'draft' }
+            });
+        } catch (error) {
+            console.error('Error unpublishing course:', error);
+        }
     };
 
     // ================== TAB CONFIG ==================
@@ -213,6 +522,28 @@ export function InstructorDetailPage() {
     ];
 
     // ================== RENDER ==================
+
+    // Loading state
+    if (courseLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+        );
+    }
+
+    // Error state
+    if (courseError || !course) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+                <AlertCircle className="w-12 h-12 text-red-500" />
+                <p className="text-gray-600">Không thể tải thông tin khóa học</p>
+                <Button onClick={() => navigate(ROUTES.INSTRUCTOR.MY_COURSES)}>
+                    Quay lại danh sách
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-8xl mx-auto space-y-6">
@@ -298,7 +629,7 @@ export function InstructorDetailPage() {
                             submissions={submissions}
                             assignmentStats={assignmentStats}
                             assignmentTitle={selectedAssignment.title}
-                            courseTitle={course.title}
+                            courseTitle={course?.title || ''}
                             courseId={courseId || '1'}
                             assignmentId={selectedAssignment.id}
                             onBack={() => setSelectedAssignment(null)}
@@ -311,10 +642,17 @@ export function InstructorDetailPage() {
                     )
                 )}
 
-                {activeTab === 'settings' && (
+                {activeTab === 'settings' && course && (
                     <SettingsTab
-                        course={course}
+                        course={{
+                            ...course,
+                            thumbnail_url: course.thumbnail_url || undefined,
+                            price: course.price || 0,
+                        }}
                         onSave={handleSaveSettings}
+                        onPublish={handlePublishCourse}
+                        onUnpublish={handleUnpublishCourse}
+                        isSaving={updateCourseMutation.isPending}
                     />
                 )}
             </div>

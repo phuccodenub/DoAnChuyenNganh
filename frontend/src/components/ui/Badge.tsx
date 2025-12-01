@@ -2,7 +2,7 @@ import { HTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -12,6 +12,8 @@ const variantClasses = {
   warning: 'bg-yellow-100 text-yellow-800',
   danger: 'bg-red-100 text-red-800',
   info: 'bg-blue-100 text-blue-800',
+  secondary: 'bg-gray-200 text-gray-700',
+  outline: 'bg-transparent border border-gray-300 text-gray-700',
 };
 
 const sizeClasses = {

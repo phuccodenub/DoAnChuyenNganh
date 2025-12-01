@@ -131,15 +131,15 @@ export function CurriculumPreview({
 
                         {/* Lesson Meta */}
                         <div className="flex items-center gap-3 flex-shrink-0">
-                          {lesson.duration && (
+                          {lesson.duration_minutes && (
                             <div className="flex items-center gap-1 text-sm text-gray-500">
                               <Clock className="w-4 h-4" />
-                              <span>{formatDuration(lesson.duration)}</span>
+                              <span>{formatDuration(lesson.duration_minutes)}</span>
                             </div>
                           )}
-                          {lesson.lesson_type && (
+                          {lesson.content_type && (
                             <Badge variant="outline" className="text-xs">
-                              {lesson.lesson_type}
+                              {lesson.content_type}
                             </Badge>
                           )}
                         </div>

@@ -8,6 +8,10 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { 
+  Activity, Filter, Download, Trash2, FileJson, FileText, 
+  Clock, User, Tag, Server, CheckCircle2, XCircle, Globe 
+} from 'lucide-react';
 
 export const ActivityLogsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -28,7 +32,7 @@ export const ActivityLogsPage: React.FC = () => {
   };
 
   const handleClearOldLogs = () => {
-    if (window.confirm(t('confirm_clear_old_logs'))) {
+    if (window.confirm(t('admin.activityLogs.confirm_clear_old_logs'))) {
       clearLogs(90); // Clear logs older than 90 days
     }
   };
@@ -44,19 +48,19 @@ export const ActivityLogsPage: React.FC = () => {
   const columns: Column<ActivityLog>[] = [
     {
       key: 'created_at',
-      header: t('timestamp'),
+      header: t('admin.activityLogs.timestamp'),
       render: (row) => format(new Date(row.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: vi }),
       sortable: true,
     },
     {
       key: 'user_name',
-      header: t('user'),
+      header: t('admin.activityLogs.user'),
       render: (row) => row.user_name,
       sortable: true,
     },
     {
       key: 'action',
-      header: t('action'),
+      header: t('admin.activityLogs.action'),
       render: (row) => (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
           {row.action}
@@ -66,7 +70,7 @@ export const ActivityLogsPage: React.FC = () => {
     },
     {
       key: 'resource_type',
-      header: t('resource_type'),
+      header: t('admin.activityLogs.resource_type'),
       render: (row) => (
         <span className="text-gray-600">{row.resource_type}</span>
       ),
@@ -74,7 +78,7 @@ export const ActivityLogsPage: React.FC = () => {
     },
     {
       key: 'status',
-      header: t('status'),
+      header: t('admin.activityLogs.status'),
       render: (row) => (
         <span
           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
@@ -83,13 +87,13 @@ export const ActivityLogsPage: React.FC = () => {
               : 'bg-red-100 text-red-800'
           }`}
         >
-          {row.status === 'success' ? '✓ ' : '✗ '}{t(row.status)}
+          {row.status === 'success' ? '✓ ' : '✗ '}{t(`admin.activityLogs.${row.status}`)}
         </span>
       ),
     },
     {
       key: 'ip_address',
-      header: t('ip_address'),
+      header: t('admin.activityLogs.ip_address'),
       render: (row) => <span className="text-gray-600 font-mono text-xs">{row.ip_address}</span>,
     },
   ];
@@ -97,24 +101,39 @@ export const ActivityLogsPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t('activity_logs')}</h1>
-        <p className="mt-2 text-gray-600">{t('system_activity_tracking')}</p>
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg">
+          <Activity className="w-8 h-8 text-white" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            {t('admin.activityLogs.activity_logs')}
+          </h1>
+          <p className="mt-1 text-gray-600 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            {t('admin.activityLogs.system_activity_tracking')}
+          </p>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="w-5 h-5 text-gray-600" />
+          <h2 className="text-lg font-semibold text-gray-900">{t('admin.activityLogs.filters')}</h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('action')}
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <Tag className="w-4 h-4" />
+              {t('admin.activityLogs.action')}
             </label>
             <select
               value={filters.action || ''}
               onChange={(e) => setFilters({ ...filters, action: e.target.value || undefined })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
-              <option value="">{t('all_actions')}</option>
+              <option value="">{t('admin.activityLogs.all_actions')}</option>
               <option value="create">CREATE</option>
               <option value="update">UPDATE</option>
               <option value="delete">DELETE</option>
@@ -124,15 +143,16 @@ export const ActivityLogsPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('resource_type')}
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <Server className="w-4 h-4" />
+              {t('admin.activityLogs.resource_type')}
             </label>
             <select
               value={filters.resource_type || ''}
               onChange={(e) => setFilters({ ...filters, resource_type: e.target.value || undefined })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
-              <option value="">{t('all_types')}</option>
+              <option value="">{t('admin.activityLogs.all_types')}</option>
               <option value="user">Người dùng</option>
               <option value="course">Khóa học</option>
               <option value="lesson">Bài học</option>
@@ -142,8 +162,9 @@ export const ActivityLogsPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('status')}
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <CheckCircle2 className="w-4 h-4" />
+              {t('admin.activityLogs.status')}
             </label>
             <select
               value={filters.status || ''}
@@ -151,56 +172,62 @@ export const ActivityLogsPage: React.FC = () => {
                 ...filters, 
                 status: (e.target.value as 'success' | 'failed') || undefined 
               })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
-              <option value="">{t('all_statuses')}</option>
-              <option value="success">{t('success')}</option>
-              <option value="failed">{t('failed')}</option>
+              <option value="">{t('admin.activityLogs.all_statuses')}</option>
+              <option value="success">{t('admin.activityLogs.success')}</option>
+              <option value="failed">{t('admin.activityLogs.failed')}</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex gap-3">
           <Button
             variant="secondary"
             onClick={() => handleExport('csv')}
             disabled={isExporting}
-            className="gap-2"
+            className="flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
           >
-            {isExporting && <Spinner className="w-4 h-4" />}
-            {t('export_csv')}
+            {isExporting ? <Spinner className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+            {t('admin.activityLogs.export_csv')}
           </Button>
           <Button
             variant="secondary"
             onClick={() => handleExport('json')}
             disabled={isExporting}
-            className="gap-2"
+            className="flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
           >
-            {isExporting && <Spinner className="w-4 h-4" />}
-            {t('export_json')}
+            {isExporting ? <Spinner className="w-4 h-4" /> : <FileJson className="w-4 h-4" />}
+            {t('admin.activityLogs.export_json')}
           </Button>
         </div>
         <Button
           variant="secondary"
           onClick={handleClearOldLogs}
           disabled={isClearing}
-          className="gap-2 text-red-600 hover:text-red-700"
+          className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 shadow-md hover:shadow-lg transition-all"
         >
-          {isClearing && <Spinner className="w-4 h-4" />}
-          {t('clear_old_logs')}
+          {isClearing ? <Spinner className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+          {t('admin.activityLogs.clear_old_logs')}
         </Button>
       </div>
 
       {/* Activity Table */}
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-gray-600" />
+            {t('admin.activityLogs.activity_history')}
+          </h2>
+        </div>
         <DataTable
           columns={columns as any}
           data={data?.data || []}
           keyExtractor={(row) => row.id}
-          emptyMessage={t('no_activity_logs')}
+          emptyMessage={t('admin.activityLogs.no_activity_logs')}
         />
       </div>
     </div>

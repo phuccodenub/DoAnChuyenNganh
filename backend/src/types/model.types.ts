@@ -364,7 +364,7 @@ export interface NotificationAttributes {
   message: string;
   link_url?: string | null;
   priority: 'low' | 'normal' | 'high' | 'urgent';
-  category: 'course' | 'assignment' | 'quiz' | 'grade' | 'message' | 'system' | 'announcement';
+  category: 'course' | 'assignment' | 'quiz' | 'grade' | 'message' | 'system' | 'announcement' | 'achievement';
   related_resource_type?: string | null;
   related_resource_id?: string | null;
   scheduled_at?: Date | null;

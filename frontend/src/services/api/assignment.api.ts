@@ -164,6 +164,184 @@ export const assignmentApi = {
       data: { file_url: fileUrl },
     });
   },
+
+  // ===================================
+  // INSTRUCTOR APIs
+  // ===================================
+
+  /**
+   * Get all assignments for a course (instructor)
+   */
+  getCourseAssignments: async (courseId: string): Promise<Assignment[]> => {
+    const response = await apiClient.get<{ data: Assignment[] }>(
+      `/assignments/course/${courseId}`
+    );
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Get assignment statistics for a course
+   */
+  getCourseAssignmentStats: async (courseId: string): Promise<{
+    total_assignments: number;
+    total_submissions: number;
+    pending_grading: number;
+    graded_submissions: number;
+    average_score: number;
+    assignments: Array<{
+      id: string;
+      title: string;
+      due_date: string | null;
+      total_submissions: number;
+      pending_grading: number;
+      average_score: number;
+    }>;
+  }> => {
+    const response = await apiClient.get(`/assignments/course/${courseId}/stats`);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Get all submissions for an assignment (instructor)
+   */
+  getAssignmentSubmissions: async (
+    assignmentId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
+    rows: SubmissionWithStudent[];
+    count: number;
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> => {
+    const response = await apiClient.get(
+      `/assignments/${assignmentId}/submissions`,
+      { params: { page, limit } }
+    );
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Get assignment statistics
+   */
+  getAssignmentStats: async (assignmentId: string): Promise<{
+    total_submissions: number;
+    graded_submissions: number;
+    pending_submissions: number;
+    average_score: number;
+    late_submissions: number;
+    grading_progress: number;
+  }> => {
+    const response = await apiClient.get(`/assignments/${assignmentId}/stats`);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Get pending submissions for grading (all courses)
+   */
+  getPendingGrading: async (page: number = 1, limit: number = 20): Promise<{
+    rows: SubmissionWithStudent[];
+    count: number;
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> => {
+    const response = await apiClient.get('/assignments/pending-grading', {
+      params: { page, limit }
+    });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Get pending submissions for a specific course
+   */
+  getCoursePendingGrading: async (
+    courseId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
+    rows: SubmissionWithStudent[];
+    count: number;
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> => {
+    const response = await apiClient.get(
+      `/assignments/course/${courseId}/pending-grading`,
+      { params: { page, limit } }
+    );
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Grade a submission
+   */
+  gradeSubmission: async (
+    submissionId: string,
+    data: { score: number; feedback?: string }
+  ): Promise<Submission> => {
+    const response = await apiClient.post<{ data: Submission }>(
+      `/assignments/submissions/${submissionId}/grade`,
+      data
+    );
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Create assignment (instructor)
+   */
+  createAssignment: async (data: CreateAssignmentPayload): Promise<Assignment> => {
+    const response = await apiClient.post<{ data: Assignment }>('/assignments', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Update assignment (instructor)
+   */
+  updateAssignment: async (
+    assignmentId: string,
+    data: Partial<CreateAssignmentPayload>
+  ): Promise<Assignment> => {
+    const response = await apiClient.put<{ data: Assignment }>(
+      `/assignments/${assignmentId}`,
+      data
+    );
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Delete assignment (instructor)
+   */
+  deleteAssignment: async (assignmentId: string): Promise<void> => {
+    await apiClient.delete(`/assignments/${assignmentId}`);
+  },
 };
+
+// Additional types for instructor APIs
+export interface SubmissionWithStudent extends Submission {
+  student?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    avatar_url?: string;
+  };
+  assignment?: {
+    id: string;
+    title: string;
+    max_score: number;
+    due_date: string | null;
+    course?: {
+      id: string;
+      title: string;
+    };
+  };
+}
+
+export interface CreateAssignmentPayload {
+  course_id: string;
+  title: string;
+  description?: string;
+  max_score: number;
+  due_date?: string;
+  allow_late_submission?: boolean;
+  submission_type?: 'text' | 'file' | 'both';
+  is_published?: boolean;
+}
 
 export default assignmentApi;

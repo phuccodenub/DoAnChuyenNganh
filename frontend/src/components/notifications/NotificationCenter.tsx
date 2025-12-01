@@ -12,7 +12,7 @@ import clsx from 'clsx';
 export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const { data, isLoading, isFetching } = useNotifications(page, 10);
+  const { data, isLoading, isFetching } = useNotifications({ offset: (page - 1) * 10, limit: 10 });
 
   const notifications = data?.notifications || [];
   const unreadCount = data?.unreadCount || 0;

@@ -1,3 +1,3 @@
-export { WebRTCLiveStudio } from './WebRTCLiveStudio';
+export { WebRTCLiveStudio, type WebRTCLiveStudioHandle } from './WebRTCLiveStudio';
 export { MeetStyleControls } from './MeetStyleControls';
 

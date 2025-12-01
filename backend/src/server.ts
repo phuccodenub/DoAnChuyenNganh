@@ -27,6 +27,7 @@ import './models';
 import { ChatGateway } from './modules/chat/chat.gateway';
 import { WebRTCGateway } from './modules/webrtc/webrtc.gateway';
 import { LiveStreamGateway } from './modules/livestream/livestream.gateway';
+import { NotificationGateway, setNotificationGateway } from './modules/notifications/notifications.gateway';
 
 // Import AI Service to check status on startup
 import { AIService } from './modules/ai/ai.service';
@@ -71,6 +72,11 @@ async function startServer() {
     const livestreamGateway = new LiveStreamGateway(io);
     // Export gateway instance for use in controllers/services
     (global as any).livestreamGateway = livestreamGateway;
+    
+    // Initialize NotificationGateway and store singleton for service usage
+    const notificationGateway = new NotificationGateway(io);
+    setNotificationGateway(notificationGateway);
+    
     logger.info('Socket.IO gateways initialized');
     
     // Initialize and check AI Service status

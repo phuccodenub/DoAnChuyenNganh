@@ -13,12 +13,18 @@ export interface Course {
   category_id?: string;
   title: string;
   description: string;
+  short_description?: string;
   thumbnail_url?: string;
   status: 'draft' | 'published' | 'archived';
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced'; // deprecated, use level
   duration_hours?: number;
   price?: number;
   is_free: boolean;
+  language?: string;
+  prerequisites?: string[];
+  learning_objectives?: string[];
+  tags?: string[];
   created_at: string;
   updated_at: string;
   rating?: number;

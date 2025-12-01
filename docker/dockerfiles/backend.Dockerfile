@@ -1,41 +1,52 @@
-# Production Dockerfile for Backend
-FROM node:18-alpine
+# Multi-stage production Dockerfile for Backend API
 
-# Set working directory
+# --- Stage 1: Builder (install + compile + prune) ---
+FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Toolchain for packages that need native builds (sqlite3, bcrypt, etc.)
+RUN apk add --no-cache python3 make g++
 
-# Copy package files
+# Install all dependencies (prod + dev) for building
 COPY backend/package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
+# Copy source code and build TypeScript to dist
 COPY backend/ .
-
-# Build TypeScript
 RUN npm run build
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Remove devDependencies to slim down the runtime payload
+RUN npm prune --production && npm cache clean --force
 
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
+
+# --- Stage 2: Runtime (copy only what we need) ---
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# curl is needed for container healthcheck
+RUN apk add --no-cache curl
+
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--require module-alias/register"
+
+# Copy production artefacts from the builder stage
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
+# Non-root user hardening + writable logs folder
+RUN addgroup -g 1001 -S nodejs \
+    && adduser -S nodejs -u 1001 -G nodejs \
+    && mkdir -p /app/logs \
+    && chown -R nodejs:nodejs /app
+
 USER nodejs
 
-# Expose port
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Preload module-alias for resolving dist-time path aliases
-ENV NODE_OPTIONS="--require module-alias/register"
-
-# Start the application with module-alias preloaded
 CMD ["node", "-r", "module-alias/register", "dist/server.js"]

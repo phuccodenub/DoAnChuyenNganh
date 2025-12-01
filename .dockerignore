@@ -1,0 +1,56 @@
+# Giảm context build và tránh copy file dư thừa vào image
+# (bám theo checklist tối ưu Docker image)
+node_modules
+**/node_modules
+dist
+**/dist
+npm-debug.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.git
+.gitignore
+README.md
+Dockerfile
+Dockerfile.*
+.dockerignore
+
+# Artefact build
+/dist
+**/dist
+/build
+**/build
+coverage
+**/coverage
+
+# Loại bỏ thư mục siêu nặng không cần cho runtime
+backups
+backend/backups
+backend/postman
+backend/test
+backend/markdown
+backend/json_debug
+backend/docs
+docs
+markdown
+
+# Thêm các thư mục frontend không cần
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# Env và bí mật chỉ dùng local
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Log và file hệ điều hành
+logs
+**/logs
+*.log
+.DS_Store
+Thumbs.db
+
+# File Docker meta (không ảnh hưởng vì Docker vẫn lấy Dockerfile được chỉ định)
+docker-compose*.yml

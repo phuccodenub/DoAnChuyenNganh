@@ -1,0 +1,333 @@
+import { httpClient } from '../http/client';
+import type { Course } from './course.api';
+
+/**
+ * Instructor API Service
+ * 
+ * Tất cả endpoints liên quan đến instructor course management
+ */
+
+// ================== TYPES ==================
+
+export interface InstructorCourse extends Course {
+  total_students?: number;
+  total_lessons?: number;
+  total_sections?: number;
+  total_revenue?: number;
+  average_rating?: number;
+  total_ratings?: number;
+}
+
+export interface CourseStats {
+  total_students: number;
+  total_revenue: number;
+  average_rating: number;
+  total_reviews: number;
+  completion_rate: number;
+  avg_progress: number;
+  avg_score: number;
+  pending_grading: number;
+  max_students: number;
+  new_students_this_week: number;
+}
+
+export interface CourseStudent {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+  student_id?: string; // MSSV
+  enrolled_at: string;
+  progress_percent: number;
+  last_activity_at: string;
+  completed_lessons: number;
+  total_lessons: number;
+}
+
+export interface CourseSection {
+  id: string;
+  course_id: string;
+  title: string;
+  description?: string;
+  order_index: number;
+  is_published: boolean;
+  lessons: CourseLesson[];
+}
+
+export interface CourseLesson {
+  id: string;
+  section_id: string;
+  title: string;
+  content_type: 'video' | 'document' | 'quiz' | 'assignment' | 'text' | 'link';
+  duration_minutes: number;
+  is_free_preview: boolean;
+  is_published: boolean;
+  order_index: number;
+  video_url?: string;
+}
+
+export interface CreateSectionData {
+  course_id: string;
+  title: string;
+  description?: string;
+  order_index?: number;
+}
+
+export interface UpdateSectionData {
+  title?: string;
+  description?: string;
+  order_index?: number;
+  is_published?: boolean;
+}
+
+export interface CreateLessonData {
+  section_id: string;
+  title: string;
+  content_type: 'video' | 'document' | 'quiz' | 'assignment' | 'text' | 'link';
+  description?: string;
+  content?: string;
+  video_url?: string;
+  duration_minutes?: number;
+  is_free_preview?: boolean;
+  is_published?: boolean;
+  order_index?: number;
+}
+
+export interface UpdateLessonData {
+  title?: string;
+  content_type?: 'video' | 'document' | 'quiz' | 'assignment' | 'text' | 'link';
+  description?: string;
+  content?: string;
+  video_url?: string;
+  duration_minutes?: number;
+  is_free_preview?: boolean;
+  is_published?: boolean;
+  order_index?: number;
+}
+
+export interface UpdateCourseData {
+  title?: string;
+  description?: string;
+  short_description?: string;
+  thumbnail?: string;
+  thumbnail_url?: string; // Alias for thumbnail
+  price?: number;
+  is_free?: boolean;
+  level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  status?: 'draft' | 'published' | 'archived';
+  category_id?: string;
+  language?: string;
+  prerequisites?: string[];
+  learning_objectives?: string[];
+  tags?: string[];
+}
+
+// API Response types
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+interface PaginatedResponse<T> {
+  success: boolean;
+  message: string;
+  data: {
+    data: T[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
+// ================== API FUNCTIONS ==================
+
+export const instructorApi = {
+  // ===== COURSE MANAGEMENT =====
+
+  /**
+   * Lấy danh sách khóa học của instructor hiện tại
+   */
+  getMyCourses: async (params?: { page?: number; limit?: number; status?: string }) => {
+    const response = await httpClient.get<ApiResponse<{
+      data: InstructorCourse[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>>('/courses/instructor/my-courses', { params });
+    return response.data;
+  },
+
+  /**
+   * Lấy chi tiết khóa học
+   */
+  getCourseById: async (courseId: string) => {
+    const response = await httpClient.get<ApiResponse<InstructorCourse>>(`/courses/${courseId}`);
+    return response.data;
+  },
+
+  /**
+   * Tạo khóa học mới
+   */
+  createCourse: async (data: {
+    title: string;
+    description?: string;
+    short_description?: string;
+    thumbnail_url?: string;
+    price?: number;
+    is_free?: boolean;
+    level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    category_id?: string;
+    language?: string;
+    prerequisites?: string[];
+    learning_objectives?: string[];
+    tags?: string[];
+  }) => {
+    const response = await httpClient.post<ApiResponse<InstructorCourse>>('/courses', data);
+    return response.data;
+  },
+
+  /**
+   * Cập nhật thông tin khóa học
+   */
+  updateCourse: async (courseId: string, data: UpdateCourseData) => {
+    const response = await httpClient.put<ApiResponse<InstructorCourse>>(`/courses/${courseId}`, data);
+    return response.data;
+  },
+
+  /**
+   * Lấy thống kê khóa học
+   */
+  getCourseStats: async (courseId: string) => {
+    const response = await httpClient.get<ApiResponse<CourseStats>>(`/courses/${courseId}/stats`);
+    return response.data;
+  },
+
+  // ===== STUDENTS MANAGEMENT =====
+
+  /**
+   * Lấy danh sách học viên của khóa học với tiến độ
+   */
+  getCourseStudents: async (courseId: string, params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await httpClient.get<ApiResponse<{
+      students: CourseStudent[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>>(`/courses/${courseId}/students`, { params });
+    return response.data;
+  },
+
+  // ===== SECTIONS MANAGEMENT =====
+
+  /**
+   * Lấy danh sách sections của khóa học (với lessons)
+   */
+  getCourseSections: async (courseId: string) => {
+    const response = await httpClient.get<ApiResponse<CourseSection[]>>('/sections', {
+      params: { course_id: courseId }
+    });
+    return response.data;
+  },
+
+  /**
+   * Tạo section mới
+   */
+  createSection: async (data: CreateSectionData) => {
+    const response = await httpClient.post<ApiResponse<CourseSection>>('/sections', data);
+    return response.data;
+  },
+
+  /**
+   * Cập nhật section
+   */
+  updateSection: async (sectionId: string, data: UpdateSectionData) => {
+    const response = await httpClient.put<ApiResponse<CourseSection>>(`/sections/${sectionId}`, data);
+    return response.data;
+  },
+
+  /**
+   * Xóa section
+   */
+  deleteSection: async (sectionId: string) => {
+    const response = await httpClient.delete<ApiResponse<null>>(`/sections/${sectionId}`);
+    return response.data;
+  },
+
+  // ===== LESSONS MANAGEMENT =====
+
+  /**
+   * Lấy danh sách lessons của section
+   */
+  getSectionLessons: async (sectionId: string) => {
+    const response = await httpClient.get<ApiResponse<CourseLesson[]>>('/lessons', {
+      params: { section_id: sectionId }
+    });
+    return response.data;
+  },
+
+  /**
+   * Tạo lesson mới
+   */
+  createLesson: async (data: CreateLessonData) => {
+    console.log('[instructorApi.createLesson] Sending request to /lessons with data:', data);
+    try {
+      const response = await httpClient.post<ApiResponse<CourseLesson>>('/lessons', data);
+      console.log('[instructorApi.createLesson] Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[instructorApi.createLesson] Error:', error);
+      console.error('[instructorApi.createLesson] Error response:', error?.response?.data);
+      throw error;
+    }
+  },
+
+  /**
+   * Cập nhật lesson
+   */
+  updateLesson: async (lessonId: string, data: UpdateLessonData) => {
+    const response = await httpClient.put<ApiResponse<CourseLesson>>(`/lessons/${lessonId}`, data);
+    return response.data;
+  },
+
+  /**
+   * Xóa lesson
+   */
+  deleteLesson: async (lessonId: string) => {
+    const response = await httpClient.delete<ApiResponse<null>>(`/lessons/${lessonId}`);
+    return response.data;
+  },
+
+  // ===== COURSE STATUS =====
+
+  /**
+   * Publish khóa học
+   */
+  publishCourse: async (courseId: string) => {
+    const response = await httpClient.put<ApiResponse<InstructorCourse>>(`/courses/${courseId}`, {
+      status: 'published'
+    });
+    return response.data;
+  },
+
+  /**
+   * Chuyển khóa học về draft
+   */
+  unpublishCourse: async (courseId: string) => {
+    const response = await httpClient.put<ApiResponse<InstructorCourse>>(`/courses/${courseId}`, {
+      status: 'draft'
+    });
+    return response.data;
+  },
+
+  /**
+   * Archive khóa học
+   */
+  archiveCourse: async (courseId: string) => {
+    const response = await httpClient.put<ApiResponse<InstructorCourse>>(`/courses/${courseId}`, {
+      status: 'archived'
+    });
+    return response.data;
+  },
+};
+
+export default instructorApi;

@@ -12,15 +12,9 @@
 
 **TRƯỚC KHI viết bất kỳ dòng code nào, bạn PHẢI:**
 
-1. **Đọc toàn bộ tài liệu kế hoạch:**
-   - [ ] Đọc file `Detail_Refactor_Frontend1.md` (Phân tích & Kiến trúc)
-   - [ ] Đọc file `Detail_Refactor_Frontend2.md` (Lộ trình & Checklist)
-   - [ ] Đọc file `REFACTOR_FRONTEND.md` (Tổng quan ban đầu)
+1. **Đọc toàn bộ tài liệu kế hoạch:** (Nếu có)
 
 2. **Phân tích cấu trúc dự án hiện tại:**
-   - [ ] Đọc file `tree_frontend_src.md` để hiểu cấu trúc frontend hiện tại
-   - [ ] Đọc các files trong `frontend/src/` để hiểu code base
-   - [ ] Kiểm tra `package.json` để biết dependencies đã có
 
 3. **Hiểu rõ Backend API:**
    - [ ] Đọc các route files trong `backend/src/modules/*/routes.ts`
@@ -33,7 +27,7 @@
    - [ ] Kiểm tra các dependencies (tasks phải hoàn thành trước)
 
 **❌ KHÔNG BAO GIỜ:**
-- Bắt đầu code mà không đọc tài liệu
+- Bắt đầu code mà không đọc tài liệu (hoặc codebase)
 - Tự ý thay đổi kiến trúc đã định nghĩa
 - Bỏ qua việc kiểm tra code hiện có
 - Làm việc mà không hiểu context
@@ -60,7 +54,7 @@ npm run type-check
 
 **Nếu có lỗi:**
 1. Fix TẤT CẢ lỗi TypeScript
-2. Chạy lại `npm run type-check`
+2. Chạy lại `npm run type-check` cho frontend hoặc `npm run lint` cho backend
 3. Lặp lại cho đến khi KHÔNG còn lỗi
 
 #### **BƯỚC 2: Kiểm tra Linting**
@@ -84,52 +78,9 @@ npm run lint
 - [ ] Kiểm tra error states
 - [ ] Kiểm tra loading states
 
-#### **BƯỚC 4: Cập nhật Checklist**
+#### **BƯỚC 4: Cập nhật Checklist cho TODO**
 
 **Sau khi code ổn định và không còn lỗi, cập nhật checklist:**
-
-1. **Mở file tương ứng:**
-   - `Detail_Refactor_Frontend1.md` - nếu task liên quan đến API endpoints
-   - `Detail_Refactor_Frontend2.md` - nếu task liên quan đến implementation
-
-2. **Tích checkbox tương ứng:**
-   ```markdown
-   # TRƯỚC:
-   - [ ] `GET /profile` - Lấy thông tin profile
-   
-   # SAU:
-   - [x] `GET /profile` - Lấy thông tin profile
-   ```
-
-3. **Thêm note nếu cần thiết:**
-   ```markdown
-   - [x] `GET /profile` - Lấy thông tin profile
-     > ✅ Completed - 2025-11-11
-     > Note: Added caching với staleTime 5 minutes
-   ```
-
-4. **Định dạng notes:**
-   - ✅ `✅ Completed` - Hoàn thành đầy đủ
-   - ⚠️ `⚠️ Partial` - Hoàn thành một phần (ghi rõ lý do)
-   - 📝 `Note:` - Ghi chú quan trọng
-   - 🐛 `Bug:` - Vấn đề cần fix sau
-   - 🔄 `Modified:` - Đã sửa đổi so với kế hoạch ban đầu
-
-#### **BƯỚC 5: Commit Code**
-
-```bash
-# Commit với message rõ ràng
-git add .
-git commit -m "feat: implement user profile page [Phase 2]"
-```
-
-**Commit message format:**
-- `feat:` - Tính năng mới
-- `fix:` - Fix bug
-- `refactor:` - Refactor code
-- `style:` - Thay đổi style/UI
-- `docs:` - Cập nhật docs
-- `test:` - Thêm tests
 
 ---
 

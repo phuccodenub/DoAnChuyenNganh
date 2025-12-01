@@ -15,12 +15,14 @@ const difficultyLabels: Record<string, string> = {
   beginner: 'Cơ bản',
   intermediate: 'Trung cấp',
   advanced: 'Nâng cao',
+  expert: 'Chuyên gia',
 };
 
 const difficultyColors: Record<string, 'success' | 'warning' | 'danger'> = {
   beginner: 'success',
   intermediate: 'warning',
   advanced: 'danger',
+  expert: 'danger',
 };
 
 /**
@@ -48,8 +50,8 @@ export function CourseTableView({ courses }: CourseTableViewProps) {
         compareValue = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         break;
       case 'difficulty':
-        const difficultyOrder = { beginner: 1, intermediate: 2, advanced: 3 };
-        compareValue = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        const difficultyOrder: Record<string, number> = { beginner: 1, intermediate: 2, advanced: 3, expert: 4 };
+        compareValue = (difficultyOrder[a.difficulty || a.level || 'beginner'] || 0) - (difficultyOrder[b.difficulty || b.level || 'beginner'] || 0);
         break;
       case 'enrollments':
         compareValue = (a._count?.enrollments || 0) - (b._count?.enrollments || 0);
@@ -184,8 +186,8 @@ export function CourseTableView({ courses }: CourseTableViewProps) {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <Badge variant={difficultyColors[course.difficulty]}>
-                            {difficultyLabels[course.difficulty]}
+                          <Badge variant={difficultyColors[course.difficulty || course.level || 'beginner'] || 'success'}>
+                            {difficultyLabels[course.difficulty || course.level || 'beginner'] || 'Cơ bản'}
                           </Badge>
                         </td>
                         <td className="px-6 py-4">

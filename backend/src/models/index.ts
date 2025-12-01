@@ -26,6 +26,7 @@ export { default as LiveSessionAttendance } from './live-session-attendance.mode
 export { default as LiveSessionMessage } from './live-session-message.model';
 export { default as LivestreamPolicy } from './livestream-policy.model';
 export { default as CommentModeration } from './comment-moderation.model';
+export { default as Review } from './review.model';
 
 // Import models for associations
 import User from './user.model';

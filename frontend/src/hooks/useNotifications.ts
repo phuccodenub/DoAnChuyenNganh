@@ -1,45 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { notificationApi } from '@/services/api/notifications.api';
+import { notificationApi, Notification, NotificationQueryParams, BulkNotificationDto, SentNotificationQueryParams } from '@/services/api/notifications.api';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 
-export interface Notification {
-  id: string;
-  user_id: string;
-  type: 'info' | 'warning' | 'error' | 'success';
-  title: string;
-  message: string;
-  is_read: boolean;
-  is_archived: boolean;
-  related_resource_type?: string;
-  related_resource_id?: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface NotificationsResponse {
-  data: Notification[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
-}
-
-export interface UnreadCountResponse {
-  unread_count: number;
-}
+// Re-export types
+export type { Notification, BulkNotificationDto, SentNotificationQueryParams } from '@/services/api/notifications.api';
 
 /**
  * Fetch user notifications with pagination and filters
  */
-export function useNotifications(page: number = 1, limit: number = 20, isRead?: boolean, isArchived?: boolean) {
+export function useNotifications(params?: NotificationQueryParams) {
   return useQuery({
-    queryKey: [...QUERY_KEYS.notifications.list({ page, limit, isRead, isArchived })],
-    queryFn: () => notificationApi.getNotifications(page, limit, isRead, isArchived),
+    queryKey: [...QUERY_KEYS.notifications.list(params || {})],
+    queryFn: () => notificationApi.getMyNotifications(params),
     staleTime: 30000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
+    select: (response) => ({
+      notifications: response.data?.notifications || [],
+      total: response.data?.total || 0,
+      unreadCount: response.data?.notifications?.filter((n: Notification) => !n.is_read).length || 0,
+    }),
   });
 }
 
@@ -52,6 +32,7 @@ export function useUnreadNotificationCount() {
     queryFn: () => notificationApi.getUnreadCount(),
     staleTime: 10000, // 10 seconds
     gcTime: 1 * 60 * 1000, // 1 minute
+    select: (response) => response.data?.unread_count || 0,
   });
 }
 
@@ -103,8 +84,8 @@ export function useArchiveOldNotifications() {
   
   return useMutation({
     mutationFn: (daysOld: number) => notificationApi.archiveOld(daysOld),
-    onSuccess: (response: any) => {
-      toast.success(`Đã lưu trữ ${response.archived_count || 0} thông báo cũ`);
+    onSuccess: (response) => {
+      toast.success(`Đã lưu trữ ${response.data?.archived_count || 0} thông báo cũ`);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all });
     },
     onError: (error: any) => {
@@ -149,5 +130,58 @@ export function useDeleteNotification() {
       const message = error?.response?.data?.message || 'Không thể xóa thông báo';
       toast.error(message);
     },
+  });
+}
+
+// ============================================
+// Admin/Instructor Hooks
+// ============================================
+
+/**
+ * Send bulk notification (Admin/Instructor)
+ */
+export function useSendBulkNotification() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (dto: BulkNotificationDto) => notificationApi.sendBulk(dto),
+    onSuccess: (response) => {
+      toast.success(`Đã gửi thông báo đến ${response.data?.recipients_count || 0} người`);
+      queryClient.invalidateQueries({ queryKey: ['sent-notifications'] });
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Không thể gửi thông báo';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Get sent notifications (Admin/Instructor)
+ */
+export function useSentNotifications(params?: SentNotificationQueryParams) {
+  return useQuery({
+    queryKey: ['sent-notifications', params],
+    queryFn: () => notificationApi.getSentNotifications(params),
+    staleTime: 60000, // 1 minute
+    select: (response) => ({
+      notifications: response.data?.notifications || [],
+      total: response.data?.total || 0,
+    }),
+  });
+}
+
+/**
+ * Get all notifications in system (Admin only)
+ */
+export function useAllNotifications(params?: SentNotificationQueryParams) {
+  return useQuery({
+    queryKey: ['all-notifications', params],
+    queryFn: () => notificationApi.getAllNotifications(params),
+    staleTime: 60000, // 1 minute
+    select: (response) => ({
+      notifications: response.data?.notifications || [],
+      total: response.data?.total || 0,
+    }),
   });
 }

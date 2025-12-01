@@ -287,6 +287,44 @@ export class AssignmentService {
     }
   }
 
+  /**
+   * Get assignment statistics for a course (instructor dashboard)
+   */
+  async getCourseAssignmentStats(courseId: string, userId: string) {
+    try {
+      await this.verifyInstructorAccess(courseId, userId);
+      return await this.repo.getCourseAssignmentStats(courseId);
+    } catch (error: unknown) {
+      logger.error(`Error getting course assignment stats: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all pending submissions for grading (instructor's courses)
+   */
+  async getPendingGrading(userId: string, page: number = 1, limit: number = 20) {
+    try {
+      return await this.repo.getPendingGrading(userId, page, limit);
+    } catch (error: unknown) {
+      logger.error(`Error getting pending grading: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pending submissions for a specific course
+   */
+  async getCoursePendingGrading(courseId: string, userId: string, page: number = 1, limit: number = 20) {
+    try {
+      await this.verifyInstructorAccess(courseId, userId);
+      return await this.repo.getCoursePendingGrading(courseId, page, limit);
+    } catch (error: unknown) {
+      logger.error(`Error getting course pending grading: ${error}`);
+      throw error;
+    }
+  }
+
   // ===================================
   // HELPER METHODS
   // ===================================

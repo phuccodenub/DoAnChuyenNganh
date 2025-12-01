@@ -1,13 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Plus, Search, Filter, Edit, Trash2, Eye, Copy, Clock, Users } from 'lucide-react';
+import { BookOpen, Plus, Search, Filter, Edit, Trash2, Eye, Copy, Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ROUTES, generateRoute } from '@/constants/routes';
-import { MainLayout } from '@/layouts/MainLayout';
-import { Spinner } from '@/components/ui/Spinner';
-import { useInstructorCourses } from '@/hooks/useCoursesData';
+import { useInstructorCourses } from '@/hooks/useInstructorCourse';
 
 /**
  * MyCoursesPage
@@ -21,36 +19,75 @@ import { useInstructorCourses } from '@/hooks/useCoursesData';
 export function MyCoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'archived'>('all');
-  const { data, isLoading, isError, refetch } = useInstructorCourses(true);
 
-  const courses = data?.data?.courses ?? [];
+  // Fetch courses from API
+  const { data: coursesResponse, isLoading, error } = useInstructorCourses({
+    status: filter === 'all' ? undefined : filter,
+  });
 
-  const statusLabels = {
+  // Course type for this component
+  interface CourseItem {
+    id: string;
+    title: string;
+    status: string;
+    students: number;
+    lessons: number;
+    thumbnail_url: string | null;
+    updated_at: string;
+    is_free: boolean;
+    price?: number;
+  }
+
+  // Transform API response to component format
+  const courses: CourseItem[] = useMemo(() => {
+    if (!coursesResponse?.data) return [];
+    // API returns { data: [...], pagination: {...} } format
+    const responseData = coursesResponse.data as any;
+    const coursesData = Array.isArray(responseData) 
+      ? responseData 
+      : responseData?.data || [];
+    
+    return coursesData.map((course: any) => {
+      // Filter out invalid blob URLs - they don't persist across page reloads
+      const thumbnailUrl = course.thumbnail_url?.startsWith('blob:') ? null : course.thumbnail_url;
+      return {
+        id: course.id,
+        title: course.title,
+        status: course.status || 'draft',
+        students: course.total_students || 0,
+        lessons: course.total_lessons || 0,
+        thumbnail_url: thumbnailUrl,
+        updated_at: course.updated_at,
+        is_free: course.is_free || course.price === 0,
+        price: course.price,
+      };
+    });
+  }, [coursesResponse]);
+
+  const statusLabels: Record<string, string> = {
     published: 'Đã xuất bản',
     draft: 'Nháp',
-    archived: 'Đã lưu trữ',
+    archived: 'Lưu trữ',
   };
 
-  const statusColors = {
+  const statusColors: Record<string, 'success' | 'warning' | 'default'> = {
     published: 'success',
     draft: 'warning',
     archived: 'default',
-  } as const;
+  };
 
   const filterOptions = [
     { value: 'all', label: 'Tất cả' },
     { value: 'published', label: 'Đã xuất bản' },
     { value: 'draft', label: 'Nháp' },
-    { value: 'archived', label: 'Đã lưu trữ' },
+    { value: 'archived', label: 'Lưu trữ' },
   ];
 
-  const filteredCourses = useMemo(() => {
-    return courses.filter((course) => {
-      const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFilter = filter === 'all' || course.status === filter;
-      return matchesSearch && matchesFilter;
-    });
-  }, [courses, filter, searchQuery]);
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filter === 'all' || course.status === filter;
+    return matchesSearch && matchesFilter;
+  });
 
   const handleDelete = (courseId: string, title: string) => {
     if (window.confirm(`Bạn có chắc muốn xóa khóa học "${title}"?`)) {
@@ -64,29 +101,42 @@ export function MyCoursesPage() {
     console.log('Duplicate course:', courseId);
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <span className="ml-2 text-gray-600">Đang tải khóa học...</span>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Không thể tải khóa học</h3>
+        <p className="text-gray-600 mb-4">Đã có lỗi xảy ra khi tải danh sách khóa học.</p>
+        <Button onClick={() => window.location.reload()}>Thử lại</Button>
+      </div>
+    );
+  }
+
   return (
-    <MainLayout showSidebar>
-    <div className="min-h-[calc(100vh-64px)] px-4 py-6 md:px-8 md:py-8">
-    <div className="max-w-8xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Khóa học của tôi</h1>
           <p className="text-gray-600 mt-1">Quản lý tất cả khóa học của bạn</p>
         </div>
-        <div className="flex items-center gap-3">
-          {isError && (
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              Thử lại
-            </Button>
-          )}
-          <Link to={ROUTES.COURSE_CREATE}>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              Tạo khóa học mới
-            </Button>
-          </Link>
-        </div>
+        <Link to={ROUTES.INSTRUCTOR.COURSE_CREATE}>
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" />
+            Tạo khóa học mới
+          </Button>
+        </Link>
       </div>
 
       {/* Search & Filters */}
@@ -132,35 +182,17 @@ export function MyCoursesPage() {
       {/* Results count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">
-          Hiển thị <strong>{filteredCourses.length}</strong> / {courses.length} khóa học
+          Hiển thị <strong>{filteredCourses.length}</strong> khóa học
         </p>
       </div>
 
-      {isLoading ? (
-        <div className="py-20 flex justify-center">
-          <Spinner size="lg" />
-        </div>
-      ) : isError ? (
-        <Card>
-          <CardContent className="p-10 text-center space-y-3">
-            <p className="text-gray-600">Không thể tải danh sách khóa học.</p>
-            <Button onClick={() => refetch()}>Thử lại</Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
       {/* Courses Grid */}
       {filteredCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => {
-            const statusKey = course.status as keyof typeof statusLabels;
-            const statusLabel = statusLabels[statusKey] ?? 'Đang xử lý';
-            const statusVariant = statusColors[statusKey] ?? 'default';
-            const enrollmentCount = course._count?.enrollments ?? 0;
-            return (
+          {filteredCourses.map((course) => (
             <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
               {/* Thumbnail */}
-              <Link to={generateRoute.courseManagement(course.id)}>
+              <Link to={generateRoute.instructor.courseEdit(course.id)}>
                 <div className="aspect-video bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                   {course.thumbnail_url ? (
                     <img
@@ -178,7 +210,7 @@ export function MyCoursesPage() {
               <CardContent className="p-4">
                 <div className="mb-3">
                   <Link
-                    to={generateRoute.courseManagement(course.id)}
+                    to={generateRoute.instructor.courseEdit(course.id)}
                     className="hover:text-blue-600"
                   >
                     <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
@@ -187,8 +219,8 @@ export function MyCoursesPage() {
                   </Link>
 
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge variant={statusVariant}>
-                      {statusLabel}
+                    <Badge variant={statusColors[course.status as keyof typeof statusColors]}>
+                      {statusLabels[course.status as keyof typeof statusLabels]}
                     </Badge>
                     {course.is_free ? (
                       <Badge variant="success">Miễn phí</Badge>
@@ -201,12 +233,11 @@ export function MyCoursesPage() {
 
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {course.duration_hours ?? 0} giờ học
+                      <BookOpen className="w-4 h-4" />
+                      {course.lessons} bài học
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {enrollmentCount.toLocaleString('vi-VN')} học viên
+                    <span>
+                      {course.students} học viên
                     </span>
                   </div>
 
@@ -218,7 +249,7 @@ export function MyCoursesPage() {
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
                   <Link
-                    to={generateRoute.courseDetail(course.id)}
+                    to={generateRoute.instructor.courseDetail(course.id)}
                     className="flex-1"
                   >
                     <Button size="sm" variant="outline" fullWidth className="gap-2">
@@ -228,7 +259,7 @@ export function MyCoursesPage() {
                   </Link>
 
                   <Link
-                    to={generateRoute.courseManagement(course.id)}
+                    to={generateRoute.instructor.courseEdit(course.id)}
                     className="flex-1"
                   >
                     <Button size="sm" fullWidth className="gap-2">
@@ -255,7 +286,7 @@ export function MyCoursesPage() {
                 </div>
               </CardContent>
             </Card>
-          )})}
+          ))}
         </div>
       ) : (
         /* Empty State */
@@ -275,7 +306,7 @@ export function MyCoursesPage() {
               }
             </p>
             {!searchQuery && filter === 'all' && (
-              <Link to={ROUTES.COURSE_CREATE}>
+              <Link to={ROUTES.INSTRUCTOR.COURSE_CREATE}>
                 <Button className="gap-2">
                   <Plus className="w-4 h-4" />
                   Tạo khóa học mới
@@ -285,11 +316,7 @@ export function MyCoursesPage() {
           </CardContent>
         </Card>
       )}
-        </>
-      )}
     </div>
-    </div>
-    </MainLayout>
   );
 }
 

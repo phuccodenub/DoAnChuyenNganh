@@ -11,8 +11,11 @@ import { hashUtils } from '../utils/hash.util';
 import { seedUsers } from './001-seed-users';
 import { seedCategories } from './001a-seed-categories';
 import { seedCourses } from './002-seed-courses';
+import { seedSectionsAndLessons } from './002a-seed-sections-lessons';
+import { seedAssignments } from './002b-seed-assignments';
 import { seedEnrollments } from './003-seed-enrollments';
 import { seedChatMessages } from './004-seed-chat-messages';
+import { seedNotifications } from './005-seed-notifications';
 
 // Seeder interface
 export interface Seeder {
@@ -49,6 +52,24 @@ export const seeders: Seeder[] = [
     }
   },
   {
+    version: '002a',
+    description: 'Seed sections and lessons',
+    up: seedSectionsAndLessons,
+    down: async (sequelize: Sequelize) => {
+      await sequelize.query('DELETE FROM lessons WHERE id LIKE \'00000000-0000-0000-0002-%\'');
+      await sequelize.query('DELETE FROM sections WHERE id LIKE \'00000000-0000-0000-0001-%\'');
+    }
+  },
+  {
+    version: '002b',
+    description: 'Seed assignments and submissions',
+    up: seedAssignments,
+    down: async (sequelize: Sequelize) => {
+      await sequelize.query('DELETE FROM assignment_submissions WHERE id LIKE \'00000000-0000-0000-0004-%\'');
+      await sequelize.query('DELETE FROM assignments WHERE id LIKE \'00000000-0000-0000-0003-%\'');
+    }
+  },
+  {
     version: '003',
     description: 'Seed enrollments',
     up: seedEnrollments,
@@ -62,6 +83,15 @@ export const seeders: Seeder[] = [
     up: seedChatMessages,
     down: async (sequelize: Sequelize) => {
       await sequelize.query('DELETE FROM chat_messages WHERE content LIKE \'Sample message%\'');
+    }
+  },
+  {
+    version: '005',
+    description: 'Seed notifications',
+    up: seedNotifications,
+    down: async (sequelize: Sequelize) => {
+      await sequelize.query('DELETE FROM notification_recipients WHERE notification_id LIKE \'00000000-0000-0000-0005-%\'');
+      await sequelize.query('DELETE FROM notifications WHERE id LIKE \'00000000-0000-0000-0005-%\'');
     }
   }
 ];

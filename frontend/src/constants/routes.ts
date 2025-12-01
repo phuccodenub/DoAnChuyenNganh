@@ -55,9 +55,12 @@ export const ROUTES = {
     GRADES: '/instructor/courses/:courseId/grades',
     STUDENTS: '/instructor/students',
     ANALYTICS: '/instructor/analytics',
-    LIVESTREAM: '/livestream',
-    LIVESTREAM_CREATE: '/livestream/create',
-    LIVESTREAM_SESSION: '/livestream/:sessionId',
+    LIVESTREAM: '/instructor/livestream',
+    LIVESTREAM_CREATE: '/instructor/livestream/create',
+    LIVESTREAM_HOST: '/instructor/livestream/:sessionId/host',
+    LIVESTREAM_SESSION: '/instructor/livestream/:sessionId',
+    NOTIFICATIONS: '/instructor/notifications',
+    CHAT: '/instructor/chat',
   },
   
   // Admin routes
@@ -72,6 +75,7 @@ export const ROUTES = {
     REPORTS: '/admin/reports',
     ACTIVITY_LOGS: '/admin/activity-logs',
     ANALYTICS: '/admin/analytics',
+    NOTIFICATIONS: '/admin/notifications',
   },
 
   // Livestream (common hub)

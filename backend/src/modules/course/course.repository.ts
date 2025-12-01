@@ -5,6 +5,7 @@ import { CourseInstance, CourseAttributes } from '../../types/model.types';
 import { UserInstance } from '../../types/model.types';
 import { EnrollmentInstance } from '../../types/model.types';
 import * as CourseTypes from './course.types';
+import { CourseStatsResponse } from './course.types';
 import { BaseRepository } from '../../repositories/base.repository';
 import logger from '../../utils/logger.util';
 import type { ModelStatic, WhereOptions } from '../../types/sequelize-types';
@@ -111,6 +112,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
    */
   async findByInstructor(instructorId: string, options: CourseTypes.GetCoursesByInstructorOptions): Promise<CourseTypes.CoursesResponse> {
     try {
+      const { Section, Lesson, Enrollment } = await import('../../models');
       
       const { page, limit, status } = options;
       const offset = (page - 1) * limit;
@@ -129,15 +131,53 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
             model: User,
             as: 'instructor',
             attributes: ['id', 'first_name', 'last_name', 'email']
+          },
+          {
+            model: Section,
+            as: 'sections',
+            attributes: ['id'],
+            include: [{
+              model: Lesson,
+              as: 'lessons',
+              attributes: ['id']
+            }]
+          },
+          {
+            model: Enrollment,
+            as: 'enrollments',
+            attributes: ['id']
           }
         ],
         limit,
         offset,
-        order: [['created_at', 'DESC']]
+        order: [['created_at', 'DESC']],
+        distinct: true // Important for correct count with includes
+      });
+
+      // Transform to include counts and map field names
+      const coursesWithCounts = rows.map((course: any) => {
+        const courseData = course.toJSON ? course.toJSON() : course;
+        const totalLessons = courseData.sections?.reduce((sum: number, section: any) => 
+          sum + (section.lessons?.length || 0), 0) || 0;
+        const totalStudents = courseData.enrollments?.length || courseData.total_students || 0;
+        
+        // Remove nested data, keep only counts
+        delete courseData.sections;
+        delete courseData.enrollments;
+        
+        // Map thumbnail to thumbnail_url for frontend compatibility
+        const thumbnailUrl = courseData.thumbnail || null;
+        
+        return {
+          ...courseData,
+          thumbnail_url: thumbnailUrl,
+          total_lessons: totalLessons,
+          total_students: totalStudents
+        };
       });
 
       return {
-        data: rows,
+        data: coursesWithCounts,
         pagination: {
           page,
           limit,
@@ -526,6 +566,123 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       };
     } catch (error: unknown) {
       logger.error('Error getting course students:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get instructor course statistics for dashboard
+   */
+  async getInstructorCourseStats(courseId: string): Promise<CourseStatsResponse> {
+    try {
+      const { Op } = await import('sequelize');
+      const { getSequelize } = await import('../../config/db');
+      const sequelize = getSequelize();
+      const { LessonProgress, Assignment, AssignmentSubmission } = await import('../../models');
+      
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+      const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
+      
+      // Get course info
+      const course = await CourseModel.findByPk(courseId);
+      
+      // Total students enrolled
+      const totalStudents = await (EnrollmentModel as any).count({
+        where: { course_id: courseId }
+      });
+
+      // New students this week
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const newStudentsThisWeek = await (EnrollmentModel as any).count({
+        where: {
+          course_id: courseId,
+          created_at: { [Op.gte]: oneWeekAgo }
+        }
+      });
+
+      // Average progress - get from enrollments using raw SQL for aggregation
+      const progressResult = await (EnrollmentModel as any).findAll({
+        where: { course_id: courseId },
+        attributes: [
+          [sequelize.fn('AVG', sequelize.col('progress_percentage')), 'avg_progress']
+        ],
+        raw: true
+      });
+      const avgProgress = progressResult[0]?.avg_progress ? Number(progressResult[0].avg_progress) : 0;
+
+      // Completion rate - students who completed vs total
+      const completedCount = await (EnrollmentModel as any).count({
+        where: {
+          course_id: courseId,
+          status: 'completed'
+        }
+      });
+      const completionRate = totalStudents > 0 ? Math.round((completedCount / totalStudents) * 100) : 0;
+
+      // Average score from assignment submissions
+      let avgScore = 0;
+      let pendingGrading = 0;
+      try {
+        if (AssignmentSubmission) {
+          const scoreResult = await (AssignmentSubmission as any).findAll({
+            include: [{
+              model: Assignment,
+              as: 'assignment',
+              where: { course_id: courseId },
+              required: true
+            }],
+            where: {
+              score: { [Op.ne]: null }
+            },
+            attributes: [
+              [sequelize.fn('AVG', sequelize.col('score')), 'avg_score']
+            ],
+            raw: true
+          });
+          avgScore = scoreResult[0]?.avg_score ? Number(scoreResult[0].avg_score) : 0;
+
+          // Pending grading count
+          pendingGrading = await (AssignmentSubmission as any).count({
+            include: [{
+              model: Assignment,
+              as: 'assignment',
+              where: { course_id: courseId },
+              required: true
+            }],
+            where: {
+              status: 'submitted'
+            }
+          });
+        }
+      } catch (e) {
+        // AssignmentSubmission might not exist yet
+        logger.warn('Could not get assignment stats:', e);
+      }
+
+      // Get rating from course
+      const averageRating = course ? Number((course as any).rating || 0) : 0;
+      const totalReviews = course ? Number((course as any).total_ratings || 0) : 0;
+
+      // Calculate revenue (price * total_students for paid courses)
+      const price = course ? Number((course as any).price || 0) : 0;
+      const isFree = course ? (course as any).is_free : true;
+      const totalRevenue = isFree ? 0 : price * totalStudents;
+
+      return {
+        total_students: totalStudents,
+        total_revenue: totalRevenue,
+        average_rating: averageRating,
+        total_reviews: totalReviews,
+        completion_rate: completionRate,
+        avg_progress: Math.round(avgProgress),
+        avg_score: Math.round(avgScore * 10) / 10, // 1 decimal place
+        pending_grading: pendingGrading,
+        max_students: 100, // Default max, could be from course settings
+        new_students_this_week: newStudentsThisWeek
+      };
+    } catch (error: unknown) {
+      logger.error('Error getting instructor course stats:', error);
       throw error;
     }
   }

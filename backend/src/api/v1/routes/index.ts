@@ -30,6 +30,8 @@ import systemSettingsRoutes from '../../../modules/system-settings/system.settin
 import categoryRoutes from '../../../modules/category/category.routes';
 import { aiRoutes } from '../../../modules/ai';
 import moderationRoutes from '../../../modules/moderation/moderation.routes';
+import { default as reviewRoutes } from '../../../modules/review/review.routes';
+import { filesRoutes, mediaRoutes } from '../../../modules/files';
 import logger from '../../../utils/logger.util';
 
 const router = Router();
@@ -95,5 +97,15 @@ router.use('/ai', aiRoutes);
 
 // Moderation routes
 router.use('/moderation', moderationRoutes);
+
+// Review routes
+router.use('/reviews', reviewRoutes);
+
+// System settings routes (admin only)
+router.use('/system-settings', systemSettingsRoutes);
+
+// Files and media routes
+router.use('/files', filesRoutes);
+router.use('/media', mediaRoutes);
 
 export default router;

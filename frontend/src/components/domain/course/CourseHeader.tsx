@@ -60,9 +60,11 @@ export function CourseHeader({
       {/* Meta info */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         {/* Difficulty */}
-        <Badge variant={difficultyVariants[course.difficulty]}>
-          {difficultyLabels[course.difficulty]}
-        </Badge>
+        {course.difficulty && (
+          <Badge variant={difficultyVariants[course.difficulty] || 'default'}>
+            {difficultyLabels[course.difficulty] || course.difficulty}
+          </Badge>
+        )}
 
         {/* Students count */}
         {course._count?.enrollments !== undefined && (
@@ -112,7 +114,7 @@ export function CourseHeader({
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              course.instructor.full_name.charAt(0).toUpperCase()
+              course.instructor.full_name?.charAt(0).toUpperCase() || 'I'
             )}
           </div>
           <div>

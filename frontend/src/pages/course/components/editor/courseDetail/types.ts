@@ -6,7 +6,7 @@ import { Video } from 'lucide-react';
 
 // ================== TYPES ==================
 export type TabType = 'overview' | 'curriculum' | 'students' | 'submissions' | 'settings';
-export type ContentType = 'video' | 'document' | 'quiz' | 'assignment';
+export type ContentType = 'video' | 'document' | 'quiz' | 'assignment' | 'text' | 'link';
 export type CourseStatus = 'draft' | 'published' | 'archived';
 
 export interface Lesson {
@@ -17,6 +17,7 @@ export interface Lesson {
   is_preview: boolean;
   order_index: number;
   video_url: string; // URL for video content
+  video_file?: File | null; // File video để upload (chỉ dùng trong form)
 }
 
 export interface Section {
@@ -185,6 +186,8 @@ export const contentTypeLabels: Record<ContentType, string> = {
   document: 'Tài liệu',
   quiz: 'Bài kiểm tra',
   assignment: 'Bài tập',
+  text: 'Văn bản',
+  link: 'Liên kết',
 };
 
 export const statusLabels: Record<CourseStatus, { label: string; variant: 'success' | 'warning' | 'default' }> = {

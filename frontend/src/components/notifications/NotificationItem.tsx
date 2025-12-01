@@ -128,7 +128,9 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
             {title}
           </h4>
           <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
-            {formatDistanceToNow(timestamp, { addSuffix: true, locale: vi })}
+            {timestamp && !isNaN(timestamp.getTime()) 
+              ? formatDistanceToNow(timestamp, { addSuffix: true, locale: vi })
+              : 'Vừa xong'}
           </span>
         </div>
         

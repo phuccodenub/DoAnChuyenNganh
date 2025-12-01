@@ -39,6 +39,7 @@ interface LessonFormData {
     duration_minutes: number;
     is_preview: boolean;
     video_url: string; // URL video (youtube/vimeo hoặc url file đã upload)
+    video_file?: File | null; // File video để upload
 }
 
 interface LessonModalProps {
@@ -48,6 +49,8 @@ interface LessonModalProps {
     onFormChange: (form: LessonFormData) => void;
     onSave: () => void;
     onClose: () => void;
+    isUploading?: boolean;
+    uploadProgress?: number;
 }
 
 // ... (ToolbarButton và ToolbarDivider giữ nguyên) ...
@@ -166,14 +169,31 @@ export function LessonModal({
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 100 * 1024 * 1024) { // Giới hạn 100MB ví dụ
-                alert('File quá lớn! Vui lòng chọn file dưới 100MB.');
+            if (file.size > 500 * 1024 * 1024) { // Giới hạn 500MB
+                alert('File quá lớn! Vui lòng chọn file dưới 500MB.');
                 return;
             }
             setSelectedVideoFile(file);
-            // Tạo URL ảo để preview
+            // Tạo URL ảo để preview - KHÔNG revoke vì cần dùng cho video player
             const objectUrl = URL.createObjectURL(file);
-            onFormChange({ ...lessonForm, video_url: objectUrl });
+            
+            // Tự động tính duration từ video
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.onloadedmetadata = () => {
+                const durationMinutes = Math.ceil(video.duration / 60);
+                onFormChange({ 
+                    ...lessonForm, 
+                    video_url: objectUrl,
+                    video_file: file, // Lưu file để upload sau
+                    duration_minutes: durationMinutes > 0 ? durationMinutes : 1
+                });
+            };
+            video.onerror = () => {
+                // Fallback nếu không đọc được metadata
+                onFormChange({ ...lessonForm, video_url: objectUrl, video_file: file, duration_minutes: 1 });
+            };
+            video.src = objectUrl;
         }
     };
 
@@ -198,37 +218,14 @@ export function LessonModal({
                 {/* ================== HEADER ================== */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {isEditingTitle ? (
-                            <div className="flex items-center gap-2 flex-1">
-                                <input
-                                    type="text"
-                                    value={tempTitle}
-                                    onChange={(e) => setTempTitle(e.target.value)}
-                                    placeholder="Nhập tiêu đề bài học..."
-                                    className="flex-1 px-3 py-1.5 text-lg font-semibold border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveTitle();
-                                        if (e.key === 'Escape') handleCancelEditTitle();
-                                    }}
-                                />
-                                <button onClick={handleSaveTitle} className="p-1.5 text-green-600 hover:bg-green-50 rounded-md">
-                                    <Check className="w-5 h-5" />
-                                </button>
-                                <button onClick={handleCancelEditTitle} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                                <h2 className="text-lg font-semibold text-gray-900 truncate">
-                                    {lessonForm.title || 'Bài học mới'}
-                                </h2>
-                                <button onClick={handleStartEditTitle} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md">
-                                    <Pencil className="w-4 h-4" />
-                                </button>
-                            </>
-                        )}
+                        {/* Luôn hiển thị input để user có thể nhập title trực tiếp */}
+                        <input
+                            type="text"
+                            value={lessonForm.title}
+                            onChange={(e) => onFormChange({ ...lessonForm, title: e.target.value })}
+                            placeholder="Nhập tiêu đề bài học..."
+                            className="flex-1 px-3 py-1.5 text-lg font-semibold border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                        />
                     </div>
                     <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg ml-4">
                         <X className="w-5 h-5" />
@@ -239,8 +236,8 @@ export function LessonModal({
                 <div className="flex-1 overflow-y-auto">
 
                     {/* 1. LESSON META */}
-                    <div className="px-6 py-4 bg-white border-b border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex flex-col gap-1.5">
+                    <div className="px-6 py-4 bg-white border-b border-gray-200 flex flex-wrap items-center gap-4">
+                        <div className="flex flex-col gap-1.5 min-w-[180px]">
                             <label className="text-sm font-medium text-gray-700">Loại nội dung</label>
                             <select
                                 value={lessonForm.content_type}
@@ -252,17 +249,18 @@ export function LessonModal({
                                 ))}
                             </select>
                         </div>
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-medium text-gray-700">Thời lượng (phút)</label>
-                            <input
-                                type="number"
-                                value={lessonForm.duration_minutes}
-                                onChange={(e) => onFormChange({ ...lessonForm, duration_minutes: Number(e.target.value) })}
-                                min={0}
-                                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                        </div>
-                        <div className="flex items-center pt-6">
+                        
+                        {/* Chỉ hiển thị thời lượng khi đã có video */}
+                        {lessonForm.content_type === 'video' && lessonForm.video_url && lessonForm.duration_minutes > 0 && (
+                            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg">
+                                <Video className="w-4 h-4" />
+                                <span className="text-sm font-medium">
+                                    Thời lượng: {lessonForm.duration_minutes} phút
+                                </span>
+                            </div>
+                        )}
+                        
+                        <div className="flex items-center ml-auto">
                             <label className="flex items-center gap-2 cursor-pointer select-none">
                                 <input
                                     type="checkbox"
@@ -270,7 +268,7 @@ export function LessonModal({
                                     onChange={(e) => onFormChange({ ...lessonForm, is_preview: e.target.checked })}
                                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                 />
-                                <span className="text-sm font-medium text-gray-700">Cho phép xem trước (Preview)</span>
+                                <span className="text-sm font-medium text-gray-700">Cho phép xem trước</span>
                             </label>
                         </div>
                     </div>

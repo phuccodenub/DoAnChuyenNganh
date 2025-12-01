@@ -60,7 +60,14 @@ export class LessonService {
    */
   async createLesson(lessonData: any) {
     try {
-      logger.info('Creating new lesson', { title: lessonData.title });
+      logger.info('Creating new lesson', { title: lessonData.title, sectionId: lessonData.section_id });
+      
+      // Tự động tính order_index nếu không được cung cấp
+      if (lessonData.order_index === undefined || lessonData.order_index === null) {
+        const maxOrderIndex = await this.lessonRepository.getMaxOrderIndex(lessonData.section_id);
+        lessonData.order_index = maxOrderIndex + 1;
+        logger.info('Auto-calculated order_index', { order_index: lessonData.order_index });
+      }
       
       const lesson = await this.lessonRepository.create(lessonData);
       

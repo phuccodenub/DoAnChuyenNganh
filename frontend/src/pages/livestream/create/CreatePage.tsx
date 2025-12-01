@@ -910,7 +910,13 @@ export function CreateLiveStreamPage() {
       if (createdSession?.id) {
         try {
           const { moderationApi } = await import('@/services/api/moderation.api');
-          await moderationApi.updatePolicy(createdSession.id, moderationSettings);
+          // Convert null values to undefined to match UpdatePolicyPayload type
+          const policyPayload = {
+            ...moderationSettings,
+            comment_max_length: moderationSettings.comment_max_length ?? undefined,
+            comment_min_interval_seconds: moderationSettings.comment_min_interval_seconds ?? undefined,
+          };
+          await moderationApi.updatePolicy(createdSession.id, policyPayload);
           console.log('[CreateLiveStreamPage] Moderation policy updated successfully');
         } catch (error) {
           console.error('[CreateLiveStreamPage] Failed to update moderation policy:', error);

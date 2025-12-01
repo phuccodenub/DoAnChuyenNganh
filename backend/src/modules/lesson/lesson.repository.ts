@@ -14,6 +14,24 @@ export class LessonRepository extends BaseRepository<LessonInstance> {
   }
 
   /**
+   * Get max order_index for a section
+   */
+  async getMaxOrderIndex(sectionId: string): Promise<number> {
+    try {
+      const model = this.getModel();
+      const result = await (model as any).findOne({
+        where: { section_id: sectionId },
+        order: [['order_index', 'DESC']],
+        attributes: ['order_index']
+      });
+      return result?.order_index ?? -1;
+    } catch (error) {
+      logger.error('Error getting max order_index:', error);
+      return -1;
+    }
+  }
+
+  /**
    * Find all lessons with pagination and filtering
    */
   async findAllWithPagination(options: {
@@ -36,7 +54,7 @@ export class LessonRepository extends BaseRepository<LessonInstance> {
         where: whereClause,
         limit,
         offset,
-        order: [['created_at', 'DESC']]
+        order: [['order_index', 'ASC'], ['created_at', 'DESC']]
       });
 
       return {

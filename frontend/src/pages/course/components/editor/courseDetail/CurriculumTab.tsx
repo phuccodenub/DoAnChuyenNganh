@@ -8,6 +8,8 @@ import {
     ChevronRight,
     Video,
     FileText,
+    Link2,
+    Type,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +22,8 @@ const contentTypeIcons: Record<ContentType, typeof Video> = {
     document: FileText,
     quiz: FileText,
     assignment: FileText,
+    text: Type,
+    link: Link2,
 };
 
 interface CurriculumTabProps {

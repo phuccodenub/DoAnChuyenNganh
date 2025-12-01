@@ -7,6 +7,9 @@ import 'dotenv-flow/config';
 import { getSequelize } from '../config/db';
 import { hashUtils } from '../utils/hash.util';
 import logger from '../utils/logger.util';
+import { seedSectionsAndLessons } from '../seeders/002a-seed-sections-lessons';
+import { seedAssignments } from '../seeders/002b-seed-assignments';
+import { seedNotifications } from '../seeders/005-seed-notifications';
 
 const sequelize = getSequelize();
 
@@ -494,6 +497,17 @@ async function main() {
     const userStats = await seedUsers();
     const courseStats = await seedCourses();
     const enrollmentStats = await seedEnrollments();
+    
+    // Seed sections, lessons, and assignments
+    logger.info('Seeding sections and lessons...');
+    await seedSectionsAndLessons(sequelize);
+    
+    logger.info('Seeding assignments and submissions...');
+    await seedAssignments(sequelize);
+    
+    // Seed notifications
+    logger.info('Seeding notifications...');
+    await seedNotifications(sequelize);
 
     const totalCreated = userStats.created + courseStats.created + enrollmentStats.created;
     const totalSkipped = userStats.skipped + courseStats.skipped + enrollmentStats.skipped;

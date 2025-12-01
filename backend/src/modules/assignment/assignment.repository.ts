@@ -184,7 +184,7 @@ export class AssignmentRepository {
       } as WhereOptions<AssignmentSubmissionAttributes>
     });
 
-    const averageScore = await this.AssignmentSubmissionModel.findOne({
+    const averageScore = await (this.AssignmentSubmissionModel as any).findOne({
       where: {
         assignment_id: assignmentId,
         status: 'graded'
@@ -229,6 +229,234 @@ export class AssignmentRepository {
       ],
       order: [['due_date', 'ASC']]
     });
+  }
+
+  // ===================================
+  // COURSE STATISTICS
+  // ===================================
+
+  /**
+   * Get assignment statistics for a course (instructor dashboard)
+   */
+  async getCourseAssignmentStats(courseId: string): Promise<{
+    total_assignments: number;
+    total_submissions: number;
+    pending_grading: number;
+    graded_submissions: number;
+    average_score: number;
+    assignments: Array<{
+      id: string;
+      title: string;
+      due_date: Date | null;
+      total_submissions: number;
+      pending_grading: number;
+      average_score: number;
+    }>;
+  }> {
+    // Get all assignments for the course
+    const assignments = await this.AssignmentModel.findAll({
+      where: { course_id: courseId } as WhereOptions<AssignmentAttributes>,
+      order: [['due_date', 'ASC']]
+    });
+
+    let totalSubmissions = 0;
+    let totalPendingGrading = 0;
+    let totalGraded = 0;
+    let totalScore = 0;
+    let scoredCount = 0;
+
+    const assignmentStats = await Promise.all(
+      assignments.map(async (assignment) => {
+        const stats = await this.getAssignmentStatistics(assignment.id);
+        
+        totalSubmissions += stats.total_submissions;
+        totalPendingGrading += stats.pending_submissions;
+        totalGraded += stats.graded_submissions;
+        
+        if (stats.graded_submissions > 0) {
+          totalScore += stats.average_score * stats.graded_submissions;
+          scoredCount += stats.graded_submissions;
+        }
+
+        return {
+          id: assignment.id,
+          title: assignment.title,
+          due_date: assignment.due_date || null,
+          total_submissions: stats.total_submissions,
+          pending_grading: stats.pending_submissions,
+          average_score: stats.average_score
+        };
+      })
+    );
+
+    return {
+      total_assignments: assignments.length,
+      total_submissions: totalSubmissions,
+      pending_grading: totalPendingGrading,
+      graded_submissions: totalGraded,
+      average_score: scoredCount > 0 ? totalScore / scoredCount : 0,
+      assignments: assignmentStats
+    };
+  }
+
+  // ===================================
+  // PENDING GRADING
+  // ===================================
+
+  /**
+   * Get all pending submissions for grading (instructor's courses)
+   */
+  async getPendingGrading(instructorId: string, page: number = 1, limit: number = 20): Promise<{
+    rows: AssignmentSubmissionInstance[];
+    count: number;
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const offset = (page - 1) * limit;
+
+    // First get all courses by this instructor
+    const instructorCourses = await Course.findAll({
+      where: { instructor_id: instructorId },
+      attributes: ['id']
+    });
+
+    const courseIds = instructorCourses.map((c: any) => c.id);
+
+    if (courseIds.length === 0) {
+      return {
+        rows: [],
+        count: 0,
+        pagination: { page, limit, total: 0, totalPages: 0 }
+      };
+    }
+
+    // Get assignments for these courses
+    const assignments = await this.AssignmentModel.findAll({
+      where: { course_id: courseIds } as any,
+      attributes: ['id']
+    });
+
+    const assignmentIds = assignments.map((a: any) => a.id);
+
+    if (assignmentIds.length === 0) {
+      return {
+        rows: [],
+        count: 0,
+        pagination: { page, limit, total: 0, totalPages: 0 }
+      };
+    }
+
+    // Get pending submissions
+    const { rows, count } = await (this.AssignmentSubmissionModel as any).findAndCountAll({
+      where: {
+        assignment_id: assignmentIds,
+        status: 'submitted'
+      } as WhereOptions<AssignmentSubmissionAttributes>,
+      include: [
+        {
+          model: Assignment,
+          as: 'assignment',
+          attributes: ['id', 'title', 'course_id', 'max_score', 'due_date'],
+          include: [{
+            model: Course,
+            as: 'course',
+            attributes: ['id', 'title']
+          }]
+        },
+        {
+          model: User,
+          as: 'student',
+          attributes: ['id', 'first_name', 'last_name', 'email', 'avatar_url']
+        }
+      ],
+      order: [['submitted_at', 'ASC']], // Oldest first for grading priority
+      limit,
+      offset
+    });
+
+    return {
+      rows,
+      count,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit)
+      }
+    };
+  }
+
+  /**
+   * Get pending submissions for a specific course
+   */
+  async getCoursePendingGrading(courseId: string, page: number = 1, limit: number = 20): Promise<{
+    rows: AssignmentSubmissionInstance[];
+    count: number;
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    try {
+      const offset = (page - 1) * limit;
+
+      // Get assignments for this course
+      const assignments = await this.AssignmentModel.findAll({
+        where: { course_id: courseId } as WhereOptions<AssignmentAttributes>,
+        attributes: ['id']
+      });
+
+      const assignmentIds = assignments.map((a: any) => a.id);
+
+      if (assignmentIds.length === 0) {
+        return {
+          rows: [],
+          count: 0,
+          pagination: { page, limit, total: 0, totalPages: 0 }
+        };
+      }
+
+      // Get pending submissions - use Op.in for array
+      const { Op } = await import('sequelize');
+      const { rows, count } = await (this.AssignmentSubmissionModel as any).findAndCountAll({
+        where: {
+          assignment_id: { [Op.in]: assignmentIds },
+          status: 'submitted'
+        },
+        include: [
+          {
+            model: Assignment,
+            as: 'assignment',
+            attributes: ['id', 'title', 'max_score', 'due_date'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'student',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar_url'],
+            required: false
+          }
+        ],
+        order: [['submitted_at', 'ASC']],
+        limit,
+        offset
+      });
+
+      return {
+        rows: rows || [],
+        count: count || 0,
+        pagination: {
+          page,
+          limit,
+          total: count || 0,
+          totalPages: Math.ceil((count || 0) / limit)
+        }
+      };
+    } catch (error) {
+      console.error('Error in getCoursePendingGrading:', error);
+      // Return empty result instead of throwing
+      return {
+        rows: [],
+        count: 0,
+        pagination: { page, limit, total: 0, totalPages: 0 }
+      };
+    }
   }
 }
 

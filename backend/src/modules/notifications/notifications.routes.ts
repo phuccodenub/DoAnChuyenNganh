@@ -10,7 +10,48 @@ const controller = new NotificationsController();
 
 router.use(authMiddleware);
 
-// Create notification (admin/instructor)
+// ============================================
+// USER ENDPOINTS (Tất cả users đã đăng nhập)
+// ============================================
+
+// Lấy danh sách thông báo của user hiện tại
+router.get(
+  '/me',
+  validate(notificationsValidation.queryList),
+  controller.myNotifications
+);
+
+// Đếm số thông báo chưa đọc
+router.get('/me/unread-count', controller.unreadCount);
+
+// Đánh dấu tất cả thông báo đã đọc
+router.post('/me/mark-all-read', controller.markAllRead);
+
+// Archive thông báo cũ (theo số ngày)
+router.post('/me/archive-old', controller.archiveOld);
+
+// ============================================
+// ADMIN/INSTRUCTOR ENDPOINTS
+// (MUST be defined BEFORE /:id to avoid route conflict)
+// ============================================
+
+// Lấy danh sách thông báo đã gửi
+router.get(
+  '/sent',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
+  validate(notificationsValidation.querySent),
+  controller.getSentNotifications
+);
+
+// Lấy tất cả thông báo trong hệ thống (Admin only)
+router.get(
+  '/all',
+  authorizeRoles([UserRole.ADMIN]),
+  validate(notificationsValidation.querySent),
+  controller.getAllNotifications
+);
+
+// Tạo notification cơ bản (chỉ định recipient_ids)
 router.post(
   '/',
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
@@ -18,21 +59,51 @@ router.post(
   controller.create
 );
 
-// My notifications
-router.get(
-  '/me',
-  validate(notificationsValidation.queryList),
-  controller.myNotifications
+// Gửi bulk notification theo target_audience
+router.post(
+  '/bulk',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
+  validate(notificationsValidation.sendBulk),
+  controller.sendBulk
 );
 
-// Unread count
-router.get('/me/unread-count', controller.unreadCount);
+// ============================================
+// SINGLE NOTIFICATION ENDPOINTS
+// (Dynamic :id routes MUST come AFTER static routes)
+// ============================================
 
-// Mark all as read
-router.post('/me/mark-all-read', controller.markAllRead);
+// Lấy thông báo theo ID
+router.get(
+  '/:id',
+  validate(notificationsValidation.notificationId),
+  controller.getById
+);
 
-// Archive old
-router.post('/me/archive-old', controller.archiveOld);
+// Đánh dấu 1 thông báo đã đọc
+router.put(
+  '/:id/read',
+  validate(notificationsValidation.notificationId),
+  controller.markOneRead
+);
+
+// Archive 1 thông báo
+router.put(
+  '/:id/archive',
+  validate(notificationsValidation.notificationId),
+  controller.archiveOne
+);
+
+// ============================================
+// ADMIN ONLY ENDPOINTS
+// ============================================
+
+// Xóa thông báo
+router.delete(
+  '/:id',
+  authorizeRoles([UserRole.ADMIN]),
+  validate(notificationsValidation.notificationId),
+  controller.delete
+);
 
 export default router;
 

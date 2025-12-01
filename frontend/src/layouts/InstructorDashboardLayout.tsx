@@ -75,6 +75,11 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
       icon: <Video className="w-5 h-5" />,
     },
     {
+      label: 'Thông báo khóa học',
+      path: ROUTES.INSTRUCTOR.NOTIFICATIONS,
+      icon: <Bell className="w-5 h-5" />,
+    },
+    {
       label: 'Học viên',
       path: ROUTES.INSTRUCTOR.STUDENTS,
       icon: <Users className="w-5 h-5" />,

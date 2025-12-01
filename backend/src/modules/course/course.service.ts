@@ -16,6 +16,23 @@ export class CourseService {
   }
 
   /**
+   * Normalize course data for frontend compatibility
+   * Maps backend field names to frontend expected names
+   */
+  private normalizeCourseForFrontend(course: CourseInstance | any): any {
+    if (!course) return null;
+    
+    const courseData = course.toJSON ? course.toJSON() : { ...course };
+    
+    // Map thumbnail to thumbnail_url for frontend compatibility
+    if (courseData.thumbnail && !courseData.thumbnail_url) {
+      courseData.thumbnail_url = courseData.thumbnail;
+    }
+    
+    return courseData;
+  }
+
+  /**
    * Create a new course
    */
   async createCourse(courseData: CourseTypes.CreateCourseData): Promise<CourseInstance> {
@@ -28,11 +45,33 @@ export class CourseService {
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Instructor not found');
       }
 
+      // Clean up data before creating
+      const cleanedData = { ...courseData };
+      
+      // Handle category_id - only accept valid UUID, otherwise set to null
+      if (cleanedData.category_id) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(cleanedData.category_id)) {
+          // Store category name in metadata if provided as string
+          cleanedData.metadata = {
+            ...(cleanedData.metadata || {}),
+            category_name: cleanedData.category_id
+          };
+          cleanedData.category_id = undefined;
+        }
+      }
+
+      // Handle thumbnail_url -> thumbnail mapping
+      if (cleanedData.thumbnail_url && !cleanedData.thumbnail) {
+        cleanedData.thumbnail = cleanedData.thumbnail_url;
+      }
+
       // Create course
-      const course = await this.courseRepository.create(courseData);
+      const course = await this.courseRepository.create(cleanedData);
       
       logger.info('Course created successfully', { courseId: course.id });
-      return course;
+      // Normalize for frontend compatibility
+      return this.normalizeCourseForFrontend(course);
     } catch (error: unknown) {
       logger.error('Error creating course:', error);
       throw error;
@@ -59,7 +98,7 @@ export class CourseService {
   /**
    * Get course by ID
    */
-  async getCourseById(id: string): Promise<CourseInstance | null> {
+  async getCourseById(id: string): Promise<any> {
     try {
       logger.info('Getting course by ID', { courseId: id });
 
@@ -67,11 +106,12 @@ export class CourseService {
       
       if (course) {
         logger.info('Course retrieved successfully', { courseId: id });
+        // Normalize for frontend compatibility
+        return this.normalizeCourseForFrontend(course);
       } else {
         logger.warn('Course not found', { courseId: id });
+        return null;
       }
-      
-      return course;
     } catch (error: unknown) {
       logger.error('Error getting course by ID:', error);
       throw error;
@@ -83,7 +123,7 @@ export class CourseService {
    */
   async updateCourse(id: string, updateData: CourseTypes.UpdateCourseData, userId: string): Promise<CourseInstance> {
     try {
-      logger.info('Updating course', { courseId: id, userId });
+      logger.info('Updating course', { courseId: id, userId, updateData });
 
       // Check if course exists
       const existingCourse = await this.courseRepository.findById(id);
@@ -99,11 +139,21 @@ export class CourseService {
         }
       }
 
+      // Map frontend field names to backend model field names
+      const mappedData: Record<string, unknown> = { ...updateData };
+      
+      // Map thumbnail_url to thumbnail (backend model uses 'thumbnail')
+      if ('thumbnail_url' in mappedData) {
+        mappedData.thumbnail = mappedData.thumbnail_url;
+        delete mappedData.thumbnail_url;
+      }
+
       // Update course
-      const updatedCourse = await this.courseRepository.update(id, updateData);
+      const updatedCourse = await this.courseRepository.update(id, mappedData);
       
       logger.info('Course updated successfully', { courseId: id });
-      return updatedCourse;
+      // Normalize for frontend compatibility
+      return this.normalizeCourseForFrontend(updatedCourse);
     } catch (error: unknown) {
       logger.error('Error updating course:', error);
       throw error;
@@ -256,6 +306,36 @@ export class CourseService {
       return students;
     } catch (error: unknown) {
       logger.error('Error getting course students:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get course statistics for instructor dashboard
+   */
+  async getCourseStats(courseId: string, userId: string): Promise<CourseTypes.CourseStatsResponse> {
+    try {
+      logger.info('Getting course stats', { courseId, userId });
+
+      // Check if course exists and user has access
+      const course = await this.courseRepository.findById(courseId);
+      if (!course) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Course not found');
+      }
+
+      if (course.instructor_id !== userId) {
+        const user = await this.courseRepository.findUserById(userId);
+        if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'Not authorized to view course stats');
+        }
+      }
+
+      const stats = await this.courseRepository.getInstructorCourseStats(courseId);
+      
+      logger.info('Course stats retrieved successfully', { courseId });
+      return stats;
+    } catch (error: unknown) {
+      logger.error('Error getting course stats:', error);
       throw error;
     }
   }

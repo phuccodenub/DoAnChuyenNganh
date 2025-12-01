@@ -46,14 +46,27 @@ const isPublicEndpoint = (url?: string, method?: string): boolean => {
     return false;
   }
   
-  // Public course endpoints (GET /courses, GET /courses/:id)
-  // Nhưng KHÔNG bao gồm /courses/enrolled, /courses/instructor
-  if (url.includes('/courses') && 
-      method === 'get' &&
-      !url.includes('/courses/enrolled') && 
-      !url.includes('/courses/instructor') &&
-      // Quan trọng: không treat các endpoint admin như public
-      !url.includes('/admin/courses')) {
+  // Protected course endpoints - cần authentication
+  // /courses/:id/stats, /courses/:id/students, /courses/:id/enrollments
+  if (url.includes('/courses') && (
+      url.includes('/stats') ||
+      url.includes('/students') ||
+      url.includes('/enrollments') ||
+      url.includes('/enroll') ||
+      url.includes('/unenroll')
+  )) {
+    return false;
+  }
+  
+  // Public course endpoints (chỉ GET /courses list)
+  // GET /courses/:id cũng cần auth để lấy thêm thông tin instructor
+  if (url === '/courses' && method === 'get') {
+    return true;
+  }
+  
+  // GET /courses/:id (chỉ list, không phải detail) - cũng public
+  // Nhưng PUT, POST, DELETE đều cần auth
+  if (url.match(/^\/courses$/) && method === 'get') {
     return true;
   }
   

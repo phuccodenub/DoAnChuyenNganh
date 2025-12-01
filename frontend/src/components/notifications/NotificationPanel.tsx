@@ -1,59 +1,33 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Bell, CheckCheck, Settings } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Bell, CheckCheck, Settings, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { NotificationList } from './NotificationList';
-import { Notification } from './types';
-
-// Mock Data
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: '1',
-    type: 'assignment',
-    title: 'Bài tập mới: React Hooks',
-    description: 'Giảng viên đã giao bài tập mới trong khóa học React Advanced.',
-    timestamp: new Date(), // Today
-    isRead: false,
-    data: { courseName: 'React Advanced' }
-  },
-  {
-    id: '2',
-    type: 'achievement',
-    title: 'Huy hiệu mới: Fast Learner',
-    description: 'Chúc mừng! Bạn đã hoàn thành 5 bài học trong 1 ngày.',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    isRead: false,
-    data: { points: 100 }
-  },
-  {
-    id: '3',
-    type: 'reply',
-    title: 'Minh Tú đã trả lời bình luận của bạn',
-    description: 'Cảm ơn bạn, mình đã hiểu phần useEffect rồi!',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // Yesterday
-    isRead: true,
-    data: { 
-      userAvatar: 'https://ui-avatars.com/api/?name=Minh+Tu&background=random',
-      userName: 'Minh Tú',
-      commentContent: 'Cảm ơn bạn, mình đã hiểu phần useEffect rồi!'
-    }
-  },
-  {
-    id: '4',
-    type: 'certificate',
-    title: 'Chứng chỉ hoàn thành khóa học',
-    description: 'Bạn đã hoàn thành khóa học Web Development Bootcamp.',
-    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-    isRead: true,
-    data: { fileName: 'Certificate_WebDev.pdf' }
-  }
-];
+import { Notification, ApiNotification, transformNotification } from './types';
+import { useNotifications, useMarkNotificationAsRead, useMarkAllNotificationsAsRead, useUnreadNotificationCount } from '@/hooks/useNotifications';
+import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 
 export const NotificationPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
   const panelRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  // Fetch notifications from API
+  const { data: notificationsData, isLoading, isError } = useNotifications({ limit: 20 });
+  const { data: unreadCount } = useUnreadNotificationCount();
+  
+  // Mutations
+  const { mutate: markAsRead } = useMarkNotificationAsRead();
+  const { mutate: markAllAsRead, isPending: isMarkingAll } = useMarkAllNotificationsAsRead();
+
+  // Socket connection for real-time updates
+  useNotificationSocket(true);
+
+  // Transform API notifications to frontend format
+  const notifications: Notification[] = useMemo(() => {
+    if (!notificationsData?.notifications) return [];
+    return notificationsData.notifications.map((n: ApiNotification) => transformNotification(n));
+  }, [notificationsData]);
 
   // Handle click outside to close
   useEffect(() => {
@@ -72,17 +46,28 @@ export const NotificationPanel: React.FC = () => {
   }, [isOpen]);
 
   const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    markAllAsRead();
   };
 
   const handleItemClick = (notification: Notification) => {
-    // Mark specific item as read
-    setNotifications(prev => prev.map(n => 
-      n.id === notification.id ? { ...n, isRead: true } : n
-    ));
-    // Navigate logic here if needed
-    console.log('Clicked notification:', notification);
+    // Mark as read
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+    
+    // Navigate if has link
+    if (notification.linkUrl) {
+      setIsOpen(false);
+      navigate(notification.linkUrl);
+    }
   };
+
+  const handleViewAll = () => {
+    setIsOpen(false);
+    navigate('/notifications');
+  };
+
+  const displayUnreadCount = unreadCount ?? notificationsData?.unreadCount ?? 0;
 
   return (
     <div className="relative" ref={panelRef}>
@@ -96,7 +81,7 @@ export const NotificationPanel: React.FC = () => {
         aria-label="Thông báo"
       >
         <Bell className="w-6 h-6" />
-        {unreadCount > 0 && (
+        {displayUnreadCount > 0 && (
           <span className="absolute top-2 right-2.5 flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border-2 border-white"></span>
@@ -111,19 +96,29 @@ export const NotificationPanel: React.FC = () => {
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-white">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-gray-900">Thông báo</h3>
-              {unreadCount > 0 && (
+              {displayUnreadCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
-                  {unreadCount} mới
+                  {displayUnreadCount} mới
                 </span>
               )}
             </div>
             <div className="flex items-center gap-1">
               <button 
                 onClick={handleMarkAllRead}
-                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                disabled={isMarkingAll || displayUnreadCount === 0}
+                className={cn(
+                  "p-1.5 rounded-md transition-colors",
+                  displayUnreadCount > 0 
+                    ? "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                    : "text-gray-300 cursor-not-allowed"
+                )}
                 title="Đánh dấu tất cả là đã đọc"
               >
-                <CheckCheck className="w-4 h-4" />
+                {isMarkingAll ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCheck className="w-4 h-4" />
+                )}
               </button>
               <button className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
                 <Settings className="w-4 h-4" />
@@ -133,15 +128,32 @@ export const NotificationPanel: React.FC = () => {
 
           {/* List */}
           <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
-            <NotificationList 
-              notifications={notifications} 
-              onItemClick={handleItemClick}
-            />
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl">❌</span>
+                </div>
+                <h3 className="text-gray-900 font-medium">Không thể tải thông báo</h3>
+                <p className="text-gray-500 text-sm mt-1">Vui lòng thử lại sau.</p>
+              </div>
+            ) : (
+              <NotificationList 
+                notifications={notifications} 
+                onItemClick={handleItemClick}
+              />
+            )}
           </div>
 
           {/* Footer */}
           <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
-            <button className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">
+            <button 
+              onClick={handleViewAll}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            >
               Xem tất cả thông báo
             </button>
           </div>

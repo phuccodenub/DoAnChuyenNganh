@@ -121,12 +121,41 @@ export class CourseController {
     }
   };
 
-  // Get courses by instructor
-  getCoursesByInstructor = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  // Get my courses as instructor (uses current user's ID)
+  getMyCoursesAsInstructor = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const instructorId = req.params.instructorId || req.user?.userId;
+      const instructorId = req.user?.userId;
       if (!instructorId) {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
+      const { page = 1, limit = 10, status } = req.query;
+      
+      const courses = await this.courseService.getCoursesByInstructor(instructorId, {
+        page: Number(page),
+        limit: Number(limit),
+        status: status as CourseTypes.CourseStatus
+      });
+      
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.OK).json({
+        success: true,
+        message: 'My courses retrieved successfully',
+        data: courses
+      });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  // Get courses by instructor ID (for admin/other instructors)
+  getCoursesByInstructor = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const instructorId = req.params.instructorId;
+      if (!instructorId) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST).json({
+          success: false,
+          message: 'Instructor ID is required'
+        });
         return;
       }
       const { page = 1, limit = 10, status } = req.query;
@@ -235,6 +264,29 @@ export class CourseController {
         success: true,
         message: 'Course students retrieved successfully',
         data: students
+      });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  // Get course statistics for instructor
+  getCourseStats = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseId } = req.params;
+      const userId = req.user?.userId;
+      
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
+
+      const stats = await this.courseService.getCourseStats(courseId, userId);
+      
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.OK).json({
+        success: true,
+        message: 'Course statistics retrieved successfully',
+        data: stats
       });
     } catch (error: unknown) {
       next(error);
