@@ -26,6 +26,8 @@ import { up as createCommentModerationsTable, down as dropCommentModerationsTabl
 import { up as addMessageContentToCommentModerations, down as removeMessageContentFromCommentModerations } from './020-add-message-content-to-comment-moderations';
 import { up as allowNullMessageIdInCommentModerations, down as requireMessageIdInCommentModerations } from './021-allow-null-message-id-in-comment-moderations';
 import { up as forceAllowNullMessageId, down as requireMessageIdAgain } from './022-force-allow-null-message-id';
+import { up as createConversationsTable, down as dropConversationsTable } from './023-create-conversations-table';
+import { up as createDirectMessagesTable, down as dropDirectMessagesTable } from './024-create-direct-messages-table';
 
 // Migration interface
 export interface Migration {
@@ -180,6 +182,18 @@ export const migrations: Migration[] = [
     description: 'Force allow null message_id in comment_moderations table',
     up: forceAllowNullMessageId,
     down: requireMessageIdAgain
+  },
+  {
+    version: '023',
+    description: 'Create conversations table for direct messaging',
+    up: createConversationsTable,
+    down: dropConversationsTable
+  },
+  {
+    version: '024',
+    description: 'Create direct_messages table',
+    up: createDirectMessagesTable,
+    down: dropDirectMessagesTable
   }
 ];
 

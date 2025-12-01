@@ -20,6 +20,8 @@ import LiveSessionAttendance from './live-session-attendance.model';
 import LiveSessionMessage from './live-session-message.model';
 import LivestreamPolicy from './livestream-policy.model';
 import CommentModeration from './comment-moderation.model';
+import Conversation from './conversation.model';
+import DirectMessage from './direct-message.model';
 
 export const setupAssociations = () => {
   // ===================================
@@ -390,6 +392,65 @@ export const setupAssociations = () => {
   (CommentModeration as any).belongsTo(User, {
     foreignKey: 'moderated_by',
     as: 'moderator'
+  });
+
+  // ===================================
+  // 8. DIRECT MESSAGE (DM) RELATIONSHIPS
+  // ===================================
+
+  // Course 1 ---< Conversation
+  (Course as any).hasMany(Conversation, {
+    foreignKey: 'course_id',
+    as: 'conversations',
+    onDelete: 'CASCADE'
+  });
+  (Conversation as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course'
+  });
+
+  // User (Student) 1 ---< Conversation
+  (User as any).hasMany(Conversation, {
+    foreignKey: 'student_id',
+    as: 'studentConversations',
+    onDelete: 'CASCADE'
+  });
+  (Conversation as any).belongsTo(User, {
+    foreignKey: 'student_id',
+    as: 'student'
+  });
+
+  // User (Instructor) 1 ---< Conversation
+  (User as any).hasMany(Conversation, {
+    foreignKey: 'instructor_id',
+    as: 'instructorConversations',
+    onDelete: 'CASCADE'
+  });
+  (Conversation as any).belongsTo(User, {
+    foreignKey: 'instructor_id',
+    as: 'instructor'
+  });
+
+  // Conversation 1 ---< DirectMessage
+  (Conversation as any).hasMany(DirectMessage, {
+    foreignKey: 'conversation_id',
+    as: 'messages',
+    onDelete: 'CASCADE'
+  });
+  (DirectMessage as any).belongsTo(Conversation, {
+    foreignKey: 'conversation_id',
+    as: 'conversation'
+  });
+
+  // User 1 ---< DirectMessage (sender)
+  (User as any).hasMany(DirectMessage, {
+    foreignKey: 'sender_id',
+    as: 'sentDirectMessages',
+    onDelete: 'CASCADE'
+  });
+  (DirectMessage as any).belongsTo(User, {
+    foreignKey: 'sender_id',
+    as: 'sender'
   });
 
   console.log('✅ Model associations setup completed');

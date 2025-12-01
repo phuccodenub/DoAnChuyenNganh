@@ -28,6 +28,7 @@ import { ChatGateway } from './modules/chat/chat.gateway';
 import { WebRTCGateway } from './modules/webrtc/webrtc.gateway';
 import { LiveStreamGateway } from './modules/livestream/livestream.gateway';
 import { NotificationGateway, setNotificationGateway } from './modules/notifications/notifications.gateway';
+import { ConversationGateway, setConversationGateway } from './modules/conversation';
 
 // Import AI Service to check status on startup
 import { AIService } from './modules/ai/ai.service';
@@ -76,6 +77,10 @@ async function startServer() {
     // Initialize NotificationGateway and store singleton for service usage
     const notificationGateway = new NotificationGateway(io);
     setNotificationGateway(notificationGateway);
+    
+    // Initialize ConversationGateway for DM functionality
+    const conversationGateway = new ConversationGateway(io);
+    setConversationGateway(conversationGateway);
     
     logger.info('Socket.IO gateways initialized');
     

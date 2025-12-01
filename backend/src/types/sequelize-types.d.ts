@@ -11,6 +11,8 @@ export type ModelStatic<M extends Model = Model> = typeof Model & {
   findAll(options?: any): Promise<M[]>;
   findByPk(id: string | number, options?: any): Promise<M | null>;
   findOne(options?: any): Promise<M | null>;
+  findAndCountAll(options?: any): Promise<{ rows: M[]; count: number }>;
+  findOrCreate(options: any): Promise<[M, boolean]>;
   create(values: any, options?: any): Promise<M>;
   update(values: any, options?: any): Promise<[number, M[]]>;
   destroy(options?: any): Promise<number>;

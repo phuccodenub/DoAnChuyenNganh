@@ -27,6 +27,8 @@ export { default as LiveSessionMessage } from './live-session-message.model';
 export { default as LivestreamPolicy } from './livestream-policy.model';
 export { default as CommentModeration } from './comment-moderation.model';
 export { default as Review } from './review.model';
+export { default as Conversation } from './conversation.model';
+export { default as DirectMessage } from './direct-message.model';
 
 // Import models for associations
 import User from './user.model';
@@ -44,12 +46,15 @@ import QuizQuestion from './quiz-question.model';
 import QuizAttempt from './quiz-attempt.model';
 import QuizAnswer from './quiz-answer.model';
 import QuizOption from './quiz-option.model';
+import Conversation from './conversation.model';
+import DirectMessage from './direct-message.model';
 
 // Define associations
 const models: { [key: string]: any } = { 
   User, Course, Enrollment, Lesson, ChatMessage, 
   Section, LessonMaterial, LessonProgress, Notification, NotificationRecipient,
-  Quiz, QuizQuestion, QuizAttempt, QuizAnswer, QuizOption
+  Quiz, QuizQuestion, QuizAttempt, QuizAnswer, QuizOption,
+  Conversation, DirectMessage
 };
 
 // Call associate methods

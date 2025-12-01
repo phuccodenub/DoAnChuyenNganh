@@ -767,3 +767,70 @@ export interface CourseStatisticsCreationAttributes extends Optional<
 
 export interface CourseStatisticsInstance extends Model, CourseStatisticsAttributes {}
 
+// ===================================
+// CONVERSATION MODEL INTERFACES (DM)
+// ===================================
+
+export interface ConversationAttributes {
+  id: string;
+  course_id: string;
+  student_id: string;
+  instructor_id: string;
+  last_message_at?: Date;
+  student_last_read_at?: Date;
+  instructor_last_read_at?: Date;
+  is_archived_by_student: boolean;
+  is_archived_by_instructor: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ConversationCreationAttributes extends Optional<
+  ConversationAttributes,
+  'id' | 'created_at' | 'updated_at' | 'last_message_at' | 'student_last_read_at' | 'instructor_last_read_at' | 'is_archived_by_student' | 'is_archived_by_instructor'
+> {}
+
+export interface ConversationInstance extends Model, ConversationAttributes {
+  // Associations (virtual fields from includes)
+  student?: UserInstance;
+  instructor?: UserInstance;
+  course?: CourseInstance;
+  messages?: DirectMessageInstance[];
+}
+
+// ===================================
+// DIRECT MESSAGE MODEL INTERFACES (DM)
+// ===================================
+
+export type DirectMessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+export type DMAttachmentType = 'image' | 'file';
+
+export interface DirectMessageAttributes {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  status: DirectMessageStatus;
+  attachment_type?: DMAttachmentType;
+  attachment_url?: string;
+  attachment_name?: string;
+  attachment_size?: number;
+  is_edited: boolean;
+  edited_at?: Date;
+  is_deleted: boolean;
+  deleted_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface DirectMessageCreationAttributes extends Optional<
+  DirectMessageAttributes,
+  'id' | 'created_at' | 'updated_at' | 'status' | 'is_edited' | 'is_deleted'
+> {}
+
+export interface DirectMessageInstance extends Model, DirectMessageAttributes {
+  // Associations
+  sender?: UserInstance;
+  conversation?: ConversationInstance;
+}
+
