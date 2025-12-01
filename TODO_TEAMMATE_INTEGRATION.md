@@ -207,61 +207,69 @@ GET    /api/v1/quizzes/:id/attempts           - Lịch sử làm bài
 
 # 🚀 IMPLEMENTATION PHASES
 
-## Phase 1: Quiz Builder Integration (Effort: 1 ngày)
+## Phase 1: Quiz Builder Integration ✅ COMPLETED
 
 > **Mục tiêu:** Instructor có thể tạo/sửa quiz với API thật
+> **Commit:** 791b527 - feat(frontend): integrate Quiz Builder with backend API
 
-### Batch 1.1: Bổ sung Quiz API Service (30 phút)
-- [ ] Thêm functions cho instructor vào `quiz.api.ts`:
+### Batch 1.1: Bổ sung Quiz API Service ✅
+- [x] Thêm functions cho instructor vào `quiz.api.ts`:
   - `createQuiz(data)` 
   - `updateQuiz(quizId, data)`
   - `deleteQuiz(quizId)`
   - `addQuestion(quizId, data)`
   - `updateQuestion(quizId, questionId, data)`
   - `deleteQuestion(quizId, questionId)`
+  - `reorderQuestions(quizId, questionIds)`
 
-### Batch 1.2: Tạo Instructor Quiz Hooks (1 giờ)
-- [ ] Tạo file `frontend/src/hooks/useInstructorQuiz.ts`:
+### Batch 1.2: Tạo Instructor Quiz Hooks ✅
+- [x] Tạo file `frontend/src/hooks/useInstructorQuiz.ts`:
+  - `useInstructorQuiz()` query
+  - `useInstructorQuizQuestions()` query
   - `useCreateQuiz()` mutation
   - `useUpdateQuiz()` mutation
   - `useDeleteQuiz()` mutation
+  - `usePublishQuiz()` mutation
   - `useAddQuestion()` mutation
   - `useUpdateQuestion()` mutation
   - `useDeleteQuestion()` mutation
+  - `useBulkAddQuestions()` mutation
+  - `useQuizBuilder()` - combined helper hook
 
-### Batch 1.3: Tích hợp QuizBuilderPage (2-3 giờ)
-- [ ] Update `QuizBuilderPage.tsx`:
+### Batch 1.3: Tích hợp QuizBuilderPage ✅
+- [x] Update `QuizBuilderPage.tsx`:
   - Xóa mock data
   - Fetch quiz data khi edit mode
   - Integrate create/update mutations
   - Handle loading/error states
-  - Test toàn bộ flow
+  - Validation before save
 
 ---
 
-## Phase 2: Direct Message Backend (Effort: 2-3 ngày)
+## Phase 2: Direct Message Backend (⏸️ Để Teammate)
 
-> **Mục tiêu:** Tạo đầy đủ backend cho DM Chat
+> **Note:** Phase 2-3 để teammate hoàn thiện theo yêu cầu của user
+> Chat feature (DM + Course Chat) được giao cho teammate phát triển
 
-### Batch 2.1: Database Setup (2 giờ)
+### Batch 2.1: Database Setup
 - [ ] Tạo migration `023-create-conversations-table.ts`
 - [ ] Tạo migration `024-create-direct-messages-table.ts`
 - [ ] Tạo model `conversation.model.ts`
 - [ ] Tạo model `direct-message.model.ts`
 - [ ] Update associations
 
-### Batch 2.2: Repository & Service (3 giờ)
+### Batch 2.2: Repository & Service
 - [ ] Tạo `conversation.repository.ts`
 - [ ] Tạo `direct-message.repository.ts`
 - [ ] Tạo `conversation.service.ts`
 
-### Batch 2.3: API Routes & Controller (2 giờ)
+### Batch 2.3: API Routes & Controller
 - [ ] Tạo `conversation.controller.ts`
 - [ ] Tạo `conversation.routes.ts`
 - [ ] Tạo `conversation.validate.ts`
 - [ ] Register routes trong app
 
-### Batch 2.4: Socket.IO Integration (3 giờ)
+### Batch 2.4: Socket.IO Integration
 - [ ] Tạo `conversation.gateway.ts`
 - [ ] Implement DM events:
   - `dm:join_conversation`
@@ -270,60 +278,69 @@ GET    /api/v1/quizzes/:id/attempts           - Lịch sử làm bài
   - `dm:message_read`
   - `dm:typing`
 
-### Batch 2.5: Testing (2 giờ)
+### Batch 2.5: Testing
 - [ ] Unit tests cho service
 - [ ] Integration tests cho API
 - [ ] Manual testing với Postman
 
 ---
 
-## Phase 3: Direct Message Frontend (Effort: 1-2 ngày)
+## Phase 3: Direct Message Frontend (⏸️ Để Teammate)
 
-> **Mục tiêu:** Kết nối UI chat với backend thật
+> **Note:** Để teammate hoàn thiện cùng với Phase 2
 
-### Batch 3.1: API Service (1 giờ)
+### Batch 3.1: API Service
 - [ ] Tạo `frontend/src/services/api/conversation.api.ts`
 - [ ] Define all conversation API calls
 
-### Batch 3.2: React Query Hooks (1 giờ)
-- [ ] Tạo `frontend/src/hooks/useConversations.ts`:
-  - `useConversations()` - list
-  - `useConversation(id)` - detail
-  - `useCreateConversation()` - create
-  - `useConversationMessages(id)` - messages
-  - `useSendMessage()` - send
+### Batch 3.2: React Query Hooks
+- [ ] Tạo `frontend/src/hooks/useConversations.ts`
 
-### Batch 3.3: Socket.IO Hooks (1 giờ)
-- [ ] Tạo `frontend/src/hooks/useConversationSocket.ts`:
-  - Connect/disconnect logic
-  - Event handlers
-  - Typing indicators
-  - Online status
+### Batch 3.3: Socket.IO Hooks
+- [ ] Tạo `frontend/src/hooks/useConversationSocket.ts`
 
-### Batch 3.4: Update Chat Pages (2-3 giờ)
-- [ ] Update `ChatPage.tsx`:
-  - Replace mock với hooks
-  - Integrate socket events
-  - Handle loading/error states
-- [ ] Update `InstructorChatPage.tsx`:
-  - Same updates
+### Batch 3.4: Update Chat Pages
+- [ ] Update `ChatPage.tsx`
+- [ ] Update `InstructorChatPage.tsx`
 
-### Batch 3.5: Testing & Polish (2 giờ)
+### Batch 3.5: Testing & Polish
 - [ ] Test full chat flow
 - [ ] Fix UI bugs
-- [ ] Optimize performance
+
+---
+
+## Phase 4: Remaining Mock Data Cleanup 📋
+
+> **Note:** Các trang Student vẫn còn mock data, cần API integration sau
+
+### Student Pages với Mock Data:
+
+| Page | Mock Data | Backend API Status |
+|------|-----------|-------------------|
+| `StudentAssignmentsPage.tsx` | `MOCK_ASSIGNMENTS` | ⚠️ Cần Assignment API |
+| `MyCoursesPage.tsx` | `MOCK_MATERIALS` | ⚠️ Cần tích hợp Enrollment + Materials |
+| `DashboardPage.tsx` | `MOCK_DATA` | ⚠️ Cần Dashboard aggregation API |
+
+### Priority:
+1. **Assignment API** - Backend chưa có, cần tạo mới
+2. **Dashboard API** - Cần aggregate từ nhiều nguồn
+3. **Materials Integration** - Có thể dùng Lesson/Course API
 
 ---
 
 ## Priority Matrix
 
-| Phase | Feature | Effort | Impact | Dependencies |
-|-------|---------|--------|--------|--------------|
-| **Phase 1** | Quiz Builder | 1 ngày | High | None |
-| **Phase 2** | DM Backend | 2-3 ngày | High | None |
-| **Phase 3** | DM Frontend | 1-2 ngày | High | Phase 2 |
+| Phase | Feature | Effort | Status | Notes |
+|-------|---------|--------|--------|-------|
+| **Phase 1** | Quiz Builder | 1 ngày | ✅ Done | Commit 791b527 |
+| **Phase 2** | DM Backend | 2-3 ngày | ⏸️ Teammate | Cần tạo từ đầu |
+| **Phase 3** | DM Frontend | 1-2 ngày | ⏸️ Teammate | Phụ thuộc Phase 2 |
+| **Phase 4** | Mock Cleanup | 1-2 ngày | 📋 Future | Cần thêm APIs |
 
-**Recommended Order:** Phase 1 → Phase 2 → Phase 3
+**Completed Work:**
+- ✅ Quiz Builder API integration
+- ✅ Instructor Quiz Hooks
+- ✅ QuizBuilderPage với real API
 
 ---
 
