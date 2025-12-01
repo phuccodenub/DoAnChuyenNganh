@@ -1,0 +1,297 @@
+/**
+ * useConversations Hook
+ * 
+ * React Query hooks for direct messaging (DM) feature
+ */
+
+import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
+import {
+  conversationApi,
+  Conversation,
+  DirectMessage,
+  CreateConversationInput,
+  SendMessageInput,
+  ConversationsResponse,
+  MessagesResponse,
+} from '../services/api/conversation.api';
+import toast from 'react-hot-toast';
+
+// ============ Query Keys ============
+
+export const conversationKeys = {
+  all: ['conversations'] as const,
+  lists: () => [...conversationKeys.all, 'list'] as const,
+  list: (params?: { includeArchived?: boolean }) =>
+    [...conversationKeys.lists(), params] as const,
+  details: () => [...conversationKeys.all, 'detail'] as const,
+  detail: (id: string) => [...conversationKeys.details(), id] as const,
+  messages: (conversationId: string) =>
+    [...conversationKeys.all, 'messages', conversationId] as const,
+  unreadCount: () => [...conversationKeys.all, 'unread-count'] as const,
+};
+
+// ============ Query Hooks ============
+
+/**
+ * Get all conversations for the current user
+ */
+export function useConversations(
+  params?: { includeArchived?: boolean; limit?: number; offset?: number },
+  options?: Omit<UseQueryOptions<ConversationsResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: conversationKeys.list(params ? { includeArchived: params.includeArchived } : undefined),
+    queryFn: () =>
+      conversationApi.getConversations({
+        include_archived: params?.includeArchived,
+        limit: params?.limit,
+        offset: params?.offset,
+      }),
+    staleTime: 30 * 1000, // 30 seconds
+    ...options,
+  });
+}
+
+/**
+ * Get a single conversation
+ */
+export function useConversation(conversationId: string | undefined) {
+  return useQuery({
+    queryKey: conversationKeys.detail(conversationId!),
+    queryFn: () => conversationApi.getConversation(conversationId!),
+    enabled: !!conversationId,
+    staleTime: 60 * 1000, // 1 minute
+  });
+}
+
+/**
+ * Get messages for a conversation
+ */
+export function useMessages(
+  conversationId: string | undefined,
+  params?: { limit?: number; before?: string; after?: string }
+) {
+  return useQuery({
+    queryKey: conversationKeys.messages(conversationId!),
+    queryFn: () => conversationApi.getMessages(conversationId!, params),
+    enabled: !!conversationId,
+    staleTime: 10 * 1000, // 10 seconds - messages update frequently
+  });
+}
+
+/**
+ * Get unread message count
+ */
+export function useUnreadCount() {
+  return useQuery({
+    queryKey: conversationKeys.unreadCount(),
+    queryFn: () => conversationApi.getUnreadCount(),
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000, // Refetch every minute
+  });
+}
+
+// ============ Mutation Hooks ============
+
+/**
+ * Create a new conversation
+ */
+export function useCreateConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateConversationInput) => conversationApi.createConversation(data),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
+      if (response.created) {
+        toast.success('Conversation started');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create conversation');
+    },
+  });
+}
+
+/**
+ * Send a message
+ */
+export function useSendMessage(conversationId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: SendMessageInput) => conversationApi.sendMessage(conversationId, data),
+    onMutate: async (newMessage) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: conversationKeys.messages(conversationId) });
+
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData<MessagesResponse>(
+        conversationKeys.messages(conversationId)
+      );
+
+      // Optimistically update
+      if (previousMessages) {
+        const optimisticMessage: DirectMessage = {
+          id: `temp-${Date.now()}`,
+          conversation_id: conversationId,
+          sender_id: 'current-user', // Will be replaced by actual message
+          content: newMessage.content,
+          status: 'sent',
+          attachment_url: newMessage.attachment_url,
+          attachment_type: newMessage.attachment_type,
+          is_read: false,
+          is_edited: false,
+          is_deleted: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          sender: {} as any, // Will be replaced
+        };
+
+        queryClient.setQueryData<MessagesResponse>(
+          conversationKeys.messages(conversationId),
+          {
+            ...previousMessages,
+            data: [...previousMessages.data, optimisticMessage],
+          }
+        );
+      }
+
+      return { previousMessages };
+    },
+    onError: (error, _variables, context) => {
+      // Rollback on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(
+          conversationKeys.messages(conversationId),
+          context.previousMessages
+        );
+      }
+      toast.error(error.message || 'Failed to send message');
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
+    },
+  });
+}
+
+/**
+ * Edit a message
+ */
+export function useEditMessage(conversationId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ messageId, content }: { messageId: string; content: string }) =>
+      conversationApi.editMessage(messageId, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
+      toast.success('Message updated');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to edit message');
+    },
+  });
+}
+
+/**
+ * Delete a message
+ */
+export function useDeleteMessage(conversationId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (messageId: string) => conversationApi.deleteMessage(messageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
+      toast.success('Message deleted');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete message');
+    },
+  });
+}
+
+/**
+ * Mark conversation as read
+ */
+export function useMarkAsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (conversationId: string) => conversationApi.markAsRead(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: conversationKeys.unreadCount() });
+    },
+  });
+}
+
+/**
+ * Archive/unarchive conversation
+ */
+export function useArchiveConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ conversationId, archive }: { conversationId: string; archive: boolean }) =>
+      conversationApi.archiveConversation(conversationId, archive),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
+      toast.success(variables.archive ? 'Conversation archived' : 'Conversation unarchived');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update conversation');
+    },
+  });
+}
+
+/**
+ * Search messages
+ */
+export function useSearchMessages(conversationId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (query: string) => conversationApi.searchMessages(conversationId, query),
+  });
+}
+
+// ============ Combined Hook ============
+
+/**
+ * Combined hook for a conversation view
+ * Provides all data and mutations needed for a chat interface
+ */
+export function useConversationChat(conversationId: string | undefined) {
+  const conversation = useConversation(conversationId);
+  const messages = useMessages(conversationId);
+  const sendMessage = useSendMessage(conversationId || '');
+  const editMessage = useEditMessage(conversationId || '');
+  const deleteMessage = useDeleteMessage(conversationId || '');
+  const markAsRead = useMarkAsRead();
+
+  return {
+    // Data
+    conversation: conversation.data?.data,
+    messages: messages.data?.data || [],
+    isLoading: conversation.isLoading || messages.isLoading,
+    isError: conversation.isError || messages.isError,
+
+    // Mutations
+    sendMessage: sendMessage.mutate,
+    editMessage: editMessage.mutate,
+    deleteMessage: deleteMessage.mutate,
+    markAsRead: () => conversationId && markAsRead.mutate(conversationId),
+
+    // States
+    isSending: sendMessage.isPending,
+    isEditing: editMessage.isPending,
+    isDeleting: deleteMessage.isPending,
+
+    // Refetch
+    refetchMessages: messages.refetch,
+  };
+}

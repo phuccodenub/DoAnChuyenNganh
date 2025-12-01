@@ -2,23 +2,78 @@
  * InstructorChatPage - Instructor Chat Page
  * 
  * Trang chat cho giảng viên với học viên
- * Tương tự ChatPage nhưng hiển thị danh sách học viên
- * 
- * TODO: [API] Tích hợp với backend:
- * - GET /api/v1/chat/conversations?role=instructor - Lấy conversations
- * - GET /api/v1/chat/conversations/:id/messages - Lấy messages
- * - POST /api/v1/chat/messages - Gửi tin nhắn
+ * Sử dụng ChatLayout với API thực
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
     ChatLayout,
-    mockInstructorConversations,
-    getMessagesByConversationId,
     Message,
+    Conversation as ChatConversation,
 } from '@/features/chat';
+import {
+    useConversations,
+    useMessages,
+    useSendMessage,
+    useMarkAsRead,
+} from '@/hooks/useConversations';
+import { Conversation, DirectMessage } from '@/services/api/conversation.api';
+
+/**
+ * Transform API conversation to ChatLayout format
+ */
+function transformConversation(
+    conv: Conversation,
+    currentUserId: string
+): ChatConversation {
+    const isInstructor = conv.instructor_id === currentUserId;
+    const participant = isInstructor ? conv.student : conv.instructor;
+
+    return {
+        id: conv.id,
+        course_id: conv.course_id,
+        course_title: conv.course?.title || 'Unknown Course',
+        participant: {
+            id: participant.id,
+            name: `${participant.first_name} ${participant.last_name}`.trim(),
+            avatar_url: participant.avatar,
+            role: isInstructor ? 'student' : 'instructor',
+            online_status: participant.status === 'active' ? 'online' : 'offline',
+        },
+        last_message: conv.last_message ? {
+            content: conv.last_message.content,
+            created_at: conv.last_message.created_at,
+            sender_role: conv.last_message.sender_id === conv.instructor_id ? 'instructor' : 'student',
+        } : undefined,
+        unread_count: conv.unread_count || 0,
+        updated_at: conv.last_message_at || conv.updated_at,
+    };
+}
+
+/**
+ * Transform API message to ChatLayout format
+ */
+function transformMessage(
+    msg: DirectMessage,
+    instructorId: string
+): Message {
+    return {
+        id: msg.id,
+        conversation_id: msg.conversation_id,
+        sender_id: msg.sender_id,
+        sender_role: msg.sender_id === instructorId ? 'instructor' : 'student',
+        content: msg.content,
+        created_at: msg.created_at,
+        status: msg.status === 'read' ? 'read' : msg.status === 'delivered' ? 'delivered' : 'sent',
+        attachment: msg.attachment_url ? {
+            type: msg.attachment_type === 'image' ? 'image' : 'file',
+            url: msg.attachment_url,
+            name: msg.attachment_url.split('/').pop() || 'attachment',
+        } : undefined,
+    };
+}
 
 export function InstructorChatPage() {
     const { user } = useAuth();
@@ -27,14 +82,37 @@ export function InstructorChatPage() {
     const courseIdFromUrl = searchParams.get('courseId');
 
     // State
-    const [conversations] = useState(mockInstructorConversations);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
+    // API Hooks
+    const { data: conversationsData, isLoading: isLoadingConversations } = useConversations();
+    const { data: messagesData, isLoading: isLoadingMessages } = useMessages(
+        selectedConversationId || undefined
+    );
+    const sendMessageMutation = useSendMessage(selectedConversationId || '');
+    const markAsReadMutation = useMarkAsRead();
+
+    // Transform API data to ChatLayout format
+    const conversations = useMemo<ChatConversation[]>(() => {
+        if (!conversationsData?.data || !user?.id) return [];
+        return conversationsData.data.map(conv => transformConversation(conv, user.id));
+    }, [conversationsData, user?.id]);
+
+    // Get current conversation's instructorId for message transformation
+    const currentConversation = conversationsData?.data?.find(
+        c => c.id === selectedConversationId
+    );
+
+    const messages = useMemo<Message[]>(() => {
+        if (!messagesData?.data || !currentConversation) return [];
+        return messagesData.data.map(msg => 
+            transformMessage(msg, currentConversation.instructor_id)
+        );
+    }, [messagesData, currentConversation]);
 
     // Auto-select conversation based on courseId
     useEffect(() => {
-        if (courseIdFromUrl) {
+        if (courseIdFromUrl && conversations.length > 0) {
             const matchingConversation = conversations.find(
                 (c) => c.course_id === courseIdFromUrl
             );
@@ -46,17 +124,10 @@ export function InstructorChatPage() {
         }
     }, [courseIdFromUrl, conversations, selectedConversationId]);
 
-    // Load messages when conversation changes
+    // Mark conversation as read when selected
     useEffect(() => {
         if (selectedConversationId) {
-            setIsLoadingMessages(true);
-
-            // TODO: [API] Replace with API call
-            setTimeout(() => {
-                const conversationMessages = getMessagesByConversationId(selectedConversationId);
-                setMessages(conversationMessages);
-                setIsLoadingMessages(false);
-            }, 500);
+            markAsReadMutation.mutate(selectedConversationId);
         }
     }, [selectedConversationId]);
 
@@ -64,26 +135,7 @@ export function InstructorChatPage() {
     const handleSendMessage = (content: string) => {
         if (!selectedConversationId || !user) return;
 
-        const newMessage: Message = {
-            id: `msg-${Date.now()}`,
-            conversation_id: selectedConversationId,
-            sender_id: user.id,
-            sender_role: 'instructor',
-            content,
-            created_at: new Date().toISOString(),
-            status: 'sending',
-        };
-
-        setMessages((prev) => [...prev, newMessage]);
-
-        // TODO: [API] POST /api/v1/chat/messages
-        setTimeout(() => {
-            setMessages((prev) =>
-                prev.map((m) =>
-                    m.id === newMessage.id ? { ...m, status: 'sent' } : m
-                )
-            );
-        }, 1000);
+        sendMessageMutation.mutate({ content });
     };
 
     return (
@@ -97,6 +149,7 @@ export function InstructorChatPage() {
                 onSelectConversation={setSelectedConversationId}
                 onSendMessage={handleSendMessage}
                 isLoadingMessages={isLoadingMessages}
+                isLoadingConversations={isLoadingConversations}
             />
         </div>
     );

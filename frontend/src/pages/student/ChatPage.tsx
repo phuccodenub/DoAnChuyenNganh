@@ -2,25 +2,78 @@
  * ChatPage - Student Chat Page
  * 
  * Trang chat cho học viên với giảng viên
- * Sử dụng ChatLayout với mock data
- * 
- * TODO: [API] Tích hợp với backend:
- * - GET /api/v1/chat/conversations - Lấy danh sách conversations
- * - GET /api/v1/chat/conversations/:id/messages - Lấy messages
- * - POST /api/v1/chat/messages - Gửi tin nhắn
- * - WebSocket: Real-time messages & typing indicators
+ * Sử dụng ChatLayout với API thực
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
     ChatLayout,
-    mockStudentConversations,
-    mockMessages,
-    getMessagesByConversationId,
     Message,
+    Conversation as ChatConversation,
 } from '@/features/chat';
+import {
+    useConversations,
+    useMessages,
+    useSendMessage,
+    useMarkAsRead,
+} from '@/hooks/useConversations';
+import { Conversation, DirectMessage } from '@/services/api/conversation.api';
+
+/**
+ * Transform API conversation to ChatLayout format
+ */
+function transformConversation(
+    conv: Conversation,
+    currentUserId: string
+): ChatConversation {
+    const isStudent = conv.student_id === currentUserId;
+    const participant = isStudent ? conv.instructor : conv.student;
+
+    return {
+        id: conv.id,
+        course_id: conv.course_id,
+        course_title: conv.course?.title || 'Unknown Course',
+        participant: {
+            id: participant.id,
+            name: `${participant.first_name} ${participant.last_name}`.trim(),
+            avatar_url: participant.avatar,
+            role: isStudent ? 'instructor' : 'student',
+            online_status: participant.status === 'active' ? 'online' : 'offline',
+        },
+        last_message: conv.last_message ? {
+            content: conv.last_message.content,
+            created_at: conv.last_message.created_at,
+            sender_role: conv.last_message.sender_id === conv.student_id ? 'student' : 'instructor',
+        } : undefined,
+        unread_count: conv.unread_count || 0,
+        updated_at: conv.last_message_at || conv.updated_at,
+    };
+}
+
+/**
+ * Transform API message to ChatLayout format
+ */
+function transformMessage(
+    msg: DirectMessage,
+    studentId: string
+): Message {
+    return {
+        id: msg.id,
+        conversation_id: msg.conversation_id,
+        sender_id: msg.sender_id,
+        sender_role: msg.sender_id === studentId ? 'student' : 'instructor',
+        content: msg.content,
+        created_at: msg.created_at,
+        status: msg.status === 'read' ? 'read' : msg.status === 'delivered' ? 'delivered' : 'sent',
+        attachment: msg.attachment_url ? {
+            type: msg.attachment_type === 'image' ? 'image' : 'file',
+            url: msg.attachment_url,
+            name: msg.attachment_url.split('/').pop() || 'attachment',
+        } : undefined,
+    };
+}
 
 export function ChatPage() {
     const { user } = useAuth();
@@ -30,14 +83,37 @@ export function ChatPage() {
     const courseIdFromUrl = searchParams.get('courseId');
 
     // State
-    const [conversations] = useState(mockStudentConversations);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
+    // API Hooks
+    const { data: conversationsData, isLoading: isLoadingConversations } = useConversations();
+    const { data: messagesData, isLoading: isLoadingMessages } = useMessages(
+        selectedConversationId || undefined
+    );
+    const sendMessageMutation = useSendMessage(selectedConversationId || '');
+    const markAsReadMutation = useMarkAsRead();
+
+    // Transform API data to ChatLayout format
+    const conversations = useMemo<ChatConversation[]>(() => {
+        if (!conversationsData?.data || !user?.id) return [];
+        return conversationsData.data.map(conv => transformConversation(conv, user.id));
+    }, [conversationsData, user?.id]);
+
+    // Get current conversation's studentId for message transformation
+    const currentConversation = conversationsData?.data?.find(
+        c => c.id === selectedConversationId
+    );
+
+    const messages = useMemo<Message[]>(() => {
+        if (!messagesData?.data || !currentConversation) return [];
+        return messagesData.data.map(msg => 
+            transformMessage(msg, currentConversation.student_id)
+        );
+    }, [messagesData, currentConversation]);
 
     // Auto-select conversation based on courseId from URL
     useEffect(() => {
-        if (courseIdFromUrl) {
+        if (courseIdFromUrl && conversations.length > 0) {
             const matchingConversation = conversations.find(
                 (c) => c.course_id === courseIdFromUrl
             );
@@ -50,18 +126,10 @@ export function ChatPage() {
         }
     }, [courseIdFromUrl, conversations, selectedConversationId]);
 
-    // Load messages when conversation changes
+    // Mark conversation as read when selected
     useEffect(() => {
         if (selectedConversationId) {
-            setIsLoadingMessages(true);
-
-            // TODO: [API] Replace with API call: GET /api/v1/chat/conversations/:id/messages
-            // Simulate API delay
-            setTimeout(() => {
-                const conversationMessages = getMessagesByConversationId(selectedConversationId);
-                setMessages(conversationMessages);
-                setIsLoadingMessages(false);
-            }, 500);
+            markAsReadMutation.mutate(selectedConversationId);
         }
     }, [selectedConversationId]);
 
@@ -69,31 +137,7 @@ export function ChatPage() {
     const handleSendMessage = (content: string) => {
         if (!selectedConversationId || !user) return;
 
-        // Optimistic UI: Add message immediately
-        const newMessage: Message = {
-            id: `msg-${Date.now()}`,
-            conversation_id: selectedConversationId,
-            sender_id: user.id,
-            sender_role: 'student',
-            content,
-            created_at: new Date().toISOString(),
-            status: 'sending',
-        };
-
-        setMessages((prev) => [...prev, newMessage]);
-
-        // TODO: [API] POST /api/v1/chat/messages
-        // On success: update message status to 'sent'
-        // On error: update message status to 'failed'
-
-        // Simulate API response
-        setTimeout(() => {
-            setMessages((prev) =>
-                prev.map((m) =>
-                    m.id === newMessage.id ? { ...m, status: 'sent' } : m
-                )
-            );
-        }, 1000);
+        sendMessageMutation.mutate({ content });
     };
 
     return (
@@ -107,6 +151,7 @@ export function ChatPage() {
                 onSelectConversation={setSelectedConversationId}
                 onSendMessage={handleSendMessage}
                 isLoadingMessages={isLoadingMessages}
+                isLoadingConversations={isLoadingConversations}
             />
         </div>
     );
