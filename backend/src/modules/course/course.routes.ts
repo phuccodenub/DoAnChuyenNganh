@@ -358,12 +358,6 @@ router.delete('/:id',
  *       401:
  *         description: Unauthorized
  */
-router.get('/instructor/:instructorId', 
-  authMiddleware, 
-  authorizeRoles(['instructor', 'admin', 'super_admin']),
-  courseController.getCoursesByInstructor
-);
-
 /**
  * @swagger
  * /api/courses/instructor/my-courses:
@@ -416,6 +410,12 @@ router.get('/instructor/:instructorId',
  *         description: Unauthorized
  */
 router.get('/instructor/my-courses', 
+  authMiddleware, 
+  authorizeRoles(['instructor', 'admin', 'super_admin']),
+  courseController.getCoursesByInstructor
+);
+
+router.get('/instructor/:instructorId', 
   authMiddleware, 
   authorizeRoles(['instructor', 'admin', 'super_admin']),
   courseController.getCoursesByInstructor

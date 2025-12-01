@@ -155,10 +155,11 @@ export const env = {
   ai: {
     gemini: {
       apiKey: process.env.GEMINI_API_KEY || '',
-      // Free tier models: gemini-1.5-flash (recommended), gemini-pro
+      // Free tier models: gemini-2.5-flash (recommended, latest), gemini-1.5-flash, gemini-pro
+      // gemini-2.5-flash: Latest model, optimized for free tier
       // gemini-1.5-flash: Fast, optimized for free tier, 60 requests/min
       // gemini-pro: Older model, still available on free tier
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
       // Free tier limit: 32,000 tokens per request (input + output)
       // Setting maxOutputTokens to 8192 to leave room for input

@@ -40,7 +40,7 @@ import {
     // Modal Components
     SectionModal,
     LessonModal,
-} from './components/courseDetail';
+} from '../components/editor/courseDetail';
 
 /**
  * InstructorCourseDetailPage
@@ -53,7 +53,7 @@ import {
  * - Đánh giá: Xem và trả lời reviews
  * - Cài đặt: Chỉnh sửa thông tin khóa học
  */
-export function InstructorCourseDetailPage() {
+export function InstructorDetailPage() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
 
@@ -341,4 +341,4 @@ export function InstructorCourseDetailPage() {
     );
 }
 
-export default InstructorCourseDetailPage;
+export default InstructorDetailPage;

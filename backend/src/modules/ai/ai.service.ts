@@ -93,7 +93,7 @@ export class AIService {
       });
 
       // Get response
-      const result = await chat.sendMessage(request.message);
+      const result = await chat.sendMessage(messageWithContext);
       const response = result.response;
       const text = response.text();
 
@@ -111,6 +111,44 @@ export class AIService {
     } catch (error) {
       logger.error('[AIService] Chat error:', error);
       throw new Error(`Failed to get AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Generate content directly (for moderation, no conversation history needed)
+   */
+  async generateContent(request: { prompt: string; options?: { temperature?: number; maxTokens?: number } }): Promise<ChatResponse> {
+    if (!this.model) {
+      throw new Error('AI service is not available. Please configure GEMINI_API_KEY.');
+    }
+
+    try {
+      // Use generateContent with simple string prompt (works with all models including gemini-2.5-flash)
+      // For @google/generative-ai SDK, use simple string format
+      const result = await this.model.generateContent(request.prompt, {
+        generationConfig: {
+          temperature: request.options?.temperature ?? env.ai.gemini.temperature,
+          maxOutputTokens: request.options?.maxTokens ?? env.ai.gemini.maxTokens,
+        },
+      });
+
+      const response = result.response;
+      const text = response.text();
+
+      // Get usage information if available
+      const usage = response.usageMetadata();
+
+      return {
+        response: text,
+        usage: usage ? {
+          promptTokens: usage.promptTokenCount,
+          completionTokens: usage.candidatesTokenCount,
+          totalTokens: usage.totalTokenCount,
+        } : undefined,
+      };
+    } catch (error) {
+      logger.error('[AIService] Generate content error:', error);
+      throw new Error(`Failed to generate content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

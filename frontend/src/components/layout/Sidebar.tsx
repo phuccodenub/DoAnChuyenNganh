@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { 
   ChevronDown, 
@@ -12,10 +12,14 @@ import {
   Info,
   Phone,
   Radio,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Plus,
 } from 'lucide-react'
 import { sidebarMenuItems } from './data'
 import type { SidebarMenuItem } from './types'
+import { ROUTES, generateRoute } from '@/constants/routes'
+import { useInstructorCourses } from '@/hooks/useCoursesData'
+import { useAuthStore } from '@/stores/authStore.enhanced'
 
 interface SidebarProps {
   isOpen: boolean
@@ -38,6 +42,39 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const navigate = useNavigate()
   const location = useLocation()
+  const user = useAuthStore((state) => state.user)
+  const isInstructorOrHigher = user?.role === 'instructor' || user?.role === 'admin' || user?.role === 'super_admin'
+
+  const { data: instructorCoursesData } = useInstructorCourses(Boolean(isInstructorOrHigher))
+  const instructorCourses = instructorCoursesData?.data?.courses || []
+
+  const menuItems: SidebarMenuItem[] = useMemo(() => {
+    if (!isInstructorOrHigher) return sidebarMenuItems
+
+    const children = instructorCourses.map((course) => ({
+      id: `course-${course.id}`,
+      label: course.title,
+      link: generateRoute.courseManagement(course.id),
+    }))
+
+    const courseManagementItem: SidebarMenuItem = {
+      id: 'course-management',
+      label: 'Quản trị khóa học',
+      link: ROUTES.COURSE_MANAGEMENT,
+      children,
+    }
+
+    // Chèn sau mục "Khóa học"
+    const items = [...sidebarMenuItems]
+    const coursesIndex = items.findIndex((item) => item.id === 'courses')
+    if (coursesIndex >= 0) {
+      items.splice(coursesIndex + 1, 0, courseManagementItem)
+    } else {
+      items.push(courseManagementItem)
+    }
+
+    return items
+  }, [instructorCourses, isInstructorOrHigher])
 
   const toggleExpand = (itemId: string) => {
     if (isCollapsed) return
@@ -143,13 +180,14 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
         {/* Content */}
         <div className="overflow-y-auto p-4" style={{ height: 'calc(100% - 4rem)' }}>
           <nav className="space-y-1">
-            {sidebarMenuItems.map((item) => {
+            {menuItems.map((item) => {
               const isActive = isItemActive(item)
               const isExpanded = expandedItems.includes(item.id)
-              const hasChildren = item.children && item.children.length > 0
+              const hasChildConfig = Array.isArray(item.children)
+              const hasChildren = hasChildConfig && item.children!.length > 0
               
               // If item has link and no children, render as Link
-              if (item.link && !hasChildren) {
+              if (item.link && !hasChildConfig) {
                 return (
                   <Link
                     key={item.id}
@@ -242,43 +280,66 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                         <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
                     )}
+
+                    {/* Nút tạo khóa học nhanh */}
+                    {!isCollapsed && item.id === 'course-management' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          navigate(ROUTES.INSTRUCTOR.COURSE_CREATE)
+                          onClose()
+                        }}
+                        className="ml-1 p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
+                        title="Tạo khóa học mới"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Children items */}
-                  {!isCollapsed && hasChildren && isExpanded && (
+                  {!isCollapsed && hasChildConfig && isExpanded && (
                     <div className="mt-1 ml-4 pl-4 border-l-2 border-gray-100 space-y-0.5">
-                      {item.children!.map((child) => {
-                        const isChildActive = isLinkActive(child.link)
-                        return (
-                          <Link
-                            key={child.id}
-                            to={child.link || '#'}
-                            onClick={onClose}
-                            className={`
-                              flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group
-                              ${isChildActive 
-                                ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-600 -ml-4 pl-3' 
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                              }
-                            `}
-                          >
-                            <span className={`text-sm font-medium ${isChildActive ? 'text-blue-600' : 'text-gray-700 group-hover:text-gray-900'}`}>
-                              {child.label}
-                            </span>
-                            {child.count !== undefined && (
-                              <span className={`
-                                text-xs px-2 py-0.5 rounded-full font-medium
+                      {hasChildren ? (
+                        item.children!.map((child) => {
+                          const isChildActive = isLinkActive(child.link)
+                          return (
+                            <Link
+                              key={child.id}
+                              to={child.link || '#'}
+                              onClick={onClose}
+                              className={`
+                                flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group
                                 ${isChildActive 
-                                  ? 'bg-blue-100 text-blue-700' 
-                                  : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
+                                  ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-600 -ml-4 pl-3' 
+                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                 }
-                              `}>
-                                {child.count}
+                              `}
+                            >
+                              <span className={`text-sm font-medium ${isChildActive ? 'text-blue-600' : 'text-gray-700 group-hover:text-gray-900'}`}>
+                                {child.label}
                               </span>
-                            )}
-                          </Link>
-                        )
-                      })}
+                              {child.count !== undefined && (
+                                <span className={`
+                                  text-xs px-2 py-0.5 rounded-full font-medium
+                                  ${isChildActive 
+                                    ? 'bg-blue-100 text-blue-700' 
+                                    : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
+                                  }
+                                `}>
+                                  {child.count}
+                                </span>
+                              )}
+                            </Link>
+                          )
+                        })
+                      ) : (
+                        <div className="px-3 py-2 rounded-lg bg-gray-50 text-sm text-gray-500">
+                          Chưa có khóa học nào
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

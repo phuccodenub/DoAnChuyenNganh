@@ -35,6 +35,7 @@ export enum LiveStreamSocketEvents {
   SESSION_STARTED = 'livestream:session_started',
   SESSION_ENDED = 'livestream:session_ended',
   ERROR = 'livestream:error',
+  COMMENT_BLOCKED = 'livestream:comment_blocked',
 }
 
 export interface ChatMessage {
@@ -62,6 +63,17 @@ export interface ViewerCountData {
   viewers: ViewerInfo[];
 }
 
+export interface CommentBlockedData {
+  sessionId: string;
+  userId: string;
+  userName: string;
+  message: string;
+  reason?: string;
+  riskScore?: number;
+  riskCategories?: string[];
+  timestamp: string;
+}
+
 export interface UseLivestreamSocketOptions {
   sessionId: string | undefined;
   enabled?: boolean;
@@ -71,6 +83,7 @@ export interface UseLivestreamSocketOptions {
   onReaction?: (data: { emoji: string; userId: string; userName: string }) => void;
   onSessionEnded?: (data: { sessionId: string }) => void;
   onError?: (error: { code: string; message: string }) => void;
+  onCommentBlocked?: (data: CommentBlockedData) => void; // Callback khi có comment bị chặn (chỉ cho host)
 }
 
 export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
@@ -83,6 +96,7 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
     onReaction,
     onSessionEnded,
     onError,
+    onCommentBlocked,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -249,6 +263,16 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
       socket.on(LiveStreamSocketEvents.REACTION_RECEIVED, onReactionReceived);
       socket.on(LiveStreamSocketEvents.SESSION_ENDED, onSessionEndedHandler);
       socket.on(LiveStreamSocketEvents.ERROR, onErrorHandler);
+      
+      // Comment blocked handler (only for host)
+      if (onCommentBlocked) {
+        const onCommentBlockedHandler = (data: CommentBlockedData) => {
+          console.log('[useLivestreamSocket] Comment blocked:', data);
+          onCommentBlocked(data);
+        };
+        socket.on(LiveStreamSocketEvents.COMMENT_BLOCKED, onCommentBlockedHandler);
+        handlersRef.current.set(LiveStreamSocketEvents.COMMENT_BLOCKED, onCommentBlockedHandler);
+      }
 
       // Store handlers for cleanup
       handlersRef.current.set('connect', onConnect);

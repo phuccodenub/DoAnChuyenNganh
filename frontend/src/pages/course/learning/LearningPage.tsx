@@ -23,7 +23,7 @@ import {
   DiscussionTab,
   FileTab,
   type Section
-} from '@/components/domain/learning';
+} from '@/components/domain/lesson';
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { ChatFloatingButton } from '@/features/chat';
 

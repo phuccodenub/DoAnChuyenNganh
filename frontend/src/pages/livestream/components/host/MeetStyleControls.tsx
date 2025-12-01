@@ -112,7 +112,7 @@ export function MeetStyleControls({
       <div className="flex items-center gap-1 bg-gray-200 rounded-full px-1 py-1 shadow-2xl border border-gray-900">
         {/* Microphone Toggle - Google Meet Style */}
         <div className="relative" ref={audioMenuRef}>
-          <button
+          <div
             className={cn(
               'flex items-center rounded-full transition-all overflow-hidden',
               isAudioOn
@@ -142,7 +142,7 @@ export function MeetStyleControls({
                 <MicOff className="w-5 h-5 text-white" />
               )}
             </button>
-          </button>
+          </div>
 
           {/* Audio Device Dropdown */}
           {showAudioMenu && (
@@ -177,7 +177,7 @@ export function MeetStyleControls({
 
         {/* Camera Toggle - Google Meet Style */}
         <div className="relative" ref={videoMenuRef}>
-          <button
+          <div
             className={cn(
               'flex items-center rounded-full transition-all overflow-hidden',
               isVideoOn
@@ -207,7 +207,7 @@ export function MeetStyleControls({
                 <VideoOff className="w-5 h-5 text-white" />
               )}
             </button>
-          </button>
+          </div>
 
           {/* Video Device Dropdown */}
           {showVideoMenu && (
