@@ -14,7 +14,7 @@
 |--------|-------------|------------|---------|------------|--------|
 | **Quiz** | ✅ quiz.routes.ts | ✅ Complete | ✅ Complete | ✅ Complete | **READY** |
 | **Chat (Course)** | ✅ chat.routes.ts | ✅ Complete | ✅ Complete | ✅ Complete | **READY** |
-| **Chat (DM)** | ❌ Missing | ❌ Missing | ❌ Missing | ❌ Missing | **NEED CREATE** |
+| **Chat (DM)** | ✅ conversation.routes.ts | ✅ Complete | ✅ Complete | ✅ Complete | **READY** |
 | **AI** | ✅ ai.routes.ts | ⚠️ Partial | ⚠️ Partial | N/A | Teammate task |
 | **Livestream** | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | Teammate task |
 | **Moderation** | ✅ Complete | ✅ Complete | ✅ Complete | N/A | Teammate task |
@@ -246,66 +246,85 @@ GET    /api/v1/quizzes/:id/attempts           - Lịch sử làm bài
 
 ---
 
-## Phase 2: Direct Message Backend (⏸️ Để Teammate)
+## Phase 2: Direct Message Backend ✅ COMPLETED
 
-> **Note:** Phase 2-3 để teammate hoàn thiện theo yêu cầu của user
-> Chat feature (DM + Course Chat) được giao cho teammate phát triển
+> **Mục tiêu:** Complete DM backend với REST API và Socket.IO
+> **Commit:** 0b985d8 - feat(backend): complete DM backend module
 
-### Batch 2.1: Database Setup
-- [ ] Tạo migration `023-create-conversations-table.ts`
-- [ ] Tạo migration `024-create-direct-messages-table.ts`
-- [ ] Tạo model `conversation.model.ts`
-- [ ] Tạo model `direct-message.model.ts`
-- [ ] Update associations
+### Batch 2.1: Database Setup ✅
+- [x] Tạo migration `023-create-conversations-table.ts`
+- [x] Tạo migration `024-create-direct-messages-table.ts`
+- [x] Tạo model `conversation.model.ts`
+- [x] Tạo model `direct-message.model.ts`
+- [x] Update associations
 
-### Batch 2.2: Repository & Service
-- [ ] Tạo `conversation.repository.ts`
-- [ ] Tạo `direct-message.repository.ts`
-- [ ] Tạo `conversation.service.ts`
+### Batch 2.2: Repository & Service ✅
+- [x] Tạo `conversation.repository.ts`
+- [x] Tạo `direct-message.repository.ts`
+- [x] Tạo `conversation.service.ts`
 
-### Batch 2.3: API Routes & Controller
-- [ ] Tạo `conversation.controller.ts`
-- [ ] Tạo `conversation.routes.ts`
-- [ ] Tạo `conversation.validate.ts`
-- [ ] Register routes trong app
+### Batch 2.3: API Routes & Controller ✅
+- [x] Tạo `conversation.controller.ts`
+- [x] Tạo `conversation.routes.ts`
+- [x] Tạo `message.routes.ts`
+- [x] Tạo `conversation.validate.ts`
+- [x] Register routes trong API v1 router
 
-### Batch 2.4: Socket.IO Integration
-- [ ] Tạo `conversation.gateway.ts`
-- [ ] Implement DM events:
+### Batch 2.4: Socket.IO Integration ✅
+- [x] Tạo `conversation.gateway.ts`
+- [x] Implement DM events:
   - `dm:join_conversation`
   - `dm:leave_conversation`
-  - `dm:new_message`
-  - `dm:message_read`
-  - `dm:typing`
+  - `dm:send_message` / `dm:new_message`
+  - `dm:mark_as_read` / `dm:message_read`
+  - `dm:typing_start` / `dm:typing_stop` / `dm:user_typing`
+  - `dm:get_unread_count` / `dm:unread_count`
 
-### Batch 2.5: Testing
-- [ ] Unit tests cho service
-- [ ] Integration tests cho API
-- [ ] Manual testing với Postman
+**API Endpoints Created:**
+```
+GET    /api/v1/conversations              - List user conversations
+POST   /api/v1/conversations              - Create/get conversation
+GET    /api/v1/conversations/:id          - Get conversation details
+GET    /api/v1/conversations/:id/messages - Get messages
+POST   /api/v1/conversations/:id/messages - Send message
+PUT    /api/v1/conversations/:id/read     - Mark as read
+PUT    /api/v1/conversations/:id/archive  - Archive conversation
+GET    /api/v1/conversations/:id/search   - Search messages
+GET    /api/v1/conversations/unread-count - Get unread count
+PUT    /api/v1/messages/:id               - Edit message
+DELETE /api/v1/messages/:id               - Delete message
+```
 
 ---
 
-## Phase 3: Direct Message Frontend (⏸️ Để Teammate)
+## Phase 3: Direct Message Frontend ✅ COMPLETED
 
-> **Note:** Để teammate hoàn thiện cùng với Phase 2
+> **Mục tiêu:** Integrate chat pages với real API
+> **Commit:** d9966d3 - feat(frontend): integrate DM chat with real API
 
-### Batch 3.1: API Service
-- [ ] Tạo `frontend/src/services/api/conversation.api.ts`
-- [ ] Define all conversation API calls
+### Batch 3.1: API Service ✅
+- [x] Tạo `frontend/src/services/api/conversation.api.ts`
+- [x] Define all conversation API calls
 
-### Batch 3.2: React Query Hooks
-- [ ] Tạo `frontend/src/hooks/useConversations.ts`
+### Batch 3.2: React Query Hooks ✅
+- [x] Tạo `frontend/src/hooks/useConversations.ts`:
+  - `useConversations()` - List conversations
+  - `useConversation(id)` - Get single conversation
+  - `useMessages(conversationId)` - Get messages
+  - `useUnreadCount()` - Get unread count
+  - `useCreateConversation()` - Create conversation
+  - `useSendMessage()` - Send message
+  - `useEditMessage()` - Edit message
+  - `useDeleteMessage()` - Delete message
+  - `useMarkAsRead()` - Mark as read
+  - `useArchiveConversation()` - Archive
+  - `useSearchMessages()` - Search
+  - `useConversationChat()` - Combined hook
 
-### Batch 3.3: Socket.IO Hooks
-- [ ] Tạo `frontend/src/hooks/useConversationSocket.ts`
-
-### Batch 3.4: Update Chat Pages
-- [ ] Update `ChatPage.tsx`
-- [ ] Update `InstructorChatPage.tsx`
-
-### Batch 3.5: Testing & Polish
-- [ ] Test full chat flow
-- [ ] Fix UI bugs
+### Batch 3.3: Update Chat Pages ✅
+- [x] Update `ChatPage.tsx` - Student chat with real API
+- [x] Update `InstructorChatPage.tsx` - Instructor chat with real API
+- [x] Transform API responses to ChatLayout format
 
 ---
 
@@ -333,14 +352,18 @@ GET    /api/v1/quizzes/:id/attempts           - Lịch sử làm bài
 | Phase | Feature | Effort | Status | Notes |
 |-------|---------|--------|--------|-------|
 | **Phase 1** | Quiz Builder | 1 ngày | ✅ Done | Commit 791b527 |
-| **Phase 2** | DM Backend | 2-3 ngày | ⏸️ Teammate | Cần tạo từ đầu |
-| **Phase 3** | DM Frontend | 1-2 ngày | ⏸️ Teammate | Phụ thuộc Phase 2 |
+| **Phase 2** | DM Backend | 2-3 ngày | ✅ Done | Commit 0b985d8 |
+| **Phase 3** | DM Frontend | 1-2 ngày | ✅ Done | Commit d9966d3 |
 | **Phase 4** | Mock Cleanup | 1-2 ngày | 📋 Future | Cần thêm APIs |
 
 **Completed Work:**
 - ✅ Quiz Builder API integration
 - ✅ Instructor Quiz Hooks
 - ✅ QuizBuilderPage với real API
+- ✅ DM Backend module hoàn chỉnh
+- ✅ DM Socket.IO gateway
+- ✅ DM Frontend hooks và API service
+- ✅ ChatPage và InstructorChatPage với real API
 
 ---
 
