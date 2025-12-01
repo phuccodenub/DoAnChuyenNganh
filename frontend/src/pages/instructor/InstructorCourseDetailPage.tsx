@@ -62,7 +62,7 @@ import {
     // Modal Components
     SectionModal,
     LessonModal,
-} from '../components/editor/courseDetail';
+} from '@/pages/course/components/editor/courseDetail';
 
 /**
  * InstructorCourseDetailPage

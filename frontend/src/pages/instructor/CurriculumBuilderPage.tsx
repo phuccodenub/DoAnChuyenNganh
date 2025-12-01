@@ -16,8 +16,8 @@ import {
   StepWizard,
 } from '@/components/courseEditor';
 
-import { LessonModal } from '../components/editor/courseDetail/LessonModal';
-import { ContentType as LessonContentType } from '../components/editor/courseDetail/types';
+import { LessonModal } from '@/pages/course/components/editor/courseDetail/LessonModal';
+import { ContentType as LessonContentType } from '@/pages/course/components/editor/courseDetail/types';
 import { ROUTES, generateRoute } from '@/constants/routes';
 
 /**

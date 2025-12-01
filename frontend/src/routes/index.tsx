@@ -20,7 +20,7 @@ const LiveStreamSessionPage = lazy(() => import('@/pages/livestream/session/Sess
 const StudentDashboard = lazy(() => import('@/pages/student/DashboardPage'));
 const StudentMyCoursesPage = lazy(() => import('@/pages/student/MyCoursesPage'));
 const StudentAssignmentsPage = lazy(() => import('@/pages/student/StudentAssignmentsPage'));
-const LearningPage = lazy(() => import('@/pages/course/learning/LearningPage'));
+const LearningPage = lazy(() => import('@/pages/student/LearningPage'));
 const QuizPage = lazy(() => import('@/pages/student/QuizPage'));
 const QuizResultsPage = lazy(() => import('@/pages/student/QuizResultsPage'));
 const AssignmentPage = lazy(() => import('@/pages/student/AssignmentPage'));
@@ -31,10 +31,10 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 // Instructor pages
 const InstructorDashboardLayout = lazy(() => import('@/layouts/InstructorDashboardLayout'));
 const InstructorDashboard = lazy(() => import('@/pages/instructor/DashboardPage'));
-const MyCoursesPage = lazy(() => import('@/pages/course/management/MyCoursesPage'));
-const InstructorCourseDetailPage = lazy(() => import('@/pages/course/editor/InstructorDetailPage'));
-const CourseEditorPage = lazy(() => import('@/pages/course/editor/EditorPage'));
-const CurriculumBuilderPage = lazy(() => import('@/pages/course/editor/CurriculumBuilderPage'));
+const MyCoursesPage = lazy(() => import('@/pages/instructor/InstructorMyCoursesPage'));
+const InstructorCourseDetailPage = lazy(() => import('@/pages/instructor/InstructorCourseDetailPage'));
+const CourseEditorPage = lazy(() => import('@/pages/instructor/CourseEditorPage'));
+const CurriculumBuilderPage = lazy(() => import('@/pages/instructor/CurriculumBuilderPage'));
 const QuizBuilderPage = lazy(() => import('@/pages/instructor/QuizBuilderPage'));
 const AssignmentBuilderPage = lazy(() => import('@/pages/instructor/AssignmentBuilderPage'));
 const GradingPage = lazy(() => import('@/pages/instructor/GradingPage'));
