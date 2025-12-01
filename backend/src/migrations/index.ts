@@ -22,6 +22,7 @@ import { addUserProfileColumns, removeUserProfileColumns } from './011-add-user-
 import { up as updateLiveSessionsSchema, down as revertLiveSessionsSchema } from './017-update-live-sessions-schema';
 import { up as addLivestreamIngestType, down as revertLivestreamIngestType } from './018-add-livestream-ingest-type';
 import { up as createLiveSessionMessagesTable, down as dropLiveSessionMessagesTable } from './019-create-live-session-messages-table';
+import { up as createCommentModerationsTable, down as dropCommentModerationsTable } from './019a-create-comment-moderations-table';
 import { up as addMessageContentToCommentModerations, down as removeMessageContentFromCommentModerations } from './020-add-message-content-to-comment-moderations';
 import { up as allowNullMessageIdInCommentModerations, down as requireMessageIdInCommentModerations } from './021-allow-null-message-id-in-comment-moderations';
 import { up as forceAllowNullMessageId, down as requireMessageIdAgain } from './022-force-allow-null-message-id';
@@ -155,6 +156,12 @@ export const migrations: Migration[] = [
     description: 'Create live_session_messages table for livestream chat',
     up: createLiveSessionMessagesTable,
     down: dropLiveSessionMessagesTable
+  },
+  {
+    version: '019a',
+    description: 'Create comment_moderations table',
+    up: createCommentModerationsTable,
+    down: dropCommentModerationsTable
   },
   {
     version: '020',
