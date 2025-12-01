@@ -1,44 +1,61 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { differenceInMinutes } from 'date-fns';
 import { Video } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useSession, useSessionViewers, useUpdateSession } from '@/hooks/useLivestream';
+import { cn } from '@/lib/utils';
+import { MeetStyleControls } from '@/pages/livestream/components/host/MeetStyleControls';
+import { useSession, useUpdateSession } from '@/hooks/useLivestream';
 import { useIceServers } from '@/hooks/useIceServers';
-import { ROUTES, generateRoute } from '@/constants/routes';
+import { useLivestreamSocket } from '@/hooks/useLivestreamSocket';
+import { ROUTES } from '@/constants/routes';
 import {
-  HostHeader,
   StudioPanel,
-  SessionInfoCard,
-  ControlPanel,
-  RtmpInfoCard,
-  StatsPanel,
-  ViewerList,
+  HostChatPanel,
 } from './components';
+import { LiveStreamChatState } from '@/pages/livestream/components/shared/LiveStreamChat';
 import type { LiveSession } from '@/services/api/livestream.api';
-
-function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours > 0) {
-    return `${hours}h ${mins}m`;
-  }
-  return `${mins} phút`;
-}
 
 export function LiveStreamHostPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
-  const [elapsedMinutes, setElapsedMinutes] = useState(0);
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isAudioOn, setIsAudioOn] = useState(true);
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [currentAudioDeviceId, setCurrentAudioDeviceId] = useState<string | undefined>();
+  const [currentVideoDeviceId, setCurrentVideoDeviceId] = useState<string | undefined>();
+  const screenShareRef = useRef<React.RefObject<{ startScreenShare: () => Promise<void> }> | null>(null);
 
   const { data: session, isLoading } = useSession(sessionId);
-  const { data: viewersData } = useSessionViewers(sessionId);
-  const viewers = (viewersData?.viewers || []) as any[];
   const updateSession = useUpdateSession();
   const sessionIceServers = session?.webrtc_config?.iceServers as RTCIceServer[] | undefined;
   const iceServers = useIceServers(sessionIceServers, session?.ingest_type === 'webrtc');
+
+  // Socket for chat and real-time updates
+  const {
+    isJoined,
+    messages,
+    typingUsers,
+    sendMessage,
+    sendReaction,
+    setTyping,
+  } = useLivestreamSocket({
+    sessionId,
+    enabled: !!sessionId && !!session && session.status === 'live',
+    sessionStatus: session?.status,
+  });
+
+  const chatState = useMemo<LiveStreamChatState>(
+    () => ({
+      isJoined,
+      messages,
+      typingUsers: Array.from(typingUsers),
+      sendMessage,
+      sendReaction,
+      setTyping,
+    }),
+    [isJoined, messages, typingUsers, sendMessage, sendReaction, setTyping]
+  );
 
   useEffect(() => {
     if (
@@ -74,38 +91,6 @@ export function LiveStreamHostPage() {
     }
   }, [session, sessionId, hasAutoStarted, updateSession]);
 
-  useEffect(() => {
-    if (session?.status === 'live' && session?.actual_start) {
-      const interval = setInterval(() => {
-        const elapsed = differenceInMinutes(new Date(), new Date(session.actual_start!));
-        setElapsedMinutes(elapsed);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [session]);
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleStart = async () => {
-    if (!sessionId) return;
-    try {
-      await updateSession.mutateAsync({
-        id: sessionId,
-        data: {
-          status: 'live',
-          actual_start: new Date().toISOString(),
-        } as any,
-      });
-      alert('Đã bắt đầu livestream!');
-    } catch (error) {
-      console.error('Start session error:', error);
-      alert('Có lỗi khi bắt đầu livestream');
-    }
-  };
 
   const handleEnd = async () => {
     if (!sessionId || !confirm('Bạn có chắc muốn kết thúc livestream?')) return;
@@ -125,16 +110,6 @@ export function LiveStreamHostPage() {
     }
   };
 
-  const handleViewStream = () => {
-    if (!session) return;
-    navigate(generateRoute.livestream.session(session.id));
-  };
-
-  const handleOpenRecording = () => {
-    if (session?.recording_url) {
-      window.open(session.recording_url, '_blank');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -162,53 +137,96 @@ export function LiveStreamHostPage() {
   const currentSession = session as LiveSession;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <HostHeader
-        title={currentSession.title}
-        courseTitle={currentSession.course?.title}
-        status={currentSession.status as 'scheduled' | 'live' | 'ended' | 'cancelled'}
-        onBack={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)}
-      />
+    <div className="w-full h-[calc(100vh-64px)] overflow-hidden bg-white">
+      {/* Layout theo wireframe: Video + Chat ở trên, Controls ở dưới */}
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Phần trên: Video + Chat */}
+        <div className="flex gap-4 flex-1 min-h-0 px-4 pt-4 pb-2 overflow-hidden">
+          {/* Video Preview - Container với nền tối */}
+          <div 
+            className={cn(
+              'flex flex-col min-h-0 transition-all duration-300 ease-in-out',
+              currentSession.status === 'live' && isChatOpen ? 'flex-[4]' : 'flex-1'
+            )}
+          >
+            <div className="relative bg-zinc-900 rounded-lg overflow-hidden shadow-lg h-full">
+              <StudioPanel
+                ingestType={currentSession.ingest_type}
+                sessionId={currentSession.id}
+                sessionTitle={currentSession.title}
+                iceServers={iceServers}
+                onEndCall={handleEnd}
+                onToggleChat={() => setIsChatOpen(!isChatOpen)}
+                isChatOpen={isChatOpen}
+                onAudioToggle={(isOn) => setIsAudioOn(isOn)}
+                onVideoToggle={(isOn) => setIsVideoOn(isOn)}
+                externalAudioState={isAudioOn}
+                externalVideoState={isVideoOn}
+                onScreenShareRef={(ref) => {
+                  screenShareRef.current = ref;
+                }}
+              />
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <StudioPanel
-            ingestType={currentSession.ingest_type}
-            sessionId={currentSession.id}
-            sessionTitle={currentSession.title}
-            iceServers={iceServers}
-          />
-
-          <SessionInfoCard
-            session={currentSession}
-            elapsedMinutes={elapsedMinutes}
-            formatDuration={formatDuration}
-          />
-
-          <ControlPanel
-            status={currentSession.status as 'scheduled' | 'live' | 'ended' | 'cancelled'}
-            isUpdating={updateSession.isPending}
-            hasRecording={Boolean(currentSession.recording_url)}
-            onStart={handleStart}
-            onEnd={handleEnd}
-            onViewStream={handleViewStream}
-            onOpenRecording={handleOpenRecording}
-          />
-
-          {currentSession.ingest_type === 'rtmp' && (
-            <RtmpInfoCard
-              serverUrl={currentSession.meeting_url}
-              streamKey={currentSession.meeting_password}
-              playbackUrl={currentSession.playback_url}
-              copied={copied}
-              onCopy={copyToClipboard}
-            />
+          {/* Chat Panel - Animation mượt khi đóng/mở */}
+          {currentSession.status === 'live' && (
+            <div 
+              className={cn(
+                'flex flex-col min-h-0 transition-all duration-500 ease-in-out overflow-hidden',
+                isChatOpen 
+                  ? 'flex-[1] opacity-100 min-w-0' 
+                  : 'flex-[0] w-0 opacity-0 min-w-0'
+              )}
+              style={{
+                transition: 'flex 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease-in-out, width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+            >
+              {isChatOpen && (
+                <div className="bg-white border border-gray-200 rounded-lg flex flex-col h-full w-full">
+                  <HostChatPanel
+                    sessionId={currentSession.id}
+                    chatState={chatState}
+                    className="h-full bg-gray-200 border-0 rounded-lg"
+                    onClose={() => setIsChatOpen(false)}
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
-          <StatsPanel status={currentSession.status} viewers={viewers} />
-          <ViewerList viewers={viewers} sessionStatus={currentSession.status} />
+        {/* Phần dưới: Button Control Bar - Full Width */}
+        <div className="w-full bg-white px-4 py-2 flex items-center justify-center flex-shrink-0">
+          <MeetStyleControls
+            isAudioOn={isAudioOn}
+            isVideoOn={isVideoOn}
+            onToggleAudio={() => setIsAudioOn(!isAudioOn)}
+            onToggleVideo={() => setIsVideoOn(!isVideoOn)}
+            onScreenShare={async () => {
+              if (screenShareRef.current?.current) {
+                await screenShareRef.current.current.startScreenShare();
+              } else {
+                console.warn('[HostPage] Screen share ref not available');
+              }
+            }}
+            onEndCall={handleEnd}
+            onReactions={() => console.log('Reactions clicked')}
+            onRaiseHand={() => console.log('Raise hand clicked')}
+            onMoreOptions={() => console.log('More options clicked')}
+            onToggleChat={() => setIsChatOpen(!isChatOpen)}
+            isChatOpen={isChatOpen}
+            onAudioDeviceChange={(deviceId) => {
+              setCurrentAudioDeviceId(deviceId);
+              // TODO: Implement device change in WebRTCLiveStudio
+            }}
+            onVideoDeviceChange={(deviceId) => {
+              setCurrentVideoDeviceId(deviceId);
+              // TODO: Implement device change in WebRTCLiveStudio
+            }}
+            currentAudioDeviceId={currentAudioDeviceId}
+            currentVideoDeviceId={currentVideoDeviceId}
+          />
         </div>
       </div>
     </div>

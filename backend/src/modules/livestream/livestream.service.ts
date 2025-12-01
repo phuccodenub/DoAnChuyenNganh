@@ -12,6 +12,7 @@ import User from '../../models/user.model';
 import logger from '../../utils/logger.util';
 import { FileService, UploadedFile } from '../../services/global/file.service';
 import twilio from 'twilio';
+import { ModerationService } from '../moderation/moderation.service';
 
 type IceServerConfig = {
   urls: string | string[];
@@ -28,11 +29,13 @@ export class LiveStreamService {
   private repo: LiveStreamRepository;
   private readonly defaultIceServers: IceServerConfig[];
   private readonly fileService: FileService;
+  private readonly moderationService: ModerationService;
 
   constructor() {
     this.repo = new LiveStreamRepository();
     this.defaultIceServers = this.buildEnvIceServers();
     this.fileService = new FileService();
+    this.moderationService = new ModerationService();
   }
 
   /**
@@ -96,6 +99,29 @@ export class LiveStreamService {
       sessionData.course_id = dto.course_id;
     }
     const created = await this.repo.createSession(sessionData);
+    
+    // Moderate livestream content (title, description)
+    try {
+      const moderationResult = await this.moderationService.moderateLivestreamContent(
+        created.id,
+        dto.title,
+        dto.description
+      );
+      
+      if (moderationResult.shouldBlock || !moderationResult.approved) {
+        // Log warning but don't block creation (host can fix later)
+        logger.warn(`[LiveStreamService] Livestream content flagged during creation`, {
+          sessionId: created.id,
+          reason: moderationResult.reason,
+          riskScore: moderationResult.riskScore,
+          riskCategories: moderationResult.riskCategories,
+        });
+      }
+    } catch (error) {
+      // Don't fail session creation if moderation fails
+      logger.error('[LiveStreamService] Content moderation failed during creation:', error);
+    }
+    
     return this.serializeSession(created);
   }
 

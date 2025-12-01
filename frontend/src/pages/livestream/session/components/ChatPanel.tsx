@@ -1,16 +1,25 @@
 import { Users } from 'lucide-react';
-import { LiveStreamChat } from '@/pages/livestream/components/shared';
-
-type SessionStatus = 'scheduled' | 'live' | 'ended' | 'cancelled' | undefined;
+import { LiveStreamChat, LiveStreamChatState } from '@/pages/livestream/components/shared/LiveStreamChat';
 
 interface ChatPanelProps {
   isLive: boolean;
   sessionId: string | number;
-  sessionStatus: SessionStatus;
   enabled: boolean;
+  chatState: LiveStreamChatState;
+  recentReactions?: Array<{ emoji: string; userName: string; timestamp: number }>;
+  sessionTitle?: string;
+  sessionDescription?: string;
 }
 
-export function ChatPanel({ isLive, sessionId, sessionStatus, enabled }: ChatPanelProps) {
+export function ChatPanel({ 
+  isLive, 
+  sessionId, 
+  enabled, 
+  chatState, 
+  recentReactions,
+  sessionTitle,
+  sessionDescription,
+}: ChatPanelProps) {
   if (!isLive) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 text-center">
@@ -22,9 +31,12 @@ export function ChatPanel({ isLive, sessionId, sessionStatus, enabled }: ChatPan
 
   return (
     <LiveStreamChat
-      sessionId={sessionId.toString()}
+      sessionId={sessionId}
       enabled={enabled}
-      sessionStatus={sessionStatus}
+      chatState={chatState}
+      recentReactions={recentReactions}
+      sessionTitle={sessionTitle}
+      sessionDescription={sessionDescription}
     />
   );
 }

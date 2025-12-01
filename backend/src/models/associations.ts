@@ -18,6 +18,8 @@ import NotificationRecipient from './notification-recipient.model';
 import LiveSession from './live-session.model';
 import LiveSessionAttendance from './live-session-attendance.model';
 import LiveSessionMessage from './live-session-message.model';
+import LivestreamPolicy from './livestream-policy.model';
+import CommentModeration from './comment-moderation.model';
 
 export const setupAssociations = () => {
   // ===================================
@@ -330,6 +332,64 @@ export const setupAssociations = () => {
   (NotificationRecipient as any).belongsTo(Notification, {
     foreignKey: 'notification_id',
     as: 'notification'
+  });
+
+  // ===================================
+  // 7. LIVESTREAM MODERATION RELATIONSHIPS
+  // ===================================
+
+  // LiveSession 1 ---< LivestreamPolicy (one-to-one)
+  (LiveSession as any).hasOne(LivestreamPolicy, {
+    foreignKey: 'session_id',
+    as: 'policy',
+    onDelete: 'CASCADE'
+  });
+  (LivestreamPolicy as any).belongsTo(LiveSession, {
+    foreignKey: 'session_id',
+    as: 'session'
+  });
+
+  // LiveSessionMessage 1 ---< CommentModeration (one-to-one)
+  (LiveSessionMessage as any).hasOne(CommentModeration, {
+    foreignKey: 'message_id',
+    as: 'moderation',
+    onDelete: 'CASCADE'
+  });
+  (CommentModeration as any).belongsTo(LiveSessionMessage, {
+    foreignKey: 'message_id',
+    as: 'message'
+  });
+
+  // LiveSession 1 ---< CommentModeration
+  (LiveSession as any).hasMany(CommentModeration, {
+    foreignKey: 'session_id',
+    as: 'commentModerations',
+    onDelete: 'CASCADE'
+  });
+  (CommentModeration as any).belongsTo(LiveSession, {
+    foreignKey: 'session_id',
+    as: 'session'
+  });
+
+  // User 1 ---< CommentModeration (sender)
+  (User as any).hasMany(CommentModeration, {
+    foreignKey: 'user_id',
+    as: 'commentModerations',
+    onDelete: 'CASCADE'
+  });
+  (CommentModeration as any).belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user'
+  });
+
+  // User 1 ---< CommentModeration (moderator)
+  (User as any).hasMany(CommentModeration, {
+    foreignKey: 'moderated_by',
+    as: 'moderatedComments'
+  });
+  (CommentModeration as any).belongsTo(User, {
+    foreignKey: 'moderated_by',
+    as: 'moderator'
   });
 
   console.log('✅ Model associations setup completed');

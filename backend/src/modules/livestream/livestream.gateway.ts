@@ -21,10 +21,12 @@ import {
 } from './livestream.types';
 import logger from '../../utils/logger.util';
 import { APP_CONSTANTS } from '../../constants/app.constants';
+import { ModerationService } from '../moderation/moderation.service';
 
 export class LiveStreamGateway {
   private io: SocketIOServer;
   private liveStreamService: LiveStreamService;
+  private moderationService: ModerationService;
   
   // Track sessions and viewers
   private sessions: Map<string, LiveStreamRoom> = new Map(); // sessionId -> room data
@@ -50,6 +52,7 @@ export class LiveStreamGateway {
     }
 
     this.liveStreamService = new LiveStreamService();
+    this.moderationService = new ModerationService();
     this.setupMiddleware();
     this.setupEventHandlers();
 
@@ -269,37 +272,128 @@ export class LiveStreamGateway {
    * Handle send message
    */
   private handleSendMessage(socket: Socket): void {
-    socket.on(LiveStreamSocketEvents.SEND_MESSAGE, async (data: SendChatMessageDto) => {
+    socket.on(LiveStreamSocketEvents.SEND_MESSAGE, async (data: SendChatMessageDto, ack?: (response: { success: boolean; error?: string; messageId?: string }) => void) => {
       try {
+        logger.info(`[LiveStreamGateway] Received SEND_MESSAGE event`, {
+          session_id: data.session_id,
+          sender_id: data.sender_id,
+          message_type: data.message_type,
+          message_length: data.message?.length || 0,
+        });
+
         const user = (socket as any).user as SocketUser;
         const { session_id, message } = data;
 
         if (!session_id || !message || !message.trim()) {
-          socket.emit(LiveStreamSocketEvents.ERROR, {
+          const errorResponse = {
             code: LiveStreamErrorCodes.INVALID_DATA,
             message: 'Session ID and message are required'
-          });
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
           return;
         }
 
         // Verify session exists
         const session = await this.liveStreamService.getSession(session_id);
         if (!session) {
-          socket.emit(LiveStreamSocketEvents.ERROR, {
+          const errorResponse = {
             code: LiveStreamErrorCodes.SESSION_NOT_FOUND,
             message: 'Session not found'
-          });
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
           return;
         }
 
         // Check if user is in session
         const room = this.sessions.get(session_id);
         if (!room || !room.viewers.has(user.userId)) {
-          socket.emit(LiveStreamSocketEvents.ERROR, {
+          const errorResponse = {
             code: LiveStreamErrorCodes.NOT_JOINED,
             message: 'You must join the session first'
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
+          return;
+        }
+
+        // Check rate limiting
+        const rateLimitCheck = await this.moderationService.canSendComment(session_id, user.userId);
+        if (!rateLimitCheck.allowed) {
+          const errorResponse = {
+            code: LiveStreamErrorCodes.INVALID_DATA,
+            message: rateLimitCheck.reason || 'Vui lòng đợi trước khi gửi comment tiếp theo'
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
+          return;
+        }
+
+        // Moderate comment before saving
+        const moderationResult = await this.moderationService.moderateComment({
+          sessionId: session_id,
+          userId: user.userId,
+          message: message.trim(),
+        });
+
+        // If comment is blocked, reject it
+        if (moderationResult.shouldBlock || !moderationResult.approved) {
+          const errorResponse = {
+            code: LiveStreamErrorCodes.INVALID_DATA,
+            message: moderationResult.reason || 'Comment của bạn không phù hợp với quy tắc cộng đồng'
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
+          
+          // Save moderation record even though comment is blocked (so host can see it)
+          await this.moderationService.moderateComment({
+            sessionId: session_id,
+            userId: user.userId,
+            message: message.trim(),
+            messageId: null, // No messageId since comment was blocked
+          });
+          
+          // Notify host about blocked comment (if host is in the session)
+          const session = this.sessions.get(session_id);
+          if (session) {
+            // Get host socket if available
+            const hostSockets = Array.from(session.viewers.values())
+              .filter(v => v.role === 'INSTRUCTOR' || v.role === 'ADMIN')
+              .map(v => v.socketId);
+            
+            for (const hostSocketId of hostSockets) {
+              const hostSocket = this.io.sockets.sockets.get(hostSocketId);
+              if (hostSocket) {
+                hostSocket.emit('livestream:comment_blocked', {
+                  sessionId: session_id,
+                  userId: user.userId,
+                  userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+                  message: message.trim(),
+                  reason: moderationResult.reason,
+                  riskScore: moderationResult.riskScore,
+                  riskCategories: moderationResult.riskCategories,
+                  timestamp: new Date().toISOString(),
+                });
+              }
+            }
+          }
+          
+          // Log moderation action
+          logger.warn(`[LiveStreamGateway] Comment blocked in session ${session_id} by user ${user.userId}`, {
+            reason: moderationResult.reason,
+            riskScore: moderationResult.riskScore,
+            riskCategories: moderationResult.riskCategories,
           });
           return;
+        }
+
+        // If comment needs warning, send warning but still allow
+        if (moderationResult.shouldWarn) {
+          socket.emit(LiveStreamSocketEvents.ERROR, {
+            code: 'WARNING',
+            message: moderationResult.reason || 'Comment của bạn đã được cảnh báo. Vui lòng tuân thủ quy tắc cộng đồng.'
+          });
         }
 
         // Save message to database
@@ -312,12 +406,22 @@ export class LiveStreamGateway {
         });
 
         if (!savedMessage) {
-          socket.emit(LiveStreamSocketEvents.ERROR, {
+          const errorResponse = {
             code: LiveStreamErrorCodes.INVALID_DATA,
             message: 'Failed to save message'
-          });
+          };
+          socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+          ack?.({ success: false, error: errorResponse.message });
           return;
         }
+
+        // Save moderation record with message ID
+        await this.moderationService.moderateComment({
+          sessionId: session_id,
+          messageId: savedMessage.id,
+          userId: user.userId,
+          message: message.trim(),
+        });
 
         // Transform to match frontend ChatMessage interface
         const sender = (savedMessage as any).sender;
@@ -347,18 +451,27 @@ export class LiveStreamGateway {
         // Broadcast message to all viewers in session
         this.io.to(`livestream:${session_id}`).emit(LiveStreamSocketEvents.NEW_MESSAGE, messageData);
 
-        // Confirm to sender
+        // Confirm to sender via ACK callback (if provided) and event
+        ack?.({ success: true, messageId: messageData.id });
         socket.emit(LiveStreamSocketEvents.MESSAGE_SENT, {
           messageId: messageData.id,
         });
 
-        logger.debug(`Message sent in session ${session_id} by user ${user.userId}`);
-      } catch (error: unknown) {
-        logger.error('Send message error:', error);
-        socket.emit(LiveStreamSocketEvents.ERROR, {
-          code: LiveStreamErrorCodes.INVALID_DATA,
-          message: error instanceof Error ? error.message : 'Failed to send message'
+        logger.info(`[LiveStreamGateway] Message sent successfully in session ${session_id} by user ${user.userId}`, {
+          messageId: messageData.id,
+          session_id,
+          sender_id: user.userId,
         });
+      } catch (error: unknown) {
+        logger.error('[LiveStreamGateway] Send message error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+        const errorResponse = {
+          code: LiveStreamErrorCodes.INVALID_DATA,
+          message: errorMessage
+        };
+        socket.emit(LiveStreamSocketEvents.ERROR, errorResponse);
+        // Send ACK with error if callback exists
+        ack?.({ success: false, error: errorMessage });
       }
     });
   }
@@ -549,6 +662,16 @@ export class LiveStreamGateway {
       total += room.viewers.size;
     }
     return total;
+  }
+
+  /**
+   * Emit SESSION_ENDED event to all viewers in a session
+   */
+  public emitSessionEnded(sessionId: string): void {
+    this.io.to(`livestream:${sessionId}`).emit(LiveStreamSocketEvents.SESSION_ENDED, {
+      sessionId,
+    });
+    logger.info(`[LiveStreamGateway] Emitted SESSION_ENDED for session ${sessionId}`);
   }
 }
 

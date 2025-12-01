@@ -17,6 +17,10 @@ export const ROUTES = {
   // Course catalog (public)
   COURSES: '/courses',
   COURSE_DETAIL: '/courses/:id',
+  COURSE_CREATE: '/courses/create',
+  // Course management (instructor)
+  COURSE_MANAGEMENT: '/course-management',
+  COURSE_MANAGEMENT_DETAIL: '/course-management/:courseId',
   LEARNING: '/student/courses/:courseId/learn',
   // Student routes
   STUDENT: {
@@ -51,11 +55,9 @@ export const ROUTES = {
     GRADES: '/instructor/courses/:courseId/grades',
     STUDENTS: '/instructor/students',
     ANALYTICS: '/instructor/analytics',
-    LIVESTREAM: '/instructor/livestream',
-    LIVESTREAM_CREATE: '/instructor/livestream/create',
-    LIVESTREAM_HOST: '/instructor/livestream/:sessionId/host',
-    LIVESTREAM_SESSION: '/instructor/livestream/:sessionId',
-    CHAT: '/instructor/chat',
+    LIVESTREAM: '/livestream',
+    LIVESTREAM_CREATE: '/livestream/create',
+    LIVESTREAM_SESSION: '/livestream/:sessionId',
   },
   
   // Admin routes
@@ -98,6 +100,8 @@ export const ROUTES = {
  */
 export const generateRoute = {
   courseDetail: (id: string) => `/courses/${id}`,
+  courseManagement: (courseId?: string) =>
+    courseId ? `/course-management/${courseId}` : '/course-management',
   
   student: {
     learning: (courseId: string) => `/student/courses/${courseId}/learn`,

@@ -147,7 +147,25 @@ export const env = {
         authToken: process.env.TWILIO_AUTH_TOKEN || '',
       },
     },
-  }
+  },
+
+  // ============================================
+  // AI Configuration (Gemini)
+  // ============================================
+  ai: {
+    gemini: {
+      apiKey: process.env.GEMINI_API_KEY || '',
+      // Free tier models: gemini-2.5-flash (recommended, latest), gemini-1.5-flash, gemini-pro
+      // gemini-2.5-flash: Latest model, optimized for free tier
+      // gemini-1.5-flash: Fast, optimized for free tier, 60 requests/min
+      // gemini-pro: Older model, still available on free tier
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
+      // Free tier limit: 32,000 tokens per request (input + output)
+      // Setting maxOutputTokens to 8192 to leave room for input
+      maxTokens: toInt(process.env.GEMINI_MAX_TOKENS, 8192),
+    },
+  },
 };
 
 export default env;

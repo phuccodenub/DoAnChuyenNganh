@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { WebRTCViewer } from '@/pages/livestream/components/viewer';
 import { ReactionOverlay } from '@/pages/livestream/components/shared';
+import { LiveStreamChatState } from '../../components/shared/LiveStreamChat';
 
 type Reaction = { emoji: string; userName: string };
 
@@ -574,10 +575,10 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
   };
 
   return (
-    <div className="bg-black rounded-2xl overflow-hidden border border-gray-800 relative">
+    <div className="bg-black rounded-lg overflow-hidden border border-gray-800 relative w-full h-full">
       <video
         ref={videoRef}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         autoPlay={false}
         playsInline
         muted={isMuted}
@@ -709,6 +710,13 @@ interface ViewerSectionProps {
   playbackUrl?: string;
   reactions: Reaction[];
   iceServers?: RTCIceServer[];
+  isLive?: boolean;
+  viewerCount?: number;
+  showViewerCount?: boolean;
+  chatState: LiveStreamChatState;
+  chatEnabled: boolean;
+  sessionStatus?: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  recentReactions?: Array<{ emoji: string; userName: string; timestamp: number }>;
 }
 
 export function ViewerSection({
@@ -718,42 +726,53 @@ export function ViewerSection({
   playbackUrl,
   reactions,
   iceServers,
+  isLive,
+  viewerCount,
+  showViewerCount,
+  chatState,
+  chatEnabled,
+  sessionStatus,
+  recentReactions,
 }: ViewerSectionProps) {
   if (mode === 'webrtc') {
     return (
-      <WebRTCViewer
-        sessionId={String(sessionId)}
-        displayName={sessionTitle}
-        reactions={reactions}
-        iceServers={iceServers}
-      />
+      <div className="w-full h-full">
+        <WebRTCViewer
+          sessionId={sessionId}
+          displayName={sessionTitle}
+          reactions={reactions}
+          iceServers={iceServers}
+          isLive={isLive}
+          viewerCount={viewerCount}
+          showViewerCount={showViewerCount}
+          chatState={chatState}
+          chatEnabled={chatEnabled}
+          sessionStatus={sessionStatus}
+          recentReactions={recentReactions}
+        />
+      </div>
     );
   }
 
   if (mode === 'rtmp') {
     if (!playbackUrl) {
       return (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+        <div className="w-full h-full flex items-center justify-center bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
           Phiên này yêu cầu stream key/Playback URL nhưng chưa được cấu hình. Vui lòng kiểm tra lại với người host.
         </div>
       );
     }
 
     return (
-      <div className="space-y-3">
-        <div className="relative">
-          <HlsPreview playbackUrl={playbackUrl} />
-          <ReactionOverlay reactions={reactions} />
-        </div>
-        <p className="text-sm text-gray-500">
-          Độ trễ có thể cao hơn do đang phát qua HLS tiêu chuẩn. Đảm bảo OBS của bạn vẫn đang phát luồng tới máy chủ.
-        </p>
+      <div className="w-full h-full relative">
+        <HlsPreview playbackUrl={playbackUrl} />
+        <ReactionOverlay reactions={reactions} />
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-100 border border-gray-200 px-4 py-3 rounded-lg text-gray-700">
+    <div className="w-full h-full flex items-center justify-center bg-gray-100 border border-gray-200 px-4 py-3 rounded-lg text-gray-700">
       Phiên này chưa cấu hình kiểu ingest. Liên hệ instructor để cập nhật thông tin.
     </div>
   );

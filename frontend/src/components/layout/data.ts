@@ -39,12 +39,7 @@ export const sidebarMenuItems: SidebarMenuItem[] = [
     id: 'courses',
     label: 'Khóa học',
     icon: '📚',
-    children: [
-      { id: 'all-courses', label: 'Tất cả khóa học', link: ROUTES.COURSES, count: undefined },
-      { id: 'popular', label: 'Khóa học phổ biến', link: `${ROUTES.COURSES}?sort=popular`, count: undefined },
-      { id: 'newest', label: 'Khóa học mới nhất', link: `${ROUTES.COURSES}?sort=newest`, count: undefined },
-      { id: 'free', label: 'Khóa học miễn phí', link: `${ROUTES.COURSES}?is_free=true`, count: undefined },
-    ],
+    link: ROUTES.COURSES,
   },
   {
     id: 'livestream',
