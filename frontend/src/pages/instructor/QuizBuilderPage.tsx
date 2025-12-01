@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -20,11 +20,22 @@ import {
   Shuffle,
   FileText,
   Upload,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PageHeader, PageWrapper } from '@/components/courseEditor';
-import { ROUTES, generateRoute } from '@/constants/routes';
+import { ROUTES } from '@/constants/routes';
+import {
+  useInstructorQuiz,
+  useCreateQuiz,
+  useUpdateQuiz,
+  useInstructorQuizQuestions,
+  useAddQuestion,
+  useUpdateQuestion,
+  useDeleteQuestion,
+} from '@/hooks/useInstructorQuiz';
 
 /**
  * QuizBuilderPage - Modern Quiz Builder
@@ -35,15 +46,7 @@ import { ROUTES, generateRoute } from '@/constants/routes';
  * - Main editor workspace
  * - Support for text and image-based answers
  * - Vietnamese UI
- * 
- * TODO: [API] Tích hợp với backend API:
- * - GET /api/quizzes/:quizId - Lấy thông tin quiz khi edit
- * - POST /api/quizzes - Tạo quiz mới
- * - PUT /api/quizzes/:quizId - Cập nhật quiz
- * - DELETE /api/quizzes/:quizId - Xóa quiz
- * - POST /api/quizzes/:quizId/questions - Thêm câu hỏi
- * - PUT /api/questions/:questionId - Cập nhật câu hỏi
- * - DELETE /api/questions/:questionId - Xóa câu hỏi
+ * - Integrated with backend Quiz API
  */
 
 type QuestionType = 'multiple_choice' | 'true_false' | 'single_choice';
@@ -69,107 +72,70 @@ interface Question {
   estimation_time: number;
 }
 
-// TODO: [API] Xóa mock data này và thay bằng dữ liệu fetch từ API (GET /api/quizzes/:quizId)
-// TODO: [API] Nếu tạo mới (không có quizId), khởi tạo state rỗng
-// Mock data for demo
-const mockQuestions: Question[] = [
-  {
-    id: '1',
-    type: 'multiple_choice',
-    question_text: 'What does UI stand for in the context of design?',
-    // TODO: [DATA] Điểm mặc định nên lấy từ cấu hình quiz hoặc settings
-    points: 10,
-    is_required: true,
-    multiple_answer: false,
-    answer_with_image: false,
-    randomize_order: false,
-    // TODO: [DATA] Thời gian ước tính nên được tính toán hoặc lấy từ settings
-    estimation_time: 2,
-    answers: [
-      { id: '1a', text: 'User Integration', is_correct: false },
-      { id: '1b', text: 'User Interface', is_correct: true },
-      { id: '1c', text: 'Universal Interaction', is_correct: false },
-      { id: '1d', text: 'Unified Interface', is_correct: false },
-    ],
-  },
-  {
-    id: '2',
-    type: 'multiple_choice',
-    question_text: 'Which of the following is a design principle?',
-    points: 10,
-    is_required: true,
-    multiple_answer: false,
-    answer_with_image: false,
-    randomize_order: false,
-    estimation_time: 2,
-    answers: [
-      { id: '2a', text: 'Consistency', is_correct: true },
-      { id: '2b', text: 'Complexity', is_correct: false },
-    ],
-  },
-  {
-    id: '3',
-    type: 'multiple_choice',
-    question_text: 'What is the purpose of wireframing?',
-    points: 10,
-    is_required: false,
-    multiple_answer: false,
-    answer_with_image: false,
-    randomize_order: false,
-    estimation_time: 3,
-    answers: [
-      { id: '3a', text: 'To add colors', is_correct: false },
-      { id: '3b', text: 'To plan layout structure', is_correct: true },
-    ],
-  },
-  {
-    id: '4',
-    type: 'multiple_choice',
-    question_text: 'Which font type is best for body text?',
-    points: 15,
-    is_required: true,
-    multiple_answer: false,
-    answer_with_image: true,
-    randomize_order: false,
-    estimation_time: 2,
-    answers: [
-      // TODO: [ASSETS] Thay thế đường dẫn ảnh local bằng URL từ Supabase Storage hoặc CDN
-      { id: '4a', text: 'Playfair Display', is_correct: false, image_url: '/fonts/playfair.png' },
-      { id: '4b', text: 'DM Serif Display', is_correct: false, image_url: '/fonts/dm-serif.png' },
-      { id: '4c', text: 'Josefin Sans', is_correct: true, image_url: '/fonts/josefin.png' },
-      { id: '4d', text: 'Red Hat Display', is_correct: false, image_url: '/fonts/redhat.png' },
-    ],
-  },
-  {
-    id: '5',
-    type: 'true_false',
-    question_text: 'Typography is not important in UI design.',
-    points: 5,
-    is_required: true,
-    multiple_answer: false,
-    answer_with_image: false,
-    randomize_order: false,
-    estimation_time: 1,
-    answers: [
-      { id: '5a', text: 'True', is_correct: false },
-      { id: '5b', text: 'False', is_correct: true },
-    ],
-  },
-];
-
 export function QuizBuilderPage() {
   const { courseId, quizId } = useParams<{ courseId: string; quizId?: string }>();
   const navigate = useNavigate();
   const isEditMode = !!quizId;
 
-  // State
-  // TODO: [API] Fetch tiêu đề quiz từ API khi ở chế độ edit (GET /api/quizzes/:quizId)
-  // TODO: [DATA] Tiêu đề mặc định nên là rỗng '' khi tạo mới
-  const [quizTitle, setQuizTitle] = useState('UI Design Fundamentals & Best Practice');
-  // TODO: [API] Thay mockQuestions bằng dữ liệu từ API hoặc state rỗng [] khi tạo mới
-  const [questions, setQuestions] = useState<Question[]>(mockQuestions);
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string>(mockQuestions[0]?.id || '');
+  // API Hooks
+  const { data: quizData, isLoading: isLoadingQuiz, error: quizError } = useInstructorQuiz(quizId || '');
+  const { data: questionsData, isLoading: isLoadingQuestions } = useInstructorQuizQuestions(quizId || '');
+  const createQuizMutation = useCreateQuiz();
+  const updateQuizMutation = useUpdateQuiz();
+  const addQuestionMutation = useAddQuestion();
+  const updateQuestionMutation = useUpdateQuestion();
+  const deleteQuestionMutation = useDeleteQuestion();
+
+  // Local State
+  const [quizTitle, setQuizTitle] = useState('');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync data from API to local state
+  useEffect(() => {
+    if (quizData) {
+      setQuizTitle(quizData.title || '');
+    }
+  }, [quizData]);
+
+  useEffect(() => {
+    if (questionsData && questionsData.length > 0) {
+      // Map API questions to local format
+      const mappedQuestions: Question[] = questionsData.map((q: {
+        id: string;
+        question_type?: string;
+        question_text?: string;
+        points?: number;
+        options?: Array<{
+          id: string;
+          option_text?: string;
+          text?: string;
+          is_correct?: boolean;
+        }>;
+      }) => ({
+        id: String(q.id),
+        type: (q.question_type as QuestionType) || 'multiple_choice',
+        question_text: q.question_text || '',
+        points: q.points || 10,
+        is_required: true,
+        multiple_answer: q.question_type === 'multiple_choice',
+        answer_with_image: false,
+        randomize_order: false,
+        estimation_time: 2,
+        answers: (q.options || []).map((opt) => ({
+          id: String(opt.id),
+          text: opt.option_text || opt.text || '',
+          is_correct: opt.is_correct || false,
+        })),
+      }));
+      setQuestions(mappedQuestions);
+      if (!selectedQuestionId && mappedQuestions.length > 0) {
+        setSelectedQuestionId(mappedQuestions[0].id);
+      }
+    }
+  }, [questionsData, selectedQuestionId]);
 
   // Refs for file inputs
   const answerImageInputRef = useRef<HTMLInputElement>(null);
@@ -186,48 +152,78 @@ export function QuizBuilderPage() {
   ];
 
   // Handlers
-  // TODO: [LOGIC] Gọi API để tạo câu hỏi mới (POST /api/quizzes/:quizId/questions)
-  // TODO: [LOGIC] Sau khi API thành công, cập nhật state với ID thật từ server
-  const handleAddQuestion = () => {
-    const newQuestion: Question = {
-      // TODO: [DATA] ID nên được tạo bởi server, đây chỉ là ID tạm thời
-      id: Date.now().toString(),
-      type: 'multiple_choice',
-      // TODO: [DATA] Nội dung mặc định có thể lấy từ i18n hoặc constants
-      question_text: 'Câu hỏi mới',
-      // TODO: [DATA] Điểm mặc định nên lấy từ quiz settings
-      points: 10,
-      is_required: false,
-      multiple_answer: false,
-      answer_with_image: false,
-      randomize_order: false,
-      // TODO: [DATA] Thời gian mặc định nên lấy từ settings
-      estimation_time: 2,
-      answers: [
-        { id: `${Date.now()}-a`, text: 'Đáp án A', is_correct: false },
-        { id: `${Date.now()}-b`, text: 'Đáp án B', is_correct: false },
-      ],
-    };
-    setQuestions([...questions, newQuestion]);
-    setSelectedQuestionId(newQuestion.id);
+  const handleAddQuestion = async () => {
+    // For new quiz, add locally first
+    if (!quizId) {
+      const newQuestion: Question = {
+        id: `temp-${Date.now()}`,
+        type: 'multiple_choice',
+        question_text: 'Câu hỏi mới',
+        points: 10,
+        is_required: false,
+        multiple_answer: false,
+        answer_with_image: false,
+        randomize_order: false,
+        estimation_time: 2,
+        answers: [
+          { id: `${Date.now()}-a`, text: 'Đáp án A', is_correct: false },
+          { id: `${Date.now()}-b`, text: 'Đáp án B', is_correct: false },
+        ],
+      };
+      setQuestions([...questions, newQuestion]);
+      setSelectedQuestionId(newQuestion.id);
+      return;
+    }
+
+    // For existing quiz, call API
+    try {
+      await addQuestionMutation.mutateAsync({
+        quizId,
+        data: {
+          question_text: 'Câu hỏi mới',
+          question_type: 'multiple_choice',
+          points: 10,
+          order_index: questions.length,
+          options: [
+            { option_text: 'Đáp án A', is_correct: false, order_index: 0 },
+            { option_text: 'Đáp án B', is_correct: false, order_index: 1 },
+          ],
+        },
+      });
+    } catch (error) {
+      console.error('Failed to add question:', error);
+    }
   };
 
-  // TODO: [LOGIC] Gọi API để xóa câu hỏi (DELETE /api/questions/:questionId)
-  // TODO: [LOGIC] Hiển thị loading state và xử lý lỗi từ API
-  const handleDeleteQuestion = (questionId: string) => {
+  const handleDeleteQuestion = async (questionId: string) => {
     if (questions.length <= 1) {
       alert('Quiz cần ít nhất 1 câu hỏi');
       return;
     }
-    const newQuestions = questions.filter(q => q.id !== questionId);
-    setQuestions(newQuestions);
-    if (selectedQuestionId === questionId) {
-      setSelectedQuestionId(newQuestions[0]?.id || '');
+
+    // For temp questions (not saved yet), just remove locally
+    if (questionId.startsWith('temp-')) {
+      const newQuestions = questions.filter(q => q.id !== questionId);
+      setQuestions(newQuestions);
+      if (selectedQuestionId === questionId) {
+        setSelectedQuestionId(newQuestions[0]?.id || '');
+      }
+      return;
+    }
+
+    // For saved questions, call API
+    try {
+      await deleteQuestionMutation.mutateAsync({ questionId, quizId: quizId! });
+      const newQuestions = questions.filter(q => q.id !== questionId);
+      if (selectedQuestionId === questionId) {
+        setSelectedQuestionId(newQuestions[0]?.id || '');
+      }
+    } catch (error) {
+      console.error('Failed to delete question:', error);
     }
   };
 
-  // TODO: [LOGIC] Gọi API để cập nhật câu hỏi (PUT /api/questions/:questionId)
-  // TODO: [LOGIC] Có thể dùng debounce để tránh gọi API quá nhiều khi user đang nhập
+  // Update question locally (will sync to API on save)
   const handleUpdateQuestion = (updates: Partial<Question>) => {
     setQuestions(questions.map(q =>
       q.id === selectedQuestionId ? { ...q, ...updates } : q
@@ -256,12 +252,10 @@ export function QuizBuilderPage() {
     handleUpdateQuestion({ answers: newAnswers });
   };
 
-  // TODO: [LOGIC] Gọi API để thêm đáp án mới (POST /api/questions/:questionId/options)
   const handleAddAnswer = () => {
     if (!selectedQuestion) return;
     const newAnswer: Answer = {
-      // TODO: [DATA] ID nên được tạo bởi server
-      id: Date.now().toString(),
+      id: `temp-${Date.now()}`,
       text: '',
       is_correct: false,
     };
@@ -292,7 +286,6 @@ export function QuizBuilderPage() {
     answerImageInputRef.current?.click();
   };
 
-  // TODO: [LOGIC] Gọi API để xóa đáp án (DELETE /api/options/:optionId)
   const handleRemoveAnswer = (answerId: string) => {
     if (!selectedQuestion || selectedQuestion.answers.length <= 2) {
       alert('Cần ít nhất 2 đáp án');
@@ -303,23 +296,160 @@ export function QuizBuilderPage() {
     });
   };
 
-  // TODO: [LOGIC] Gọi API để lưu quiz
-  // - Nếu action === 'draft': PUT /api/quizzes/:quizId với is_published = false
-  // - Nếu action === 'publish': PUT /api/quizzes/:quizId với is_published = true
-  // TODO: [LOGIC] Hiển thị loading state, thông báo thành công/thất bại
-  // TODO: [LOGIC] Validate dữ liệu trước khi gửi (ít nhất 1 câu hỏi, mỗi câu có đáp án đúng, etc.)
-  const handleSave = (action: 'draft' | 'publish') => {
-    console.log('Save quiz:', action, { quizTitle, questions });
-    navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+  // Save quiz with all questions
+  const handleSave = async (action: 'draft' | 'publish') => {
+    if (!quizTitle.trim()) {
+      alert('Vui lòng nhập tiêu đề quiz');
+      return;
+    }
+
+    if (questions.length === 0) {
+      alert('Quiz cần ít nhất 1 câu hỏi');
+      return;
+    }
+
+    // Validate each question has at least one correct answer
+    for (const q of questions) {
+      if (!q.answers.some(a => a.is_correct)) {
+        alert(`Câu hỏi "${q.question_text}" cần có ít nhất 1 đáp án đúng`);
+        return;
+      }
+    }
+
+    setIsSaving(true);
+    try {
+      if (isEditMode && quizId) {
+        // Update existing quiz
+        await updateQuizMutation.mutateAsync({
+          quizId,
+          data: {
+            title: quizTitle,
+            is_published: action === 'publish',
+          },
+        });
+
+        // Update each question
+        for (const q of questions) {
+          if (!q.id.startsWith('temp-')) {
+            await updateQuestionMutation.mutateAsync({
+              questionId: q.id,
+              quizId,
+              data: {
+                question_text: q.question_text,
+                question_type: q.type,
+                points: q.points,
+                options: q.answers.map((a, idx) => ({
+                  option_text: a.text,
+                  is_correct: a.is_correct,
+                  order_index: idx,
+                })),
+              },
+            });
+          } else {
+            // Add new questions
+            await addQuestionMutation.mutateAsync({
+              quizId,
+              data: {
+                question_text: q.question_text,
+                question_type: q.type,
+                points: q.points,
+                order_index: questions.indexOf(q),
+                options: q.answers.map((a, idx) => ({
+                  option_text: a.text,
+                  is_correct: a.is_correct,
+                  order_index: idx,
+                })),
+              },
+            });
+          }
+        }
+      } else {
+        // Create new quiz
+        if (!courseId) {
+          alert('Không tìm thấy course ID');
+          return;
+        }
+
+        const newQuiz = await createQuizMutation.mutateAsync({
+          course_id: courseId,
+          title: quizTitle,
+          description: '',
+          duration_minutes: questions.reduce((sum, q) => sum + q.estimation_time, 0),
+          passing_score: 70,
+          max_attempts: 3,
+          shuffle_questions: false,
+          show_correct_answers: true,
+          is_published: action === 'publish',
+        });
+
+        // Add questions to the new quiz
+        for (const q of questions) {
+          await addQuestionMutation.mutateAsync({
+            quizId: String(newQuiz.id),
+            data: {
+              question_text: q.question_text,
+              question_type: q.type,
+              points: q.points,
+              order_index: questions.indexOf(q),
+              options: q.answers.map((a, idx) => ({
+                option_text: a.text,
+                is_correct: a.is_correct,
+                order_index: idx,
+              })),
+            },
+          });
+        }
+      }
+
+      // Navigate back on success
+      navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+    } catch (error) {
+      console.error('Failed to save quiz:', error);
+      alert('Lưu quiz thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
+  const isLoading = isLoadingQuiz || isLoadingQuestions;
 
   // Suppress unused variable warning
-  // TODO: [LOGIC] Sử dụng questionTypes cho dropdown chọn loại câu hỏi
   void questionTypes;
-  void isEditMode;
   void courseId;
+
+  // Loading state
+  if (isEditMode && isLoading) {
+    return (
+      <PageWrapper>
+        <PageHeader
+          title="Loading Quiz..."
+          breadcrumbs={['Courses', 'Curriculum', 'Loading...']}
+        />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+          <span className="ml-2 text-gray-600">Đang tải quiz...</span>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  // Error state
+  if (isEditMode && quizError) {
+    return (
+      <PageWrapper>
+        <PageHeader
+          title="Error"
+          breadcrumbs={['Courses', 'Curriculum', 'Error']}
+        />
+        <div className="flex flex-col items-center justify-center h-64">
+          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+          <p className="text-gray-600 mb-4">Không thể tải quiz. Vui lòng thử lại.</p>
+          <Button onClick={() => navigate(-1)}>Quay lại</Button>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
@@ -367,9 +497,14 @@ export function QuizBuilderPage() {
               size="sm"
               className="gap-2 bg-purple-600 hover:bg-purple-700"
               onClick={() => handleSave('publish')}
+              disabled={isSaving}
             >
-              <Save className="w-4 h-4" />
-              Xuất bản
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {isSaving ? 'Đang lưu...' : 'Xuất bản'}
             </Button>
           </div>
         </div>
