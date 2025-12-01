@@ -129,6 +129,7 @@ function AppRoutes() {
             <Route path={ROUTES.COURSE_MANAGEMENT} element={<MyCoursesPage />} />
             <Route path={ROUTES.COURSE_MANAGEMENT_DETAIL} element={<CourseEditorPage />} />
             <Route path={ROUTES.COURSE_CREATE} element={<CourseEditorPage />} />
+            <Route path={ROUTES.COURSE_CURRICULUM} element={<CurriculumBuilderPage />} />
           </Route>
 
           {/* Instructor & Admin routes (admin cũng có thể host livestream) */}
@@ -148,7 +149,10 @@ function AppRoutes() {
                 path={ROUTES.INSTRUCTOR.COURSE_CREATE}
                 element={<Navigate to={ROUTES.COURSE_CREATE} replace />}
               />
-              <Route path={ROUTES.INSTRUCTOR.CURRICULUM} element={<CurriculumBuilderPage />} />
+              <Route
+                path={ROUTES.INSTRUCTOR.CURRICULUM}
+                element={<Navigate to={ROUTES.COURSE_MANAGEMENT} replace />}
+              />
               <Route path={ROUTES.INSTRUCTOR.QUIZ_BUILDER} element={<QuizBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.QUIZ_EDIT} element={<QuizBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.ASSIGNMENT_CREATE} element={<AssignmentBuilderPage />} />

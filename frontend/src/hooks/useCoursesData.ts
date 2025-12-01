@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { courseApi, CourseFilters } from '@/services/api/course.api';
+import { courseApi, CourseFilters, CreateCoursePayload, UpdateCoursePayload } from '@/services/api/course.api';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import toast from 'react-hot-toast';
 
@@ -61,6 +61,52 @@ export function useInstructorCourses(enabled: boolean = true, instructorId?: str
     },
     enabled,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook tạo mới course
+ */
+export function useCreateCourse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CreateCoursePayload) => {
+      const response = await courseApi.create(payload);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.list(undefined) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.instructor(undefined) });
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Tạo khóa học thất bại';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Hook cập nhật course (instructor)
+ */
+export function useUpdateCourse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateCoursePayload }) => {
+      const response = await courseApi.update(id, data);
+      return response.data.data;
+    },
+    onSuccess: (course) => {
+      if (course?.id) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.detail(course.id) });
+      }
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.instructor(undefined) });
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Cập nhật khóa học thất bại';
+      toast.error(message);
+    },
   });
 }
 
