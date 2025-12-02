@@ -9,6 +9,11 @@
  * - Mỗi role ở trong workspace riêng (/admin/* hoặc /instructor/*)
  * - Hook này tự động chọn route phù hợp với role hiện tại
  * 
+ * ⚠️ PERFORMANCE OPTIMIZATION:
+ * - Sử dụng useCallback thay vì useMemo cho navigation functions
+ * - Tránh tạo object mới mỗi render
+ * - Dependencies được tối ưu để giảm re-render
+ * 
  * @example
  * const { navigateTo, routes } = useRoleBasedNavigation();
  * 
@@ -22,7 +27,7 @@
  * <Link to={routes.myCourses}>Khóa học của tôi</Link>
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRole } from './useRole';
 import {
@@ -43,8 +48,12 @@ import {
 export function useRoleBasedNavigation() {
   const navigate = useNavigate();
   const { role, isAdmin, isInstructor } = useRole();
+  
+  // Sử dụng ref để giữ navigate function stable
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
 
-  // Memoized route getters
+  // Memoized route getters - chỉ phụ thuộc vào role
   const routes = useMemo(() => ({
     // Dashboard
     dashboard: getDashboardByRole(role),
@@ -66,25 +75,78 @@ export function useRoleBasedNavigation() {
     livestreamCreate: getLivestreamCreateRoute(role),
   }), [role]);
 
-  // Navigation functions
+  // ✅ Sử dụng useCallback cho từng navigation function
+  // Điều này đảm bảo functions stable và không gây re-render
+  const navigateToDashboard = useCallback(() => {
+    navigateRef.current(getDashboardByRole(role));
+  }, [role]);
+
+  const navigateToMyCourses = useCallback(() => {
+    navigateRef.current(getMyCoursesRoute(role));
+  }, [role]);
+
+  const navigateToCourseCreate = useCallback(() => {
+    navigateRef.current(getCourseCreateRoute(role));
+  }, [role]);
+
+  const navigateToCourseDetail = useCallback((courseId: string) => {
+    navigateRef.current(getCourseDetailRoute(courseId, role));
+  }, [role]);
+
+  const navigateToCourseEdit = useCallback((courseId: string) => {
+    navigateRef.current(getCourseEditRoute(courseId, role));
+  }, [role]);
+
+  const navigateToCourseCurriculum = useCallback((courseId: string) => {
+    navigateRef.current(getCourseCurriculumRoute(courseId, role));
+  }, [role]);
+
+  const navigateToQuizCreate = useCallback((courseId: string) => {
+    navigateRef.current(getQuizCreateRoute(courseId, role));
+  }, [role]);
+
+  const navigateToAssignmentCreate = useCallback((courseId: string) => {
+    navigateRef.current(getAssignmentCreateRoute(courseId, role));
+  }, [role]);
+
+  const navigateToGrades = useCallback((courseId: string) => {
+    navigateRef.current(getGradesRoute(courseId, role));
+  }, [role]);
+
+  const navigateToLivestream = useCallback(() => {
+    navigateRef.current(getLivestreamRoute(role));
+  }, [role]);
+
+  const navigateToLivestreamCreate = useCallback(() => {
+    navigateRef.current(getLivestreamCreateRoute(role));
+  }, [role]);
+
+  // Navigation object với stable references
   const navigateTo = useMemo(() => ({
-    // Dashboard
-    dashboard: () => navigate(routes.dashboard),
-    
-    // Course management
-    myCourses: () => navigate(routes.myCourses),
-    courseCreate: () => navigate(routes.courseCreate),
-    courseDetail: (courseId: string) => navigate(routes.courseDetail(courseId)),
-    courseEdit: (courseId: string) => navigate(routes.courseEdit(courseId)),
-    courseCurriculum: (courseId: string) => navigate(routes.courseCurriculum(courseId)),
-    quizCreate: (courseId: string) => navigate(routes.quizCreate(courseId)),
-    assignmentCreate: (courseId: string) => navigate(routes.assignmentCreate(courseId)),
-    grades: (courseId: string) => navigate(routes.grades(courseId)),
-    
-    // Livestream
-    livestream: () => navigate(routes.livestream),
-    livestreamCreate: () => navigate(routes.livestreamCreate),
-  }), [navigate, routes]);
+    dashboard: navigateToDashboard,
+    myCourses: navigateToMyCourses,
+    courseCreate: navigateToCourseCreate,
+    courseDetail: navigateToCourseDetail,
+    courseEdit: navigateToCourseEdit,
+    courseCurriculum: navigateToCourseCurriculum,
+    quizCreate: navigateToQuizCreate,
+    assignmentCreate: navigateToAssignmentCreate,
+    grades: navigateToGrades,
+    livestream: navigateToLivestream,
+    livestreamCreate: navigateToLivestreamCreate,
+  }), [
+    navigateToDashboard,
+    navigateToMyCourses,
+    navigateToCourseCreate,
+    navigateToCourseDetail,
+    navigateToCourseEdit,
+    navigateToCourseCurriculum,
+    navigateToQuizCreate,
+    navigateToAssignmentCreate,
+    navigateToGrades,
+    navigateToLivestream,
+    navigateToLivestreamCreate,
+  ]);
 
   // Helper to check if current role can perform certain actions
   const canPerform = useMemo(() => ({
@@ -101,7 +163,8 @@ export function useRoleBasedNavigation() {
     hostLivestream: isInstructor,
   }), [isAdmin, isInstructor]);
 
-  return {
+  // Memoize toàn bộ return value
+  return useMemo(() => ({
     // Current role info
     role,
     isAdmin,
@@ -116,7 +179,7 @@ export function useRoleBasedNavigation() {
     
     // Permission checks
     canPerform,
-  };
+  }), [role, isAdmin, isInstructor, routes, navigateTo, canPerform]);
 }
 
 export default useRoleBasedNavigation;

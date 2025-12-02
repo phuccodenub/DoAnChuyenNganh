@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import io, { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
@@ -8,6 +8,11 @@ import { QUERY_KEYS } from '@/constants/queryKeys';
 /**
  * Real-time Notifications via WebSocket (Socket.IO)
  * Handles: incoming messages, online status, typing indicators, notifications
+ * 
+ * ⚠️ PERFORMANCE OPTIMIZATION:
+ * - Chỉ subscribe vào accessToken thay vì toàn bộ tokens object
+ * - Sử dụng ref để giữ queryClient stable
+ * - Tránh re-connect không cần thiết khi tokens object reference thay đổi
  */
 
 /**
@@ -104,10 +109,14 @@ function initializeSocket(token: string): Socket {
  * Hook to manage real-time WebSocket connection
  */
 export function useNotificationSocket(enabled = true) {
-  const { tokens } = useAuthStore();
-  const token = tokens?.accessToken;
+  // ✅ Chỉ subscribe vào accessToken thay vì toàn bộ tokens object
+  const token = useAuthStore((state) => state.tokens?.accessToken);
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket | null>(null);
+  
+  // Sử dụng ref để giữ queryClient stable
+  const queryClientRef = useRef(queryClient);
+  queryClientRef.current = queryClient;
 
   useEffect(() => {
     if (!enabled || !token) return;
@@ -115,16 +124,17 @@ export function useNotificationSocket(enabled = true) {
     try {
       socketRef.current = initializeSocket(token);
       const socket = socketRef.current;
+      const qc = queryClientRef.current;
 
       // New notification received
       socket.on(NotificationSocketEvents.NEW_NOTIFICATION, (notification: NotificationPayload) => {
         console.log('[Socket] New notification:', notification);
         
         // Invalidate notifications query to refetch
-        queryClient.invalidateQueries({
+        qc.invalidateQueries({
           queryKey: QUERY_KEYS.notifications.all,
         });
-        queryClient.invalidateQueries({
+        qc.invalidateQueries({
           queryKey: QUERY_KEYS.notifications.unreadCount,
         });
         
@@ -142,13 +152,13 @@ export function useNotificationSocket(enabled = true) {
       // Unread count updated
       socket.on(NotificationSocketEvents.UNREAD_COUNT_UPDATE, (data: { count: number }) => {
         console.log('[Socket] Unread count update:', data.count);
-        queryClient.setQueryData(QUERY_KEYS.notifications.unreadCount, data.count);
+        qc.setQueryData(QUERY_KEYS.notifications.unreadCount, data.count);
       });
 
       // Notification marked as read
       socket.on(NotificationSocketEvents.NOTIFICATION_READ, (data: { notificationId: string; read_at: string }) => {
         console.log('[Socket] Notification read:', data);
-        queryClient.invalidateQueries({
+        qc.invalidateQueries({
           queryKey: QUERY_KEYS.notifications.all,
         });
       });
@@ -156,14 +166,14 @@ export function useNotificationSocket(enabled = true) {
       // Chat events
       socket.on('chat:message', (message) => {
         console.log('[Socket] New message:', message);
-        queryClient.invalidateQueries({
+        qc.invalidateQueries({
           queryKey: ['chatMessages', message.courseId],
         });
       });
 
       socket.on('chat:typing', (data) => {
         console.log('[Socket] User typing:', data);
-        queryClient.setQueryData(
+        qc.setQueryData(
           ['typingUsers', data.courseId],
           (old: any) => ({
             ...old,
@@ -173,7 +183,7 @@ export function useNotificationSocket(enabled = true) {
       });
 
       socket.on('chat:typing-stop', (data) => {
-        queryClient.setQueryData(
+        qc.setQueryData(
           ['typingUsers', data.courseId],
           (old: any) => {
             const updated = { ...old };
@@ -186,21 +196,21 @@ export function useNotificationSocket(enabled = true) {
       // User status events
       socket.on('user:online', (userData) => {
         console.log('[Socket] User online:', userData);
-        queryClient.invalidateQueries({
+        qc.invalidateQueries({
           queryKey: ['onlineUsers'],
         });
       });
 
       socket.on('user:offline', (userData) => {
         console.log('[Socket] User offline:', userData);
-        queryClient.invalidateQueries({
+        qc.invalidateQueries({
           queryKey: ['onlineUsers'],
         });
       });
 
       // Online users list update
       socket.on('status:online-users', (users) => {
-        queryClient.setQueryData(['onlineUsers'], users);
+        qc.setQueryData(['onlineUsers'], users);
       });
 
       return () => {
@@ -219,7 +229,7 @@ export function useNotificationSocket(enabled = true) {
     } catch (error) {
       console.error('[WebSocket] Error initializing socket:', error);
     }
-  }, [token, enabled, queryClient]);
+  }, [token, enabled]); // ✅ Không còn phụ thuộc vào queryClient
 
   const emit = useCallback(
     (event: string, data: any) => {
