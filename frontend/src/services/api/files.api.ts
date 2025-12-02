@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const api = axios.create({ baseURL: API_BASE });
+import { httpClient } from '../http/client';
 
 /**
  * File Management API Service
@@ -65,10 +63,8 @@ export interface UploadProgress {
   timeRemaining: number; // seconds
 }
 
-export interface FileUploadResponse {
-  file: FileUpload;
-  message: string;
-}
+// Backend responses are wrapped in ApiResponse<{ ... }>
+// nhưng ở FE ta chỉ cần phần data chính (FileUpload)
 
 export interface FilesListResponse {
   files: FileUpload[];
@@ -87,8 +83,7 @@ export const filesApi = {
     courseId?: string,
     assignmentId?: string,
     onProgress?: (progress: UploadProgress) => void
-  ): Promise<FileUploadResponse> {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  ): Promise<FileUpload> {
     const formData = new FormData();
     formData.append('file', file);
     if (courseId) formData.append('courseId', courseId);
@@ -98,8 +93,8 @@ export const filesApi = {
     let lastLoadedTime = startTime;
     let lastLoaded = 0;
 
-    const { data } = await axios.post<FileUploadResponse>(
-      `${apiUrl}/files/upload`,
+    const { data } = await httpClient.post(
+      '/files/upload',
       formData,
       {
         headers: {
@@ -136,7 +131,8 @@ export const filesApi = {
       }
     );
 
-    return data;
+    // Backend response: { success, message, data: UploadedFileInfo }
+    return (data as any).data as FileUpload;
   },
 
   /**
@@ -146,7 +142,7 @@ export const filesApi = {
     files: File[],
     courseId?: string,
     onProgress?: (fileName: string, progress: number) => void
-  ): Promise<FileUploadResponse[]> {
+  ): Promise<FileUpload[]> {
     const uploadPromises = files.map((file) =>
       this.uploadFile(file, courseId, undefined, (progress) => {
         onProgress?.(file.name, progress.progress);
@@ -160,7 +156,7 @@ export const filesApi = {
    * Get file by ID
    */
   async getFile(id: string): Promise<FileUpload> {
-    const { data } = await api.get<FileUpload>(`/files/${id}`);
+    const { data } = await httpClient.get<FileUpload>(`/files/${id}`);
     return data;
   },
 
@@ -173,7 +169,7 @@ export const filesApi = {
     courseId?: string,
     fileType?: string
   ): Promise<FilesListResponse> {
-    const { data } = await api.get<FilesListResponse>('/files', {
+    const { data } = await httpClient.get<FilesListResponse>('/files', {
       params: { page, limit, courseId, fileType },
     });
     return data;
@@ -187,7 +183,7 @@ export const filesApi = {
     page = 1,
     limit = 20
   ): Promise<FilesListResponse> {
-    const { data } = await api.get<FilesListResponse>(
+    const { data } = await httpClient.get<FilesListResponse>(
       `/files/course/${courseId}`,
       {
         params: { page, limit },
@@ -200,14 +196,14 @@ export const filesApi = {
    * Delete file
    */
   async deleteFile(id: string): Promise<void> {
-    await api.delete(`/files/${id}`);
+    await httpClient.delete(`/files/${id}`);
   },
 
   /**
    * Delete multiple files
    */
   async deleteFiles(ids: string[]): Promise<{ deleted: number }> {
-    const { data } = await api.post<{ deleted: number }>(
+    const { data } = await httpClient.post<{ deleted: number }>(
       '/files/delete-bulk',
       { ids }
     );
@@ -221,7 +217,7 @@ export const filesApi = {
     fileId: string,
     expiresIn?: number // seconds
   ): Promise<DownloadToken> {
-    const { data } = await api.post<DownloadToken>(
+    const { data } = await httpClient.post<DownloadToken>(
       `/files/${fileId}/download-token`,
       { expiresIn }
     );
@@ -232,7 +228,7 @@ export const filesApi = {
    * Download file
    */
   async downloadFile(id: string): Promise<Blob> {
-    const { data } = await api.get(`/files/${id}/download`, {
+    const { data } = await httpClient.get(`/files/${id}/download`, {
       responseType: 'blob',
     });
     return data;

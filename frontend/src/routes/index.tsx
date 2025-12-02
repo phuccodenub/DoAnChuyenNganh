@@ -128,15 +128,33 @@ function AppRoutes() {
             {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
           </Route>
 
+          {/* Livestream create route & course management & course editor - outside instructor layout */}
+          <Route element={<RoleGuard allowedRoles={['instructor', 'admin', 'super_admin']} />}>
+            <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />
+            <Route path={ROUTES.COURSE_MANAGEMENT} element={<MyCoursesPage />} />
+            <Route path={ROUTES.COURSE_MANAGEMENT_DETAIL} element={<CourseEditorPage />} />
+            <Route path={ROUTES.COURSE_CREATE} element={<CourseEditorPage />} />
+            <Route path={ROUTES.COURSE_CURRICULUM} element={<CurriculumBuilderPage />} />
+          </Route>
+
           {/* Instructor & Admin routes (admin cũng có thể host livestream) */}
           <Route element={<RoleGuard allowedRoles={['instructor', 'admin']} />}>
             <Route element={<InstructorDashboardLayout />}>
               <Route path={ROUTES.INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
               <Route path={ROUTES.INSTRUCTOR.MY_COURSES} element={<MyCoursesPage />} />
               <Route path={ROUTES.INSTRUCTOR.COURSE_DETAIL} element={<InstructorCourseDetailPage />} />
-              <Route path={ROUTES.INSTRUCTOR.COURSE_EDIT} element={<CourseEditorPage />} />
-              <Route path={ROUTES.INSTRUCTOR.COURSE_CREATE} element={<CourseEditorPage />} />
-              <Route path={ROUTES.INSTRUCTOR.CURRICULUM} element={<CurriculumBuilderPage />} />
+              <Route
+                path={ROUTES.INSTRUCTOR.COURSE_EDIT}
+                element={<Navigate to={ROUTES.COURSE_MANAGEMENT} replace />}
+              />
+              <Route
+                path={ROUTES.INSTRUCTOR.COURSE_CREATE}
+                element={<Navigate to={ROUTES.COURSE_CREATE} replace />}
+              />
+              <Route
+                path={ROUTES.INSTRUCTOR.CURRICULUM}
+                element={<Navigate to={ROUTES.COURSE_MANAGEMENT} replace />}
+              />
               <Route path={ROUTES.INSTRUCTOR.QUIZ_BUILDER} element={<QuizBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.QUIZ_EDIT} element={<QuizBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.ASSIGNMENT_CREATE} element={<AssignmentBuilderPage />} />

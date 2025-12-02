@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Save, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { MainLayout } from '@/layouts/MainLayout';
 
 // Import components từ courseEditor
 import {
@@ -132,7 +133,7 @@ export function CurriculumBuilderPage() {
       id: 'landing',
       title: 'Course Landing',
       description: 'Basic info & description',
-      route: ROUTES.INSTRUCTOR.COURSE_EDIT.replace(':courseId', courseId || 'new'),
+      route: courseId ? generateRoute.courseManagement(courseId) : ROUTES.COURSE_CREATE,
     },
     {
       id: 'curriculum',
@@ -428,6 +429,7 @@ export function CurriculumBuilderPage() {
   // ================== RENDER ==================
 
   return (
+    <MainLayout showSidebar>
     <PageWrapper>
       {/* Page Header với breadcrumb và nút Save */}
       <PageHeader
@@ -592,6 +594,7 @@ export function CurriculumBuilderPage() {
         onClose={handleCloseLessonModal}
       />
     </PageWrapper>
+    </MainLayout>
   );
 }
 

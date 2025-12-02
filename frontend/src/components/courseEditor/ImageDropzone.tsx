@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 interface ImageDropzoneProps {
@@ -13,6 +13,10 @@ export function ImageDropzone({ label, value, onChange, accept = 'image/*', maxS
     const [isDragOver, setIsDragOver] = useState(false);
     const [preview, setPreview] = useState<string | null>(value || null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setPreview(value || null);
+    }, [value]);
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();

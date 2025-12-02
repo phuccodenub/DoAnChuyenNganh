@@ -106,7 +106,7 @@ export function useUploadFile() {
       }
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quota() });
 
-      toast.success(`File "${data.file.originalName}" uploaded successfully`);
+      toast.success(`File "${data.originalName}" uploaded successfully`);
       setProgress(null);
     },
     onError: (error: any) => {

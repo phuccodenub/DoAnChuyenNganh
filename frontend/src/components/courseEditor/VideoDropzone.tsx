@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Video } from 'lucide-react';
 
 interface VideoDropzoneProps {
@@ -22,6 +22,17 @@ export function VideoDropzone({
     const [preview, setPreview] = useState<string | null>(value || null);
     const [fileName, setFileName] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (value) {
+            setPreview(value);
+            const derivedName = value.split('/').pop() || 'uploaded-video';
+            setFileName(derivedName);
+        } else {
+            setPreview(null);
+            setFileName('');
+        }
+    }, [value]);
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
