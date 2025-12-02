@@ -18,7 +18,7 @@ import {
 
 import { LessonModal } from './components/courseDetail/LessonModal';
 import { ContentType as LessonContentType } from './components/courseDetail/types';
-import { ROUTES, generateRoute } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 
 /**
  * CurriculumBuilderPage
@@ -56,6 +56,7 @@ interface Section {
 export function CurriculumBuilderPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const { routes, navigateTo, canPerform } = useRoleBasedNavigation();
 
   // ================== STATE MANAGEMENT ==================
   /**
@@ -126,13 +127,13 @@ export function CurriculumBuilderPage() {
     video_url: '',
   });
 
-  // Step wizard data
+  // Step wizard data - sử dụng role-based routes
   const steps = [
     {
       id: 'landing',
       title: 'Course Landing',
       description: 'Basic info & description',
-      route: ROUTES.INSTRUCTOR.COURSE_EDIT.replace(':courseId', courseId || 'new'),
+      route: routes.courseEdit(courseId || 'new'),
     },
     {
       id: 'curriculum',
@@ -297,7 +298,13 @@ export function CurriculumBuilderPage() {
     if (contentItem.type === 'quiz' && courseId) {
       // Điều hướng đến QuizBuilderPage với quizId (nếu có) hoặc tạo mới
       // TODO: Khi tích hợp API, cần lấy quizId thực từ contentItem
-      navigate(generateRoute.instructor.quizCreate(courseId));
+      // Sử dụng role-based navigation
+      if (canPerform.createQuiz) {
+        navigateTo.quizCreate(courseId);
+      } else {
+        // Admin không có quyền tạo quiz, redirect về course detail
+        navigateTo.courseDetail(courseId);
+      }
       return;
     }
 
@@ -422,7 +429,8 @@ export function CurriculumBuilderPage() {
   const handleSave = () => {
     console.log('Saving curriculum:', sections);
     // TODO: Implement API call to save curriculum
-    navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+    // Sử dụng role-based navigation
+    navigateTo.myCourses();
   };
 
   // ================== RENDER ==================

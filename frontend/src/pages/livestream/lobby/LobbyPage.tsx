@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRole } from '@/hooks/useRole';
-import { ROUTES, generateRoute } from '@/constants/routes';
+import { generateRoute } from '@/constants/routes';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useLiveSessions } from '@/hooks/useLivestream';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { LiveSessionsQuery } from '@/services/api/livestream.api';
 import { LobbyHeader, SessionsGrid } from './components';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 
 /**
  * LiveStreamLobbyPage
@@ -19,6 +20,7 @@ import { LobbyHeader, SessionsGrid } from './components';
 export function LiveStreamLobbyPage() {
   const navigate = useNavigate();
   const { isInstructor, isAdmin } = useRole();
+  const { navigateTo } = useRoleBasedNavigation();
   const canHost = isInstructor || isAdmin;
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -41,7 +43,7 @@ export function LiveStreamLobbyPage() {
     <MainLayout>
       <div className="w-full bg-gray-50 min-h-screen">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <LobbyHeader canHost={canHost} onCreateSession={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM_CREATE)} />
+          <LobbyHeader canHost={canHost} onCreateSession={() => navigateTo.livestreamCreate()} />
           
           {/* Search bar */}
           <div className="mb-6">

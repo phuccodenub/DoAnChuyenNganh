@@ -18,6 +18,7 @@ import {
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { useCreateCourse, useUpdateCourse, useInstructorCourseDetail } from '@/hooks/useInstructorCourse';
 import { mediaApi } from '@/services/api/media.api';
+import { useRole } from '@/hooks/useRole';
 
 /**
  * CourseEditorPage - Trang tạo/chỉnh sửa khóa học với 3 bước
@@ -30,6 +31,7 @@ import { mediaApi } from '@/services/api/media.api';
 export function CourseEditorPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const { isAdmin } = useRole();
   const isEditMode = !!courseId && courseId !== 'new';
 
   // Current step state
@@ -184,16 +186,21 @@ export function CourseEditorPage() {
         setCurrentStep(2);
       }
     } else if (currentStep === 2) {
-      // Go to curriculum page
+      // Go to curriculum page - navigate based on role
       const targetId = createdCourseId || courseId;
       if (targetId) {
-        navigate(generateRoute.instructor.courseDetail(targetId));
+        if (isAdmin) {
+          navigate(generateRoute.admin.courseDetail(targetId));
+        } else {
+          navigate(generateRoute.instructor.courseDetail(targetId));
+        }
       }
     } else if (currentStep === 3) {
       // Publish course
       await saveCourse();
       toast.success('Đã lưu cài đặt!');
-      navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+      // Navigate based on role
+      navigate(isAdmin ? ROUTES.ADMIN.COURSES : ROUTES.INSTRUCTOR.MY_COURSES);
     }
   };
 
@@ -207,12 +214,14 @@ export function CourseEditorPage() {
     const savedId = await saveCourse();
     if (savedId) {
       toast.success('Đã lưu bản nháp!');
-      navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+      // Navigate based on role
+      navigate(isAdmin ? ROUTES.ADMIN.COURSES : ROUTES.INSTRUCTOR.MY_COURSES);
     }
   };
 
   const handleCancel = () => {
-    navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+    // Navigate based on role
+    navigate(isAdmin ? ROUTES.ADMIN.COURSES : ROUTES.INSTRUCTOR.MY_COURSES);
   };
 
   // Add/remove learning outcome

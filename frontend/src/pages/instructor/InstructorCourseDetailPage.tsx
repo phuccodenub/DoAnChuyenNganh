@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ROUTES } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 
 // Import hooks
 import {
@@ -78,6 +78,7 @@ import {
 export function InstructorDetailPage() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
+    const { navigateTo } = useRoleBasedNavigation();
 
     // ================== API QUERIES ==================
     const { 
@@ -538,7 +539,7 @@ export function InstructorDetailPage() {
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
                 <AlertCircle className="w-12 h-12 text-red-500" />
                 <p className="text-gray-600">Không thể tải thông tin khóa học</p>
-                <Button onClick={() => navigate(ROUTES.INSTRUCTOR.MY_COURSES)}>
+                <Button onClick={() => navigateTo.myCourses()}>
                     Quay lại danh sách
                 </Button>
             </div>
@@ -551,7 +552,7 @@ export function InstructorDetailPage() {
             <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
                     <button
-                        onClick={() => navigate(ROUTES.INSTRUCTOR.MY_COURSES)}
+                        onClick={() => navigateTo.myCourses()}
                         className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />

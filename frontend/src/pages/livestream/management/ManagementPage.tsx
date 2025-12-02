@@ -15,6 +15,7 @@ import { Plus, Video, Users, Calendar, Clock, ExternalLink, Trash2, Edit, Play, 
 import { useMySessions } from '@/hooks/useLivestream';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import type { LiveSession } from '@/services/api/livestream.api';
@@ -26,6 +27,7 @@ type SessionStatus = 'all' | 'scheduled' | 'live' | 'ended' | 'cancelled';
  */
 export function ManagementPage() {
   const navigate = useNavigate();
+  const { navigateTo } = useRoleBasedNavigation();
   const [statusFilter, setStatusFilter] = useState<SessionStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -85,7 +87,7 @@ export function ManagementPage() {
           </p>
         </div>
         <Button
-          onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM_CREATE)}
+          onClick={() => navigateTo.livestreamCreate()}
           className="flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -153,7 +155,7 @@ export function ManagementPage() {
             }
           </p>
           {!searchQuery && (
-            <Button onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM_CREATE)}>
+            <Button onClick={() => navigateTo.livestreamCreate()}>
               Tạo phiên mới
             </Button>
           )}

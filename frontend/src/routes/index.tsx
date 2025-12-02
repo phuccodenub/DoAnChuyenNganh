@@ -128,8 +128,8 @@ function AppRoutes() {
             {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
           </Route>
 
-          {/* Instructor & Admin routes (admin cũng có thể host livestream) */}
-          <Route element={<RoleGuard allowedRoles={['instructor', 'admin']} />}>
+          {/* Instructor routes - CHỈ dành cho instructor */}
+          <Route element={<RoleGuard allowedRoles={['instructor']} />}>
             <Route element={<InstructorDashboardLayout />}>
               <Route path={ROUTES.INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
               <Route path={ROUTES.INSTRUCTOR.MY_COURSES} element={<MyCoursesPage />} />
@@ -159,6 +159,9 @@ function AppRoutes() {
               <Route path={ROUTES.ADMIN.DASHBOARD} element={<AdminDashboard />} />
               <Route path={ROUTES.ADMIN.USERS} element={<UserManagementPage />} />
               <Route path={ROUTES.ADMIN.COURSES} element={<CourseManagementPage />} />
+              {/* Admin course management routes */}
+              <Route path={ROUTES.ADMIN.COURSE_EDIT} element={<CourseEditorPage />} />
+              <Route path={ROUTES.ADMIN.COURSE_CURRICULUM} element={<CurriculumBuilderPage />} />
               <Route path={ROUTES.ADMIN.CATEGORIES} element={<CategoryManagementPage />} />
               <Route path={ROUTES.ADMIN.SYSTEM_SETTINGS} element={<SystemSettingsPage />} />
               <Route path={ROUTES.ADMIN.REPORTS} element={<ReportsPage />} />

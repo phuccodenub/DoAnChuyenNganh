@@ -70,6 +70,8 @@ export const ROUTES = {
     USER_DETAIL: '/admin/users/:userId',
     COURSES: '/admin/courses',
     COURSE_DETAIL: '/admin/courses/:courseId',
+    COURSE_EDIT: '/admin/courses/:courseId/edit',
+    COURSE_CURRICULUM: '/admin/courses/:courseId/curriculum',
     CATEGORIES: '/admin/categories',
     SYSTEM_SETTINGS: '/admin/settings',
     REPORTS: '/admin/reports',
@@ -145,6 +147,8 @@ export const generateRoute = {
   admin: {
     userDetail: (userId: string) => `/admin/users/${userId}`,
     courseDetail: (courseId: string) => `/admin/courses/${courseId}`,
+    courseEdit: (courseId: string) => `/admin/courses/${courseId}/edit`,
+    courseCurriculum: (courseId: string) => `/admin/courses/${courseId}/curriculum`,
   },
 };
 

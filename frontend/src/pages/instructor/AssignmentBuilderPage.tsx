@@ -4,7 +4,7 @@ import { Save, Eye, Upload, Calendar } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { ROUTES } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 
 /**
  * AssignmentBuilderPage
@@ -30,6 +30,7 @@ interface RubricCriteria {
 export function AssignmentBuilderPage() {
   const { courseId, assignmentId } = useParams<{ courseId: string; assignmentId?: string }>();
   const navigate = useNavigate();
+  const { navigateTo } = useRoleBasedNavigation();
   const isEditMode = !!assignmentId;
 
   // Assignment form state
@@ -127,7 +128,8 @@ export function AssignmentBuilderPage() {
   const handleSave = (action: 'draft' | 'publish') => {
     // TODO: Implement API call
     console.log('Save assignment:', action, { assignmentForm, fileConfig, rubric });
-    navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+    // Role-based navigation
+    navigateTo.myCourses();
   };
 
   const totalRubricPoints = rubric.reduce((sum, r) => sum + r.max_points, 0);
@@ -419,7 +421,7 @@ export function AssignmentBuilderPage() {
       <div className="flex items-center justify-between sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-6">
         <Button
           variant="outline"
-          onClick={() => navigate(ROUTES.INSTRUCTOR.MY_COURSES)}
+          onClick={() => navigateTo.myCourses()}
         >
           Hủy
         </Button>

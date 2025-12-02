@@ -20,6 +20,7 @@ import type { SidebarMenuItem } from './types'
 import { ROUTES, generateRoute } from '@/constants/routes'
 import { useInstructorCourses } from '@/hooks/useCoursesData'
 import { useAuthStore } from '@/stores/authStore.enhanced'
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation'
 
 interface SidebarProps {
   isOpen: boolean
@@ -43,6 +44,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const navigate = useNavigate()
   const location = useLocation()
   const user = useAuthStore((state) => state.user)
+  const { navigateTo, canPerform } = useRoleBasedNavigation()
   const isInstructorOrHigher = user?.role === 'instructor' || user?.role === 'admin' || user?.role === 'super_admin'
 
   const { data: instructorCoursesData } = useInstructorCourses(Boolean(isInstructorOrHigher))
@@ -281,14 +283,14 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                       </button>
                     )}
 
-                    {/* Nút tạo khóa học nhanh */}
-                    {!isCollapsed && item.id === 'course-management' && (
+                    {/* Nút tạo khóa học nhanh - chỉ hiển thị cho instructor */}
+                    {!isCollapsed && item.id === 'course-management' && canPerform.createCourse && (
                       <button
                         type="button"
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          navigate(ROUTES.INSTRUCTOR.COURSE_CREATE)
+                          navigateTo.courseCreate()
                           onClose()
                         }}
                         className="ml-1 p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
