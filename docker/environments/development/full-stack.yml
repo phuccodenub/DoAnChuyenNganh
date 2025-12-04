@@ -95,6 +95,12 @@ services:
       #   condition: service_healthy
       redis-dev:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     volumes:
       - ../../../backend:/app
       - /app/node_modules
@@ -133,7 +139,7 @@ services:
       - lms-dev-network
     depends_on:
       backend-dev:
-        condition: service_started
+        condition: service_healthy
     stdin_open: true
     tty: true
 

@@ -263,7 +263,7 @@ export namespace CourseTypes {
     status?: CourseStatus;
   }
 
-  // Status for enrolled courses filtering (based on enrollment progress)
+  // Enrollment progress status for filtering enrolled courses
   export type EnrollmentProgressStatus = 'all' | 'in-progress' | 'completed' | 'not-started';
 
   export interface GetEnrolledCoursesOptions {
@@ -274,11 +274,6 @@ export namespace CourseTypes {
     sort?: 'last_accessed' | 'progress' | 'title' | 'created_at';
   }
 
-  export interface GetCourseStudentsOptions {
-    page: number;
-    limit: number;
-  }
-
   export interface CoursesResponse {
     data: any[];
     pagination: {
@@ -287,32 +282,6 @@ export namespace CourseTypes {
       total: number;
       totalPages: number;
     };
-  }
-
-  export interface StudentsResponse {
-    data: any[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  }
-
-  /**
-   * Course statistics response for instructor dashboard
-   */
-  export interface CourseStatsResponse {
-    total_students: number;
-    total_revenue: number;
-    average_rating: number;
-    total_reviews: number;
-    completion_rate: number;
-    avg_progress: number;
-    avg_score: number;
-    pending_grading: number;
-    max_students: number;
-    new_students_this_week: number;
   }
 }
 
@@ -328,7 +297,7 @@ export interface GetCoursesOptions {
   status?: CourseTypes.CourseStatus;
   instructor_id?: string;
   search?: string;
-  category?: string;
+  category?: string; // Category slug or ID for filtering
 }
 
 export interface GetCoursesByInstructorOptions {
@@ -370,6 +339,9 @@ export interface StudentsResponse {
   };
 }
 
+/**
+ * Course statistics response for instructor dashboard
+ */
 export interface CourseStatsResponse {
   total_students: number;
   total_revenue: number;
@@ -382,5 +354,6 @@ export interface CourseStatsResponse {
   max_students: number;
   new_students_this_week: number;
 }
-// Re-export CourseSearchFilters from namespace
+
+// Aliases to support namespace-qualified imports elsewhere
 export type CourseSearchFilters = CourseTypes.CourseSearchFilters;

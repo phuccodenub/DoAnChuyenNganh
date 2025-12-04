@@ -193,7 +193,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
 
   /**
    * Find enrolled courses by user
-   * @param status - 'all' | 'in-progress' | 'completed' | 'not-started' (based on enrollment progress)
+   * Supports filtering by enrollment progress status (in-progress, completed, not-started)
    */
   async findEnrolledByUser(userId: string, options: CourseTypes.GetEnrolledCoursesOptions): Promise<CourseTypes.CoursesResponse> {
     try {
@@ -207,8 +207,8 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       const courseWhereClause: WhereOptions<CourseAttributes> = {
         status: 'published'
       };
-
-      // Search filter
+      
+      // Add search filter
       if (search) {
         (courseWhereClause as any)[Op.or] = [
           { title: { [Op.iLike]: `%${search}%` } },
@@ -216,24 +216,27 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         ];
       }
 
-      // Enrollment where clause
-      const enrollmentWhere: any = { user_id: userId };
+      // Enrollment where clause - filter by progress status
+      const enrollmentWhere: any = { 
+        user_id: userId,
+        status: 'active' // Only active enrollments
+      };
       
-      // Filter by enrollment progress status
+      // Filter by enrollment progress status (not course status)
       if (status && status !== 'all') {
         if (status === 'completed') {
           enrollmentWhere.progress_percentage = 100;
         } else if (status === 'in-progress') {
           enrollmentWhere.progress_percentage = { [Op.gt]: 0, [Op.lt]: 100 };
         } else if (status === 'not-started') {
-          enrollmentWhere.progress_percentage = { [Op.eq]: 0 };
+          enrollmentWhere.progress_percentage = { [Op.lte]: 0 };
         }
       }
 
-      // Determine sort order
+      // Build order clause based on sort option
       let orderClause: any[] = [['created_at', 'DESC']];
       if (sort === 'last_accessed') {
-        orderClause = [[{ model: Enrollment, as: 'enrollments' }, 'updated_at', 'DESC']];
+        orderClause = [[{ model: Enrollment, as: 'enrollments' }, 'last_accessed_at', 'DESC NULLS LAST']];
       } else if (sort === 'progress') {
         orderClause = [[{ model: Enrollment, as: 'enrollments' }, 'progress_percentage', 'DESC']];
       } else if (sort === 'title') {
@@ -249,7 +252,7 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
             as: 'enrollments',
             where: enrollmentWhere,
             required: true,
-            attributes: ['id', 'created_at', 'updated_at', 'status', 'progress_percentage', 'completed_at']
+            attributes: ['id', 'created_at', 'updated_at', 'status', 'progress_percentage', 'completed_lessons', 'total_lessons', 'last_accessed_at', 'completion_date']
           },
           {
             model: User,
@@ -263,33 +266,35 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         distinct: true
       });
 
-      // Transform rows to add enrollment data at course level
+      // Transform rows to include enrollment info at course level
       const transformedRows = rows.map((course: any) => {
         const courseData = course.toJSON ? course.toJSON() : { ...course };
         const enrollment = courseData.enrollments?.[0] || {};
         
-        // Add enrollment data at top level for easier frontend access
+        // Add enrollment info at course level for frontend convenience
         courseData.enrollment = {
           id: enrollment.id,
           status: enrollment.status,
-          progress_percentage: enrollment.progress_percentage || 0,
+          progress_percentage: Number(enrollment.progress_percentage) || 0,
+          completed_lessons: enrollment.completed_lessons || 0,
+          total_lessons: enrollment.total_lessons || 0,
           enrolled_at: enrollment.created_at,
-          last_accessed_at: enrollment.updated_at,
-          completed_at: enrollment.completed_at
+          last_accessed_at: enrollment.last_accessed_at,
+          completed_at: enrollment.completion_date
         };
-
-        // Map thumbnail to thumbnail_url
+        
+        // Ensure thumbnail_url exists
         if (courseData.thumbnail && !courseData.thumbnail_url) {
           courseData.thumbnail_url = courseData.thumbnail;
         }
-
-        // Map instructor name
+        
+        // Ensure instructor full_name exists
         if (courseData.instructor) {
           courseData.instructor.full_name = courseData.instructor.full_name || 
             `${courseData.instructor.first_name || ''} ${courseData.instructor.last_name || ''}`.trim();
           courseData.instructor.avatar_url = courseData.instructor.avatar;
         }
-
+        
         return courseData;
       });
 
@@ -747,68 +752,6 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       };
     } catch (error: unknown) {
       logger.error('Error getting instructor course stats:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Find recommended courses for a student
-   * Returns published courses that the user hasn't enrolled in
-   */
-  async findRecommendedCourses(userId: string, limit: number = 6): Promise<any[]> {
-    try {
-      const { Op } = await import('sequelize');
-      const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
-      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
-
-      // Get IDs of courses user is already enrolled in
-      const enrolledCourseIds = await EnrollmentModel.findAll({
-        where: { user_id: userId },
-        attributes: ['course_id'],
-        raw: true
-      });
-      const enrolledIds = enrolledCourseIds.map((e: any) => e.course_id);
-
-      // Find published courses not enrolled by user
-      const courses = await (CourseModel as any).findAll({
-        where: {
-          status: 'published',
-          ...(enrolledIds.length > 0 && { id: { [Op.notIn]: enrolledIds } })
-        },
-        include: [
-          {
-            model: User,
-            as: 'instructor',
-            attributes: ['id', 'first_name', 'last_name', 'full_name', 'avatar']
-          }
-        ],
-        order: [
-          ['rating', 'DESC'],
-          ['created_at', 'DESC']
-        ],
-        limit
-      });
-
-      // Add instructor full_name and thumbnail_url
-      return courses.map((course: any) => {
-        const courseData = course.toJSON ? course.toJSON() : { ...course };
-        
-        // Map thumbnail to thumbnail_url
-        if (courseData.thumbnail && !courseData.thumbnail_url) {
-          courseData.thumbnail_url = courseData.thumbnail;
-        }
-
-        // Map instructor name
-        if (courseData.instructor) {
-          courseData.instructor.full_name = courseData.instructor.full_name || 
-            `${courseData.instructor.first_name || ''} ${courseData.instructor.last_name || ''}`.trim();
-          courseData.instructor.avatar_url = courseData.instructor.avatar;
-        }
-
-        return courseData;
-      });
-    } catch (error: unknown) {
-      logger.error('Error finding recommended courses:', error);
       throw error;
     }
   }
