@@ -257,7 +257,8 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
           {
             model: User,
             as: 'instructor',
-            attributes: ['id', 'first_name', 'last_name', 'full_name', 'email', 'avatar']
+            // Note: full_name is computed, not stored in DB
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
           }
         ],
         limit,
