@@ -111,6 +111,9 @@ export class ChatGateway {
       // Track user connection
       this.trackUserConnection(user.userId, socket.id, user);
 
+      // Emit authenticated event for NotificationGateway to catch
+      socket.emit('notification:authenticated', user);
+
       // Setup event listeners
       this.handleJoinRoom(socket);
       this.handleLeaveRoom(socket);

@@ -102,19 +102,31 @@ export class NotificationGateway {
       
       if (!user) {
         // Auth đã được handle bởi middleware trong chat gateway
-        // Nếu không có user, log và return (auth middleware sẽ xử lý)
-        logger.warn(`[NotificationGateway] Socket ${socket.id} has no user attached - auth middleware may not have run yet`);
+        // Nếu không có user, sử dụng event-driven approach thay vì setTimeout
+        logger.debug(`[NotificationGateway] Socket ${socket.id} waiting for auth...`);
         
-        // Đợi một chút để xem auth middleware có attach user không
-        setTimeout(() => {
-          const delayedUser = (socket as any).user as SocketUser | undefined;
-          if (delayedUser) {
-            logger.info(`[NotificationGateway] User attached after delay: ${delayedUser.userId}`);
-            this.handleUserConnection(socket, delayedUser);
-          } else {
-            logger.warn(`[NotificationGateway] Socket ${socket.id} still has no user after delay`);
+        // Listen for custom 'authenticated' event from auth middleware
+        const authHandler = (authUser: SocketUser) => {
+          logger.info(`[NotificationGateway] User authenticated via event: ${authUser.userId}`);
+          this.handleUserConnection(socket, authUser);
+        };
+        
+        socket.once('notification:authenticated', authHandler);
+        
+        // Cleanup listener if socket disconnects before auth
+        socket.once('disconnect', () => {
+          socket.off('notification:authenticated', authHandler);
+        });
+        
+        // Fallback: Check if user was attached synchronously after middleware chain
+        process.nextTick(() => {
+          const attachedUser = (socket as any).user as SocketUser | undefined;
+          if (attachedUser && !this.socketUsers.has(socket.id)) {
+            logger.info(`[NotificationGateway] User found on nextTick: ${attachedUser.userId}`);
+            socket.off('notification:authenticated', authHandler);
+            this.handleUserConnection(socket, attachedUser);
           }
-        }, 100);
+        });
         return;
       }
 
