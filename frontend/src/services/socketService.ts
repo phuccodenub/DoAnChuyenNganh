@@ -79,10 +79,10 @@ class SocketService {
    * Ưu tiên:
    * 1. VITE_WS_URL (mới, override trực tiếp)
    * 2. VITE_SOCKET_URL (tương thích với Docker/.env cũ)
-   * 3. Nếu đang chạy DEV (Vite trên port 5174) và không có env:
-   *    → dùng cùng origin với frontend (http://localhost:5174) và để Vite proxy /socket.io sang backend.
-   * 4. Còn lại (production / Nginx, không có Vite):
-   *    → fallback http://localhost:3000 (backend trực tiếp).
+   * 3. Sử dụng window.location.origin để socket đi qua cùng host với frontend
+   *    - Vite dev: http://localhost:5174 → Vite proxy → backend:3000
+   *    - Docker nginx: http://localhost:3001 → nginx proxy → backend:3000
+   * 4. Fallback http://localhost:3000 (chỉ khi không có window)
    */
   private getSocketUrl(): string {
     const env: any = (import.meta as any).env || {};
@@ -91,12 +91,13 @@ class SocketService {
     if (env.VITE_WS_URL) return env.VITE_WS_URL as string;
     if (env.VITE_SOCKET_URL) return env.VITE_SOCKET_URL as string;
 
-    // 3. DEV mode: dùng cùng origin, để Vite proxy /socket.io → backend
-    if (env.DEV && typeof window !== 'undefined') {
+    // 3. Sử dụng cùng origin với frontend (để proxy xử lý)
+    // Hoạt động với cả Vite dev server và nginx production
+    if (typeof window !== 'undefined') {
       return window.location.origin;
     }
 
-    // 4. Fallback cho production/local không có proxy
+    // 4. Fallback cho SSR hoặc khi không có window
     return 'http://localhost:3000';
   }
 
