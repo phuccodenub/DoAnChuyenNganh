@@ -5,27 +5,69 @@
  * - Textarea tự động resize
  * - Nút gửi và đính kèm
  * - Hỗ trợ Enter để gửi, Shift+Enter để xuống dòng
+ * - Emit typing events
  */
 
-import { useState, useRef, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { Send, Paperclip, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { MessageComposerProps } from '../types';
 import { CHAT_COPY } from '../constants/copy';
 
+// Debounce time for typing indicator (ms)
+const TYPING_DEBOUNCE = 1000;
+
 export function MessageComposer({
     onSend,
+    onTypingChange,
     placeholder = CHAT_COPY.placeholders.composer,
     disabled = false,
     isLoading = false,
 }: MessageComposerProps) {
     const [message, setMessage] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Handle typing indicator
+    const handleTypingStart = useCallback(() => {
+        if (!isTyping) {
+            setIsTyping(true);
+            onTypingChange?.(true);
+        }
+
+        // Clear existing timeout
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        // Set timeout to stop typing
+        typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+            onTypingChange?.(false);
+        }, TYPING_DEBOUNCE);
+    }, [isTyping, onTypingChange]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const handleSubmit = () => {
         const trimmedMessage = message.trim();
         if (!trimmedMessage || disabled || isLoading) return;
+
+        // Stop typing indicator
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+        setIsTyping(false);
+        onTypingChange?.(false);
 
         onSend(trimmedMessage);
         setMessage('');
@@ -41,6 +83,15 @@ export function MessageComposer({
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSubmit();
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setMessage(e.target.value);
+        
+        // Trigger typing indicator only if there's content
+        if (e.target.value.trim().length > 0) {
+            handleTypingStart();
         }
     };
 
@@ -83,7 +134,7 @@ export function MessageComposer({
                     <textarea
                         ref={textareaRef}
                         value={message}
-                        onChange={(e) => setMessage(e.target.value)}
+                        onChange={handleChange}
                         onKeyDown={handleKeyDown}
                         onInput={handleInput}
                         placeholder={placeholder}

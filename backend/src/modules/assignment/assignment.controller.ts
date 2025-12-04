@@ -371,4 +371,30 @@ export class AssignmentController {
       next(error);
     }
   };
+
+  /**
+   * Get all assignments for current student from enrolled courses
+   */
+  getMyAssignments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId as string;
+      const { page = 1, limit = 20, status, search } = req.query;
+      
+      const result = await this.assignmentService.getStudentAssignments(userId, {
+        page: Number(page),
+        limit: Number(limit),
+        status: status as string,
+        search: search as string
+      });
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Student assignments retrieved successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error in getMyAssignments controller:', error);
+      next(error);
+    }
+  };
 }

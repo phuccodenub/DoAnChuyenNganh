@@ -626,62 +626,120 @@
     "toggleDarkMode": "Chuyển đổi chế độ tối",
     "clearSearch": "Xóa tìm kiếm"
   },
-  "admin": {
-    "reports": {
-      "reports_analytics": "Báo Cáo & Phân Tích",
-      "platform_analytics_overview": "Tổng quan phân tích nền tảng",
-      "total_users": "Tổng người dùng",
-      "total_courses": "Tổng khóa học",
-      "total_enrollments": "Tổng lượt đăng ký",
-      "total_revenue": "Tổng doanh thu",
-      "this_month": "tháng này",
-      "courses_available": "khóa học có sẵn",
-      "completion_rate": "tỷ lệ hoàn thành",
-      "from_paid_courses": "từ khóa học trả phí",
-      "user_growth": "Tăng trưởng người dùng",
-      "new_users": "Người dùng mới",
-      "cumulative_users": "Tổng tích lũy",
-      "user_activity": "Hoạt động người dùng",
-      "logins": "Đăng nhập",
-      "registrations": "Đăng ký",
-      "enrollments": "Đăng ký khóa học",
-      "top_courses": "Khóa học hàng đầu",
-      "course_name": "Tên khóa học",
-      "rating": "Đánh giá",
-      "revenue": "Doanh thu",
-      "print_report": "In báo cáo",
-      "export_as_csv": "Xuất CSV"
+  "student": {
+    "dashboard": {
+      "greeting": {
+        "morning": "Chào buổi sáng",
+        "afternoon": "Chào buổi chiều",
+        "evening": "Chào buổi tối"
+      },
+      "welcomeBack": "Chào mừng bạn trở lại! Hãy tiếp tục hành trình học tập của mình.",
+      "points": "Điểm",
+      "badges": "Huy hiệu",
+      "progress": {
+        "title": "Tiến độ học tập",
+        "lessons": "Bài học",
+        "assignments": "Bài tập",
+        "quizzes": "Bài kiểm tra",
+        "completed": "hoàn thành"
+      },
+      "inProgress": {
+        "title": "Đang học dở",
+        "tooltip": "Các khóa học bạn đang học",
+        "viewAll": "Xem tất cả",
+        "empty": "Bạn chưa đăng ký khóa học nào.",
+        "explore": "Khám phá ngay"
+      },
+      "recommended": {
+        "title": "Khóa học đề xuất",
+        "viewAll": "Xem tất cả"
+      },
+      "stats": {
+        "enrolledCourses": "Khóa học đã đăng ký",
+        "learningTime": "Thời gian học"
+      },
+      "dailyGoal": {
+        "title": "Mục tiêu hôm nay",
+        "target": "Mục tiêu",
+        "minutes": "phút",
+        "longestStreak": "Chuỗi học dài nhất",
+        "currentStreak": "Chuỗi hiện tại",
+        "days": "ngày",
+        "viewDetail": "Xem chi tiết"
+      },
+      "leaderboard": "Bảng xếp hạng"
     },
-    "activityLogs": {
-      "activity_logs": "Nhật Ký Hoạt Động",
-      "system_activity_tracking": "Theo dõi hoạt động hệ thống",
-      "filters": "Bộ lọc",
-      "action": "Hành động",
-      "resource_type": "Loại tài nguyên",
-      "status": "Trạng thái",
-      "all_actions": "Tất cả hành động",
-      "all_types": "Tất cả loại",
-      "all_statuses": "Tất cả trạng thái",
-      "success": "Thành công",
-      "failed": "Thất bại",
-      "export_csv": "Xuất CSV",
-      "export_json": "Xuất JSON",
-      "clear_old_logs": "Xóa log cũ",
-      "confirm_clear_old_logs": "Bạn có chắc muốn xóa các log cũ hơn 90 ngày?",
-      "activity_history": "Lịch sử hoạt động",
-      "no_activity_logs": "Không có nhật ký hoạt động",
-      "timestamp": "Thời gian",
-      "user": "Người dùng",
-      "ip_address": "Địa chỉ IP"
+    "myCourses": {
+      "continueLearning": "Tiếp tục học",
+      "allCourses": "Tất cả khóa học",
+      "filters": {
+        "all": "Tất cả",
+        "notStarted": "Chưa bắt đầu",
+        "inProgress": "Đang học",
+        "completed": "Đã hoàn thành"
+      },
+      "search": "Tìm kiếm...",
+      "addFilter": "Thêm bộ lọc",
+      "sort": "Sắp xếp",
+      "progress": "Tiến độ",
+      "lessons": "bài học",
+      "course": "Khóa học",
+      "continue": "Tiếp tục",
+      "start": "Bắt đầu",
+      "review": "Xem lại",
+      "empty": {
+        "title": "Không tìm thấy khóa học",
+        "description": "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
+      },
+      "notStartedYet": "Bạn chưa bắt đầu khóa học nào."
     },
-    "systemSettings": {
-      "system_settings": "Cài Đặt Hệ Thống",
-      "system_settings_desc": "Quản lý cấu hình và tùy chọn hệ thống",
-      "general_settings": "Cài đặt chung",
-      "email_settings": "Cài đặt Email",
-      "security_settings": "Cài đặt Bảo mật",
-      "feature_flags": "Quản lý Tính năng",
-      "error_loading_settings": "Lỗi khi tải cài đặt"
+    "assignments": {
+      "title": "Bài tập của tôi",
+      "subtitle": "Quản lý các bài tập và theo dõi hạn nộp.",
+      "stats": {
+        "pending": "Cần làm",
+        "overdue": "Quá hạn",
+        "submitted": "Đã nộp"
+      },
+      "filters": {
+        "all": "Tất cả",
+        "pending": "Cần làm",
+        "overdue": "Quá hạn",
+        "submitted": "Đã nộp",
+        "graded": "Đã chấm"
+      },
+      "search": "Tìm kiếm theo tên bài tập hoặc môn học...",
+      "status": {
+        "pending": "Cần làm",
+        "overdue": "Quá hạn",
+        "submitted": "Đã nộp - Chờ chấm",
+        "graded": "Đã chấm",
+        "late": "Nộp muộn"
+      },
+      "dueDate": "Hạn nộp",
+      "submittedDate": "Đã nộp",
+      "maxPoints": "điểm tối đa",
+      "doAssignment": "Làm bài tập",
+      "viewSubmission": "Xem lại bài nộp",
+      "empty": {
+        "title": "Không tìm thấy bài tập nào",
+        "description": "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
+      }
+    },
+    "learning": {
+      "content": "Nội dung",
+      "discussion": "Thảo luận",
+      "files": "Tài liệu",
+      "courseProgress": "Tiến độ khóa học",
+      "lessonsCompleted": "bài học đã hoàn thành",
+      "markComplete": "Đánh dấu hoàn thành",
+      "completed": "Đã hoàn thành",
+      "prevLesson": "Bài trước",
+      "nextLesson": "Bài tiếp theo",
+      "reportIssue": "Báo cáo vấn đề",
+      "selectLesson": "Chọn một bài học để bắt đầu",
+      "courseNotFound": "Không tìm thấy nội dung khóa học",
+      "backToCourses": "Quay lại khóa học của tôi"
     }
   }
 }

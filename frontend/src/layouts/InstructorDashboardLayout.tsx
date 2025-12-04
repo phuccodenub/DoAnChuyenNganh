@@ -66,7 +66,7 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
     },
     {
       label: 'Tin nhắn',
-      path: ROUTES.INSTRUCTOR.CHAT,
+      path: ROUTES.SHARED.MESSAGES,
       icon: <MessageCircle className="w-5 h-5" />,
     },
     {

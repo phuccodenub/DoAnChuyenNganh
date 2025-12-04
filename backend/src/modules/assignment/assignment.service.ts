@@ -356,6 +356,23 @@ export class AssignmentService {
 
     return enrollment;
   }
+
+  /**
+   * Get all assignments for a student from their enrolled courses
+   */
+  async getStudentAssignments(userId: string, options: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }) {
+    try {
+      return await this.repo.getMyAssignmentsWithStats(userId, options);
+    } catch (error: unknown) {
+      logger.error(`Error getting student assignments: ${error}`);
+      throw error;
+    }
+  }
 }
 
 

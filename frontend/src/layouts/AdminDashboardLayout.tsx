@@ -16,6 +16,7 @@ import {
   User,
   Search,
   Bell,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore.enhanced';
@@ -46,6 +47,11 @@ const navItems = [
     path: ROUTES.ADMIN.CATEGORIES,
     icon: Folder,
     label: 'Quản lý danh mục',
+  },
+  {
+    path: ROUTES.SHARED.MESSAGES,
+    icon: MessageCircle,
+    label: 'Tin nhắn',
   },
   {
     path: ROUTES.ADMIN.NOTIFICATIONS,

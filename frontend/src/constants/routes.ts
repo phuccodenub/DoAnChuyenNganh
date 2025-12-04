@@ -14,6 +14,12 @@ export const ROUTES = {
   VERIFY_EMAIL: '/verify-email/:token',
   TWO_FACTOR: '/2fa',
   
+  // Shared routes (accessible by all authenticated users)
+  SHARED: {
+    MESSAGES: '/messages',
+    MESSAGES_DETAIL: '/messages/:conversationId',
+  },
+  
   // Course catalog (public)
   COURSES: '/courses',
   COURSE_DETAIL: '/courses/:id',
@@ -118,7 +124,7 @@ export const generateRoute = {
       `/student/quizzes/${quizId}/attempt/${attemptId}`,
     assignment: (assignmentId: string) => `/student/assignments/${assignmentId}`,
     chat: (courseId?: string) => 
-      courseId ? `/student/chat?courseId=${courseId}` : '/student/chat',
+      courseId ? `/messages?courseId=${courseId}` : '/messages',
   },
   
   instructor: {
@@ -138,7 +144,7 @@ export const generateRoute = {
     courseGrades: (courseId: string) => `/instructor/courses/${courseId}/grades`,
     livestreamSession: (sessionId: string) => `/instructor/livestream/${sessionId}`,
     chat: (courseId?: string) => 
-      courseId ? `/instructor/chat?courseId=${courseId}` : '/instructor/chat',
+      courseId ? `/messages?courseId=${courseId}` : '/messages',
   },
   livestream: {
     session: (sessionId: string) => `/livestream/${sessionId}`,
@@ -149,6 +155,13 @@ export const generateRoute = {
     courseDetail: (courseId: string) => `/admin/courses/${courseId}`,
     courseEdit: (courseId: string) => `/admin/courses/${courseId}/edit`,
     courseCurriculum: (courseId: string) => `/admin/courses/${courseId}/curriculum`,
+  },
+
+  // Shared route helpers
+  shared: {
+    messages: (courseId?: string) =>
+      courseId ? `/messages?courseId=${courseId}` : '/messages',
+    conversation: (conversationId: string) => `/messages/${conversationId}`,
   },
 };
 

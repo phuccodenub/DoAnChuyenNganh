@@ -93,10 +93,27 @@ export async function connectDatabase(): Promise<void> {
     
     // Sync database - always sync in development to ensure tables exist
     // In production, use migrations instead
+    // Note: On Supabase, tables may be owned by different users, so we disable
+    // index creation during sync to avoid permission errors. Indexes should be
+    // managed via migrations.
     if (process.env.NODE_ENV !== 'production') {
-      //      await db.sync({ alter: true }); // force: false
-      await db.sync({ force: false }); // Use existing tables without altering
-      console.log('Database models synchronized');
+      // Using force: false prevents dropping tables
+      // Using alter: false (implicit) prevents schema modifications
+      // Sequelize may still try to create missing indexes, which can fail on Supabase
+      // if the connected user doesn't own the table. We handle this gracefully.
+      try {
+        await db.sync({ force: false });
+        console.log('Database models synchronized');
+      } catch (syncError: any) {
+        // Error code 42501 = insufficient privilege (e.g., not owner of table)
+        // This typically happens with indexes on Supabase when tables are owned by a different user
+        if (syncError?.parent?.code === '42501') {
+          console.log('⚠️ Some database sync operations skipped due to permissions (this is normal on Supabase)');
+          console.log('   Tables exist, indexes should be managed via migrations');
+        } else {
+          throw syncError;
+        }
+      }
     }
   } catch (error: unknown) {
     console.error('Unable to connect to the database:', error);

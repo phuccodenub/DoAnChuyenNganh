@@ -1,18 +1,21 @@
-import { useEffect, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import io, { Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore.enhanced';
 import { QUERY_KEYS } from '@/constants/queryKeys';
+import { socketService } from '@/services/socketService';
 
 /**
  * Real-time Notifications via WebSocket (Socket.IO)
  * Handles: incoming messages, online status, typing indicators, notifications
  * 
- * ⚠️ PERFORMANCE OPTIMIZATION:
+ * ⚠️ PERFORMANCE OPTIMIZATION (v2.0 - 2025-12-02):
+ * - Sử dụng socketService singleton thay vì tạo socket riêng
  * - Chỉ subscribe vào accessToken thay vì toàn bộ tokens object
  * - Sử dụng ref để giữ queryClient stable
  * - Tránh re-connect không cần thiết khi tokens object reference thay đổi
+ * - FIX: Loại bỏ multiple socket instances gây timeout error
  */
 
 /**
@@ -66,68 +69,66 @@ export interface WebSocketEvents {
   'status:online-users': (data: any) => void;
 }
 
-let socketInstance: Socket | null = null;
-
-/**
- * Initialize WebSocket connection (singleton pattern)
- */
-function initializeSocket(token: string): Socket {
-  if (socketInstance?.connected) {
-    return socketInstance;
-  }
-
-  // Use VITE_WS_URL for WebSocket, fallback to localhost
-  // Note: VITE_API_URL includes /api path which is NOT suitable for Socket.IO
-  const wsUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
-
-  socketInstance = io(wsUrl, {
-    auth: { token },
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    reconnectionAttempts: 5,
-    transports: ['websocket', 'polling'],
-    path: '/socket.io',
-  });
-
-  socketInstance.on('connect', () => {
-    console.log('[WebSocket] Connected:', socketInstance?.id);
-  });
-
-  socketInstance.on('disconnect', (reason) => {
-    console.log('[WebSocket] Disconnected:', reason);
-  });
-
-  socketInstance.on('connect_error', (error) => {
-    console.error('[WebSocket] Connection error:', error);
-  });
-
-  return socketInstance;
-}
-
 /**
  * Hook to manage real-time WebSocket connection
+ * 
+ * FIX 2025-12-03: PASSIVE Socket Hook
+ * - Hook này KHÔNG khởi tạo socket connection
+ * - Chỉ lắng nghe events nếu socket đã connected (bởi AppProviders)
+ * - Component vẫn hoạt động bình thường không cần socket
+ * - Socket chỉ là enhancement cho real-time updates
  */
 export function useNotificationSocket(enabled = true) {
   // ✅ Chỉ subscribe vào accessToken thay vì toàn bộ tokens object
   const token = useAuthStore((state) => state.tokens?.accessToken);
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const listenersSetupRef = useRef(false);
   
   // Sử dụng ref để giữ queryClient stable
   const queryClientRef = useRef(queryClient);
   queryClientRef.current = queryClient;
 
   useEffect(() => {
-    if (!enabled || !token) return;
+    // Nếu không enabled hoặc không có token, không làm gì
+    if (!enabled || !token) {
+      setIsConnected(false);
+      return;
+    }
 
-    try {
-      socketRef.current = initializeSocket(token);
-      const socket = socketRef.current;
+    let isMounted = true;
+    
+    // ============================================
+    // PASSIVE: Chỉ setup listeners, KHÔNG connect
+    // ============================================
+    const setupListeners = (socket: Socket) => {
+      if (!isMounted || listenersSetupRef.current) return;
+      
+      listenersSetupRef.current = true;
+      socketRef.current = socket;
+      setIsConnected(socket.connected);
+      
       const qc = queryClientRef.current;
+      console.log('[useNotificationSocket] Setting up listeners on socket:', socket.id);
+
+      // Connection status tracking
+      const onConnect = () => {
+        if (isMounted) {
+          console.log('[useNotificationSocket] Socket connected');
+          setIsConnected(true);
+        }
+      };
+      
+      const onDisconnect = () => {
+        if (isMounted) {
+          console.log('[useNotificationSocket] Socket disconnected');
+          setIsConnected(false);
+        }
+      };
 
       // New notification received
-      socket.on(NotificationSocketEvents.NEW_NOTIFICATION, (notification: NotificationPayload) => {
+      const onNewNotification = (notification: NotificationPayload) => {
         console.log('[Socket] New notification:', notification);
         
         // Invalidate notifications query to refetch
@@ -147,31 +148,31 @@ export function useNotificationSocket(enabled = true) {
             borderLeft: `4px solid ${getPriorityColor(notification.priority)}`,
           },
         });
-      });
+      };
 
       // Unread count updated
-      socket.on(NotificationSocketEvents.UNREAD_COUNT_UPDATE, (data: { count: number }) => {
+      const onUnreadCount = (data: { count: number }) => {
         console.log('[Socket] Unread count update:', data.count);
         qc.setQueryData(QUERY_KEYS.notifications.unreadCount, data.count);
-      });
+      };
 
       // Notification marked as read
-      socket.on(NotificationSocketEvents.NOTIFICATION_READ, (data: { notificationId: string; read_at: string }) => {
+      const onNotificationRead = (data: { notificationId: string; read_at: string }) => {
         console.log('[Socket] Notification read:', data);
         qc.invalidateQueries({
           queryKey: QUERY_KEYS.notifications.all,
         });
-      });
+      };
 
       // Chat events
-      socket.on('chat:message', (message) => {
+      const onChatMessage = (message: any) => {
         console.log('[Socket] New message:', message);
         qc.invalidateQueries({
           queryKey: ['chatMessages', message.courseId],
         });
-      });
+      };
 
-      socket.on('chat:typing', (data) => {
+      const onChatTyping = (data: any) => {
         console.log('[Socket] User typing:', data);
         qc.setQueryData(
           ['typingUsers', data.courseId],
@@ -180,9 +181,9 @@ export function useNotificationSocket(enabled = true) {
             [data.userId]: data.userName,
           })
         );
-      });
+      };
 
-      socket.on('chat:typing-stop', (data) => {
+      const onChatTypingStop = (data: any) => {
         qc.setQueryData(
           ['typingUsers', data.courseId],
           (old: any) => {
@@ -191,60 +192,112 @@ export function useNotificationSocket(enabled = true) {
             return updated;
           }
         );
-      });
+      };
 
       // User status events
-      socket.on('user:online', (userData) => {
+      const onUserOnline = (userData: any) => {
         console.log('[Socket] User online:', userData);
         qc.invalidateQueries({
           queryKey: ['onlineUsers'],
         });
-      });
+      };
 
-      socket.on('user:offline', (userData) => {
+      const onUserOffline = (userData: any) => {
         console.log('[Socket] User offline:', userData);
         qc.invalidateQueries({
           queryKey: ['onlineUsers'],
         });
-      });
+      };
 
       // Online users list update
-      socket.on('status:online-users', (users) => {
+      const onOnlineUsers = (users: any) => {
         qc.setQueryData(['onlineUsers'], users);
-      });
-
-      return () => {
-        if (socket) {
-          socket.off(NotificationSocketEvents.NEW_NOTIFICATION);
-          socket.off(NotificationSocketEvents.UNREAD_COUNT_UPDATE);
-          socket.off(NotificationSocketEvents.NOTIFICATION_READ);
-          socket.off('chat:message');
-          socket.off('chat:typing');
-          socket.off('chat:typing-stop');
-          socket.off('user:online');
-          socket.off('user:offline');
-          socket.off('status:online-users');
-        }
       };
-    } catch (error) {
-      console.error('[WebSocket] Error initializing socket:', error);
+
+      // Register all event handlers
+      socket.on('connect', onConnect);
+      socket.on('disconnect', onDisconnect);
+      socket.on(NotificationSocketEvents.NEW_NOTIFICATION, onNewNotification);
+      socket.on(NotificationSocketEvents.UNREAD_COUNT_UPDATE, onUnreadCount);
+      socket.on(NotificationSocketEvents.NOTIFICATION_READ, onNotificationRead);
+      socket.on('chat:message', onChatMessage);
+      socket.on('chat:typing', onChatTyping);
+      socket.on('chat:typing-stop', onChatTypingStop);
+      socket.on('user:online', onUserOnline);
+      socket.on('user:offline', onUserOffline);
+      socket.on('status:online-users', onOnlineUsers);
+
+      // Return cleanup function
+      return () => {
+        socket.off('connect', onConnect);
+        socket.off('disconnect', onDisconnect);
+        socket.off(NotificationSocketEvents.NEW_NOTIFICATION, onNewNotification);
+        socket.off(NotificationSocketEvents.UNREAD_COUNT_UPDATE, onUnreadCount);
+        socket.off(NotificationSocketEvents.NOTIFICATION_READ, onNotificationRead);
+        socket.off('chat:message', onChatMessage);
+        socket.off('chat:typing', onChatTyping);
+        socket.off('chat:typing-stop', onChatTypingStop);
+        socket.off('user:online', onUserOnline);
+        socket.off('user:offline', onUserOffline);
+        socket.off('status:online-users', onOnlineUsers);
+      };
+    };
+    
+    let cleanupFn: (() => void) | undefined;
+    
+    // ============================================
+    // PASSIVE: Chỉ dùng socket nếu đã connected
+    // KHÔNG gọi connectNonBlocking() ở đây!
+    // ============================================
+    const existingSocket = socketService.getSocketIfConnected();
+    if (existingSocket) {
+      console.log('[useNotificationSocket] Using existing connected socket');
+      cleanupFn = setupListeners(existingSocket);
+    } else {
+      console.log('[useNotificationSocket] No socket available - waiting passively');
     }
-  }, [token, enabled]); // ✅ Không còn phụ thuộc vào queryClient
+    
+    // ============================================
+    // Subscribe để setup listeners khi socket connect trong tương lai
+    // (AppProviders sẽ quản lý việc connect)
+    // ============================================
+    const onSocketConnect = () => {
+      const socket = socketService.getSocket();
+      if (socket && !listenersSetupRef.current) {
+        console.log('[useNotificationSocket] Socket became available, setting up listeners');
+        cleanupFn = setupListeners(socket);
+      }
+    };
+    
+    socketService.onConnect(onSocketConnect);
+    
+    // ⚠️ KHÔNG gọi connectNonBlocking() ở đây!
+    // AppProviders đã quản lý socket lifecycle
+
+    return () => {
+      isMounted = false;
+      listenersSetupRef.current = false;
+      socketService.offConnect(onSocketConnect);
+      if (cleanupFn) {
+        cleanupFn();
+      }
+    };
+  }, [token, enabled]);
 
   const emit = useCallback(
     (event: string, data: any) => {
-      if (socketRef.current?.connected) {
-        socketRef.current.emit(event, data);
+      const socket = socketService.getSocket();
+      if (socket?.connected) {
+        socket.emit(event, data);
       }
     },
     []
   );
 
   const disconnect = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
+    // ⚠️ Không disconnect socketService trực tiếp từ hook
+    // AppProviders quản lý lifecycle của socket connection
+    console.warn('[useNotificationSocket] disconnect() called - socketService manages connection lifecycle');
   }, []);
 
   /**
@@ -265,7 +318,7 @@ export function useNotificationSocket(enabled = true) {
     socket: socketRef.current,
     emit,
     disconnect,
-    isConnected: socketRef.current?.connected || false,
+    isConnected,
     markAsRead,
     markAllAsRead,
   };

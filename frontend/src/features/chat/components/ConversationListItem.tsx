@@ -9,12 +9,19 @@ import { cn } from '@/lib/utils';
 import { ConversationListItemProps } from '../types';
 import { formatRelativeTime } from '../utils/formatTime';
 import { OnlineStatusDot } from './OnlineStatusDot';
+import { TypingStatus } from './TypingIndicator';
+
+interface ExtendedConversationListItemProps extends ConversationListItemProps {
+    /** Is the other user typing */
+    isTyping?: boolean;
+}
 
 export function ConversationListItem({
     conversation,
     isSelected,
     onClick,
-}: ConversationListItemProps) {
+    isTyping = false,
+}: ExtendedConversationListItemProps) {
     const { participant, course_title, last_message, unread_count } = conversation;
 
     return (
@@ -70,28 +77,32 @@ export function ConversationListItem({
                 {/* Course title */}
                 <p className="text-xs text-blue-600 truncate mb-1">{course_title}</p>
 
-                {/* Last message preview */}
+                {/* Last message preview or typing indicator */}
                 <div className="flex items-center gap-2">
-                    <p
-                        className={cn(
-                            'text-sm truncate flex-1',
-                            unread_count > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'
-                        )}
-                    >
-                        {last_message ? (
-                            <>
-                                {last_message.sender_role === 'student' && (
-                                    <span className="text-gray-400">Bạn: </span>
-                                )}
-                                {last_message.content}
-                            </>
-                        ) : (
-                            <span className="text-gray-400 italic">Chưa có tin nhắn</span>
-                        )}
-                    </p>
+                    {isTyping ? (
+                        <TypingStatus />
+                    ) : (
+                        <p
+                            className={cn(
+                                'text-sm truncate flex-1',
+                                unread_count > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'
+                            )}
+                        >
+                            {last_message ? (
+                                <>
+                                    {last_message.sender_role === 'student' && (
+                                        <span className="text-gray-400">Bạn: </span>
+                                    )}
+                                    {last_message.content}
+                                </>
+                            ) : (
+                                <span className="text-gray-400 italic">Chưa có tin nhắn</span>
+                            )}
+                        </p>
+                    )}
 
                     {/* Unread badge */}
-                    {unread_count > 0 && (
+                    {unread_count > 0 && !isTyping && (
                         <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-blue-600 text-white text-xs font-medium rounded-full flex items-center justify-center">
                             {unread_count > 99 ? '99+' : unread_count}
                         </span>

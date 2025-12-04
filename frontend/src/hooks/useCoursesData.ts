@@ -43,7 +43,9 @@ export function useEnrolledCourses(filters?: { page?: number; limit?: number }) 
     queryKey: QUERY_KEYS.courses.enrolled(filters),
     queryFn: async () => {
       const response = await courseApi.getEnrolled(filters);
-      return response.data;
+      // response.data = { success, message, data: { courses, pagination } }
+      // Return the inner data object for component usage
+      return response.data.data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
   });

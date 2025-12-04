@@ -1,0 +1,109 @@
+# =============================================================================
+# LMS Development Docker Compose
+# =============================================================================
+# 
+# Quick-start file for development with Redis and Backend
+#
+# USAGE:
+#   Tạo volumes (chỉ chạy 1 lần):
+#     docker volume create lms_redis_dev_data
+#
+#   Chạy services:
+#     docker-compose -f docker-compose.dev.yml up -d
+#
+#   Xem logs:
+#     docker-compose -f docker-compose.dev.yml logs -f
+#
+#   Dừng services:
+#     docker-compose -f docker-compose.dev.yml down
+#
+# NOTES:
+#   - Backend sử dụng Supabase PostgreSQL (cấu hình trong backend/.env)
+#   - Redis chạy local trong Docker
+#   - Backend mount source code để hot-reload
+#
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Redis Cache Service
+  # ─────────────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: lms-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - lms_redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lms-dev
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Backend API Service
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: docker/dockerfiles/backend.dev.Dockerfile
+    image: lms-backend-dev:latest
+    container_name: lms-backend-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      # Redis trong Docker
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
+      # Các biến khác được load từ backend/.env
+      - PORT=3000
+      - LOG_LEVEL=debug
+      - CORS_ORIGIN=*
+      - DISABLE_RATE_LIMIT=true
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    volumes:
+      # Mount source code cho hot-reload
+      - ./backend:/app
+      # Exclude node_modules (use container's node_modules)
+      - /app/node_modules
+      # Mount logs
+      - ./backend/logs:/app/logs
+      # Mount startup script
+      - ./docker/scripts/start-backend-dev.sh:/app/start-backend-dev.sh:ro
+    command: ["/bin/sh", "/app/start-backend-dev.sh"]
+    networks:
+      - lms-dev
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  lms_redis_dev_data:
+    name: lms_redis_dev_data
+    external: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────────────────────────────────────────
+networks:
+  lms-dev:
+    driver: bridge
+    name: lms-dev-network

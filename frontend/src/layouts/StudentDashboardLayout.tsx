@@ -31,7 +31,7 @@ const navigation = [
   { name: 'Trang chủ', href: ROUTES.STUDENT.DASHBOARD, icon: Home },
   { name: 'Khóa học của tôi', href: ROUTES.STUDENT.MY_COURSES, icon: BookOpen },
   { name: 'Bài tập', href: ROUTES.STUDENT.ASSIGNMENTS, icon: ClipboardList },
-  { name: 'Tin nhắn', href: ROUTES.STUDENT.CHAT, icon: MessageCircle },
+  { name: 'Tin nhắn', href: ROUTES.SHARED.MESSAGES, icon: MessageCircle },
   { name: 'Thông báo', href: ROUTES.STUDENT.NOTIFICATIONS, icon: Bell },
   { name: 'Hồ sơ', href: ROUTES.PROFILE, icon: User },
   { name: 'Cài đặt', href: ROUTES.STUDENT.SETTINGS, icon: Settings },

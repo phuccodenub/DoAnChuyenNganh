@@ -65,17 +65,15 @@ export const MessagePanel: React.FC = () => {
     // Handle click on conversation
     const handleConversationClick = (conversation: Conversation) => {
         setIsOpen(false);
-        const chatRoute = isInstructor
-            ? generateRoute.instructor.chat(conversation.course_id)
-            : generateRoute.student.chat(conversation.course_id);
+        // Use shared messages route with courseId query param
+        const chatRoute = generateRoute.shared.messages(conversation.course_id);
         navigate(chatRoute);
     };
 
     // Handle "See all messages"
     const handleSeeAllClick = () => {
         setIsOpen(false);
-        const chatRoute = isInstructor ? ROUTES.INSTRUCTOR.CHAT : ROUTES.STUDENT.CHAT;
-        navigate(chatRoute);
+        navigate(ROUTES.SHARED.MESSAGES);
     };
 
     // Get initials from name

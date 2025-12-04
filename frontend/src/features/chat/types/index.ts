@@ -8,7 +8,7 @@
 // ==================== ENUMS ====================
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
-export type UserRole = 'student' | 'instructor';
+export type UserRole = 'student' | 'instructor' | 'admin' | 'super_admin';
 export type OnlineStatus = 'online' | 'offline' | 'away';
 
 // ==================== USER ====================
@@ -99,6 +99,7 @@ export interface MessageBubbleProps {
 
 export interface MessageComposerProps {
   onSend: (content: string) => void;
+  onTypingChange?: (isTyping: boolean) => void;
   placeholder?: string;
   disabled?: boolean;
   isLoading?: boolean;

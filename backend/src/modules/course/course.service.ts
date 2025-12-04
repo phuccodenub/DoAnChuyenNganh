@@ -339,5 +339,26 @@ export class CourseService {
       throw error;
     }
   }
+
+  /**
+   * Get recommended courses for a student
+   * Returns published courses that the user hasn't enrolled in, ordered by rating and enrollment count
+   */
+  async getRecommendedCourses(userId: string, limit: number = 6): Promise<any[]> {
+    try {
+      logger.info('Getting recommended courses', { userId, limit });
+
+      const recommendedCourses = await this.courseRepository.findRecommendedCourses(userId, limit);
+      
+      // Normalize courses for frontend
+      const normalizedCourses = recommendedCourses.map((course: any) => this.normalizeCourseForFrontend(course));
+      
+      logger.info('Recommended courses retrieved successfully', { count: normalizedCourses.length });
+      return normalizedCourses;
+    } catch (error: unknown) {
+      logger.error('Error getting recommended courses:', error);
+      throw error;
+    }
+  }
 }
 

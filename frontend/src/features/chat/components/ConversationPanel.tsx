@@ -13,8 +13,9 @@ import { MessageBubble } from './MessageBubble';
 import { MessageComposer } from './MessageComposer';
 import { EmptyState } from './EmptyState';
 import { OnlineStatusDot } from './OnlineStatusDot';
+import { TypingIndicator } from './TypingIndicator';
 import { CHAT_COPY } from '../constants/copy';
-import { getDateGroupLabel, isSameDay } from '../utils/formatTime';
+import { getDateGroupLabel } from '../utils/formatTime';
 
 export function ConversationPanel({
     conversation,
@@ -159,20 +160,10 @@ export function ConversationPanel({
 
                         {/* Typing indicator */}
                         {isTyping && (
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <div className="flex gap-1">
-                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                                    <span
-                                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                        style={{ animationDelay: '0.1s' }}
-                                    />
-                                    <span
-                                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                        style={{ animationDelay: '0.2s' }}
-                                    />
-                                </div>
-                                <span>{participant.name} {CHAT_COPY.status.typing}</span>
-                            </div>
+                            <TypingIndicator 
+                              userName={participant.name}
+                              variant="bubble"
+                            />
                         )}
 
                         {/* Scroll anchor */}

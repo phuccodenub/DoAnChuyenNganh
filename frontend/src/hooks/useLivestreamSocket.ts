@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { Socket } from 'socket.io-client';
 import { socketService } from '@/services/socketService';
 import { useAuthStore } from '@/stores/authStore.enhanced';
 
@@ -158,25 +159,28 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
   });
 
   // Setup event handlers - CHỈ phụ thuộc vào enabled và sessionId
+  // NON-BLOCKING: Không đợi socket connect
   useEffect(() => {
     if (!enabled || !sessionId) return;
 
-    const setupHandlers = async () => {
-      const socket = await socketService.connect();
-      if (!socket) {
-        console.warn('[useLivestreamSocket] Socket not connected');
-        return;
-      }
-
+    let isMounted = true;
+    let cleanupFn: (() => void) | undefined;
+    
+    const setupHandlers = (socket: Socket) => {
+      if (!isMounted) return;
+      
       setIsConnected(socket.connected);
+      console.log('[useLivestreamSocket] Setting up handlers on socket:', socket.id);
 
       // Connection handlers
       const onConnect = () => {
+        if (!isMounted) return;
         setIsConnected(true);
         console.log('[useLivestreamSocket] Connected');
       };
 
       const onDisconnect = () => {
+        if (!isMounted) return;
         setIsConnected(false);
         setIsJoined(false);
         console.log('[useLivestreamSocket] Disconnected');
@@ -332,18 +336,48 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
       handlersRef.current.set(LiveStreamSocketEvents.REACTION_RECEIVED, onReactionReceived);
       handlersRef.current.set(LiveStreamSocketEvents.SESSION_ENDED, onSessionEndedHandler);
       handlersRef.current.set(LiveStreamSocketEvents.ERROR, onErrorHandler);
-    };
-
-    setupHandlers();
-
-    // Cleanup
-    return () => {
-      const socket = socketService.getSocket();
-      if (socket) {
+      
+      // Return cleanup function
+      return () => {
         handlersRef.current.forEach((handler, event) => {
           socket.off(event, handler);
         });
         handlersRef.current.clear();
+      };
+    };
+
+    // ============================================
+    // PASSIVE: Try existing socket first
+    // ============================================
+    const existingSocket = socketService.getSocketIfConnected();
+    if (existingSocket) {
+      console.log('[useLivestreamSocket] Using existing connected socket');
+      cleanupFn = setupHandlers(existingSocket);
+    }
+    
+    // ============================================
+    // PASSIVE: Subscribe to future connections
+    // AppProviders manages connection lifecycle
+    // ============================================
+    const onSocketConnect = () => {
+      const socket = socketService.getSocket();
+      if (socket && isMounted && !cleanupFn) {
+        cleanupFn = setupHandlers(socket);
+      }
+    };
+    
+    socketService.onConnect(onSocketConnect);
+    
+    // ⚠️ REMOVED: socketService.connectNonBlocking();
+    // Connection is managed by AppProviders ONLY
+    // Livestream pages will get socket when AppProviders connects it
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      socketService.offConnect(onSocketConnect);
+      if (cleanupFn) {
+        cleanupFn();
       }
     };
   }, [enabled, sessionId]); // ✅ Chỉ phụ thuộc vào enabled và sessionId
@@ -363,11 +397,15 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
     const retryDelay = 2000; // 2 seconds
     let isCancelled = false;
 
-    const joinSession = async () => {
+    const joinSession = () => {
       if (isCancelled) return;
       
-      const socket = await socketService.connect();
-      if (!socket || isCancelled) return;
+      // Use getSocketIfConnected since we're in the isConnected=true branch
+      const socket = socketService.getSocketIfConnected();
+      if (!socket || isCancelled) {
+        console.warn('[useLivestreamSocket] Socket not connected when trying to join');
+        return;
+      }
 
       try {
         console.log(`[useLivestreamSocket] Attempting to join session ${sessionId} (attempt ${retryCount + 1}/${maxRetries})...`);

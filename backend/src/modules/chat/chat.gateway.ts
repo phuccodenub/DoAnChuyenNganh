@@ -65,7 +65,12 @@ export class ChatGateway {
       try {
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
 
+        logger.debug(`[ChatGateway] Socket ${socket.id} auth attempt`);
+        logger.debug(`[ChatGateway] Token present: ${!!token}, length: ${(token || '').length}`);
+
         if (!token) {
+          logger.warn(`[ChatGateway] ❌ Socket ${socket.id} - No token provided`);
+          socket.emit('auth_error', { message: 'Authentication token required' });
           return next(new Error('Authentication token required'));
         }
 
@@ -79,9 +84,11 @@ export class ChatGateway {
           role: decoded.role
         } as SocketUser;
 
+        logger.info(`[ChatGateway] ✅ Socket ${socket.id} authenticated - User: ${decoded.userId} (${decoded.email})`);
         next();
       } catch (error: unknown) {
-        logger.error('Socket authentication error:', error);
+        logger.error(`[ChatGateway] ❌ Socket auth error:`, error);
+        socket.emit('auth_error', { message: 'Authentication failed', error: (error as Error).message });
         next(new Error('Authentication failed'));
       }
     });
