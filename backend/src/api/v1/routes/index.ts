@@ -33,6 +33,7 @@ import moderationRoutes from '../../../modules/moderation/moderation.routes';
 import { default as reviewRoutes } from '../../../modules/review/review.routes';
 import { filesRoutes, mediaRoutes } from '../../../modules/files';
 import { conversationRoutes, messageRoutes } from '../../../modules/conversation';
+import { chatRoutes } from '../../../modules/chat';
 import logger from '../../../utils/logger.util';
 
 const router = Router();
@@ -112,5 +113,8 @@ router.use('/media', mediaRoutes);
 // DM Chat routes
 router.use('/conversations', conversationRoutes);
 router.use('/messages', messageRoutes);
+
+// Course Chat routes (Socket.IO fallback)
+router.use('/chat', chatRoutes);
 
 export default router;
