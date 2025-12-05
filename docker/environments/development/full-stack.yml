@@ -121,8 +121,8 @@ services:
       context: ../../..
       dockerfile: frontend/Dockerfile
       args:
-        VITE_API_URL: "http://localhost:${BACKEND_PORT:-3000}/api/v1.3.0"
-        VITE_SOCKET_URL: "http://localhost:${BACKEND_PORT:-3000}"
+        VITE_API_URL: "/api/v1.3.0"
+        VITE_SOCKET_URL: ""
     image: lms-frontend-dev:latest
     container_name: lms-frontend-dev
     restart: unless-stopped

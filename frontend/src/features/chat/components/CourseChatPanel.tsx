@@ -78,7 +78,7 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
   const sendMessageMutation = useSendCourseMessage(selectedCourseId || '');
 
   // Real-time socket for course chat
-  useCourseChatSocket({
+  const { onlineUsers } = useCourseChatSocket({
     courseId: selectedCourseId || undefined,
     onNewMessage: () => {
       refetchMessages();
@@ -199,7 +199,12 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
                     {course.enrollmentCount !== undefined && (
                       <div className="flex items-center gap-1 text-sm text-gray-500 mt-0.5">
                         <Users className="w-3 h-3" />
-                        <span>{course.enrollmentCount} học viên</span>
+                        <span>
+                          {isStudent 
+                            ? `${course.enrollmentCount} học viên • 1 giảng viên`
+                            : `${course.enrollmentCount} học viên`
+                          }
+                        </span>
                       </div>
                     )}
                   </div>
@@ -256,8 +261,17 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
                 <h3 className="font-semibold text-gray-900 truncate">
                   {selectedCourse.title}
                 </h3>
-                <p className="text-sm text-gray-500">
-                  Thảo luận chung
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                  <span>Thảo luận chung</span>
+                  {onlineUsers.length > 0 && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-gray-400" />
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-green-500" />
+                        {onlineUsers.length} đang online
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
             </div>

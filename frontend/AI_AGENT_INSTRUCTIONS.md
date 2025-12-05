@@ -1,25 +1,103 @@
 # 🤖 HƯỚNG DẪN CHO AI AGENTS - DỰ ÁN LMS
 
-> **Tài liệu ngắn gọn cho AI Agents làm việc với dự án LMS**
+> **Tài liệu này dành cho các AI Agents tham gia vào dự án LMS.**
+>
+> **Mục đích:** Đảm bảo tất cả AI Agents làm việc theo cùng một tiêu chuẩn, quy trình và best practices.
 
 ---
 
-## 🚀 CÁCH CHẠY DỰ ÁN (QUAN TRỌNG!)
+## ⚠️ QUY TẮC BẮT BUỘC (CRITICAL RULES)
+
+### 🔴 RULE 1: ĐỌC KỸ DỮ LIỆU TRƯỚC KHI CODE
+
+**TRƯỚC KHI viết bất kỳ dòng code nào, bạn PHẢI:**
+
+1. **Phân tích cấu trúc dự án hiện tại**
+2. **Hiểu rõ Backend API:**
+   - Đọc các route files trong `backend/src/modules/*/routes.ts`
+   - Hiểu các endpoints API bạn sẽ tích hợp
+   - Kiểm tra request/response types từ backend
+3. **Kiểm tra context của task**
+
+**❌ KHÔNG BAO GIỜ:**
+- Bắt đầu code mà không đọc tài liệu (hoặc codebase)
+- Tự ý thay đổi kiến trúc đã định nghĩa
+- Bỏ qua việc kiểm tra code hiện có
+- Làm việc mà không hiểu context
+
+---
+
+### 🔴 RULE 2: QUY TRÌNH HOÀN THÀNH CÔNG VIỆC
+
+Sau khi hoàn thành code, **BẮT BUỘC** thực hiện theo thứ tự:
+
+#### **BƯỚC 1: Kiểm tra Lỗi TypeScript**
+```powershell
+cd frontend && npm run type-check
+cd backend && npm run lint
+```
+
+**Yêu cầu:**
+- ✅ KHÔNG có lỗi TypeScript nào
+- ✅ KHÔNG có `any` types (trừ khi thực sự cần thiết và có comment giải thích)
+- ✅ Tất cả props đều có types rõ ràng
+- ✅ API responses đều có interface definitions
+
+**Nếu có lỗi:** Fix TẤT CẢ lỗi → Chạy lại → Lặp lại cho đến khi KHÔNG còn lỗi
+
+#### **BƯỚC 2: Kiểm tra Linting**
+```powershell
+npm run lint
+```
+- ✅ KHÔNG có ESLint errors
+- ✅ Warnings nên được fix (nếu có thể)
+
+#### **BƯỚC 3: Test thủ công**
+- [ ] Component render đúng
+- [ ] Tất cả user interactions
+- [ ] Responsive design (mobile, tablet, desktop)
+- [ ] API integration (nếu có)
+- [ ] Error states
+- [ ] Loading states
+
+---
+
+### 🔴 RULE 3: NGÔN NGỮ GIAO DIỆN - TIẾNG VIỆT
+
+**DỰ ÁN NÀY DÀNH CHO NGƯỜI VIỆT NAM**
+
+- **Giao diện mặc định: 100% TIẾNG VIỆT**
+- Tất cả text hiển thị trên UI phải là tiếng Việt
+- Buttons, labels, placeholders, error messages - TẤT CẢ bằng tiếng Việt
+- Ngôn ngữ mặc định trong i18n: `vi` (Vietnamese)
+
+```tsx
+// ✅ ĐÚNG - Tiếng Việt
+<h1>Chào mừng đến với LMS</h1>
+<Button>Đăng nhập</Button>
+
+// ❌ SAI - Tiếng Anh
+<h1>Welcome to LMS</h1>
+<Button>Login</Button>
+```
+
+---
+
+## 🚀 CÁCH CHẠY DỰ ÁN
 
 ### ⚠️ DỰ ÁN CHẠY BẰNG DOCKER - KHÔNG CHẠY TRỰC TIẾP
 
 ```powershell
-# ĐÚNG: Chạy full-stack (Frontend + Backend + Redis + Postgres)
+# ✅ ĐÚNG: Chạy full-stack (Frontend + Backend + Redis + Postgres)
 npm run dev:web
 
-# ĐÚNG: Chỉ backend (dùng khi phát triển frontend riêng với Vite)
+# ✅ ĐÚNG: Chỉ backend + Frontend Vite riêng
 npm run dev:api
 cd frontend && npm run dev  # Frontend chạy trên port 5174
 ```
 
-### ❌ SAI - KHÔNG LÀM ĐIỀU NÀY
 ```powershell
-# SAI: Không chạy trực tiếp npm run dev ở backend!
+# ❌ SAI: Không chạy trực tiếp npm run dev ở backend!
 cd backend && npm run dev  # ← KHÔNG HOẠT ĐỘNG vì thiếu Redis, Postgres
 ```
 
@@ -34,9 +112,8 @@ cd backend && npm run dev  # ← KHÔNG HOẠT ĐỘNG vì thiếu Redis, Postgr
 
 ---
 
-## 📋 KIỂM TRA LOGS (QUAN TRỌNG!)
+## 📋 KIỂM TRA LOGS
 
-### Backend Logs (trong Docker)
 ```powershell
 # Xem logs realtime
 docker logs lms-backend-dev -f
@@ -47,79 +124,15 @@ docker logs lms-backend-dev --tail 50
 # Tìm lỗi cụ thể
 docker logs lms-backend-dev 2>&1 | Select-String -Pattern "error|Error|ERROR"
 
-# Tìm theo keyword
-docker logs lms-backend-dev 2>&1 | Select-String -Pattern "conversation|chat"
-```
-
-### Frontend Logs (nginx)
-```powershell
-docker logs lms-frontend-dev -f
-```
-
-### Kiểm tra trạng thái containers
-```powershell
-docker ps  # Xem containers đang chạy
-docker ps -a  # Xem tất cả (kể cả đã dừng)
-```
-
-### Restart services
-```powershell
 # Restart backend
 docker-compose -p lms -f docker/environments/development/full-stack.yml restart backend-dev
-
-# Restart tất cả
-docker-compose -p lms -f docker/environments/development/full-stack.yml restart
-```
-
----
-
-## 🏗️ CẤU TRÚC DỰ ÁN
-
-```
-H:\DACN\
-├── backend/                    # NestJS-like Express API
-│   ├── src/
-│   │   ├── api/               # Routes (v1, v1.3.0)
-│   │   ├── modules/           # Feature modules
-│   │   │   ├── auth/         # Authentication
-│   │   │   ├── course/       # Courses
-│   │   │   ├── chat/         # Course chat (Socket.IO)
-│   │   │   ├── conversation/ # DM chat (Socket.IO)
-│   │   │   ├── notifications/# Realtime notifications
-│   │   │   └── ...
-│   │   ├── models/           # Sequelize models
-│   │   ├── middlewares/      # Auth, validation, etc.
-│   │   └── utils/            # Helpers
-│   └── .env                  # Environment (DATABASE_URL to Supabase)
-│
-├── frontend/                  # React + Vite + TypeScript
-│   ├── src/
-│   │   ├── app/              # App setup, providers
-│   │   ├── features/         # Feature-based modules
-│   │   ├── components/       # Shared components
-│   │   ├── services/         # API clients
-│   │   └── hooks/            # Custom hooks
-│   └── vite.config.ts
-│
-├── docker/
-│   └── environments/
-│       └── development/
-│           ├── full-stack.yml    # Full development
-│           └── backend-only.yml  # Backend only
-│
-└── docs/                      # Documentation
 ```
 
 ---
 
 ## 🔌 API & AUTHENTICATION
 
-### API Base URL
-- Docker: `http://localhost:3001/api/v1.3.0` (qua nginx proxy)
-- Vite dev: `http://localhost:5174/api/v1.3.0` (qua Vite proxy)
-- Direct: `http://localhost:3000/api/v1.3.0`
-
-### JWT Token
+### JWT Token (QUAN TRỌNG!)
 ```typescript
 // Token payload structure
 interface JWTPayload {
@@ -133,91 +146,102 @@ const userId = req.user.userId;  // ✅ ĐÚNG
 const userId = req.user.id;      // ❌ SAI
 ```
 
-### Test API
-```powershell
-# Health check
-curl http://localhost:3001/health
+---
 
-# Get courses
-curl http://localhost:3001/api/v1.3.0/courses
+## 💻 CODING STANDARDS
 
-# Với authentication
-$token = "eyJ..."
-curl -H "Authorization: Bearer $token" http://localhost:3001/api/v1.3.0/users/profile
+### TypeScript Standards
+```tsx
+// ✅ ĐÚNG - Strongly typed
+interface User {
+  id: number;
+  email: string;
+  full_name: string;
+  role: 'student' | 'instructor' | 'admin';
+}
+
+function UserCard({ user }: { user: User }) {
+  return <div>{user.full_name}</div>;
+}
+
+// ❌ SAI - Weak typing
+function UserCard({ user }: { user: any }) {
+  return <div>{user.full_name}</div>;
+}
+```
+
+### React Query Standards
+```tsx
+const { data, isLoading, error } = useQuery(...);
+
+// ✅ ĐÚNG - Handle all states
+if (isLoading) return <Spinner />;
+if (error) return <Error />;
+return <div>{data.map(...)}</div>;
+
+// ❌ SAI - No error/loading handling
+return <div>{data.map(...)}</div>;
+```
+
+### Naming Conventions
+- Components: `PascalCase` - `CourseCard`, `UserProfile`
+- Functions: `camelCase` - `getUserProfile`, `handleSubmit`
+- Constants: `UPPER_SNAKE_CASE` - `API_BASE_URL`
+- Files: Components `PascalCase.tsx`, Utils `camelCase.ts`
+
+---
+
+## 🔧 DEVELOPMENT WORKFLOW
+
+```
+1. Nhận task
+   ↓
+2. Đọc docs & analyze code (BẮT BUỘC!)
+   ↓
+3. Plan implementation
+   ↓
+4. Write code
+   ↓
+5. Test locally
+   ↓
+6. Fix TypeScript errors (npm run type-check)
+   ↓
+7. Fix ESLint errors (npm run lint)
+   ↓
+8. Manual testing
+   ↓
+9. Commit & push
 ```
 
 ---
 
-## 🔌 SOCKET.IO
+## 🐞 COMMON PITFALLS
 
-### Connection
-```typescript
-// Frontend kết nối qua window.location.origin
-// Docker: ws://localhost:3001/socket.io
-// Vite:   ws://localhost:5174/socket.io
-```
-
-### Gateways
-| Gateway | Purpose | Events |
-|---------|---------|--------|
-| ChatGateway | Course discussions | `message:new`, `typing`, etc. |
-| ConversationGateway | DM between users | `dm:new`, `dm:read`, etc. |
-| NotificationGateway | Realtime notifications | `notification:new`, etc. |
+| ❌ SAI | ✅ ĐÚNG |
+|--------|---------|
+| `user: any` | `user: User` |
+| Hardcode strings | Dùng i18n translations |
+| Inline styles | TailwindCSS classes |
+| Không cleanup useEffect | `return () => cleanup()` |
+| Không handle loading/error | Luôn check `isLoading`, `error` |
+| `req.user.id` | `req.user.userId` |
 
 ---
 
-## ✅ QUY TẮC CODE
+## ✅ FINAL CHECKLIST
 
-### TypeScript
-- **KHÔNG dùng `any`** trừ khi thực sự cần thiết
-- Định nghĩa interface cho tất cả API responses
-- Type-check: `npm run type-check` (frontend), `npm run lint` (backend)
+Trước khi đánh dấu task hoàn thành:
 
-### Ngôn ngữ UI
-- **100% TIẾNG VIỆT** cho tất cả text hiển thị
-- Sử dụng i18n với default locale `vi`
-
-### Trước khi commit
-```powershell
-# Frontend
-cd frontend
-npm run type-check
-npm run lint
-
-# Backend
-cd backend
-npm run lint
-```
-
----
-
-## 🐛 DEBUG COMMON ISSUES
-
-### 1. API trả về 404
-```powershell
-# Kiểm tra route có được đăng ký không
-docker logs lms-backend-dev 2>&1 | Select-String "Registering"
-```
-
-### 2. API trả về 500 "User not found"
-- Kiểm tra `req.user.userId` (không phải `req.user.id`)
-- Xem logs để biết userId có được decode đúng không
-
-### 3. Socket không kết nối
-```powershell
-# Test socket từ bên trong container
-docker exec lms-backend-dev curl "http://127.0.0.1:3000/socket.io/?EIO=4&transport=polling"
-```
-
-### 4. Database errors
-```powershell
-# Xem logs Sequelize
-docker logs lms-backend-dev 2>&1 | Select-String "Sequelize|Database|SQL"
-```
-
-### 5. CORS errors
-- Kiểm tra `CORS_ALLOWED_ORIGINS` trong docker-compose
-- Ports 3000, 3001, 5174 cần được cho phép
+- [ ] Code chạy không có lỗi
+- [ ] TypeScript type-check passed (`npm run type-check`)
+- [ ] ESLint check passed (`npm run lint`)
+- [ ] Tất cả text trong UI là tiếng Việt
+- [ ] Component responsive (mobile, tablet, desktop)
+- [ ] Loading states implemented
+- [ ] Error states implemented
+- [ ] API integration tested (nếu có)
+- [ ] Đã commit code với message rõ ràng
+- [ ] Không còn console.log không cần thiết
 
 ---
 
@@ -227,7 +251,6 @@ docker logs lms-backend-dev 2>&1 | Select-String "Sequelize|Database|SQL"
 |------|-------|
 | `backend/src/api/v1/routes/index.ts` | Đăng ký tất cả API routes |
 | `backend/src/middlewares/auth.middleware.ts` | JWT authentication |
-| `backend/src/config/jwt.config.ts` | JWT payload structure |
 | `frontend/src/services/http/client.ts` | Axios client setup |
 | `frontend/src/services/socketService.ts` | Socket.IO client |
 | `docker/environments/development/full-stack.yml` | Docker compose |
@@ -236,11 +259,13 @@ docker logs lms-backend-dev 2>&1 | Select-String "Sequelize|Database|SQL"
 
 ## 🎯 WORKFLOW CHO AI
 
-1. **Đọc logs trước** khi debug
-2. **Dùng Docker commands** để kiểm tra, KHÔNG chạy trực tiếp
-3. **Kiểm tra JWT payload** khi có lỗi authentication
-4. **Test API bằng curl** trước khi sửa code
-5. **Restart container** sau khi sửa backend code
+1. **Đọc kỹ codebase** trước khi sửa đổi
+2. **Đọc logs trước** khi debug
+3. **Dùng Docker commands** để kiểm tra, KHÔNG chạy trực tiếp
+4. **Kiểm tra JWT payload** khi có lỗi authentication (`userId` không phải `id`)
+5. **Test API bằng curl** trước khi sửa code
+6. **Restart container** sau khi sửa backend code
+7. **Chạy type-check và lint** trước khi commit
 
 ---
 
