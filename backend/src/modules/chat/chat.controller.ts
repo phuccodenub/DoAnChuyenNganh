@@ -59,17 +59,26 @@ export class ChatController {
     try {
       const { courseId } = req.params;
       const userId = req.user!.userId;
-      const { message, message_type, file_url, file_name, file_size, reply_to } = req.body;
+      const { 
+        content, 
+        message_type, 
+        attachment_url, 
+        attachment_name, 
+        attachment_size,
+        attachment_type,
+        reply_to_message_id 
+      } = req.body;
 
       const result = await this.chatService.sendMessage({
         course_id: courseId,
-        sender_id: userId,
-        message,
+        user_id: userId,
+        content,
         message_type,
-        file_url,
-        file_name,
-        file_size,
-        reply_to
+        attachment_url,
+        attachment_name,
+        attachment_size,
+        attachment_type,
+        reply_to_message_id
       });
 
       responseUtils.sendSuccess(res, 'Message sent successfully', result);
@@ -87,9 +96,9 @@ export class ChatController {
     try {
       const { messageId } = req.params;
       const userId = req.user!.userId;
-      const { message } = req.body;
+      const { content } = req.body;
 
-      const result = await this.chatService.updateMessage(messageId, userId, { message });
+      const result = await this.chatService.updateMessage(messageId, userId, { content });
 
       responseUtils.sendSuccess(res, 'Message updated successfully', result);
     } catch (error: unknown) {

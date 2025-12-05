@@ -5,16 +5,14 @@
  * Khi click vào một tin nhắn sẽ điều hướng đến ChatPage hoặc InstructorChatPage
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Search, Settings } from 'lucide-react';
+import { MessageCircle, Search, Settings, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES, generateRoute } from '@/constants/routes';
+import { useConversations, useUnreadCount } from '@/hooks/useConversations';
 import {
-    Conversation,
-    mockStudentConversations,
-    mockInstructorConversations,
     formatRelativeTime,
     OnlineStatusDot,
 } from '@/features/chat';
@@ -26,25 +24,55 @@ export const MessagePanel: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    // Determine which conversations to show based on user role
+    // Fetch real conversations from API
+    const { data: conversationsData, isLoading: isLoadingConversations } = useConversations(
+        { limit: 10, includeArchived: false },
+        { enabled: !!user }
+    );
+
+    // Get unread count from API
+    const { data: unreadCountData } = useUnreadCount();
+
     const isInstructor = user?.role === 'instructor';
-    const conversations = isInstructor
-        ? mockInstructorConversations
-        : mockStudentConversations;
+
+    // Transform API conversations to display format
+    const conversations = useMemo(() => {
+        if (!conversationsData?.data) return [];
+        return conversationsData.data.map((conv: any) => ({
+            id: conv.id,
+            course_id: conv.course_id || conv.courseId,
+            course_title: conv.course_title || conv.courseTitle || 'Khóa học',
+            participant: {
+                id: conv.participant?.id || conv.participantId,
+                name: conv.participant?.name || 
+                      `${conv.participant?.first_name || ''} ${conv.participant?.last_name || ''}`.trim() ||
+                      conv.participantName || 'Người dùng',
+                avatar_url: conv.participant?.avatar_url || conv.participant?.avatar || conv.participantAvatar,
+                online_status: conv.participant?.online_status || conv.participantOnlineStatus || 'offline',
+            },
+            last_message: conv.last_message || conv.lastMessage ? {
+                content: conv.last_message?.content || conv.lastMessage?.content || '',
+                sender_role: conv.last_message?.sender_role || conv.lastMessage?.senderRole,
+                created_at: conv.last_message?.created_at || conv.lastMessage?.createdAt,
+            } : null,
+            unread_count: conv.unread_count || conv.unreadCount || 0,
+        }));
+    }, [conversationsData]);
 
     // Filter conversations based on search
-    const filteredConversations = conversations.filter((conv) => {
-        if (!searchQuery) return true;
+    const filteredConversations = useMemo(() => {
+        if (!searchQuery) return conversations;
         const searchLower = searchQuery.toLowerCase();
-        return (
+        return conversations.filter((conv: any) => 
             conv.participant.name.toLowerCase().includes(searchLower) ||
             conv.course_title.toLowerCase().includes(searchLower) ||
-            conv.last_message?.content.toLowerCase().includes(searchLower)
+            conv.last_message?.content?.toLowerCase().includes(searchLower)
         );
-    });
+    }, [conversations, searchQuery]);
 
-    // Calculate unread count
-    const unreadCount = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
+    // Calculate unread count from API or fallback to calculated
+    const unreadCount = unreadCountData?.data?.unread_count ?? 
+                        conversations.reduce((sum: number, conv: any) => sum + (conv.unread_count || 0), 0);
 
     // Handle click outside to close
     useEffect(() => {
@@ -63,7 +91,7 @@ export const MessagePanel: React.FC = () => {
     }, [isOpen]);
 
     // Handle click on conversation
-    const handleConversationClick = (conversation: Conversation) => {
+    const handleConversationClick = (conversation: any) => {
         setIsOpen(false);
         // Use shared messages route with courseId query param
         const chatRoute = generateRoute.shared.messages(conversation.course_id);
@@ -146,7 +174,12 @@ export const MessagePanel: React.FC = () => {
 
                     {/* Conversation List */}
                     <div className="max-h-[60vh] overflow-y-auto">
-                        {filteredConversations.length === 0 ? (
+                        {isLoadingConversations ? (
+                            <div className="py-12 text-center">
+                                <Loader2 className="w-8 h-8 mx-auto text-blue-500 animate-spin mb-3" />
+                                <p className="text-gray-500 text-sm">Đang tải...</p>
+                            </div>
+                        ) : filteredConversations.length === 0 ? (
                             <div className="py-12 text-center">
                                 <MessageCircle className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                                 <p className="text-gray-500 text-sm">
@@ -154,7 +187,7 @@ export const MessagePanel: React.FC = () => {
                                 </p>
                             </div>
                         ) : (
-                            filteredConversations.map((conversation) => (
+                            filteredConversations.map((conversation: any) => (
                                 <button
                                     key={conversation.id}
                                     onClick={() => handleConversationClick(conversation)}

@@ -176,16 +176,16 @@ export const setupAssociations = () => {
   });
 
   // ===================================
-  // 3. CHAT RELATIONSHIPS (Current Simple Version)
+  // 3. CHAT RELATIONSHIPS (Supabase Schema)
   // ===================================
   
-  // User 1 ---< ChatMessage
+  // User 1 ---< ChatMessage (Supabase uses user_id)
   (User as any).hasMany(ChatMessage, {
-    foreignKey: 'sender_id',
+    foreignKey: 'user_id',
     as: 'sentMessages'
   });
   (ChatMessage as any).belongsTo(User, {
-    foreignKey: 'sender_id',
+    foreignKey: 'user_id',
     as: 'sender'
   });
 
@@ -199,13 +199,13 @@ export const setupAssociations = () => {
     as: 'course'
   });
 
-  // ChatMessage (self-referencing) - Reply functionality
+  // ChatMessage (self-referencing) - Reply functionality (Supabase uses reply_to_message_id)
   (ChatMessage as any).hasMany(ChatMessage, {
-    foreignKey: 'reply_to',
+    foreignKey: 'reply_to_message_id',
     as: 'replies'
   });
   (ChatMessage as any).belongsTo(ChatMessage, {
-    foreignKey: 'reply_to',
+    foreignKey: 'reply_to_message_id',
     as: 'replyToMessage'
   });
 

@@ -50,9 +50,12 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
         ? '/courses/enrolled' 
         : '/courses/instructor/my-courses';
       const response = await apiClient.get(endpoint);
-      const rawCourses = response.data.data?.courses || response.data.data || [];
+      // API returns { success, data: { data: Course[], pagination } }
+      // or { success, data: { courses: Course[] } } for enrolled
+      const respData = response.data?.data || response.data;
+      const rawCourses = respData?.data || respData?.courses || respData || [];
       // Transform to CourseForChat format
-      return rawCourses.map((c: any) => ({
+      return (Array.isArray(rawCourses) ? rawCourses : []).map((c: any) => ({
         id: c.id,
         title: c.title,
         thumbnail: c.thumbnail_url || c.thumbnail,
@@ -62,7 +65,7 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
           lastName: c.instructor.last_name || c.instructor.lastName || '',
           avatar: c.instructor.avatar_url || c.instructor.avatar,
         } : { id: user?.id || '', firstName: '', lastName: '' },
-        enrollmentCount: c.enrollment_count || c.enrollmentCount,
+        enrollmentCount: c.enrollment_count || c.enrollmentCount || c.total_students,
       })) as CourseForChat[];
     },
     enabled: !!user,

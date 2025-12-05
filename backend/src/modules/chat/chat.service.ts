@@ -27,7 +27,7 @@ export class ChatService {
     try {
       // Validate user has access to course chat
       const hasAccess = await this.repository.canUserAccessChat(
-        data.sender_id,
+        data.user_id,
         data.course_id
       );
 
@@ -38,13 +38,14 @@ export class ChatService {
       // Create message
       const message = await this.repository.createMessage({
         course_id: data.course_id,
-        sender_id: data.sender_id,
-        message: data.message,
+        user_id: data.user_id,
+        content: data.content,
         message_type: data.message_type || 'text',
-        file_url: data.file_url,
-        file_name: data.file_name,
-        file_size: data.file_size,
-        reply_to: data.reply_to
+        attachment_url: data.attachment_url,
+        attachment_name: data.attachment_name,
+        attachment_size: data.attachment_size,
+        attachment_type: data.attachment_type,
+        reply_to_message_id: data.reply_to_message_id
       });
 
       return message;
@@ -85,7 +86,7 @@ export class ChatService {
       const message = await this.repository.updateMessage(
         messageId,
         userId,
-        dto.message
+        dto.content
       );
 
       if (!message) {

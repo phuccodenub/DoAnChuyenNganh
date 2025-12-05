@@ -34,13 +34,14 @@ export class ChatRepository {
    */
   async createMessage(data: {
     course_id: string;
-    sender_id: string;
-    message: string;
+    user_id: string;  // sender
+    content: string;  // message content
     message_type?: 'text' | 'file' | 'image' | 'system' | 'announcement';
-    file_url?: string;
-    file_name?: string;
-    file_size?: number;
-    reply_to?: string;
+    attachment_url?: string;
+    attachment_name?: string;
+    attachment_size?: number;
+    attachment_type?: string;
+    reply_to_message_id?: string;
   }): Promise<ChatMessageInstance | null> {
     try {
       const message = await ChatMessage.create(data) as ChatMessageInstance;
@@ -68,7 +69,7 @@ export class ChatRepository {
           {
             model: ChatMessage,
             as: 'replyToMessage',
-            attributes: ['id', 'message', 'sender_id', 'created_at'],
+            attributes: ['id', 'content', 'user_id', 'created_at'],
             include: [
               {
                 model: User,
@@ -114,7 +115,7 @@ export class ChatRepository {
 
       // Search in messages
       if (searchTerm) {
-        (where as any).message = {
+        (where as any).content = {
           [Op.iLike]: `%${searchTerm}%`
         };
       }
@@ -151,7 +152,7 @@ export class ChatRepository {
           {
             model: ChatMessage,
             as: 'replyToMessage',
-            attributes: ['id', 'message', 'sender_id'],
+            attributes: ['id', 'content', 'user_id'],
             include: [
               {
                 model: User,
@@ -183,12 +184,12 @@ export class ChatRepository {
   /**
    * Update message
    */
-  async updateMessage(messageId: string, userId: string, newMessage: string) {
+  async updateMessage(messageId: string, userId: string, newContent: string) {
     try {
       const message = await ChatMessage.findOne({
         where: {
           id: messageId,
-          sender_id: userId,
+          user_id: userId,
           is_deleted: false
         }
       });
@@ -198,7 +199,7 @@ export class ChatRepository {
       }
 
       await (message as any).update({
-        message: newMessage,
+        content: newContent,
         is_edited: true,
         edited_at: new Date()
       });
@@ -218,7 +219,7 @@ export class ChatRepository {
       const message = await ChatMessage.findOne({
         where: {
           id: messageId,
-          sender_id: userId,
+          user_id: userId,
           is_deleted: false
         }
       });

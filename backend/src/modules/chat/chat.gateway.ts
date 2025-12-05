@@ -263,8 +263,8 @@ export class ChatGateway {
       try {
         const user = (socket as any).user as SocketUser;
 
-        // Validate message
-        if (!data.message || data.message.trim().length === 0) {
+        // Validate message content
+        if (!data.content || data.content.trim().length === 0) {
           socket.emit(ChatSocketEvents.ERROR, {
             code: ChatErrorCodes.INVALID_MESSAGE,
             message: 'Message cannot be empty'
@@ -275,7 +275,7 @@ export class ChatGateway {
         // Create message in database
         const message = await this.chatService.sendMessage({
           ...data,
-          sender_id: user.userId
+          user_id: user.userId
         });
 
         if (!message) {
@@ -294,7 +294,7 @@ export class ChatGateway {
 
         // Confirm to sender with delivery status
         socket.emit(ChatSocketEvents.MESSAGE_SENT, {
-          tempId: data.reply_to, // Can be used for optimistic updates
+          tempId: data.reply_to_message_id, // Can be used for optimistic updates
           message,
           deliveryStatus: 'sent'
         });
@@ -320,7 +320,7 @@ export class ChatGateway {
    * Handle edit message event
    */
   private handleEditMessage(socket: Socket): void {
-    socket.on(ChatSocketEvents.EDIT_MESSAGE, async (data: { messageId: string; message: string; courseId: string }) => {
+    socket.on(ChatSocketEvents.EDIT_MESSAGE, async (data: { messageId: string; content: string; courseId: string }) => {
       try {
         const user = (socket as any).user as SocketUser;
 
@@ -328,7 +328,7 @@ export class ChatGateway {
         const updatedMessage = await this.chatService.updateMessage(
           data.messageId,
           user.userId,
-          { message: data.message }
+          { content: data.content }
         );
 
         // Broadcast to room

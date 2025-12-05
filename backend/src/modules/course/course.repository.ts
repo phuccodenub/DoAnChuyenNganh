@@ -756,5 +756,57 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       throw error;
     }
   }
+
+  /**
+   * Find recommended courses for a user
+   * Returns published courses the user hasn't enrolled in, ordered by rating and enrollment count
+   */
+  async findRecommendedCourses(userId: string, limit: number = 6): Promise<CourseInstance[]> {
+    try {
+      const CourseModel = this.getModel();
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+
+      // Get user's enrolled course IDs
+      const enrollments = await EnrollmentModel.findAll({
+        where: { user_id: userId },
+        attributes: ['course_id']
+      });
+      const enrolledCourseIds = enrollments.map((e: any) => e.course_id);
+
+      // Build where clause
+      const where: WhereOptions<CourseAttributes> = {
+        status: 'published'
+      };
+
+      // Exclude enrolled courses if any
+      if (enrolledCourseIds.length > 0) {
+        (where as any).id = {
+          [require('sequelize').Op.notIn]: enrolledCourseIds
+        };
+      }
+
+      // Find recommended courses
+      const courses = await CourseModel.findAll({
+        where,
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'first_name', 'last_name', 'avatar']
+          }
+        ],
+        order: [
+          ['rating', 'DESC'],
+          ['created_at', 'DESC']
+        ],
+        limit
+      });
+
+      return courses;
+    } catch (error: unknown) {
+      logger.error('Error finding recommended courses:', error);
+      throw error;
+    }
+  }
 }
 
