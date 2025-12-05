@@ -21,7 +21,7 @@ export class ConversationController {
    * Get all conversations for the current user
    */
   getConversations = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const query = req.query as unknown as GetConversationsQuery;
 
     const result = await conversationService.getConversations(userId, {
@@ -46,7 +46,7 @@ export class ConversationController {
    * Get a single conversation
    */
   getConversation = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
 
     const conversation = await conversationService.getConversation(conversationId, userId);
@@ -62,7 +62,7 @@ export class ConversationController {
    * Create a new conversation or get existing one
    */
   createConversation = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const body = req.body as CreateConversationInput;
 
     const { conversation, created } = await conversationService.createConversation(userId, body);
@@ -79,7 +79,7 @@ export class ConversationController {
    * Get messages for a conversation
    */
   getMessages = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
     const query = req.query as unknown as GetMessagesQuery;
 
@@ -100,7 +100,7 @@ export class ConversationController {
    * Send a message in a conversation
    */
   sendMessage = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
     const body = req.body as SendMessageInput;
 
@@ -120,7 +120,7 @@ export class ConversationController {
    * Edit a message
    */
   editMessage = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { messageId } = req.params;
     const { content } = req.body as EditMessageInput;
 
@@ -137,7 +137,7 @@ export class ConversationController {
    * Delete a message (soft delete)
    */
   deleteMessage = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { messageId } = req.params;
 
     await conversationService.deleteMessage(messageId, userId);
@@ -153,7 +153,7 @@ export class ConversationController {
    * Mark all messages in conversation as read
    */
   markAsRead = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
 
     await conversationService.markAsRead(conversationId, userId);
@@ -169,7 +169,7 @@ export class ConversationController {
    * Archive or unarchive a conversation
    */
   archiveConversation = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
     const { archive = true } = req.body;
 
@@ -186,7 +186,7 @@ export class ConversationController {
    * Search messages in a conversation
    */
   searchMessages = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
     const { q } = req.query as { q: string };
 
@@ -203,7 +203,7 @@ export class ConversationController {
    * Get total unread message count
    */
   getUnreadCount = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
 
     const count = await conversationService.getTotalUnreadCount(userId);
 
