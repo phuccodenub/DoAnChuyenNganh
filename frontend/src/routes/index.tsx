@@ -68,6 +68,10 @@ const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 const NotificationsPage = lazy(() => import('@/pages/student/NotificationsPage'));
 const InstructorNotificationsPage = lazy(() => import('@/pages/instructor/CourseNotificationPage'));
 
+// Certificate pages
+const CertificateDetailPage = lazy(() => import('@/pages/certificates/CertificateDetailPage'));
+const CertificateVerifyPage = lazy(() => import('@/pages/certificates/CertificateVerifyPage'));
+
 const InstructorLivestreamRedirect = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   if (!sessionId) {
@@ -93,6 +97,9 @@ function AppRoutes() {
         {/* NOTE: /home route removed - using / as single entry point for unauthenticated users */}
         <Route path={ROUTES.COURSES} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSE_DETAIL} element={<CourseDetailPage />} />
+        
+        {/* Certificate routes (Public) */}
+        <Route path={ROUTES.CERTIFICATES_VERIFY} element={<CertificateVerifyPage />} />
 
         {/* Auth routes - Public (no authentication required) */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
@@ -111,6 +118,9 @@ function AppRoutes() {
 
           {/* Universal profile route for all authenticated users */}
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+          
+          {/* Certificate routes (Protected) */}
+          <Route path="/certificates/:id" element={<CertificateDetailPage />} />
 
           {/* Learning routes - accessible to all authenticated users who can enroll (student, instructor, admin, super_admin) */}
           <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>

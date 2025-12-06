@@ -34,6 +34,8 @@ import { up as addLessonIdToQuizzesAssignments, down as removeLessonIdFromQuizze
 import { up as allowNullableCourseForQuizAssignment, down as revertNullableCourseForQuizAssignment } from './027-allow-nullable-course-for-quiz-assignment';
 import { up as replaceLessonIdWithSectionIdInQuizzes, down as revertReplaceLessonIdWithSectionIdInQuizzes } from './028-replace-lesson-id-with-section-id-in-quizzes';
 import { up as addSectionIdToAssignments, down as removeSectionIdFromAssignments } from './029-add-section-id-to-assignments';
+import { up as createCertificatesTable, down as dropCertificatesTable } from './030-create-certificates-table';
+import { up as makeIpfsHashNullable, down as revertIpfsHashNullable } from './031-make-ipfs-hash-nullable';
 
 // Migration interface
 export interface Migration {
@@ -237,6 +239,18 @@ export const migrations: Migration[] = [
     description: 'Add section_id to assignments',
     up: addSectionIdToAssignments,
     down: removeSectionIdFromAssignments
+  },
+  {
+    version: '030',
+    description: 'Create certificates table',
+    up: createCertificatesTable,
+    down: dropCertificatesTable
+  },
+  {
+    version: '031',
+    description: 'Make ipfs_hash nullable in certificates table',
+    up: makeIpfsHashNullable,
+    down: revertIpfsHashNullable
   }
 ];
 

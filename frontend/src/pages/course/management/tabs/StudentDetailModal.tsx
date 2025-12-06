@@ -20,8 +20,10 @@ import type { CourseProgressSummary } from '@/services/api/lesson.api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { quizApi, type Quiz } from '@/services/api/quiz.api';
 import { assignmentApi, type Assignment } from '@/services/api/assignment.api';
-import { ClipboardList, FileText, RotateCcw } from 'lucide-react';
+import { ClipboardList, FileText, RotateCcw, GraduationCap, ExternalLink, Award } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useCourseCertificates } from '@/hooks/useCertificateData';
+import { Link } from 'react-router-dom';
 
 interface StudentDetailModalProps {
   isOpen: boolean;
@@ -55,6 +57,16 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const { data: courseContent } = useCourseContent(courseId);
   const queryClient = useQueryClient();
+  
+  // Fetch student certificates for this course
+  const { data: studentCertificates, isLoading: isLoadingCertificates } = useCourseCertificates(courseId, {
+    enabled: isOpen,
+  });
+  
+  // Filter certificates for this specific student
+  const studentCourseCertificates = studentCertificates?.filter(
+    (cert) => cert.user_id === student.id && cert.status === 'active'
+  ) || [];
 
   // Fetch detailed progress when modal opens
   useEffect(() => {
@@ -497,6 +509,58 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
           </CardContent>
         </Card>
 
+        {/* Certificates Section */}
+        {studentCourseCertificates.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <GraduationCap className="w-5 h-5" />
+                Chứng chỉ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {studentCourseCertificates.map((certificate) => (
+                  <Link
+                    key={certificate.id}
+                    to={`/certificates/${certificate.id}`}
+                    className="block"
+                  >
+                    <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="flex-shrink-0">
+                        <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                          <Award className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 mb-1">
+                          {certificate.metadata.course.title}
+                        </h4>
+                        <p className="text-sm text-gray-500 mb-2">
+                          Số chứng chỉ: {certificate.certificate_number}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(certificate.issued_at).toLocaleDateString('vi-VN')}
+                          </span>
+                          {certificate.metadata.completion.grade && (
+                            <span className="flex items-center gap-1">
+                              <Award className="w-3 h-3" />
+                              {certificate.metadata.completion.grade.toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <ExternalLink className="w-5 h-5 text-gray-400 shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Completed Lessons List */}
         <Card>
           <CardHeader>
@@ -795,7 +859,7 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                               <div className="text-xs text-gray-500 mt-1">
                                 {quizAttempt.score != null || quizAttempt.total_score != null ? (
                                   <>
-                                    Điểm: {Number(quizAttempt.score || quizAttempt.total_score || 0).toFixed(1)}/{Number(quizAttempt.max_score || quizAttempt.total_points || 100).toFixed(1)}
+                                Điểm: {Number(quizAttempt.score || quizAttempt.total_score || 0).toFixed(1)}/{Number(quizAttempt.max_score || quizAttempt.total_points || 100).toFixed(1)}
                                   </>
                                 ) : (quizAttempt.status === 'submitted' || quizAttempt.status === 'graded') ? (
                                   <span className="text-gray-600">Đã nộp bài</span>
@@ -804,13 +868,13 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                             )}
                           </div>
                           <div className="flex items-center gap-2">
-                            {isPractice ? (
-                              <Badge variant="secondary" size="sm">Luyện tập</Badge>
-                            ) : isCompleted ? (
-                              <Badge variant="success" size="sm">Đã hoàn thành</Badge>
-                            ) : hasAttempt ? (
-                              <Badge variant="info" size="sm">Đang làm</Badge>
-                            ) : null}
+                          {isPractice ? (
+                            <Badge variant="secondary" size="sm">Luyện tập</Badge>
+                          ) : isCompleted ? (
+                            <Badge variant="success" size="sm">Đã hoàn thành</Badge>
+                          ) : hasAttempt ? (
+                            <Badge variant="info" size="sm">Đang làm</Badge>
+                          ) : null}
                             {/* Nút Reset lượt làm - chỉ hiển thị cho non-practice quiz có attempt */}
                             {!isPractice && hasAttempt && (
                               <ResetAttemptButton

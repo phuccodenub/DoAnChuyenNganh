@@ -166,6 +166,17 @@ export const env = {
       maxTokens: toInt(process.env.GEMINI_MAX_TOKENS, 8192),
     },
   },
+
+  // ============================================
+  // IPFS Configuration (Pinata)
+  // ============================================
+  ipfs: {
+    pinata: {
+      apiKey: process.env.PINATA_API_KEY || '',
+      secretKey: process.env.PINATA_SECRET_KEY || '',
+      gatewayUrl: process.env.PINATA_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/',
+    },
+  },
 };
 
 export default env;

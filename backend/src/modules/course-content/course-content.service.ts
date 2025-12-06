@@ -626,7 +626,57 @@ data: LessonProgressInput
     userId: string,
     courseId: string
 ): Promise<CourseProgressSummary> {
-    return await this.repository.getUserCourseProgress(userId, courseId) as any;
+    const progress = await this.repository.getUserCourseProgress(userId, courseId) as any;
+    
+    // Update enrollment progress if completion changed
+    if (progress.completion_percentage !== undefined) {
+      try {
+        const { Enrollment } = await import('../../models');
+        const enrollment = await (Enrollment as any).findOne({
+          where: {
+            user_id: userId,
+            course_id: courseId,
+          },
+        });
+        
+        if (enrollment) {
+          const newProgress = Number(progress.completion_percentage);
+          const oldProgress = Number(enrollment.progress_percentage) || 0;
+          
+          // Update progress if changed
+          if (Math.abs(newProgress - oldProgress) > 0.01) {
+            await enrollment.update({
+              progress_percentage: newProgress,
+              status: newProgress >= 100 ? 'completed' : enrollment.status,
+              completion_date: newProgress >= 100 && !enrollment.completion_date 
+                ? new Date() 
+                : enrollment.completion_date,
+            });
+            
+            // Auto-issue certificate if completion reaches 100%
+            if (newProgress >= 100 && oldProgress < 100) {
+              try {
+                const { certificateAutoIssueService } = await import('../certificate/certificate.auto-issue.service');
+                certificateAutoIssueService.checkAndIssueCertificate(
+                  userId,
+                  courseId,
+                  enrollment.id
+                ).catch((err: any) => {
+                  logger.error('[CourseContentService] Auto-issue certificate error:', err);
+                });
+              } catch (certError) {
+                logger.error('[CourseContentService] Certificate auto-issue error:', certError);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('[CourseContentService] Error updating enrollment progress:', error);
+        // Don't throw - progress calculation should still return
+      }
+    }
+    
+    return progress;
   }
 
   /**

@@ -351,7 +351,7 @@ export function QuizPage() {
           </div>
 
           {/* Practice Quiz Notice */}
-          {quiz.is_practice && (
+            {quiz.is_practice && (
             <Card className="mb-6 border-amber-200 bg-amber-50/50">
               <CardContent className="pt-6">
                 <div className="flex gap-3">
@@ -365,7 +365,7 @@ export function QuizPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
+            )}
 
           {/* Quiz Information Card */}
           <Card className="mb-6 border-0 shadow-sm">
@@ -410,31 +410,31 @@ export function QuizPage() {
                 <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Target className="w-5 h-5 text-green-600" />
-                  </div>
+              </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                       Tổng điểm
                     </p>
                     <p className="text-base font-semibold text-gray-900">
                       {totalPoints.toFixed(2)} điểm
-                    </p>
-                  </div>
+                </p>
+              </div>
                 </div>
 
                 {/* Điểm đạt */}
                 <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <Target className="w-5 h-5 text-orange-600" />
-                  </div>
+              </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                       Điểm đạt
                     </p>
                     <p className="text-base font-semibold text-gray-900">
                       {passingScoreLabel}
-                    </p>
-                  </div>
-                </div>
+                </p>
+              </div>
+            </div>
 
                 {/* Lần làm còn lại */}
                 <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100 sm:col-span-2">
@@ -492,8 +492,8 @@ export function QuizPage() {
                 </div>
               </CardContent>
             </Card>
-          ) : (
-            <>
+            ) : (
+              <>
               <Card className="mb-6 border-blue-200 bg-blue-50/50">
                 <CardContent className="pt-6">
                   <div className="flex gap-3">
@@ -526,12 +526,12 @@ export function QuizPage() {
               </Card>
 
               {/* Nút Bắt đầu làm bài - hiển thị nếu còn lượt hoặc là practice quiz */}
-              <Button 
-                onClick={handleStartQuiz}
+                <Button 
+                  onClick={handleStartQuiz}
                 disabled={startQuizMutation.isPending || (attemptsRemaining !== null && attemptsRemaining <= 0)}
                 className="w-full h-14 text-base font-semibold shadow-md hover:shadow-lg transition-shadow"
-                size="lg"
-              >
+                  size="lg"
+                >
                 {startQuizMutation.isPending ? (
                   <span className="flex items-center gap-2">
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -540,9 +540,9 @@ export function QuizPage() {
                 ) : (
                   'Bắt đầu làm bài'
                 )}
-              </Button>
-            </>
-          )}
+                </Button>
+              </>
+            )}
         </div>
       </div>
     );

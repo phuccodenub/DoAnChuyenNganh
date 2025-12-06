@@ -70,20 +70,20 @@ export function DetailPage() {
     queryKey: ['all-quizzes-detail', courseId],
     queryFn: async () => {
       try {
-        const res = await quizApi.getQuizzes({ course_id: courseId, status: 'published' });
-        const list = Array.isArray(res?.data) ? res.data : [];
-        return list
+      const res = await quizApi.getQuizzes({ course_id: courseId, status: 'published' });
+      const list = Array.isArray(res?.data) ? res.data : [];
+      return list
           .filter((q: any) => {
             // Chỉ lấy quizzes đã published, không có lesson_id
             const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
             return !hasLessonId && q.is_published;
           })
-          .sort((a: any, b: any) => {
-            // Sắp xếp theo created_at (cũ nhất trước)
-            const dateA = new Date(a.created_at || 0).getTime();
-            const dateB = new Date(b.created_at || 0).getTime();
-            return dateA - dateB; // ASC: cũ nhất trước
-          });
+        .sort((a: any, b: any) => {
+          // Sắp xếp theo created_at (cũ nhất trước)
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateA - dateB; // ASC: cũ nhất trước
+        });
       } catch (error: any) {
         // Nếu lỗi permission, chỉ log và trả về mảng rỗng (không hiển thị toast)
         if (error?.response?.status === 403 || error?.response?.status === 401) {
@@ -112,20 +112,20 @@ export function DetailPage() {
     queryKey: ['all-assignments-detail', courseId],
     queryFn: async () => {
       try {
-        const res = await assignmentApi.getCourseAssignments(courseId);
-        const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
-        return list
+      const res = await assignmentApi.getCourseAssignments(courseId);
+      const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
+      return list
           .filter((a: any) => {
             // Chỉ lấy assignments đã published, không có lesson_id
             const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
             return !hasLessonId && a.is_published;
           })
-          .sort((a: any, b: any) => {
-            // Sắp xếp theo created_at (cũ nhất trước)
-            const dateA = new Date(a.created_at || 0).getTime();
-            const dateB = new Date(b.created_at || 0).getTime();
-            return dateA - dateB; // ASC: cũ nhất trước
-          });
+        .sort((a: any, b: any) => {
+          // Sắp xếp theo created_at (cũ nhất trước)
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateA - dateB; // ASC: cũ nhất trước
+        });
       } catch (error: any) {
         // Nếu lỗi permission, chỉ log và trả về mảng rỗng (không hiển thị toast)
         if (error?.response?.status === 403 || error?.response?.status === 401) {
@@ -816,28 +816,28 @@ export function DetailPage() {
                   {courseLevelQuizzes?.map((quiz) => {
                     const isCompleted = !quiz.is_practice && completedQuizIds.has(quiz.id);
                     return (
-                      <div
-                        key={`quiz-${quiz.id}`}
-                        className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => {
-                          if (isUserEnrolled) {
-                            navigate(generateRoute.student.quiz(courseId, quiz.id));
-                          } else {
-                            toast.error('Vui lòng đăng ký khóa học để làm bài kiểm tra');
-                          }
-                        }}
-                      >
-                        <ClipboardList className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 text-sm">Quiz: {quiz.title}</h3>
-                          {quiz.description && (
-                            <p className="text-xs text-gray-500 mt-1">{quiz.description}</p>
-                          )}
-                        </div>
+                    <div
+                      key={`quiz-${quiz.id}`}
+                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => {
+                        if (isUserEnrolled) {
+                          navigate(generateRoute.student.quiz(courseId, quiz.id));
+                        } else {
+                          toast.error('Vui lòng đăng ký khóa học để làm bài kiểm tra');
+                        }
+                      }}
+                    >
+                      <ClipboardList className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-sm">Quiz: {quiz.title}</h3>
+                        {quiz.description && (
+                          <p className="text-xs text-gray-500 mt-1">{quiz.description}</p>
+                        )}
+                      </div>
                         {isCompleted && (
                           <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                         )}
-                      </div>
+                    </div>
                     );
                   })}
 
@@ -845,28 +845,28 @@ export function DetailPage() {
                   {courseLevelAssignments?.map((asmt) => {
                     const isCompleted = !asmt.is_practice && completedAssignmentIds.has(asmt.id);
                     return (
-                      <div
-                        key={`assignment-${asmt.id}`}
-                        className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => {
-                          if (isUserEnrolled) {
-                            navigate(`/assignments/${asmt.id}`);
-                          } else {
-                            toast.error('Vui lòng đăng ký khóa học để làm bài tập');
-                          }
-                        }}
-                      >
-                        <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 text-sm">Assignment: {asmt.title}</h3>
-                          {asmt.description && (
-                            <p className="text-xs text-gray-500 mt-1">{asmt.description}</p>
-                          )}
-                        </div>
+                    <div
+                      key={`assignment-${asmt.id}`}
+                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => {
+                        if (isUserEnrolled) {
+                          navigate(`/assignments/${asmt.id}`);
+                        } else {
+                          toast.error('Vui lòng đăng ký khóa học để làm bài tập');
+                        }
+                      }}
+                    >
+                      <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-sm">Assignment: {asmt.title}</h3>
+                        {asmt.description && (
+                          <p className="text-xs text-gray-500 mt-1">{asmt.description}</p>
+                        )}
+                      </div>
                         {isCompleted && (
                           <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                         )}
-                      </div>
+                    </div>
                     );
                   })}
                 </div>
@@ -973,37 +973,37 @@ export function DetailPage() {
                 <CardContent>
                   {isUserEnrolled ? (
                     progressData ? (
-                      <div className="space-y-3">
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700">
-                              {completedLessons} / {totalLessons} bài học
-                            </span>
-                            <span className="text-sm font-semibold text-blue-600">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">
+                            {completedLessons} / {totalLessons} bài học
+                          </span>
+                          <span className="text-sm font-semibold text-blue-600">
                               {Math.round(progressPercentage)}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                              style={{ width: `${Math.min(Math.max(progressPercentage, 0), 100)}%` }}
-                            />
-                          </div>
+                          </span>
                         </div>
-                        {progressData.last_accessed_at && (
-                          <p className="text-xs text-gray-500">
-                            Hoạt động gần nhất: {new Date(progressData.last_accessed_at).toLocaleDateString('vi-VN', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        )}
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div
+                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(Math.max(progressPercentage, 0), 100)}%` }}
+                          />
+                        </div>
                       </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <Spinner size="sm" />
-                        <p className="text-sm text-gray-500 mt-2">Đang tải tiến độ...</p>
+                      {progressData.last_accessed_at && (
+                        <p className="text-xs text-gray-500">
+                          Hoạt động gần nhất: {new Date(progressData.last_accessed_at).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <Spinner size="sm" />
+                      <p className="text-sm text-gray-500 mt-2">Đang tải tiến độ...</p>
                       </div>
                     )
                   ) : (

@@ -840,3 +840,65 @@ export interface DirectMessageInstance extends Model, DirectMessageAttributes {
   conversation?: ConversationInstance;
 }
 
+// ===================================
+// CERTIFICATE MODEL INTERFACES
+// ===================================
+
+export type CertificateStatus = 'active' | 'revoked' | 'expired';
+
+export interface CertificateAttributes {
+  id: string;
+  user_id: string;
+  course_id: string;
+  enrollment_id?: string;
+  ipfs_hash: string;
+  certificate_hash: string;
+  metadata: {
+    student: {
+      id: string;
+      name: string;
+      email: string;
+    };
+    course: {
+      id: string;
+      title: string;
+      description?: string;
+      instructor: {
+        id: string;
+        name: string;
+      };
+      level: string;
+      duration?: number;
+    };
+    completion: {
+      date: string;
+      grade?: number;
+      progress: number;
+    };
+    certificate: {
+      id: string;
+      issuedAt: string;
+      hash: string;
+    };
+  };
+  certificate_number: string;
+  issued_at: Date;
+  status: CertificateStatus;
+  revoked_at?: Date;
+  revoked_reason?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CertificateCreationAttributes extends Optional<
+  CertificateAttributes,
+  'id' | 'created_at' | 'updated_at' | 'status' | 'enrollment_id' | 'revoked_at' | 'revoked_reason'
+> {}
+
+export interface CertificateInstance extends Model, CertificateAttributes {
+  // Associations
+  user?: UserInstance;
+  course?: CourseInstance;
+  enrollment?: EnrollmentInstance;
+}
+

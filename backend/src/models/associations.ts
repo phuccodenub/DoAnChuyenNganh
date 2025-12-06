@@ -22,6 +22,7 @@ import LivestreamPolicy from './livestream-policy.model';
 import CommentModeration from './comment-moderation.model';
 import Conversation from './conversation.model';
 import DirectMessage from './direct-message.model';
+import Certificate from './certificate.model';
 
 export const setupAssociations = () => {
   // ===================================
@@ -451,6 +452,43 @@ export const setupAssociations = () => {
   (DirectMessage as any).belongsTo(User, {
     foreignKey: 'sender_id',
     as: 'sender'
+  });
+
+  // ===================================
+  // 10. CERTIFICATE RELATIONSHIPS
+  // ===================================
+
+  // User 1 ---< Certificate
+  (User as any).hasMany(Certificate, {
+    foreignKey: 'user_id',
+    as: 'certificates',
+    onDelete: 'CASCADE'
+  });
+  (Certificate as any).belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user'
+  });
+
+  // Course 1 ---< Certificate
+  (Course as any).hasMany(Certificate, {
+    foreignKey: 'course_id',
+    as: 'certificates',
+    onDelete: 'CASCADE'
+  });
+  (Certificate as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course'
+  });
+
+  // Enrollment 1 ---< Certificate (optional)
+  (Enrollment as any).hasMany(Certificate, {
+    foreignKey: 'enrollment_id',
+    as: 'certificates',
+    onDelete: 'SET NULL'
+  });
+  (Certificate as any).belongsTo(Enrollment, {
+    foreignKey: 'enrollment_id',
+    as: 'enrollment'
   });
 
   console.log('✅ Model associations setup completed');

@@ -565,7 +565,7 @@ export function LessonDetailPage() {
   
   // Fetch progress data để có thông tin completion status
   const { data: progressData } = useCourseProgress(courseId!, isUserEnrolled);
-  
+
   // Check enrollment status
   useEffect(() => {
     if (!courseId) {
@@ -587,7 +587,7 @@ export function LessonDetailPage() {
     queryFn: async () => {
       try {
         const res = await quizApi.getQuizzes({ course_id: courseId!, status: 'published' });
-        const list = Array.isArray(res?.data) ? res.data : [];
+      const list = Array.isArray(res?.data) ? res.data : [];
         return list.filter((q: any) => q.is_published);
       } catch (error: any) {
         // Nếu lỗi 401/403 (chưa đăng nhập hoặc không có quyền), trả về mảng rỗng
@@ -606,8 +606,8 @@ export function LessonDetailPage() {
     queryKey: ['all-assignments', courseId],
     queryFn: async () => {
       try {
-        const res = await assignmentApi.getCourseAssignments(courseId!);
-        const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
+      const res = await assignmentApi.getCourseAssignments(courseId!);
+      const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
         return list.filter((a: any) => a.is_published);
       } catch (error: any) {
         // Nếu lỗi 401/403 (chưa đăng nhập hoặc không có quyền), trả về mảng rỗng
@@ -1031,13 +1031,13 @@ export function LessonDetailPage() {
                   {/* Sections - hiển thị trước */}
                   {sections.length > 0 && (
                     <div className="[&>div]:border-0 [&>div]:rounded-none [&>div]:shadow-none">
-                      <CurriculumTree
-                        sections={sections}
-                        activeLessonId={lessonId}
-                        onLessonClick={handleNavigateToLesson}
-                        isPreviewMode={false}
-                      />
-                    </div>
+                <CurriculumTree
+                  sections={sections}
+                  activeLessonId={lessonId}
+                  onLessonClick={handleNavigateToLesson}
+                  isPreviewMode={false}
+                />
+              </div>
                   )}
 
                   {/* Course-level Quizzes - hiển thị sau sections, cùng cấp */}
@@ -1055,7 +1055,7 @@ export function LessonDetailPage() {
                           {quiz.description && (
                             <p className="text-xs text-gray-500 mt-1">{quiz.description}</p>
                           )}
-                        </div>
+            </div>
                         {isCompleted && (
                           <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                         )}

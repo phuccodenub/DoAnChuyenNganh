@@ -443,6 +443,36 @@ export class CourseContentController {
 
       const progress = await this.service.getCourseProgress(userId!, courseId);
       
+      // Auto-issue certificate if completion reaches 100%
+      if (progress.completion_percentage >= 100) {
+        try {
+          const { certificateAutoIssueService } = await import('../certificate/certificate.auto-issue.service');
+          // Find enrollment ID
+          const { Enrollment } = await import('../../models');
+          const enrollment = await (Enrollment as any).findOne({
+            where: {
+              user_id: userId,
+              course_id: courseId,
+            },
+            attributes: ['id'],
+          });
+          
+          if (enrollment) {
+            // Call auto-issue in background (don't wait)
+            certificateAutoIssueService.checkAndIssueCertificate(
+              userId!,
+              courseId,
+              enrollment.id
+            ).catch((err: any) => {
+              logger.error('[CourseContentController] Auto-issue certificate error:', err);
+            });
+          }
+        } catch (certError) {
+          // Don't fail the request if certificate issuance fails
+          logger.error('[CourseContentController] Certificate auto-issue error:', certError);
+        }
+      }
+      
       return responseUtils.success(
         res,
         progress,

@@ -690,8 +690,8 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                     return (
                       <>
                         {hasLessons && (
-                      <div className="space-y-6">
-                        {section.lessons.map((lesson, lessonIndex) => (
+                    <div className="space-y-6">
+                      {section.lessons.map((lesson, lessonIndex) => (
                         <TimelineConnector key={lesson.id} isLast={lessonIndex === (section.lessons?.length || 0) - 1}>
                           <div className="flex items-center gap-3 mb-3">
                             <DragHandle className="text-gray-500" />
@@ -739,9 +739,9 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                         ))}
                       </div>
                         )}
-                      
+                            
                         {/* Hiển thị quiz/assignment gắn với section (section-level) - Render cả khi không có lessons */}
-                        {quizzes
+                            {quizzes
                           .filter((q: any) => {
                             const quizSectionId = q.section_id ? String(q.section_id).trim() : null;
                             const currentSectionId = section.id ? String(section.id).trim() : null;
@@ -765,24 +765,24 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                             
                             return matches;
                           })
-                          .map((quiz: any) => (
+                              .map((quiz: any) => (
                     <div key={`section-quiz-${quiz.id}`} className="mt-4">
-                      <ContentItem
-                        type="quiz"
-                        title={quiz.title}
-                        duration={quiz.duration_minutes}
-                        isPreview={false}
-                        isPractice={quiz.is_practice}
-                        onEdit={() => {
-                          setSelectedQuizId(quiz.id);
-                          setSelectedQuizTitle(quiz.title);
-                          setIsManageQuizModalOpen(true);
-                        }}
-                        onDelete={() => {
+                                <ContentItem
+                                  type="quiz"
+                                  title={quiz.title}
+                                  duration={quiz.duration_minutes}
+                                  isPreview={false}
+                                  isPractice={quiz.is_practice}
+                                  onEdit={() => {
+                                    setSelectedQuizId(quiz.id);
+                                    setSelectedQuizTitle(quiz.title);
+                                    setIsManageQuizModalOpen(true);
+                                  }}
+                                  onDelete={() => {
                           toast('Tính năng xóa quiz đang được phát triển', { icon: 'ℹ️' });
-                        }}
-                      />
-                    </div>
+                                  }}
+                                />
+                          </div>
                   ))}
                   
                   {assignments
@@ -802,43 +802,43 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                             toast('Tính năng xóa assignment đang được phát triển', { icon: 'ℹ️' });
                           }}
                         />
-                      </div>
+                    </div>
                     ))}
-                        <div className="mt-6 pt-4 border-t border-gray-200">
-                          <ContentTypeSelector
-                            onSelect={async (type) => {
-                              const currentSection = sections.find(s => s.id === section.id);
-                              if (currentSection) {
-                                // Nếu là quiz, mở modal tạo quiz
-                                if (type === 'quiz') {
-                                  setSelectedSectionId(section.id);
-                                  setIsQuizModalOpen(true);
-                                  return;
-                                }
-                                
-                                // Các loại khác tạo lesson trực tiếp
-                                try {
-                                  const newLesson = await createLessonMutation.mutateAsync({
-                                    section_id: section.id,
-                                    title: `New ${type}`,
-                                    content_type: type,
-                                    order_index: currentSection.lessons?.length || 0,
-                                  });
-                                  setSections(sections.map(s =>
-                                    s.id === section.id ? { ...s, lessons: [...(s.lessons || []), newLesson.data] } : s
-                                  ));
-                                  toast.success(`Đã tạo ${type} mới`);
-                                } catch (error: any) {
-                                  toast.error(error?.response?.data?.message || `Không thể tạo ${type}`);
-                                }
-                              }
-                            }}
-                          />
-                          <Button onClick={() => handleAddLesson(section.id)} variant="outline" className="gap-2 mt-4">
-                            <Plus className="w-4 h-4" />
-                            Add Lesson
-                          </Button>
-                        </div>
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <ContentTypeSelector
+                      onSelect={async (type) => {
+                        const currentSection = sections.find(s => s.id === section.id);
+                        if (currentSection) {
+                          // Nếu là quiz, mở modal tạo quiz
+                          if (type === 'quiz') {
+                            setSelectedSectionId(section.id);
+                            setIsQuizModalOpen(true);
+                            return;
+                          }
+                          
+                          // Các loại khác tạo lesson trực tiếp
+                          try {
+                            const newLesson = await createLessonMutation.mutateAsync({
+                              section_id: section.id,
+                              title: `New ${type}`,
+                              content_type: type,
+                              order_index: currentSection.lessons?.length || 0,
+                            });
+                            setSections(sections.map(s =>
+                              s.id === section.id ? { ...s, lessons: [...(s.lessons || []), newLesson.data] } : s
+                            ));
+                            toast.success(`Đã tạo ${type} mới`);
+                          } catch (error: any) {
+                            toast.error(error?.response?.data?.message || `Không thể tạo ${type}`);
+                          }
+                        }
+                      }}
+                    />
+                    <Button onClick={() => handleAddLesson(section.id)} variant="outline" className="gap-2 mt-4">
+                      <Plus className="w-4 h-4" />
+                      Add Lesson
+                    </Button>
+                  </div>
                       </>
                     );
                   })()}
@@ -1022,7 +1022,7 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
             });
             // Đợi một chút để đảm bảo data được refresh
             setTimeout(() => {
-              refetch();
+            refetch();
               refetchQuizzes();
             }, 100);
             toast.success('Đã tạo quiz thành công');
