@@ -27,10 +27,14 @@ import {
     UploadCloud, // Icon mới
     MonitorPlay, // Icon mới
     Trash2,      // Icon mới
-    FileVideo    // Icon mới
+    FileVideo,   // Icon mới
+    FileText     // Icon cho PDF
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Lesson, ContentType, contentTypeLabels } from './types';
+import { lessonApi, type LessonMaterial } from '@/services/api/lesson.api';
+import toast from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Cập nhật Interface
 interface LessonFormData {
@@ -40,14 +44,16 @@ interface LessonFormData {
     is_preview: boolean;
     video_url: string; // URL video (youtube/vimeo hoặc url file đã upload)
     video_file?: File | null; // File video để upload
+    content?: string; // Nội dung chi tiết (cho text/document)
+    description?: string; // Mô tả bài học
 }
 
 interface LessonModalProps {
     isOpen: boolean;
-    editingLesson: Lesson | null;
+    editingLesson: (Lesson & { materials?: import('@/services/api/lesson.api').LessonMaterial[] }) | null;
     lessonForm: LessonFormData;
     onFormChange: (form: LessonFormData) => void;
-    onSave: () => void;
+    onSave: (form?: LessonFormData) => void; // Cho phép truyền form trực tiếp
     onClose: () => void;
     isUploading?: boolean;
     uploadProgress?: number;
@@ -91,24 +97,86 @@ export function LessonModal({
     onSave,
     onClose,
 }: LessonModalProps) {
+    const queryClient = useQueryClient();
     // State cơ bản
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [tempTitle, setTempTitle] = useState(lessonForm.title);
     const [content, setContent] = useState('');
-    const editorRef = useRef<HTMLDivElement>(null);
+    const documentEditorRef = useRef<HTMLDivElement>(null); // Editor cho document content
+    const descriptionEditorRef = useRef<HTMLDivElement>(null); // Editor cho description
 
     // State cho Video
     const [videoSourceTab, setVideoSourceTab] = useState<'upload' | 'external'>('upload');
     const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    // PDF upload state
+    const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
+    const [pdfUploadProgress, setPdfUploadProgress] = useState(0);
+    const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+    const pdfInputRef = useRef<HTMLInputElement>(null);
+    
+    // Get existing PDF materials from lesson
+    const existingPdfMaterials = editingLesson?.materials?.filter(m => 
+        m.file_type === 'application/pdf' || m.file_extension === '.pdf'
+    ) || [];
+    
+    // Debug log để kiểm tra materials
+    console.log('[LessonModal] Existing PDF materials:', {
+        hasEditingLesson: !!editingLesson,
+        hasMaterials: !!editingLesson?.materials,
+        materialsCount: editingLesson?.materials?.length || 0,
+        pdfMaterialsCount: existingPdfMaterials.length,
+        allMaterials: editingLesson?.materials,
+        pdfMaterials: existingPdfMaterials
+    });
 
-    // Effect: Reset state khi mở modal
+    // Effect: Reset state khi mở modal và load content vào editor
     useEffect(() => {
         if (isOpen) {
             setTempTitle(lessonForm.title);
+            // Load content và description từ lessonForm hoặc editingLesson
+            const contentToLoad = lessonForm.content || editingLesson?.content || '';
+            setContent(contentToLoad);
+            
+            // Reset PDF file state khi mở lesson khác (khi editingLesson.id thay đổi)
+            setSelectedPdfFile(null);
+            setPdfUploadProgress(0);
+            setIsUploadingPdf(false);
+            if (pdfInputRef.current) {
+                pdfInputRef.current.value = '';
+            }
+            
+            // Debug log
+            console.log('[LessonModal] Loading content:', {
+                lessonFormContent: lessonForm.content,
+                editingLessonContent: editingLesson?.content,
+                contentToLoad,
+                content_type: lessonForm.content_type,
+                editingLessonId: editingLesson?.id,
+                existingMaterials: editingLesson?.materials?.length || 0
+            });
+            
+            // Set content vào editor sau khi DOM đã render
+            setTimeout(() => {
+                if (lessonForm.content_type === 'document' && documentEditorRef.current) {
+                    documentEditorRef.current.innerHTML = contentToLoad;
+                    console.log('[LessonModal] Set content to document editor:', contentToLoad);
+                } else if (descriptionEditorRef.current) {
+                    descriptionEditorRef.current.innerHTML = contentToLoad;
+                    console.log('[LessonModal] Set content to description editor:', contentToLoad);
+                }
+            }, 100); // Tăng timeout để đảm bảo DOM đã render
+            
             // Logic để detect đang dùng url ngoài hay file upload dựa trên video_url có thể thêm ở đây
+        } else {
+            // Reset content khi đóng modal
+            setContent('');
+            setSelectedPdfFile(null);
+            setPdfUploadProgress(0);
+            setIsUploadingPdf(false);
         }
-    }, [isOpen, lessonForm.title]);
+    }, [isOpen, lessonForm.title, lessonForm.content, lessonForm.content_type, editingLesson?.id]);
 
     if (!isOpen) return null;
 
@@ -129,39 +197,47 @@ export function LessonModal({
     };
 
     // --- Xử lý Editor Toolbar (Giữ nguyên các hàm execCommand cũ) ---
-    const execCommand = (command: string, value?: string) => {
+    const execCommand = (command: string, value?: string, editor?: HTMLDivElement | null) => {
         document.execCommand(command, false, value);
-        editorRef.current?.focus();
+        const targetEditor = editor || (lessonForm.content_type === 'document' ? documentEditorRef.current : descriptionEditorRef.current);
+        targetEditor?.focus();
+    };
+
+    // Helper để lấy editor ref hiện tại
+    const getCurrentEditor = () => {
+        return lessonForm.content_type === 'document' 
+            ? documentEditorRef.current 
+            : descriptionEditorRef.current;
     };
 
     // ... (Giữ nguyên các hàm handleBold, handleItalic v.v...)
-    const handleBold = () => execCommand('bold');
-    const handleItalic = () => execCommand('italic');
-    const handleUnderline = () => execCommand('underline');
-    const handleStrikethrough = () => execCommand('strikeThrough');
-    const handleAlignLeft = () => execCommand('justifyLeft');
-    const handleAlignCenter = () => execCommand('justifyCenter');
-    const handleAlignRight = () => execCommand('justifyRight');
-    const handleAlignJustify = () => execCommand('justifyFull');
-    const handleUnorderedList = () => execCommand('insertUnorderedList');
-    const handleOrderedList = () => execCommand('insertOrderedList');
-    const handleBlockquote = () => execCommand('formatBlock', 'blockquote');
-    const handleCode = () => execCommand('formatBlock', 'pre');
-    const handleUndo = () => execCommand('undo');
-    const handleRedo = () => execCommand('redo');
-    const handleHeading1 = () => execCommand('formatBlock', 'h1');
-    const handleHeading2 = () => execCommand('formatBlock', 'h2');
-    const handleHeading3 = () => execCommand('formatBlock', 'h3');
-    const handleParagraph = () => execCommand('formatBlock', 'p');
+    const handleBold = () => execCommand('bold', undefined, getCurrentEditor());
+    const handleItalic = () => execCommand('italic', undefined, getCurrentEditor());
+    const handleUnderline = () => execCommand('underline', undefined, getCurrentEditor());
+    const handleStrikethrough = () => execCommand('strikeThrough', undefined, getCurrentEditor());
+    const handleAlignLeft = () => execCommand('justifyLeft', undefined, getCurrentEditor());
+    const handleAlignCenter = () => execCommand('justifyCenter', undefined, getCurrentEditor());
+    const handleAlignRight = () => execCommand('justifyRight', undefined, getCurrentEditor());
+    const handleAlignJustify = () => execCommand('justifyFull', undefined, getCurrentEditor());
+    const handleUnorderedList = () => execCommand('insertUnorderedList', undefined, getCurrentEditor());
+    const handleOrderedList = () => execCommand('insertOrderedList', undefined, getCurrentEditor());
+    const handleBlockquote = () => execCommand('formatBlock', 'blockquote', getCurrentEditor());
+    const handleCode = () => execCommand('formatBlock', 'pre', getCurrentEditor());
+    const handleUndo = () => execCommand('undo', undefined, getCurrentEditor());
+    const handleRedo = () => execCommand('redo', undefined, getCurrentEditor());
+    const handleHeading1 = () => execCommand('formatBlock', 'h1', getCurrentEditor());
+    const handleHeading2 = () => execCommand('formatBlock', 'h2', getCurrentEditor());
+    const handleHeading3 = () => execCommand('formatBlock', 'h3', getCurrentEditor());
+    const handleParagraph = () => execCommand('formatBlock', 'p', getCurrentEditor());
 
     const handleInsertLink = () => {
         const url = prompt('Nhập URL:');
-        if (url) execCommand('createLink', url);
+        if (url) execCommand('createLink', url, getCurrentEditor());
     };
 
     const handleInsertImage = () => {
         const url = prompt('Nhập URL hình ảnh:');
-        if (url) execCommand('insertImage', url);
+        if (url) execCommand('insertImage', url, getCurrentEditor());
     };
 
     // --- Xử lý Video Attachment ---
@@ -201,6 +277,93 @@ export function LessonModal({
         setSelectedVideoFile(null);
         onFormChange({ ...lessonForm, video_url: '' });
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    // --- Xử lý PDF Upload ---
+    const handlePdfSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate PDF
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            toast.error('Vui lòng chọn file PDF');
+            return;
+        }
+
+        // Giới hạn 50MB
+        if (file.size > 50 * 1024 * 1024) {
+            toast.error('File PDF không được vượt quá 50MB');
+            return;
+        }
+
+        setSelectedPdfFile(file);
+        
+        // Upload PDF ngay lập tức
+        if (editingLesson?.id) {
+            setIsUploadingPdf(true);
+            setPdfUploadProgress(0);
+            
+            try {
+                const material = await lessonApi.uploadMaterial(
+                    editingLesson.id,
+                    file,
+                    `Tài liệu PDF cho bài học: ${lessonForm.title}`,
+                    (progress) => setPdfUploadProgress(progress)
+                );
+                
+                toast.success('Đã tải PDF lên thành công!');
+                
+                // Clear selected file và invalidate queries để refetch lesson data
+                setSelectedPdfFile(null);
+                if (pdfInputRef.current) pdfInputRef.current.value = '';
+                
+                // Invalidate queries để refetch lesson data với materials mới
+                // Invalidate tất cả queries liên quan đến course sections
+                queryClient.invalidateQueries({ 
+                    predicate: (query) => {
+                        const key = query.queryKey;
+                        return (
+                            (Array.isArray(key) && key.includes('sections')) ||
+                            (typeof key[0] === 'string' && key[0].includes('section'))
+                        );
+                    }
+                });
+                
+                // Trigger parent to refetch sections
+                onSave();
+            } catch (error: any) {
+                toast.error(error?.response?.data?.message || 'Không thể tải PDF lên');
+                setSelectedPdfFile(null);
+            } finally {
+                setIsUploadingPdf(false);
+                setPdfUploadProgress(0);
+            }
+        }
+    };
+
+    const handleRemovePdf = () => {
+        setSelectedPdfFile(null);
+        if (pdfInputRef.current) pdfInputRef.current.value = '';
+    };
+    
+    const handleDeleteMaterial = async (materialId: string) => {
+        if (!confirm('Bạn có chắc muốn xóa tài liệu này?')) return;
+        
+        try {
+            await lessonApi.deleteMaterial(materialId);
+            toast.success('Đã xóa tài liệu');
+            
+            // Invalidate queries để refetch lesson data
+            if (editingLesson?.id) {
+                queryClient.invalidateQueries({ queryKey: ['course-sections', editingLesson.section_id] });
+                queryClient.invalidateQueries({ queryKey: ['lesson', editingLesson.id] });
+            }
+            
+            // Trigger parent to refetch sections
+            onSave();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || 'Không thể xóa tài liệu');
+        }
     };
 
     const getVideoIdFromUrl = (url: string) => {
@@ -401,55 +564,151 @@ export function LessonModal({
 
                     {/* 2.5. DOCUMENT EDITOR SECTION - Chỉ hiển thị khi content_type là 'document' */}
                     {lessonForm.content_type === 'document' && (
-                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                                    <Type className="w-4 h-4 text-blue-600" />
-                                    Nội dung Tài liệu
-                                </h3>
-                            </div>
-
-                            {/* Document Editor */}
-                            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                                {/* Toolbar cho Document */}
-                                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-1 flex-wrap">
-                                    <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Bold" />
-                                    <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Italic" />
-                                    <ToolbarButton icon={<Underline className="w-4 h-4" />} onClick={handleUnderline} title="Underline" />
-                                    <ToolbarButton icon={<Strikethrough className="w-4 h-4" />} onClick={handleStrikethrough} title="Strikethrough" />
-                                    <ToolbarDivider />
-                                    <ToolbarButton icon={<Heading1 className="w-4 h-4" />} onClick={handleHeading1} title="Heading 1" />
-                                    <ToolbarButton icon={<Heading2 className="w-4 h-4" />} onClick={handleHeading2} title="Heading 2" />
-                                    <ToolbarButton icon={<Heading3 className="w-4 h-4" />} onClick={handleHeading3} title="Heading 3" />
-                                    <ToolbarButton icon={<Type className="w-4 h-4" />} onClick={handleParagraph} title="Paragraph" />
-                                    <ToolbarDivider />
-                                    <ToolbarButton icon={<AlignLeft className="w-4 h-4" />} onClick={handleAlignLeft} title="Align Left" />
-                                    <ToolbarButton icon={<AlignCenter className="w-4 h-4" />} onClick={handleAlignCenter} title="Align Center" />
-                                    <ToolbarButton icon={<AlignRight className="w-4 h-4" />} onClick={handleAlignRight} title="Align Right" />
-                                    <ToolbarButton icon={<AlignJustify className="w-4 h-4" />} onClick={handleAlignJustify} title="Justify" />
-                                    <ToolbarDivider />
-                                    <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Bullet List" />
-                                    <ToolbarButton icon={<ListOrdered className="w-4 h-4" />} onClick={handleOrderedList} title="Numbered List" />
-                                    <ToolbarDivider />
-                                    <ToolbarButton icon={<Link className="w-4 h-4" />} onClick={handleInsertLink} title="Insert Link" />
-                                    <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Insert Image" />
-                                    <ToolbarButton icon={<Code className="w-4 h-4" />} onClick={handleCode} title="Code Block" />
-                                    <ToolbarButton icon={<Quote className="w-4 h-4" />} onClick={handleBlockquote} title="Quote" />
-                                    <ToolbarDivider />
-                                    <ToolbarButton icon={<Undo className="w-4 h-4" />} onClick={handleUndo} title="Undo" />
-                                    <ToolbarButton icon={<Redo className="w-4 h-4" />} onClick={handleRedo} title="Redo" />
+                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 space-y-4">
+                            {/* PDF Upload Section */}
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-blue-600" />
+                                        Tài liệu PDF
+                                    </h3>
                                 </div>
 
-                                {/* Editor Area */}
-                                <div className="p-6">
-                                    <div
-                                        ref={editorRef}
-                                        contentEditable
-                                        suppressContentEditableWarning
-                                        className="min-h-[400px] outline-none prose prose-sm max-w-none text-gray-700"
-                                        data-placeholder="Nhập nội dung tài liệu chi tiết..."
-                                        onInput={(e) => setContent(e.currentTarget.innerHTML)}
-                                    />
+                                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                                    {/* Hiển thị materials đã có sẵn */}
+                                    {existingPdfMaterials.length > 0 && (
+                                        <div className="space-y-2">
+                                            {existingPdfMaterials.map((material) => (
+                                                <div key={material.id} className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                    <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{material.file_name}</p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {material.file_size ? `${(material.file_size / (1024 * 1024)).toFixed(2)} MB` : 'PDF'}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDeleteMaterial(material.id)}
+                                                        className="text-red-600 hover:text-red-800 p-1 flex-shrink-0"
+                                                        title="Xóa PDF"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Upload area - chỉ hiển thị nếu chưa có file đang upload */}
+                                    {!selectedPdfFile && (
+                                        <div
+                                            className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer"
+                                            onClick={() => pdfInputRef.current?.click()}
+                                        >
+                                            <input
+                                                type="file"
+                                                accept="application/pdf,.pdf"
+                                                className="hidden"
+                                                ref={pdfInputRef}
+                                                onChange={handlePdfSelect}
+                                                disabled={isUploadingPdf || !editingLesson?.id}
+                                            />
+                                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3">
+                                                <UploadCloud className="w-6 h-6" />
+                                            </div>
+                                            <p className="text-sm font-medium text-gray-900">Click để tải PDF lên</p>
+                                            <p className="text-xs text-gray-500 mt-1">PDF (Max 50MB)</p>
+                                        </div>
+                                    )}
+                                    
+                                    {/* File đang upload */}
+                                    {selectedPdfFile && (
+                                        <div className="space-y-2">
+                                            {isUploadingPdf ? (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-700">{selectedPdfFile.name}</span>
+                                                        <span className="text-blue-600 font-medium">{pdfUploadProgress}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                        <div
+                                                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                            style={{ width: `${pdfUploadProgress}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                    <FileText className="w-5 h-5 text-green-600" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{selectedPdfFile.name}</p>
+                                                        <p className="text-xs text-gray-500">{(selectedPdfFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleRemovePdf}
+                                                        className="text-red-600 hover:text-red-800 p-1"
+                                                        title="Xóa PDF"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Document Content Editor */}
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                        <Type className="w-4 h-4 text-blue-600" />
+                                        Nội dung Tài liệu (Tùy chọn)
+                                    </h3>
+                                </div>
+
+                                {/* Document Editor */}
+                                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                    {/* Toolbar cho Document */}
+                                    <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-1 flex-wrap">
+                                        <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Bold" />
+                                        <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Italic" />
+                                        <ToolbarButton icon={<Underline className="w-4 h-4" />} onClick={handleUnderline} title="Underline" />
+                                        <ToolbarButton icon={<Strikethrough className="w-4 h-4" />} onClick={handleStrikethrough} title="Strikethrough" />
+                                        <ToolbarDivider />
+                                        <ToolbarButton icon={<Heading1 className="w-4 h-4" />} onClick={handleHeading1} title="Heading 1" />
+                                        <ToolbarButton icon={<Heading2 className="w-4 h-4" />} onClick={handleHeading2} title="Heading 2" />
+                                        <ToolbarButton icon={<Heading3 className="w-4 h-4" />} onClick={handleHeading3} title="Heading 3" />
+                                        <ToolbarButton icon={<Type className="w-4 h-4" />} onClick={handleParagraph} title="Paragraph" />
+                                        <ToolbarDivider />
+                                        <ToolbarButton icon={<AlignLeft className="w-4 h-4" />} onClick={handleAlignLeft} title="Align Left" />
+                                        <ToolbarButton icon={<AlignCenter className="w-4 h-4" />} onClick={handleAlignCenter} title="Align Center" />
+                                        <ToolbarButton icon={<AlignRight className="w-4 h-4" />} onClick={handleAlignRight} title="Align Right" />
+                                        <ToolbarButton icon={<AlignJustify className="w-4 h-4" />} onClick={handleAlignJustify} title="Justify" />
+                                        <ToolbarDivider />
+                                        <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Bullet List" />
+                                        <ToolbarButton icon={<ListOrdered className="w-4 h-4" />} onClick={handleOrderedList} title="Numbered List" />
+                                        <ToolbarDivider />
+                                        <ToolbarButton icon={<Link className="w-4 h-4" />} onClick={handleInsertLink} title="Insert Link" />
+                                        <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Insert Image" />
+                                        <ToolbarButton icon={<Code className="w-4 h-4" />} onClick={handleCode} title="Code Block" />
+                                        <ToolbarButton icon={<Quote className="w-4 h-4" />} onClick={handleBlockquote} title="Quote" />
+                                        <ToolbarDivider />
+                                        <ToolbarButton icon={<Undo className="w-4 h-4" />} onClick={handleUndo} title="Undo" />
+                                        <ToolbarButton icon={<Redo className="w-4 h-4" />} onClick={handleRedo} title="Redo" />
+                                    </div>
+
+                                    {/* Editor Area */}
+                                    <div className="p-6">
+                                        <div
+                                            ref={documentEditorRef}
+                                            contentEditable
+                                            suppressContentEditableWarning
+                                            className="min-h-[400px] outline-none prose prose-sm max-w-none text-gray-700"
+                                            data-placeholder="Nhập nội dung tài liệu chi tiết..."
+                                            onInput={(e) => setContent(e.currentTarget.innerHTML)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -472,7 +731,7 @@ export function LessonModal({
 
                             <div className="flex-1 p-6 bg-white">
                                 <div
-                                    ref={editorRef}
+                                    ref={descriptionEditorRef}
                                     contentEditable
                                     suppressContentEditableWarning
                                     className="min-h-[200px] outline-none prose prose-sm max-w-none text-gray-700"
@@ -496,7 +755,54 @@ export function LessonModal({
                             Hủy bỏ
                         </Button>
                         <Button
-                            onClick={onSave}
+                            onClick={() => {
+                                // Lấy content trực tiếp từ editor (không dùng state vì có thể chưa sync)
+                                const rawContent = lessonForm.content_type === 'document'
+                                    ? (documentEditorRef.current?.innerHTML || '')
+                                    : (descriptionEditorRef.current?.innerHTML || '');
+                                
+                                // Sanitize content: loại bỏ các tag rỗng như <br>, <p><br></p>, whitespace only
+                                const sanitizeContent = (html: string): string => {
+                                    if (!html) return '';
+                                    // Tạo temporary div để parse HTML
+                                    const temp = document.createElement('div');
+                                    temp.innerHTML = html;
+                                    // Lấy text content (loại bỏ HTML tags)
+                                    const textContent = temp.textContent || temp.innerText || '';
+                                    // Nếu chỉ có whitespace hoặc empty, return empty string
+                                    if (textContent.trim().length === 0) {
+                                        return '';
+                                    }
+                                    // Nếu có nội dung thực sự, return HTML đã được clean
+                                    return html.trim();
+                                };
+                                
+                                const contentToSave = sanitizeContent(rawContent);
+                                
+                                console.log('[LessonModal] Saving content:', {
+                                    content_type: lessonForm.content_type,
+                                    rawContentLength: rawContent.length,
+                                    contentLength: contentToSave.length,
+                                    contentPreview: contentToSave.substring(0, 100),
+                                    hasDocumentEditor: !!documentEditorRef.current,
+                                    hasDescriptionEditor: !!descriptionEditorRef.current,
+                                    documentEditorHTML: documentEditorRef.current?.innerHTML?.substring(0, 50),
+                                    descriptionEditorHTML: descriptionEditorRef.current?.innerHTML?.substring(0, 50)
+                                });
+                                
+                                // Update form với content từ editor
+                                // Với document type, nếu không có content nhưng đã upload PDF, vẫn cho phép save
+                                const updatedForm = {
+                                    ...lessonForm,
+                                    content: contentToSave || undefined, // undefined nếu empty để backend không update
+                                    description: contentToSave || undefined,
+                                };
+                                
+                                onFormChange(updatedForm);
+                                
+                                // Gọi onSave với form đã được update để đảm bảo có content
+                                onSave(updatedForm);
+                            }}
                             disabled={!lessonForm.title.trim()}
                             className="min-w-[120px]"
                         >

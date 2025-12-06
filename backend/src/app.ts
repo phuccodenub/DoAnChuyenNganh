@@ -45,6 +45,18 @@ app.use(loggerMiddleware);
 // Tracing middleware (route-level spans)
 app.use(tracingMiddleware);
 
+// Security middleware
+app.use(helmet());
+
+// CORS configuration (centralized)
+// Skip CORS for Socket.IO path (Socket.IO handles its own CORS)
+app.use((req: Request, res: Response, next: NextFunction): void => {
+  if (req.path?.startsWith('/socket.io')) {
+    return next(); // Skip CORS middleware for Socket.IO
+  }
+  corsMiddleware(req as any, res as any, next);
+});
+
 // Metrics middleware (allow disabling via DISABLE_METRICS=true)
 if (process.env.DISABLE_METRICS !== 'true') {
   app.use(metricsMiddleware.collectHttpMetrics);
@@ -73,18 +85,6 @@ if (process.env.DISABLE_CACHE !== 'true') {
   );
   app.use(cacheMiddleware.cacheUserData({ ttl: 600 })); // Cache user data for 10 minutes
 }
-
-// Security middleware
-app.use(helmet());
-
-// CORS configuration (centralized)
-// Skip CORS for Socket.IO path (Socket.IO handles its own CORS)
-app.use((req: Request, res: Response, next: NextFunction): void => {
-  if (req.path?.startsWith('/socket.io')) {
-    return next(); // Skip CORS middleware for Socket.IO
-  }
-  corsMiddleware(req as any, res as any, next);
-});
 
 // Rate limiting (allow disabling in tests via DISABLE_RATE_LIMIT=true)
 // Skip rate limiting for Socket.IO path (Socket.IO handles its own rate limiting)

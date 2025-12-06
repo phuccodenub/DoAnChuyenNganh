@@ -21,6 +21,7 @@ const StudentDashboard = lazy(() => import('@/pages/student/DashboardPage'));
 const StudentMyCoursesPage = lazy(() => import('@/pages/student/MyCoursesPage'));
 const StudentAssignmentsPage = lazy(() => import('@/pages/student/StudentAssignmentsPage'));
 const LearningPage = lazy(() => import('@/pages/student/LearningPage'));
+const LessonDetailPage = lazy(() => import('@/pages/course/learning/LessonDetailPage'));
 const QuizPage = lazy(() => import('@/pages/student/QuizPage'));
 const QuizResultsPage = lazy(() => import('@/pages/student/QuizResultsPage'));
 const AssignmentPage = lazy(() => import('@/pages/student/AssignmentPage'));
@@ -35,6 +36,7 @@ const MyCoursesPage = lazy(() => import('@/pages/instructor/InstructorMyCoursesP
 const InstructorCourseDetailPage = lazy(() => import('@/pages/instructor/InstructorCourseDetailPage'));
 const CourseEditorPage = lazy(() => import('@/pages/instructor/CourseEditorPage'));
 const CurriculumBuilderPage = lazy(() => import('@/pages/instructor/CurriculumBuilderPage'));
+const CourseManagementDetailPage = lazy(() => import('@/pages/course/management/CourseManagementDetailPage'));
 const QuizBuilderPage = lazy(() => import('@/pages/instructor/QuizBuilderPage'));
 const AssignmentBuilderPage = lazy(() => import('@/pages/instructor/AssignmentBuilderPage'));
 const GradingPage = lazy(() => import('@/pages/instructor/GradingPage'));
@@ -100,9 +102,6 @@ function AppRoutes() {
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
-        {/* Temporary Public Learning Route - ONLY FOR TESTING UI */}
-        <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
-
         {/* Protected routes - Cần authentication */}
         <Route element={<ProtectedRoute />}>
           {/* Shared livestream hub */}
@@ -113,26 +112,35 @@ function AppRoutes() {
           {/* Universal profile route for all authenticated users */}
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
 
-          {/* Student routes */}
-          <Route element={<RoleGuard allowedRoles={['student']} />}>
+          {/* Learning routes - accessible to all authenticated users who can enroll (student, instructor, admin, super_admin) */}
+          <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>
             <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
+            <Route path={ROUTES.STUDENT.LESSON} element={<LessonDetailPage />} />
+          </Route>
+
+          {/* Student-only routes (dashboard, profile, etc.) */}
+          <Route element={<RoleGuard allowedRoles={['student']} />}>
             <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
             <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentMyCoursesPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENTS} element={<StudentAssignmentsPage />} />
-            <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
-            <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
-            <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
             <Route path={ROUTES.STUDENT.SETTINGS} element={<SettingsPage />} />
             <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
             <Route path={ROUTES.STUDENT.CHAT} element={<StudentChatPage />} />
             {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
           </Route>
 
+          {/* Quiz & Assignment routes: cho phép cả student + instructor xem giao diện làm bài */}
+          <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>
+            <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
+            <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
+            <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
+          </Route>
+
           {/* Livestream create route & course management & course editor - outside instructor layout */}
           <Route element={<RoleGuard allowedRoles={['instructor', 'admin', 'super_admin']} />}>
             <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />
             <Route path={ROUTES.COURSE_MANAGEMENT} element={<MyCoursesPage />} />
-            <Route path={ROUTES.COURSE_MANAGEMENT_DETAIL} element={<CourseEditorPage />} />
+            <Route path={ROUTES.COURSE_MANAGEMENT_DETAIL} element={<CourseManagementDetailPage />} />
             <Route path={ROUTES.COURSE_CREATE} element={<CourseEditorPage />} />
             <Route path={ROUTES.COURSE_CURRICULUM} element={<CurriculumBuilderPage />} />
           </Route>

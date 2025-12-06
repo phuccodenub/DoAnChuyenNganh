@@ -6,6 +6,7 @@ import { DatabaseError } from '../../errors/database.error';
 import { AuthorizationError } from '../../errors/authorization.error';
 import logger from '../../utils/logger.util';
 import { GoogleDriveService } from '../../services/storage/google-drive.service';
+import { R2StorageService } from '../../services/storage/r2.service';
 
 /**
  * Course Content Service
@@ -14,10 +15,18 @@ import { GoogleDriveService } from '../../services/storage/google-drive.service'
 export class CourseContentService {
   private repository: CourseContentRepository;
   private driveService: GoogleDriveService;
+  private r2Service: R2StorageService | null = null;
 
   constructor() {
     this.repository = new CourseContentRepository();
     this.driveService = new GoogleDriveService();
+    
+    // Initialize R2 service if configured
+    try {
+      this.r2Service = new R2StorageService();
+    } catch (error) {
+      logger.warn('R2 storage not configured, will fallback to Google Drive for material uploads');
+    }
   }
 
   // ===================================
@@ -65,7 +74,10 @@ data: SectionInput
         includeUnpublished
       );
       
-      return sections as any;
+      // Enrich lessons with is_practice
+      const enrichedSections = await this.enrichLessonsWithPracticeFlag(sections, courseId);
+      
+      return enrichedSections as any;
     } catch (error: unknown) {
       logger.error(`Error getting course sections: ${error}`);
       throw error;
@@ -80,6 +92,14 @@ data: SectionInput
     if (!section) {
       throw new ApiError('Section not found', 404);
     }
+    
+    // Enrich lessons with is_practice
+    const courseId = (section as any).course_id;
+    if (courseId) {
+      const enrichedSections = await this.enrichLessonsWithPracticeFlag([section], courseId);
+      return enrichedSections[0];
+    }
+    
     return section;
   }
 
@@ -191,15 +211,148 @@ data: LessonInput
       throw new ApiError('Lesson not found', 404);
     }
 
-    // If lesson is not published, verify instructor access
-    if (!lesson.is_published && userId) {
-      const courseId = (lesson as any).section?.course?.id;
-      if (courseId) {
-        await this.verifyInstructorAccess(courseId, userId);
-      }
+    const courseId = (lesson as any).section?.course?.id;
+    logger.info('Getting lesson - course info', {
+      lessonId,
+      userId,
+      hasSection: !!(lesson as any).section,
+      hasCourse: !!(lesson as any).section?.course,
+      courseId,
+      courseInstructorId: (lesson as any).section?.course?.instructor_id,
+      isPublished: lesson.is_published,
+      isFreePreview: lesson.is_free_preview
+    });
+    
+    if (!courseId) {
+      logger.error('Course not found for lesson', { lessonId, hasSection: !!(lesson as any).section });
+      throw new ApiError('Course not found for this lesson', 404);
     }
 
-    return lesson;
+    // If no userId provided, only allow free preview lessons
+    if (!userId) {
+      if (!lesson.is_free_preview || !lesson.is_published) {
+        throw new AuthorizationError('You need to be logged in to access this lesson');
+      }
+      // Enrich quiz/assignment info for public preview
+      const enrichedLesson = await this.attachPracticeInfoToLesson(lesson, courseId);
+      return enrichedLesson as any;
+    }
+
+    // Check if user is instructor of the course first
+    let isInstructor = false;
+    try {
+      await this.verifyInstructorAccess(courseId, userId);
+      isInstructor = true;
+      logger.info('User is instructor of course', { courseId, userId, lessonId });
+      // Instructor can access any lesson (published or not)
+      const enrichedLesson = await this.attachPracticeInfoToLesson(lesson, courseId);
+      return enrichedLesson as any;
+    } catch (error) {
+      // Not instructor, will check enrollment or free preview below
+      logger.debug('User is not instructor of course', { courseId, userId, lessonId });
+    }
+
+    // If lesson is not published and user is not instructor, check enrollment first
+    // Enrolled users should be able to access unpublished lessons (they're already enrolled)
+    // Only deny if lesson is truly draft and user hasn't enrolled
+    if (!lesson.is_published) {
+      logger.info('Lesson not published, checking enrollment for access', { lessonId, courseId, userId });
+      // Will check enrollment below - if enrolled, allow access even if unpublished
+    }
+
+    // Check if lesson is free preview
+    if (lesson.is_free_preview) {
+      const enrichedLesson = await this.attachPracticeInfoToLesson(lesson, courseId);
+      return enrichedLesson as any;
+    }
+
+    // Check if user is enrolled in the course
+    // Try multiple ways to verify enrollment
+    let enrollment = null;
+    
+    // Method 1: Use CourseRepository
+    try {
+      const { CourseRepository } = await import('../course/course.repository');
+      const courseRepository = new CourseRepository();
+      enrollment = await courseRepository.findEnrollment(courseId, userId);
+      logger.debug('Enrollment check via CourseRepository', { found: !!enrollment });
+    } catch (error) {
+      logger.error('Error finding enrollment via CourseRepository:', error);
+    }
+    
+    // Method 2: Direct model query (fallback)
+    if (!enrollment) {
+      try {
+        const { Enrollment } = await import('../../models');
+        const EnrollmentModel = Enrollment as any;
+        enrollment = await EnrollmentModel.findOne({
+          where: {
+            course_id: courseId,
+            user_id: userId
+          },
+          raw: false // Get Sequelize instance, not plain object
+        });
+        logger.debug('Enrollment check via direct model', { found: !!enrollment });
+      } catch (fallbackError) {
+        logger.error('Error in fallback enrollment check:', fallbackError);
+      }
+    }
+    
+    // Method 3: Check all enrollments for this user (debug)
+    if (!enrollment) {
+      try {
+        const { Enrollment } = await import('../../models');
+        const EnrollmentModel = Enrollment as any;
+        const allUserEnrollments = await EnrollmentModel.findAll({
+          where: { user_id: userId },
+          attributes: ['id', 'course_id', 'user_id', 'status'],
+          limit: 10
+        });
+        logger.warn('User enrollments (for debugging)', {
+          userId,
+          totalEnrollments: allUserEnrollments.length,
+          enrollments: allUserEnrollments.map((e: any) => ({
+            id: e.id,
+            course_id: e.course_id,
+            status: e.status
+          }))
+        });
+      } catch (debugError) {
+        logger.error('Error in debug enrollment check:', debugError);
+      }
+    }
+    
+    logger.info('Checking enrollment for lesson access', {
+      lessonId,
+      courseId,
+      userId,
+      hasEnrollment: !!enrollment,
+      enrollmentStatus: enrollment?.status,
+      enrollmentId: enrollment?.id,
+      enrollmentData: enrollment ? {
+        id: enrollment.id,
+        course_id: (enrollment as any).course_id,
+        user_id: (enrollment as any).user_id,
+        status: enrollment.status
+      } : null
+    });
+    
+    if (!enrollment) {
+      logger.warn('User not enrolled in course', { courseId, userId, lessonId });
+      throw new AuthorizationError('You need to enroll in this course to access this lesson');
+    }
+    
+    // Allow access if enrollment exists (regardless of status for now)
+    // Status can be 'active', 'completed', 'cancelled', etc.
+    // We'll allow access for any enrollment status except explicitly blocked ones
+    if (enrollment.status === 'cancelled' || enrollment.status === 'suspended') {
+      logger.warn('User enrollment is not active', { courseId, userId, status: enrollment.status });
+      throw new AuthorizationError('Your enrollment in this course is not active');
+    }
+
+    logger.info('Lesson access granted', { lessonId, courseId, userId, enrollmentStatus: enrollment.status });
+    const enrichedLesson = await this.attachPracticeInfoToLesson(lesson, courseId);
+    return enrichedLesson as any;
   }
 
   /**
@@ -309,7 +462,7 @@ orders: ReorderItem[]
   }
 
   /**
-   * Upload file lên Google Drive và tạo LessonMaterial tương ứng
+   * Upload file lên Cloudflare R2 (hoặc Google Drive nếu R2 không có) và tạo LessonMaterial tương ứng
    */
   async addMaterialFromUpload(
     lessonId: string,
@@ -326,16 +479,45 @@ orders: ReorderItem[]
       const courseId = (lesson as any).section?.course?.id;
       await this.verifyInstructorAccess(courseId, userId);
 
-      // Upload file lên Google Drive (thư mục Resources)
-      const driveResult = await this.driveService.uploadCourseResource(
-        file.buffer as Buffer,
-        file.originalname,
-        file.mimetype
-      );
+      let fileUrl: string;
+      let fileName: string;
+
+      // Ưu tiên sử dụng R2 (giống như video upload)
+      if (this.r2Service) {
+        try {
+          const folder = `materials/${courseId}/${lessonId}`;
+          const r2Result = await this.r2Service.uploadFile(file, {
+            folder,
+            userId
+          });
+          fileUrl = r2Result.url;
+          fileName = r2Result.originalName || file.originalname;
+          logger.info(`Material uploaded to R2: ${r2Result.path}`);
+        } catch (r2Error) {
+          logger.warn('R2 upload failed, falling back to Google Drive', r2Error);
+          // Fallback to Google Drive nếu R2 fail
+          const driveResult = await this.driveService.uploadCourseResource(
+            file.buffer as Buffer,
+            file.originalname,
+            file.mimetype
+          );
+          fileUrl = driveResult.webViewLink || driveResult.webContentLink || '';
+          fileName = driveResult.name;
+        }
+      } else {
+        // Nếu R2 không được config, dùng Google Drive
+        const driveResult = await this.driveService.uploadCourseResource(
+          file.buffer as Buffer,
+          file.originalname,
+          file.mimetype
+        );
+        fileUrl = driveResult.webViewLink || driveResult.webContentLink || '';
+        fileName = driveResult.name;
+      }
 
       const input: LessonMaterialInput = {
-        file_name: driveResult.name,
-        file_url: driveResult.webViewLink || driveResult.webContentLink || '',
+        file_name: fileName,
+        file_url: fileUrl,
         file_type: file.mimetype,
         file_size: file.size,
         file_extension: this.getFileExtension(file.originalname),
@@ -344,11 +526,11 @@ orders: ReorderItem[]
       };
 
       const material = await this.repository.createMaterial(lessonId, userId, input) as LessonMaterialInstance;
-      logger.info(`Material uploaded to Google Drive and added: ${material.id} to lesson ${lessonId}`);
+      logger.info(`Material uploaded and added: ${material.id} to lesson ${lessonId}`);
 
       return material;
     } catch (error: unknown) {
-      logger.error(`Error uploading material to Google Drive: ${error}`);
+      logger.error(`Error uploading material: ${error}`);
       throw error;
     }
   }
@@ -476,18 +658,21 @@ data: LessonProgressInput
         includeUnpublished
       );
 
-      const totalSections = sections.length;
-      const totalLessons = sections.reduce(
+      // Enrich lessons with is_practice
+      const enrichedSections = await this.enrichLessonsWithPracticeFlag(sections, courseId);
+
+      const totalSections = enrichedSections.length;
+      const totalLessons = enrichedSections.reduce(
         (sum: number, section: any) => sum + (section.lessons?.length || 0),
         0
       );
-      const totalDuration = sections.reduce((sum: number, section: any) => {
+      const totalDuration = enrichedSections.reduce((sum: number, section: any) => {
         return sum + (section.lessons?.reduce(
           (lessonSum: number, lesson: any) => lessonSum + (lesson.duration_minutes || 0),
           0
         ) || 0);
       }, 0);
-      const totalMaterials = sections.reduce((sum: number, section: any) => {
+      const totalMaterials = enrichedSections.reduce((sum: number, section: any) => {
         return sum + (section.lessons?.reduce(
           (materialSum: number, lesson: any) => materialSum + (lesson.materials?.length || 0),
           0
@@ -500,7 +685,7 @@ data: LessonProgressInput
         total_lessons: totalLessons,
         total_duration_minutes: totalDuration,
         total_materials: totalMaterials,
-        sections: sections as any
+        sections: enrichedSections as any
       };
     } catch (error: unknown) {
       logger.error(`Error getting course content overview: ${error}`);
@@ -511,6 +696,153 @@ data: LessonProgressInput
   // ===================================
   // HELPER METHODS
   // ===================================
+
+  /**
+   * Enrich lessons with is_practice from quizzes and assignments
+   */
+  private async enrichLessonsWithPracticeFlag(
+    sections: any[],
+    courseId: string
+  ): Promise<any[]> {
+    // Fetch quizzes and assignments for this course
+    const { Quiz, Assignment } = await import('../../models');
+    const quizzes = await (Quiz as any).findAll({
+      where: { course_id: courseId },
+      attributes: ['id', 'title', 'is_practice']
+    });
+    const assignments = await (Assignment as any).findAll({
+      where: { course_id: courseId },
+      attributes: ['id', 'title', 'is_practice']
+    });
+
+    // Enrich lessons with is_practice from quiz/assignment
+    return sections.map((section: any) => {
+      if (section.lessons && section.lessons.length > 0) {
+        const enrichedLessons = section.lessons.map((lesson: any) => {
+          if (lesson.content_type === 'quiz') {
+            // Find matching quiz by title
+            const matchingQuiz = quizzes.find((q: any) => 
+              q.title && lesson.title && 
+              q.title.trim().toLowerCase() === lesson.title.trim().toLowerCase()
+            );
+            if (matchingQuiz) {
+              return {
+                ...lesson.toJSON ? lesson.toJSON() : lesson,
+                is_practice: matchingQuiz.is_practice,
+                quiz_id: matchingQuiz.id
+              };
+            }
+          } else if (lesson.content_type === 'assignment') {
+            // Find matching assignment by title
+            const matchingAssignment = assignments.find((a: any) => 
+              a.title && lesson.title && 
+              a.title.trim().toLowerCase() === lesson.title.trim().toLowerCase()
+            );
+            if (matchingAssignment) {
+              return {
+                ...lesson.toJSON ? lesson.toJSON() : lesson,
+                is_practice: matchingAssignment.is_practice,
+                assignment_id: matchingAssignment.id
+              };
+            }
+          }
+          return lesson.toJSON ? lesson.toJSON() : lesson;
+        });
+        return {
+          ...section.toJSON ? section.toJSON() : section,
+          lessons: enrichedLessons
+        };
+      }
+      return section.toJSON ? section.toJSON() : section;
+    });
+  }
+
+  /**
+   * Enrich a single lesson with practice flag and related quiz/assignment id
+   */
+  private async attachPracticeInfoToLesson(lesson: any, courseId: string): Promise<any> {
+    if (!lesson || !lesson.content_type || (lesson.content_type !== 'quiz' && lesson.content_type !== 'assignment')) {
+      return lesson;
+    }
+
+    const { Quiz, Assignment } = await import('../../models');
+
+    const base = lesson.toJSON ? lesson.toJSON() : lesson;
+
+    if (lesson.content_type === 'quiz') {
+      // Ưu tiên match theo lesson_id (chuẩn mới)
+      const quizByLesson = await (Quiz as any).findOne({
+        where: { course_id: courseId, lesson_id: lesson.id },
+        attributes: ['id', 'title', 'is_practice', 'lesson_id']
+      });
+
+      if (quizByLesson) {
+        return {
+          ...base,
+          is_practice: quizByLesson.is_practice,
+          quiz_id: quizByLesson.id
+        };
+      }
+
+      // Backward compatible: fallback match theo title cho data cũ
+      const quizzes = await (Quiz as any).findAll({
+        where: { course_id: courseId },
+        attributes: ['id', 'title', 'is_practice', 'lesson_id']
+      });
+
+      const matchingQuiz = quizzes.find((q: any) =>
+        !q.lesson_id &&
+        q.title && lesson.title &&
+        q.title.trim().toLowerCase() === lesson.title.trim().toLowerCase()
+      );
+
+      if (matchingQuiz) {
+        return {
+          ...base,
+          is_practice: matchingQuiz.is_practice,
+          quiz_id: matchingQuiz.id
+        };
+      }
+    }
+
+    if (lesson.content_type === 'assignment') {
+      // Ưu tiên match theo lesson_id
+      const assignmentByLesson = await (Assignment as any).findOne({
+        where: { course_id: courseId, lesson_id: lesson.id },
+        attributes: ['id', 'title', 'is_practice', 'lesson_id']
+      });
+
+      if (assignmentByLesson) {
+        return {
+          ...base,
+          is_practice: assignmentByLesson.is_practice,
+          assignment_id: assignmentByLesson.id
+        };
+      }
+
+      // Fallback title cho data cũ
+      const assignments = await (Assignment as any).findAll({
+        where: { course_id: courseId },
+        attributes: ['id', 'title', 'is_practice', 'lesson_id']
+      });
+
+      const matchingAssignment = assignments.find((a: any) =>
+        !a.lesson_id &&
+        a.title && lesson.title &&
+        a.title.trim().toLowerCase() === lesson.title.trim().toLowerCase()
+      );
+
+      if (matchingAssignment) {
+        return {
+          ...base,
+          is_practice: matchingAssignment.is_practice,
+          assignment_id: matchingAssignment.id
+        };
+      }
+    }
+
+    return base;
+  }
 
   /**
    * Verify that user is the instructor of the course

@@ -198,7 +198,7 @@ export function DashboardPage() {
 
   return (
     <StudentDashboardLayout>
-      <div className="max-w-7xl mx-auto pb-12">
+      <div className="max-w-8xl mx-auto pb-12">
         
         {/* === 1. HEADER SECTION === */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 bg-white/50 backdrop-blur-sm p-4 rounded-2xl md:bg-transparent md:p-0">

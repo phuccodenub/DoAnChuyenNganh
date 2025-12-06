@@ -1,0 +1,20 @@
+[33mb5f2138[m[33m ([m[1;31morigin/merge/backend-complete-to-main[m[33m, [m[1;32mmerge/backend-complete-to-main[m[33m, [m[1;32mmain[m[33m)[m Merge pull request #28 from phuccodenub/main
+[33m7e456f4[m Merge origin/main into dev/backend
+[33m35eb896[m Merge pull request #27 from phuccodenub/merge/backend-complete-to-main
+[33md8eff7b[m UPDATE lint
+[33m1173f47[m Merge pull request #26 from phuccodenub/merge/backend-complete-to-main
+[33m7976542[m Merge pull request #25 from phuccodenub/refactor
+[33ma7a4049[m[33m ([m[1;31morigin/refactor[m[33m)[m Merge pull request #24 from phuccodenub/merge/backend-complete-to-main
+[33md21bda9[m UPDATE lint
+[33m447205b[m UPDATE lint
+[33m0d9dfd5[m UPDATE lint
+[33madab7d7[m UPDATE lint
+[33md26a50a[m UPDATE lint
+[33mbc7bb06[m Fix TypeScript errors after merge
+[33m00dd9ab[m Merge refactor branch: Resolve all conflicts
+[33m0785f1e[m add service gcs and cloudinary
+[33mc91793d[m done unit and integration tét
+[33m6866609[m check CI 2
+[33m291daf1[m check CI test
+[33mae80501[m done buoc 4
+[33m6af5272[m refactor backend lan 2

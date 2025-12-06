@@ -181,4 +181,104 @@ export class MediaController {
       next(error);
     }
   };
+
+  /**
+   * Proxy video from R2 with CORS headers
+   * GET /media/video-proxy
+   * Fetches video from R2 public URL and streams it with proper CORS headers
+   */
+  proxyVideo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const videoUrl = req.query.url as string;
+      if (!videoUrl) {
+        responseUtils.sendError(res, 'Video URL is required', 400);
+        return;
+      }
+
+      // Validate that it's an R2 URL
+      if (!videoUrl.includes('.r2.dev')) {
+        responseUtils.sendError(res, 'Invalid video URL. Only R2 URLs are supported.', 400);
+        return;
+      }
+
+      // Fetch video from R2 public URL
+      const range = req.headers.range;
+      const headers: Record<string, string> = {};
+      
+      // Forward Range header for video seeking
+      if (range) {
+        headers['Range'] = range;
+      }
+
+      try {
+        const fetchResponse = await fetch(videoUrl, { headers });
+        
+        if (!fetchResponse.ok) {
+          responseUtils.sendError(res, 'Video not found', 404);
+          return;
+        }
+
+        // Set CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, Accept');
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+        res.setHeader('Accept-Ranges', 'bytes');
+
+        // Forward status code (206 for partial content, 200 for full)
+        res.status(fetchResponse.status);
+
+        // Forward content headers
+        const contentType = fetchResponse.headers.get('content-type');
+        const contentLength = fetchResponse.headers.get('content-length');
+        const contentRange = fetchResponse.headers.get('content-range');
+
+        if (contentType) {
+          res.setHeader('Content-Type', contentType);
+        } else {
+          res.setHeader('Content-Type', 'video/mp4');
+        }
+
+        if (contentLength) {
+          res.setHeader('Content-Length', contentLength);
+        }
+
+        if (contentRange) {
+          res.setHeader('Content-Range', contentRange);
+        }
+
+        // Stream response body to client
+        if (fetchResponse.body) {
+          const reader = fetchResponse.body.getReader();
+          const stream = new ReadableStream({
+            async start(controller) {
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  controller.enqueue(value);
+                }
+                controller.close();
+              } catch (error) {
+                controller.error(error);
+              }
+            }
+          });
+
+          // Convert Web ReadableStream to Node.js stream
+          const { Readable } = await import('stream');
+          const nodeStream = Readable.fromWeb(stream as any);
+          nodeStream.pipe(res);
+        } else {
+          res.end();
+        }
+      } catch (fetchError: unknown) {
+        logger.error('Error fetching video from R2:', fetchError);
+        responseUtils.sendError(res, 'Failed to fetch video', 500);
+      }
+    } catch (error: unknown) {
+      logger.error('Error proxying video:', error);
+      next(error);
+    }
+  };
 }

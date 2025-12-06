@@ -106,12 +106,17 @@ export function useUploadFile() {
       }
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quota() });
 
-      toast.success(`File "${data.originalName}" uploaded successfully`);
+      const fileName = data?.originalName || data?.file?.originalName || variables.file.name || 'File';
+      toast.success(`File "${fileName}" uploaded successfully`);
       setProgress(null);
     },
     onError: (error: any) => {
+      // Safe error handling - check all possible error structures
       const message =
-        error?.response?.data?.message || 'File upload failed';
+        error?.response?.data?.message ||
+        error?.message ||
+        error?.payload?.message ||
+        'File upload failed';
       toast.error(message);
       setProgress(null);
     },
@@ -154,8 +159,12 @@ export function useUploadFiles() {
       setProgress({});
     },
     onError: (error: any) => {
+      // Safe error handling - check all possible error structures
       const message =
-        error?.response?.data?.message || 'File upload failed';
+        error?.response?.data?.message ||
+        error?.message ||
+        error?.payload?.message ||
+        'File upload failed';
       toast.error(message);
       setProgress({});
     },

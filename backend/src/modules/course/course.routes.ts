@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { CourseController } from './course.controller';
 import { EnrollmentController } from '../enrollment/enrollment.controller';
-import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
+import { authMiddleware, authorizeRoles, optionalAuthMiddleware } from '../../middlewares/auth.middleware';
 import { validateRequest } from '../../middlewares/validate.middleware';
 import { courseValidation } from '../../validates/course.validate';
 
@@ -160,6 +160,7 @@ router.get('/enrolled',
  *         description: Course not found
  */
 router.get('/:id', 
+  optionalAuthMiddleware, // Optional auth to get userId if available
   validateRequest({ params: courseValidation.courseId }),
   courseController.getCourseById
 );

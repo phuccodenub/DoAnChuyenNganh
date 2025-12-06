@@ -1,5 +1,6 @@
 export interface CreateAssignmentDto {
-  course_id: string;
+  course_id?: string;
+  section_id?: string;
   title: string;
   description?: string;
   max_score?: number;
@@ -7,10 +8,13 @@ export interface CreateAssignmentDto {
   allow_late_submission?: boolean;
   submission_type: 'file' | 'text' | 'both';
   is_published?: boolean;
+  is_practice?: boolean; // true = Practice Assignment, false = Graded Assignment
   instructions?: string;
 }
 
 export interface UpdateAssignmentDto {
+  course_id?: string;
+  section_id?: string;
   title?: string;
   description?: string;
   max_score?: number;
@@ -18,6 +22,7 @@ export interface UpdateAssignmentDto {
   allow_late_submission?: boolean;
   submission_type?: 'file' | 'text' | 'both';
   is_published?: boolean;
+  is_practice?: boolean; // true = Practice Assignment, false = Graded Assignment
   instructions?: string;
 }
 

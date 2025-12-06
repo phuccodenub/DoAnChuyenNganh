@@ -103,6 +103,31 @@ export class R2StorageService implements IStorageService {
     return `${this.publicUrl}/${objectPath}`;
   }
 
+  /**
+   * Get file URL for proxying
+   * Returns the public URL that can be fetched with CORS headers
+   */
+  getFileUrl(objectPath: string): string {
+    return `${this.publicUrl}/${objectPath}`;
+  }
+
+  /**
+   * Extract object path from R2 URL
+   */
+  extractObjectPath(url: string): string | null {
+    try {
+      // Remove public URL prefix to get object path
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      
+      // Remove leading slash
+      return pathname.replace(/^\/+/, '');
+    } catch (error) {
+      logger.error('Error extracting object path from URL:', error);
+      return null;
+    }
+  }
+
   private sanitizeFilename(name: string): string {
     return name.replace(/[^a-zA-Z0-9._-]/g, '_');
   }

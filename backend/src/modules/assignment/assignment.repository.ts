@@ -1,4 +1,5 @@
 import { Assignment, AssignmentSubmission, User, Course } from '../../models';
+import { Op } from 'sequelize';
 import type { ModelStatic, WhereOptions } from '../../types/sequelize-types';
 import type {
   AssignmentInstance,
@@ -43,10 +44,24 @@ export class AssignmentRepository {
   }
 
   async getCourseAssignments(courseId: string, includeUnpublished: boolean = false): Promise<AssignmentInstance[]> {
-    const whereClause: WhereOptions<AssignmentAttributes> = { course_id: courseId };
+    const { default: Section } = await import('../../models/section.model');
+    const { default: Lesson } = await import('../../models/lesson.model');
+    const sections = await (Section as any).findAll({ where: { course_id: courseId }, attributes: ['id'] });
+    const sectionIds = sections.map((s: any) => s.id);
+    const lessons = sectionIds.length
+      ? await (Lesson as any).findAll({ where: { section_id: sectionIds }, attributes: ['id'] })
+      : [];
+    const lessonIds = lessons.map((l: any) => l.id);
+
+    const whereClause: WhereOptions<AssignmentAttributes> = {
+      [Op.or]: [
+        { course_id: courseId },
+        ...(lessonIds.length ? [{ lesson_id: lessonIds }] : [])
+      ]
+    };
     
     if (!includeUnpublished) {
-      whereClause.is_published = true;
+      (whereClause as any).is_published = true;
     }
 
     return this.AssignmentModel.findAll({

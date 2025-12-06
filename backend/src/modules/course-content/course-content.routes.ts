@@ -1,10 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 import { CourseContentController } from './course-content.controller';
 import { courseContentValidation } from './course-content.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
-import { validate } from '../../middlewares/validate.middleware';
+import { validate, validateRequest } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
 import { uploadMiddleware } from '../files/upload.middleware';
+import multer from 'multer';
+import { FILE_CATEGORIES } from '../files/files.types';
 
 const router = Router();
 const controller = new CourseContentController();
@@ -141,16 +144,75 @@ router.post(
   controller.addMaterial
 );
 
-// Upload material file to Google Drive and create LessonMaterial (instructor only)
+// Upload material file to R2 (or Google Drive) and create LessonMaterial (instructor only)
+// Custom upload middleware với limit 50MB cho materials
+const materialUpload = (() => {
+  const storageType = (process.env.STORAGE_TYPE || 'local').toLowerCase();
+  const isCloudStorage = storageType === 'r2' || storageType === 'google_cloud' || storageType === 'aws_s3';
+  const storage = isCloudStorage ? multer.memoryStorage() : multer.diskStorage({});
+  
+  return multer({
+    storage,
+    fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+      const category = (req.body as any)?.category || 'DOCUMENT';
+      const categoryConfig = FILE_CATEGORIES[category.toUpperCase() as keyof typeof FILE_CATEGORIES];
+      
+      if (!categoryConfig) {
+        return cb(new Error(`Invalid file category: ${category}`));
+      }
+      
+      const path = require('path');
+      const ext = path.extname(file.originalname).toLowerCase();
+      const isValidExt = (categoryConfig.extensions as readonly string[]).includes(ext);
+      const isValidMime = (categoryConfig.mimeTypes as readonly string[]).includes(file.mimetype);
+      
+      if (isValidExt && isValidMime) {
+        cb(null, true);
+      } else {
+        cb(new Error(`File type not allowed. Allowed: ${categoryConfig.extensions.join(', ')}`));
+      }
+    },
+    limits: {
+      fileSize: 50 * 1024 * 1024 // 50MB for materials
+    }
+  }).single('file');
+})();
+
 router.post(
   '/lessons/:lessonId/materials/upload',
   // Dùng category DOCUMENT để giới hạn PDF, DOCX, PPT, ZIP...
   (req: Request, _res: Response, next: NextFunction) => {
-    // Gắn category để upload.middleware biết validate
+    // Khởi tạo req.body nếu chưa có
+    if (!req.body) {
+      (req as any).body = {};
+    }
+    // Gắn category để fileFilter biết validate
     (req as any).body.category = (req as any).body.category || 'DOCUMENT';
     next();
   },
-  uploadMiddleware('file', 1),
+  (req: Request, res: Response, next: NextFunction) => {
+    materialUpload(req, res, (err: any) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'File quá lớn. Kích thước tối đa: 50MB',
+            error: { code: 'FILE_TOO_LARGE', maxSize: 50 * 1024 * 1024 }
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'File upload error'
+        });
+      } else if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'File upload failed'
+        });
+      }
+      next();
+    });
+  },
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
   controller.uploadMaterialFile
 );
@@ -198,11 +260,24 @@ router.get(
   controller.getLessonProgress
 );
 
-// Get course progress
+// Get course progress (for current user)
 router.get(
   '/courses/:courseId/progress',
   validate(courseContentValidation.courseId),
   controller.getCourseProgress
+);
+
+// Get student progress (for instructor - view any student's progress)
+router.get(
+  '/courses/:courseId/students/:studentId/progress',
+  validateRequest({
+    params: z.object({
+      courseId: z.string().uuid('Invalid course ID'),
+      studentId: z.string().uuid('Invalid student ID')
+    })
+  }),
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.getStudentProgress
 );
 
 // Get recent activity

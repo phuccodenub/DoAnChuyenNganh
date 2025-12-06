@@ -89,7 +89,24 @@ export class LessonController {
       const { id } = req.params;
       const updateData = req.body;
       
+      // Debug log để kiểm tra data nhận được
+      logger.info('Updating lesson with data', { 
+        lessonId: id, 
+        hasContent: !!updateData.content,
+        hasDescription: !!updateData.description,
+        contentLength: updateData.content?.length || 0,
+        updateDataKeys: Object.keys(updateData)
+      });
+      
       const lesson = await this.lessonService.updateLesson(id, updateData);
+
+      // Debug log để kiểm tra data trả về
+      logger.info('Lesson updated, returning data', { 
+        lessonId: id,
+        hasContent: !!(lesson as any)?.content,
+        hasDescription: !!(lesson as any)?.description,
+        contentLength: (lesson as any)?.content?.length || 0
+      });
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
         success: true,

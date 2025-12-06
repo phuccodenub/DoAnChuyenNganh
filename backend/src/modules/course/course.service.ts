@@ -19,7 +19,7 @@ export class CourseService {
    * Normalize course data for frontend compatibility
    * Maps backend field names to frontend expected names
    */
-  private normalizeCourseForFrontend(course: CourseInstance | any): any {
+  private async normalizeCourseForFrontend(course: CourseInstance | any, userId?: string): Promise<any> {
     if (!course) return null;
     
     const courseData = course.toJSON ? course.toJSON() : { ...course };
@@ -27,6 +27,43 @@ export class CourseService {
     // Map thumbnail to thumbnail_url for frontend compatibility
     if (courseData.thumbnail && !courseData.thumbnail_url) {
       courseData.thumbnail_url = courseData.thumbnail;
+    }
+    
+    // Normalize instructor full_name from first_name and last_name
+    if (courseData.instructor) {
+      if (!courseData.instructor.full_name && (courseData.instructor.first_name || courseData.instructor.last_name)) {
+        courseData.instructor.full_name = [
+          courseData.instructor.first_name,
+          courseData.instructor.last_name
+        ].filter(Boolean).join(' ');
+      }
+    }
+    
+    // Check enrollment status if userId is provided
+    if (userId) {
+      try {
+        const enrollment = await this.courseRepository.findEnrollment(courseData.id, userId);
+        courseData.is_enrolled = !!enrollment && enrollment.status !== 'cancelled' && enrollment.status !== 'suspended';
+      } catch (error) {
+        logger.error('Error checking enrollment status:', error);
+        courseData.is_enrolled = false;
+      }
+    } else {
+      courseData.is_enrolled = false;
+    }
+    
+    // Normalize sections if they exist
+    if (courseData.sections && Array.isArray(courseData.sections)) {
+      courseData.sections = courseData.sections.map((section: any) => {
+        const sectionData = section.toJSON ? section.toJSON() : section;
+        // Ensure lessons array is properly formatted
+        if (sectionData.lessons && Array.isArray(sectionData.lessons)) {
+          sectionData.lessons = sectionData.lessons.map((lesson: any) => {
+            return lesson.toJSON ? lesson.toJSON() : lesson;
+          });
+        }
+        return sectionData;
+      });
     }
     
     return courseData;
@@ -97,21 +134,137 @@ export class CourseService {
 
   /**
    * Get course by ID
+   * @param id Course ID
+   * @param userId Optional user ID for access control
    */
-  async getCourseById(id: string): Promise<any> {
+  async getCourseById(id: string, userId?: string): Promise<any> {
     try {
-      logger.info('Getting course by ID', { courseId: id });
+      logger.info('Getting course by ID', { courseId: id, userId });
 
-      const course = await this.courseRepository.findById(id);
+      // Include sections and lessons for public view
+      const { Section, Lesson } = await import('../../models');
+      const course = await this.courseRepository.findById(id, {
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
+          },
+          {
+            model: Section,
+            as: 'sections',
+            attributes: ['id', 'title', 'description', 'order_index', 'is_published', 'course_id', 'created_at', 'updated_at'],
+            include: [
+              {
+                model: Lesson,
+                as: 'lessons',
+                attributes: ['id', 'title', 'description', 'order_index', 'section_id', 'content_type', 'duration_minutes', 'is_published', 'is_free_preview', 'created_at', 'updated_at'],
+                order: [['order_index', 'ASC']]
+              }
+            ],
+            order: [['order_index', 'ASC']]
+          }
+        ]
+      });
       
-      if (course) {
-        logger.info('Course retrieved successfully', { courseId: id });
-        // Normalize for frontend compatibility
-        return this.normalizeCourseForFrontend(course);
-      } else {
+      if (!course) {
         logger.warn('Course not found', { courseId: id });
         return null;
       }
+
+      // Check course status for access control
+      const courseStatus = (course as any).status;
+      logger.info('Course status check', { courseId: id, status: courseStatus, userId });
+
+      // If course is published, anyone can access
+      if (courseStatus === 'published') {
+        logger.info('Course is published, access granted', { courseId: id });
+        return await this.normalizeCourseForFrontend(course, userId);
+      }
+
+      // If course is draft, ONLY the instructor (owner) can access
+      // Draft courses should NOT be accessible via public route /courses/:id
+      // They should only be accessible via instructor management route
+      if (courseStatus === 'draft') {
+        // Check if user is the instructor (owner) of this course
+        const instructorId = (course as any).instructor_id;
+        
+        // Only the instructor can access draft courses
+        if (!userId || userId !== instructorId) {
+          // Return 404 instead of 403 to hide the existence of draft courses
+          // This prevents information disclosure - users shouldn't know draft courses exist
+          logger.warn('Draft course access denied - returning 404', { 
+            courseId: id, 
+            userId, 
+            status: courseStatus,
+            instructorId,
+            isInstructor: userId === instructorId
+          });
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Course not found');
+        }
+
+        // User is the instructor, grant access
+        logger.info('User is instructor (owner) of draft course, access granted', { courseId: id, userId });
+        return await this.normalizeCourseForFrontend(course, userId);
+      }
+
+      // If course is archived, check access (instructor, enrolled users, or admin)
+      if (courseStatus === 'archived') {
+        // If no userId provided, deny access
+        if (!userId) {
+          logger.warn('Course is archived and user is not authenticated', { 
+            courseId: id, 
+            status: courseStatus 
+          });
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'This course is not available to the public');
+        }
+
+        // Check if user is the instructor
+        const instructorId = (course as any).instructor_id;
+        if (userId === instructorId) {
+          logger.info('User is instructor, access granted', { courseId: id, userId });
+          return await this.normalizeCourseForFrontend(course, userId);
+        }
+
+        // Check if user is enrolled in the course (archived courses can be viewed by enrolled users)
+        const enrollment = await this.courseRepository.findEnrollment(id, userId);
+        if (enrollment && enrollment.status !== 'cancelled' && enrollment.status !== 'suspended') {
+          logger.info('User is enrolled, access granted', { courseId: id, userId, enrollmentStatus: enrollment.status });
+          return await this.normalizeCourseForFrontend(course, userId);
+        }
+
+        // Check if user is admin or super_admin
+        const user = await this.courseRepository.findUserById(userId);
+        if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+          logger.info('User is admin, access granted', { courseId: id, userId, role: user.role });
+          return await this.normalizeCourseForFrontend(course, userId);
+        }
+
+        // Deny access
+        logger.warn('Access denied to archived course', { 
+          courseId: id, 
+          userId, 
+          status: courseStatus,
+          isInstructor: userId === instructorId,
+          hasEnrollment: !!enrollment
+        });
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'This course is not available to the public');
+      }
+
+      // For other statuses (e.g., 'suspended'), deny access unless instructor/admin
+      if (courseStatus === 'suspended') {
+        if (!userId) {
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'This course is not available');
+        }
+        const instructorId = (course as any).instructor_id;
+        const user = await this.courseRepository.findUserById(userId);
+        if (userId !== instructorId && user?.role !== 'admin' && user?.role !== 'super_admin') {
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'This course is not available');
+        }
+      }
+
+      logger.info('Course retrieved successfully', { courseId: id });
+      return await this.normalizeCourseForFrontend(course, userId);
     } catch (error: unknown) {
       logger.error('Error getting course by ID:', error);
       throw error;

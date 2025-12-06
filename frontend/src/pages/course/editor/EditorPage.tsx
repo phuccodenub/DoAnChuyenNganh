@@ -383,8 +383,14 @@ export function EditorPage() {
 
         <StepWizard currentStep={1} steps={steps} />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 space-y-10">
-          <section className="space-y-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Section 1: Thông tin cơ bản */}
+          <section className="p-8 border-b border-gray-200">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Thông tin cơ bản</h2>
+              <p className="text-sm text-gray-500">Thông tin chính về khóa học của bạn</p>
+            </div>
+            <div className="space-y-6">
             <Controller
               name="title"
               control={control}
@@ -425,65 +431,79 @@ export function EditorPage() {
                 )}
               />
             </div>
+            </div>
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Controller
-              name="category"
-              control={control}
-              render={({ field }) => (
-                <div>
+          {/* Section 2: Phân loại */}
+          <section className="p-8 border-b border-gray-200 bg-gray-50/50">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Phân loại</h2>
+              <p className="text-sm text-gray-500">Giúp học viên dễ dàng tìm thấy khóa học của bạn</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Controller
+                name="category"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <SelectField
+                      label="Danh mục"
+                      value={field.value}
+                      onChange={(val) => field.onChange(val)}
+                      options={categoryOptions}
+                      placeholder="Chọn danh mục"
+                    />
+                    {errors.category && (
+                      <p className="text-sm text-red-500 mt-1">{errors.category.message}</p>
+                    )}
+                  </div>
+                )}
+              />
+
+              <Controller
+                name="level"
+                control={control}
+                render={({ field }) => (
                   <SelectField
-                    label="Danh mục"
+                    label="Độ khó"
                     value={field.value}
-                    onChange={(val) => field.onChange(val)}
-                    options={categoryOptions}
-                    placeholder="Chọn danh mục"
+                    onChange={(val) => field.onChange(val as CourseLevel)}
+                    options={levelOptions}
+                    placeholder="Chọn độ khó"
                   />
-                  {errors.category && (
-                    <p className="text-sm text-red-500 mt-1">{errors.category.message}</p>
-                  )}
-                </div>
-              )}
-            />
+                )}
+              />
 
-            <Controller
-              name="level"
-              control={control}
-              render={({ field }) => (
-                <SelectField
-                  label="Độ khó"
-                  value={field.value}
-                  onChange={(val) => field.onChange(val as CourseLevel)}
-                  options={levelOptions}
-                  placeholder="Chọn độ khó"
-                />
-              )}
-            />
+              <Controller
+                name="language"
+                control={control}
+                render={({ field }) => (
+                  <SelectField
+                    label="Ngôn ngữ"
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={languageOptions}
+                    placeholder="Chọn ngôn ngữ"
+                  />
+                )}
+              />
 
-            <Controller
-              name="language"
-              control={control}
-              render={({ field }) => (
-                <SelectField
-                  label="Ngôn ngữ"
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={languageOptions}
-                  placeholder="Chọn ngôn ngữ"
-                />
-              )}
-            />
-
-            <Input
-              label="Tiểu mục"
-              placeholder="Ví dụ: Product Design, Data Analysis..."
-              {...register('subcategory')}
-              error={errors.subcategory?.message}
-            />
+              <Input
+                label="Tiểu mục"
+                placeholder="Ví dụ: Product Design, Data Analysis..."
+                {...register('subcategory')}
+                error={errors.subcategory?.message}
+              />
+            </div>
           </section>
 
-          <section className="space-y-4">
+          {/* Section 3: Giá và khuyến mãi */}
+          <section className="p-8 border-b border-gray-200">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Giá và khuyến mãi</h2>
+              <p className="text-sm text-gray-500">Thiết lập giá khóa học và các chương trình khuyến mãi</p>
+            </div>
+            <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 type="number"
@@ -538,7 +558,7 @@ export function EditorPage() {
               </div>
             </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               <Input
                 type="number"
                 label="Giá giảm"
@@ -573,9 +593,16 @@ export function EditorPage() {
                 {...register('discount_end')}
               />
             </div>
+            </div>
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Section 4: Thời lượng và số lượng */}
+          <section className="p-8 border-b border-gray-200 bg-gray-50/50">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Thời lượng và số lượng</h2>
+              <p className="text-sm text-gray-500">Thông tin về thời gian và số lượng bài học</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
               type="number"
               label="Thời lượng (giờ)"
@@ -590,9 +617,16 @@ export function EditorPage() {
               {...register('total_lessons', { valueAsNumber: true })}
               error={errors.total_lessons?.message}
             />
+            </div>
           </section>
 
-          <section className="space-y-6">
+          {/* Section 5: Nội dung và yêu cầu */}
+          <section className="p-8 border-b border-gray-200">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Nội dung và yêu cầu</h2>
+              <p className="text-sm text-gray-500">Mô tả những gì học viên sẽ học được và yêu cầu đầu vào</p>
+            </div>
+            <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Học viên sẽ học được gì?
@@ -624,9 +658,16 @@ export function EditorPage() {
               onChange={setCourseIncludes}
               placeholder="Ví dụ: 150 tài nguyên tải về, Chứng chỉ hoàn thành..."
             />
+            </div>
           </section>
 
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Section 6: Media */}
+          <section className="p-8">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Hình ảnh và video</h2>
+              <p className="text-sm text-gray-500">Ảnh bìa và video giới thiệu khóa học</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
               <ImageDropzone
                 key={thumbnailValue}
@@ -668,10 +709,11 @@ export function EditorPage() {
                 error={errors.video_intro?.message}
               />
             </div>
+            </div>
           </section>
         </div>
 
-        <div className="pb-24">
+        <div className="pb-20">
           <FormFooter
             onCancel={handleCancel}
             onSaveDraft={() => submitWithAction('draft')}

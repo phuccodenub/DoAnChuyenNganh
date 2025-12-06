@@ -26,6 +26,7 @@ export function useInstructorQuizzes(params?: {
   page?: number;
   limit?: number;
   course_id?: string;
+  lesson_id?: string;
   status?: 'draft' | 'published' | 'archived';
 }) {
   return useQuery({
@@ -53,7 +54,8 @@ export function useInstructorQuiz(quizId: string) {
 export function useInstructorQuizQuestions(quizId: string) {
   return useQuery({
     queryKey: ['instructor-quiz-questions', quizId],
-    queryFn: () => quizApi.getQuizQuestions(quizId),
+    // Instructor view: lấy kèm đáp án đúng để hiển thị trong builder
+    queryFn: () => quizApi.getQuizQuestionsWithAnswers(quizId),
     enabled: !!quizId && quizId !== 'new',
     staleTime: 1 * 60 * 1000,
   });
@@ -162,8 +164,16 @@ export function useAddQuestion() {
       // Optimistically update questions list
       queryClient.setQueryData<Question[]>(
         ['instructor-quiz-questions', quizId],
-        (old) => old ? [...old, newQuestion] : [newQuestion]
+        (old) => {
+          // Đảm bảo old luôn là array trước khi spread để tránh lỗi "old is not iterable"
+          if (!old || !Array.isArray(old)) {
+            return [newQuestion];
+          }
+          return [...old, newQuestion];
+        }
       );
+      // Invalidate để đảm bảo data được refresh từ server
+      queryClient.invalidateQueries({ queryKey: ['instructor-quiz-questions', quizId] });
       queryClient.invalidateQueries({ queryKey: ['instructor-quiz', quizId] });
       toast.success('Thêm câu hỏi thành công!');
     },
@@ -196,6 +206,8 @@ export function useUpdateQuestion() {
         ['instructor-quiz-questions', quizId],
         (old) => old?.map(q => q.id === questionId ? updatedQuestion : q)
       );
+      // Invalidate để đảm bảo data được refresh từ server (đặc biệt khi options được cập nhật)
+      queryClient.invalidateQueries({ queryKey: ['instructor-quiz-questions', quizId] });
       toast.success('Cập nhật câu hỏi thành công!');
     },
     onError: (error: any) => {

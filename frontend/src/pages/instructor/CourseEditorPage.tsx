@@ -187,13 +187,13 @@ export function CourseEditorPage() {
       // Go to curriculum page
       const targetId = createdCourseId || courseId;
       if (targetId) {
-        navigate(generateRoute.instructor.courseDetail(targetId));
+        navigate(generateRoute.courseCurriculum(targetId));
       }
     } else if (currentStep === 3) {
       // Publish course
       await saveCourse();
       toast.success('Đã lưu cài đặt!');
-      navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+      navigate(ROUTES.COURSE_MANAGEMENT);
     }
   };
 
@@ -207,12 +207,12 @@ export function CourseEditorPage() {
     const savedId = await saveCourse();
     if (savedId) {
       toast.success('Đã lưu bản nháp!');
-      navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+      navigate(ROUTES.COURSE_MANAGEMENT);
     }
   };
 
   const handleCancel = () => {
-    navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+    navigate(ROUTES.COURSE_MANAGEMENT);
   };
 
   // Add/remove learning outcome

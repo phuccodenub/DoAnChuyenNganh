@@ -94,6 +94,7 @@ export interface CourseInstance extends Model, CourseAttributes {}
 export interface QuizAttributes {
   id: string;
   course_id: string;
+  section_id?: string;
   title: string;
   description?: string;
   duration_minutes?: number;
@@ -104,6 +105,7 @@ export interface QuizAttributes {
   available_from?: Date | null;
   available_until?: Date | null;
   is_published: boolean;
+  is_practice: boolean; // true = Practice Quiz, false = Graded Quiz
   created_at: Date;
   updated_at: Date;
 }
@@ -113,7 +115,7 @@ export interface QuizCreationAttributes extends Optional<
   'id' | 'created_at' | 'updated_at' |
   'duration_minutes' | 'passing_score' | 'max_attempts' |
   'shuffle_questions' | 'show_correct_answers' |
-  'available_from' | 'available_until' | 'is_published'
+  'available_from' | 'available_until' | 'is_published' | 'section_id'
 > {}
 
 export interface QuizInstance extends Model, QuizAttributes {}
@@ -209,6 +211,7 @@ export interface QuizAnswerInstance extends Model, QuizAnswerAttributes {}
 export interface AssignmentAttributes {
   id: string;
   course_id: string;
+  section_id?: string;
   title: string;
   description?: string;
   max_score: number;
@@ -216,6 +219,7 @@ export interface AssignmentAttributes {
   allow_late_submission: boolean;
   submission_type: 'file' | 'text' | 'both';
   is_published: boolean;
+  is_practice: boolean; // true = Practice Assignment, false = Graded Assignment
   created_at: Date;
   updated_at: Date;
 }
@@ -671,6 +675,8 @@ export interface NotificationRecipientInstance extends Model, NotificationRecipi
 export interface GradeComponentAttributes {
   id: string;
   course_id: string;
+  component_type: 'quiz' | 'assignment' | 'attendance' | 'participation' | 'manual';
+  component_id?: string | null;
   name: string;
   weight: number;
   max_score: number;

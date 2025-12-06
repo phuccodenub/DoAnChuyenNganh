@@ -1,4 +1,5 @@
 import { httpClient } from '../http/client';
+import type { Section } from './lesson.api';
 
 /**
  * Course API Service
@@ -55,6 +56,7 @@ export interface Course {
   _count?: {
     enrollments: number;
   };
+  sections?: Section[];
 }
 
 export interface CreateCoursePayload {

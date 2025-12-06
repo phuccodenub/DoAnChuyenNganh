@@ -1,6 +1,7 @@
 import { BaseRepository } from '../../repositories/base.repository';
 import Section from '../../models/section.model';
 import Lesson from '../../models/lesson.model';
+import LessonMaterial from '../../models/lesson-material.model';
 import type { ModelStatic } from '../../types/sequelize-types';
 import type { SectionInstance } from '../../types/model.types';
 import logger from '../../utils/logger.util';
@@ -47,7 +48,16 @@ export class SectionRepository extends BaseRepository<SectionInstance> {
             model: Lesson,
             as: 'lessons',
             required: false,
-            order: [['order_index', 'ASC']]
+            attributes: ['id', 'section_id', 'title', 'description', 'content', 'content_type', 'video_url', 'duration_minutes', 'is_published', 'is_free_preview', 'order_index', 'created_at', 'updated_at'],
+            order: [['order_index', 'ASC']],
+            include: [
+              {
+                model: LessonMaterial,
+                as: 'materials',
+                required: false,
+                order: [['order_index', 'ASC'], ['created_at', 'ASC']]
+              }
+            ]
           }
         ],
         distinct: true // Important for correct count with includes

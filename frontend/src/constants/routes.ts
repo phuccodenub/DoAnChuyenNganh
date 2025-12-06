@@ -113,10 +113,12 @@ export const generateRoute = {
     learning: (courseId: string) => `/student/courses/${courseId}/learn`,
     lesson: (courseId: string, lessonId: string) => 
       `/student/courses/${courseId}/lessons/${lessonId}`,
-    quiz: (quizId: string) => `/student/quizzes/${quizId}`,
-    quizAttempt: (quizId: string, attemptId: string) => 
-      `/student/quizzes/${quizId}/attempt/${attemptId}`,
-    assignment: (assignmentId: string) => `/student/assignments/${assignmentId}`,
+    quiz: (courseId: string, quizId: string) => 
+      `/student/courses/${courseId}/quizzes/${quizId}`,
+    quizAttempt: (courseId: string, quizId: string, attemptId: string) => 
+      `/student/courses/${courseId}/quizzes/${quizId}/attempt/${attemptId}`,
+    assignment: (courseId: string, assignmentId: string) => 
+      `/student/courses/${courseId}/assignments/${assignmentId}`,
     chat: (courseId?: string) => 
       courseId ? `/student/chat?courseId=${courseId}` : '/student/chat',
   },
