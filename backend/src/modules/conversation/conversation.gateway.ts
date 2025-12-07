@@ -215,21 +215,32 @@ export class ConversationGateway {
         attachmentType: data.attachmentType
       });
 
+      // Serialize message to plain object (ensures created_at is included)
+      const serializedMessage = message ? (message as any).toJSON() : message;
+      
+      // Debug log to verify created_at is included
+      logger.info(`📤 Emitting NEW_MESSAGE:`, {
+        messageId: serializedMessage?.id?.substring(0, 8),
+        hasCreatedAt: 'created_at' in (serializedMessage || {}),
+        createdAt: serializedMessage?.created_at,
+        keys: Object.keys(serializedMessage || {}),
+      });
+
       // Broadcast to conversation room
-      this.io.to(`dm:${data.conversationId}`).emit(DMSocketEvents.NEW_MESSAGE, message);
+      this.io.to(`dm:${data.conversationId}`).emit(DMSocketEvents.NEW_MESSAGE, serializedMessage);
 
       // Confirm to sender
       socket.emit(DMSocketEvents.MESSAGE_SENT, {
-        message,
+        message: serializedMessage,
         conversationId: data.conversationId
       });
 
       // Notify other user if they're online but not in the conversation room
       const conversation = await this.conversationService.getConversationById(data.conversationId);
       if (conversation) {
-        const otherUserId = conversation.studentId === user.userId
-          ? conversation.instructorId
-          : conversation.studentId;
+        const otherUserId = conversation.user1Id === user.userId
+          ? conversation.user2Id
+          : conversation.user1Id;
 
         // Send notification to other user's sockets
         const otherUserSockets = this.userSockets.get(otherUserId);

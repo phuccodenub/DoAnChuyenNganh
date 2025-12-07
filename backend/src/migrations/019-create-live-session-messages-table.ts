@@ -3,9 +3,24 @@
  * Lưu trữ messages trong livestream sessions
  */
 
-import { QueryInterface, DataTypes } from 'sequelize';
+import { QueryInterface, DataTypes, QueryTypes } from 'sequelize';
+
+// Helper to check if table exists
+async function tableExists(queryInterface: QueryInterface, tableName: string): Promise<boolean> {
+  const [results] = await queryInterface.sequelize.query(
+    `SELECT table_name FROM information_schema.tables WHERE table_name = '${tableName}'`,
+    { type: QueryTypes.SELECT }
+  ) as [{ table_name: string }[], unknown];
+  return results !== undefined && (results as any).table_name === tableName;
+}
 
 export async function up(queryInterface: QueryInterface): Promise<void> {
+  // Skip if table already exists
+  if (await tableExists(queryInterface, 'live_session_messages')) {
+    console.log('Table live_session_messages already exists, skipping...');
+    return;
+  }
+
   // Create enum type for message_type
   await queryInterface.sequelize.query(`
     DO $$ BEGIN

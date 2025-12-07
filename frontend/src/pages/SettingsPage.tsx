@@ -1,20 +1,41 @@
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { Lock, Bell, Shield, Save } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { useAuth } from '@/hooks/useAuth';
+import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
+import { InstructorDashboardLayout } from '@/layouts/InstructorDashboardLayout';
+import AdminDashboardLayout from '@/layouts/AdminDashboardLayout';
 
 /**
- * SettingsPage - Student
+ * SettingsPage - Universal Settings Page
  * 
- * Trang cài đặt:
+ * Trang cài đặt dùng chung cho tất cả roles:
  * - Change password section
  * - Notification preferences
  * - Privacy settings
  * - Vietnamese UI
+ * 
+ * Dynamic layout based on user role
  */
 
+// Layout wrapper component based on user role
+function RoleBasedLayout({ children, role }: { children: ReactNode; role?: string }) {
+  switch (role) {
+    case 'instructor':
+      return <InstructorDashboardLayout>{children}</InstructorDashboardLayout>;
+    case 'admin':
+    case 'super_admin':
+      return <AdminDashboardLayout>{children}</AdminDashboardLayout>;
+    case 'student':
+    default:
+      return <StudentDashboardLayout>{children}</StudentDashboardLayout>;
+  }
+}
+
 export function SettingsPage() {
+  const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
   // Password form
@@ -104,7 +125,8 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <RoleBasedLayout role={user?.role}>
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Cài đặt</h1>
@@ -330,7 +352,8 @@ export function SettingsPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </RoleBasedLayout>
   );
 }
 

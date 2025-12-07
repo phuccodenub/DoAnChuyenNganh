@@ -27,6 +27,7 @@ export function ConversationPanel({
     onSendMessage,
     onRetry,
     error,
+    isParticipantOnline,
 }: ConversationPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +71,7 @@ export function ConversationPanel({
                             )}
                         </div>
                         <OnlineStatusDot
-                            status={participant.online_status}
+                            status={isParticipantOnline ? 'online' : 'offline'}
                             className="absolute bottom-0 right-0"
                         />
                     </div>
@@ -78,7 +79,9 @@ export function ConversationPanel({
                     {/* Info */}
                     <div>
                         <h3 className="font-semibold text-gray-900">{participant.name}</h3>
-                        <p className="text-xs text-blue-600">{course_title}</p>
+                        <p className="text-xs text-gray-500">
+                            {isParticipantOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+                        </p>
                     </div>
                 </div>
 
@@ -137,11 +140,10 @@ export function ConversationPanel({
                                 {/* Messages */}
                                 <div className="space-y-3">
                                     {dayMessages.map((message, index) => {
-                                        const isOwn =
-                                            message.sender_role === currentUserRole;
+                                        const isOwn = message.sender_id === currentUserId;
                                         const showAvatar =
                                             index === 0 ||
-                                            dayMessages[index - 1].sender_role !== message.sender_role;
+                                            dayMessages[index - 1].sender_id !== message.sender_id;
 
                                         return (
                                             <MessageBubble

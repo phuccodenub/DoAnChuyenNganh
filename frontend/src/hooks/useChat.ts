@@ -17,6 +17,7 @@ export function useChatMessages(courseId: string, page: number = 1, limit: numbe
     queryFn: () => chatApi.getMessages(courseId, page, limit),
     staleTime: 1000 * 60, // 1 minute
     gcTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!courseId, // Only fetch when courseId is provided
   });
 }
 

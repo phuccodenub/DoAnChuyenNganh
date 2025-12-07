@@ -117,6 +117,9 @@ function AppRoutes() {
 
           {/* Universal profile route for all authenticated users */}
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+          
+          {/* Universal settings route for all authenticated users */}
+          <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
 
           {/* Student routes */}
           <Route element={<RoleGuard allowedRoles={['student']} />}>
@@ -127,7 +130,7 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
             <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
-            <Route path={ROUTES.STUDENT.SETTINGS} element={<SettingsPage />} />
+            {/* Settings moved to universal route */}
             <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
             {/* Redirect old chat route to shared messages page */}
             <Route path={ROUTES.STUDENT.CHAT} element={<Navigate to={ROUTES.SHARED.MESSAGES} replace />} />

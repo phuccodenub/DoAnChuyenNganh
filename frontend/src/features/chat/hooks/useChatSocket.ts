@@ -77,6 +77,14 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
 
     // Listen for new messages
     const handleNewMessage = (message: DirectMessage) => {
+      // Only log if created_at is missing (critical error)
+      if (!message.created_at) {
+        console.error('❌ Socket message missing created_at!', {
+          id: message.id?.substring(0, 8),
+          message_keys: Object.keys(message),
+        });
+      }
+      
       // Update query cache
       queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
@@ -188,12 +196,24 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
 /**
  * Hook for Course Chat real-time features
  */
+// Online user type from backend
+interface OnlineUserInfo {
+  userId: string;
+  userName: string;
+  avatar?: string;
+  isOnline: boolean;
+}
+
 export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
   const { courseId, onNewMessage, onUserJoined, onUserLeft, onTyping, onStopTyping } = options;
   const queryClient = useQueryClient();
   const [isConnected, setIsConnected] = useState(socketService.isConnected());
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUserInfo[]>([]);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Use refs for callbacks to avoid re-registering socket listeners
+  const callbacksRef = useRef({ onNewMessage, onUserJoined, onUserLeft, onTyping, onStopTyping });
+  callbacksRef.current = { onNewMessage, onUserJoined, onUserLeft, onTyping, onStopTyping };
 
   // Track connection state
   useEffect(() => {
@@ -228,41 +248,42 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
         queryKey: ['chat', 'messages', courseId] 
       });
 
-      onNewMessage?.(message);
+      callbacksRef.current.onNewMessage?.(message);
     };
 
     // Listen for user join/leave events
-    const handleUserJoined = (data: { courseId: string; user: { id: string; name: string } }) => {
-      if (data.courseId === courseId) {
-        setOnlineUsers(prev => [...new Set([...prev, data.user.id])]);
-        onUserJoined?.(data.user);
-      }
+    const handleUserJoined = (data: { userId: string; userName: string; timestamp: Date }) => {
+      // Backend emits to room, not specific courseId in payload
+      setOnlineUsers(prev => {
+        const existing = prev.find(u => u.userId === data.userId);
+        if (existing) return prev;
+        return [...prev, { userId: data.userId, userName: data.userName, isOnline: true }];
+      });
+      callbacksRef.current.onUserJoined?.({ id: data.userId, name: data.userName });
     };
 
-    const handleUserLeft = (data: { courseId: string; user: { id: string; name: string } }) => {
-      if (data.courseId === courseId) {
-        setOnlineUsers(prev => prev.filter(id => id !== data.user.id));
-        onUserLeft?.(data.user);
-      }
+    const handleUserLeft = (data: { userId: string; userName: string; timestamp: Date }) => {
+      setOnlineUsers(prev => prev.filter(u => u.userId !== data.userId));
+      callbacksRef.current.onUserLeft?.({ id: data.userId, name: data.userName });
     };
 
     // Listen for typing events
     const handleTyping = (data: { courseId: string; user: TypingUser }) => {
       if (data.courseId === courseId) {
-        onTyping?.(data.user);
+        callbacksRef.current.onTyping?.(data.user);
       }
     };
 
     const handleStopTyping = (data: { courseId: string; userId: string }) => {
       if (data.courseId === courseId) {
-        onStopTyping?.(data.userId);
+        callbacksRef.current.onStopTyping?.(data.userId);
       }
     };
 
     // Listen for online users list
-    const handleOnlineUsers = (data: { courseId: string; users: string[] }) => {
+    const handleOnlineUsers = (data: { courseId: string; users: OnlineUserInfo[] }) => {
       if (data.courseId === courseId) {
-        setOnlineUsers(data.users);
+        setOnlineUsers(data.users || []);
       }
     };
 
@@ -282,7 +303,8 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
       socket.off('chat:stop_typing', handleStopTyping);
       socket.off('chat:online_users', handleOnlineUsers);
     };
-  }, [courseId, isConnected, onNewMessage, onUserJoined, onUserLeft, onTyping, onStopTyping, queryClient]);
+    // Only re-register when courseId or connection changes - NOT callbacks
+  }, [courseId, isConnected, queryClient]);
 
   // Send typing indicator
   const sendTyping = useCallback(() => {

@@ -1,8 +1,8 @@
 /**
  * Conversation Model
  * 
- * Represents a direct message conversation between a student and instructor
- * in the context of a specific course.
+ * Represents a direct message conversation between any two users
+ * (student, instructor, or admin) optionally in the context of a course.
  */
 
 import { DataTypes } from 'sequelize';
@@ -20,13 +20,13 @@ const Conversation = sequelize.define('Conversation', {
   },
   course_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true, // Nullable for direct messages without course context
     references: {
       model: 'courses',
       key: 'id',
     },
   },
-  student_id: {
+  user1_id: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -34,7 +34,7 @@ const Conversation = sequelize.define('Conversation', {
       key: 'id',
     },
   },
-  instructor_id: {
+  user2_id: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -46,19 +46,19 @@ const Conversation = sequelize.define('Conversation', {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  student_last_read_at: {
+  user1_last_read_at: {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  instructor_last_read_at: {
+  user2_last_read_at: {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  is_archived_by_student: {
+  is_archived_by_user1: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
-  is_archived_by_instructor: {
+  is_archived_by_user2: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
@@ -73,48 +73,55 @@ const ConversationModel = Conversation as unknown as ModelStatic<ConversationIns
 // Static Methods
 addStaticMethods(ConversationModel, {
   /**
-   * Find or create conversation between student and instructor for a course
+   * Find or create conversation between two users for a course
    */
   async findOrCreateConversation(
     this: ModelStatic<ConversationInstance>,
     courseId: string,
-    studentId: string,
-    instructorId: string
+    user1Id: string,
+    user2Id: string
   ) {
     const [conversation, created] = await this.findOrCreate({
       where: {
         course_id: courseId,
-        student_id: studentId,
-        instructor_id: instructorId,
+        user1_id: user1Id,
+        user2_id: user2Id,
       },
       defaults: {
         course_id: courseId,
-        student_id: studentId,
-        instructor_id: instructorId,
+        user1_id: user1Id,
+        user2_id: user2Id,
       },
     });
     return { conversation, created };
   },
 
   /**
-   * Get all conversations for a user (student or instructor)
+   * Get all conversations for a user
    */
   async getConversationsForUser(
     this: ModelStatic<ConversationInstance>,
     userId: string,
-    role: 'student' | 'instructor',
     includeArchived = false
   ) {
-    const whereClause: Record<string, unknown> = role === 'student' 
-      ? { student_id: userId }
-      : { instructor_id: userId };
+    const { Op } = require('sequelize');
+    
+    const whereClause: Record<string, unknown> = {
+      [Op.or]: [
+        { user1_id: userId },
+        { user2_id: userId },
+      ],
+    };
     
     if (!includeArchived) {
-      if (role === 'student') {
-        whereClause.is_archived_by_student = false;
-      } else {
-        whereClause.is_archived_by_instructor = false;
-      }
+      whereClause[Op.and] = [
+        {
+          [Op.or]: [
+            { user1_id: userId, is_archived_by_user1: false },
+            { user2_id: userId, is_archived_by_user2: false },
+          ],
+        },
+      ];
     }
 
     return await this.findAll({
@@ -122,13 +129,13 @@ addStaticMethods(ConversationModel, {
       include: [
         {
           model: sequelize.models.User,
-          as: 'student',
-          attributes: ['id', 'first_name', 'last_name', 'avatar', 'status'],
+          as: 'user1',
+          attributes: ['id', 'first_name', 'last_name', 'avatar', 'status', 'role'],
         },
         {
           model: sequelize.models.User,
-          as: 'instructor',
-          attributes: ['id', 'first_name', 'last_name', 'avatar', 'status'],
+          as: 'user2',
+          attributes: ['id', 'first_name', 'last_name', 'avatar', 'status', 'role'],
         },
         {
           model: sequelize.models.Course,

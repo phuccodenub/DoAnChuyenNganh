@@ -2,47 +2,35 @@
  * NewChatModal Component
  * 
  * Modal để bắt đầu cuộc trò chuyện mới
- * - Student: Chọn khóa học và gửi tin nhắn cho giảng viên
- * - Instructor: Chọn học viên từ danh sách đã enroll
- * - Admin: Có thể chat với bất kỳ ai
+ * - Tìm kiếm và chọn người dùng để bắt đầu tin nhắn riêng
+ * - Không yêu cầu chọn khóa học
  */
 
-import { useState, useEffect } from 'react';
-import { X, Search, User, BookOpen, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, Search, User, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/services/http/client';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface NewChatModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStartConversation: (data: {
-    courseId: string;
-    instructorId?: string;
-    studentId?: string;
+    recipientId: string;
+    recipientName: string;
   }) => void;
   isCreating?: boolean;
 }
 
-interface CourseOption {
-  id: string;
-  title: string;
-  thumbnail?: string;
-  instructor?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    avatar?: string;
-  };
-}
-
-interface StudentOption {
+interface UserOption {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   avatar?: string;
+  role?: string;
 }
 
 export function NewChatModal({
@@ -52,138 +40,62 @@ export function NewChatModal({
   isCreating = false,
 }: NewChatModalProps) {
   const { user } = useAuth();
-  const [step, setStep] = useState<'course' | 'user'>('course');
-  const [selectedCourse, setSelectedCourse] = useState<CourseOption | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setStep('course');
-      setSelectedCourse(null);
       setSearchQuery('');
     }
   }, [isOpen]);
 
-  const isStudent = user?.role === 'student';
-  const isInstructor = user?.role === 'instructor';
-  const isAdmin = user?.role === 'admin';
-
-  // Fetch enrolled courses (for student)
-  const { data: enrolledCourses, isLoading: isLoadingCourses } = useQuery({
-    queryKey: ['my-enrolled-courses-for-chat'],
+  // Search users API
+  const { data: searchResults, isLoading: isSearching } = useQuery({
+    queryKey: ['search-users-for-chat', debouncedSearch],
     queryFn: async () => {
-      const response = await apiClient.get('/courses/enrolled');
-      // Transform to CourseOption format
-      const courses = response.data.data?.courses || response.data.data || [];
-      return courses.map((c: any) => ({
-        id: c.id,
-        title: c.title,
-        thumbnail: c.thumbnail_url,
-        instructor: c.instructor ? {
-          id: c.instructor.id,
-          firstName: c.instructor.first_name || c.instructor.firstName || '',
-          lastName: c.instructor.last_name || c.instructor.lastName || '',
-          avatar: c.instructor.avatar_url || c.instructor.avatar,
-        } : undefined,
-      })) as CourseOption[];
-    },
-    enabled: isOpen && isStudent,
-  });
-
-  // Fetch teaching courses (for instructor)
-  const { data: teachingCourses, isLoading: isLoadingTeaching } = useQuery({
-    queryKey: ['my-teaching-courses-for-chat'],
-    queryFn: async () => {
-      const response = await apiClient.get('/courses/instructor/my-courses');
-      const courses = response.data.data?.courses || response.data.data || [];
-      return courses.map((c: any) => ({
-        id: c.id,
-        title: c.title,
-        thumbnail: c.thumbnail_url || c.thumbnail,
-        instructor: undefined, // Instructor is self
-      })) as CourseOption[];
-    },
-    enabled: isOpen && isInstructor,
-  });
-
-  // Fetch students in selected course (for instructor)
-  const { data: courseStudents, isLoading: isLoadingStudents } = useQuery({
-    queryKey: ['course-students-for-chat', selectedCourse?.id],
-    queryFn: async () => {
-      const response = await apiClient.get(`/enrollments/course/${selectedCourse?.id}`);
-      const enrollments = response.data.data || [];
-      // Transform enrollments to StudentOption
-      return enrollments.map((e: any) => ({
-        id: e.user?.id || e.user_id,
-        firstName: e.user?.first_name || e.user?.firstName || '',
-        lastName: e.user?.last_name || e.user?.lastName || '',
-        email: e.user?.email || '',
-        avatar: e.user?.avatar_url || e.user?.avatar,
-      })).filter((s: StudentOption) => s.id) as StudentOption[];
-    },
-    enabled: isOpen && isInstructor && !!selectedCourse?.id,
-  });
-
-  // Fetch all users (for admin)
-  const { data: allUsers, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ['all-users-for-chat', searchQuery],
-    queryFn: async () => {
-      const response = await apiClient.get('/users', {
-        params: { search: searchQuery, limit: 20 },
+      const response = await apiClient.get('/users/search', {
+        params: { 
+          q: debouncedSearch, 
+          limit: 20,
+          excludeSelf: true 
+        },
       });
-      return response.data.data as StudentOption[];
+      // Handle different response formats
+      const users = response.data?.data?.users || response.data?.data || response.data || [];
+      return users.map((u: any) => ({
+        id: u.id,
+        firstName: u.first_name || u.firstName || '',
+        lastName: u.last_name || u.lastName || '',
+        email: u.email || '',
+        avatar: u.avatar_url || u.avatar,
+        role: u.role,
+      })) as UserOption[];
     },
-    enabled: isOpen && isAdmin && searchQuery.length >= 2,
+    enabled: isOpen && debouncedSearch.length >= 2,
   });
 
-  const courses = isStudent ? enrolledCourses : teachingCourses;
-  const isLoadingCoursesData = isStudent ? isLoadingCourses : isLoadingTeaching;
-
-  const handleSelectCourse = (course: CourseOption) => {
-    setSelectedCourse(course);
-    if (isStudent && course.instructor) {
-      // Student selects course → auto start with instructor
-      onStartConversation({
-        courseId: course.id,
-        instructorId: course.instructor.id,
-      });
-    } else if (isInstructor) {
-      // Instructor selects course → need to choose student
-      setStep('user');
-    }
-  };
-
-  const handleSelectStudent = (student: StudentOption) => {
-    if (selectedCourse) {
-      onStartConversation({
-        courseId: selectedCourse.id,
-        studentId: student.id,
-      });
-    }
-  };
-
-  const handleSelectUser = (userToChat: StudentOption) => {
-    // Admin can chat with anyone - use a placeholder course or direct chat
+  const handleSelectUser = useCallback((selectedUser: UserOption) => {
+    const fullName = `${selectedUser.firstName} ${selectedUser.lastName}`.trim() || selectedUser.email;
     onStartConversation({
-      courseId: 'admin-direct', // Special handling in API
-      studentId: userToChat.id,
+      recipientId: selectedUser.id,
+      recipientName: fullName,
     });
+  }, [onStartConversation]);
+
+  const getRoleBadge = (role?: string) => {
+    switch (role) {
+      case 'admin':
+      case 'super_admin':
+        return <span className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">Admin</span>;
+      case 'instructor':
+        return <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">Giảng viên</span>;
+      case 'student':
+        return <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">Học viên</span>;
+      default:
+        return null;
+    }
   };
-
-  // Filter courses by search
-  const filteredCourses = courses?.filter((course) =>
-    course.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Filter students by search
-  const filteredStudents = courseStudents?.filter(
-    (student) =>
-      `${student.firstName} ${student.lastName}`
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   if (!isOpen) return null;
 
@@ -200,249 +112,113 @@ export function NewChatModal({
       <div className="relative w-full max-w-lg mx-4 bg-white rounded-lg shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            {step === 'user' && (
-              <button
-                onClick={() => setStep('course')}
-                className="p-1 hover:bg-gray-100 rounded-full"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-            )}
-            <h2 className="text-lg font-semibold text-gray-900">
-              {step === 'course' ? 'Chọn khóa học' : 'Chọn học viên'}
-            </h2>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Tin nhắn mới
+          </h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
             disabled={isCreating}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Search */}
-        <div className="px-6 py-3 border-b border-gray-100">
+        {/* Search Input */}
+        <div className="px-6 py-4 border-b border-gray-100">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder={
-                step === 'course'
-                  ? 'Tìm kiếm khóa học...'
-                  : isAdmin
-                  ? 'Tìm kiếm người dùng...'
-                  : 'Tìm kiếm học viên...'
-              }
+              placeholder="Tìm kiếm người dùng theo tên hoặc email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              autoFocus
             />
           </div>
         </div>
 
         {/* Content */}
-        <div className="max-h-96 overflow-y-auto">
-          {/* Course Selection */}
-          {step === 'course' && !isAdmin && (
-            <>
-              {isLoadingCoursesData ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                </div>
-              ) : filteredCourses && filteredCourses.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {filteredCourses.map((course) => (
-                    <button
-                      key={course.id}
-                      onClick={() => handleSelectCourse(course)}
-                      disabled={isCreating}
-                      className={cn(
-                        'w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 transition-colors',
-                        isCreating && 'opacity-50 cursor-not-allowed'
-                      )}
-                    >
-                      {course.thumbnail ? (
-                        <img
-                          src={course.thumbnail}
-                          alt={course.title}
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                          <BookOpen className="w-6 h-6 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">
-                          {course.title}
-                        </p>
-                        {course.instructor && (
-                          <p className="text-sm text-gray-500 truncate">
-                            Giảng viên: {course.instructor.firstName}{' '}
-                            {course.instructor.lastName}
-                          </p>
-                        )}
-                      </div>
-                      {isCreating && (
-                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <BookOpen className="w-12 h-12 mx-auto text-gray-300" />
-                  <p className="mt-3 text-gray-500">
-                    {isStudent
-                      ? 'Bạn chưa đăng ký khóa học nào'
-                      : 'Bạn chưa có khóa học nào'}
-                  </p>
-                </div>
-              )}
-            </>
+        <div className="max-h-80 overflow-y-auto">
+          {/* Initial state - prompt to search */}
+          {debouncedSearch.length < 2 && (
+            <div className="py-16 text-center">
+              <Search className="w-12 h-12 mx-auto text-gray-300" />
+              <p className="mt-4 text-gray-500">
+                Nhập tên hoặc email để tìm người dùng
+              </p>
+              <p className="mt-1 text-sm text-gray-400">
+                Tối thiểu 2 ký tự
+              </p>
+            </div>
           )}
 
-          {/* Student Selection (for Instructor) */}
-          {step === 'user' && isInstructor && (
-            <>
-              {isLoadingStudents ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                </div>
-              ) : filteredStudents && filteredStudents.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {filteredStudents.map((student) => (
-                    <button
-                      key={student.id}
-                      onClick={() => handleSelectStudent(student)}
-                      disabled={isCreating}
-                      className={cn(
-                        'w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 transition-colors',
-                        isCreating && 'opacity-50 cursor-not-allowed'
-                      )}
-                    >
-                      {student.avatar ? (
-                        <img
-                          src={student.avatar}
-                          alt={`${student.firstName} ${student.lastName}`}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900">
-                          {student.firstName} {student.lastName}
-                        </p>
-                        <p className="text-sm text-gray-500 truncate">
-                          {student.email}
-                        </p>
-                      </div>
-                      {isCreating && (
-                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <User className="w-12 h-12 mx-auto text-gray-300" />
-                  <p className="mt-3 text-gray-500">
-                    Không có học viên nào trong khóa học này
-                  </p>
-                </div>
-              )}
-            </>
+          {/* Loading state */}
+          {debouncedSearch.length >= 2 && isSearching && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
           )}
 
-          {/* User Selection (for Admin) */}
-          {isAdmin && (
-            <>
-              {searchQuery.length < 2 ? (
-                <div className="py-12 text-center">
-                  <Search className="w-12 h-12 mx-auto text-gray-300" />
-                  <p className="mt-3 text-gray-500">
-                    Nhập ít nhất 2 ký tự để tìm kiếm người dùng
-                  </p>
-                </div>
-              ) : isLoadingUsers ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                </div>
-              ) : allUsers && allUsers.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {allUsers.map((userItem) => (
-                    <button
-                      key={userItem.id}
-                      onClick={() => handleSelectUser(userItem)}
-                      disabled={isCreating}
-                      className={cn(
-                        'w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 transition-colors',
-                        isCreating && 'opacity-50 cursor-not-allowed'
-                      )}
-                    >
-                      {userItem.avatar ? (
-                        <img
-                          src={userItem.avatar}
-                          alt={`${userItem.firstName} ${userItem.lastName}`}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900">
-                          {userItem.firstName} {userItem.lastName}
-                        </p>
-                        <p className="text-sm text-gray-500 truncate">
-                          {userItem.email}
-                        </p>
-                      </div>
-                      {isCreating && (
-                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <User className="w-12 h-12 mx-auto text-gray-300" />
-                  <p className="mt-3 text-gray-500">
-                    Không tìm thấy người dùng nào
-                  </p>
-                </div>
-              )}
-            </>
+          {/* Results */}
+          {debouncedSearch.length >= 2 && !isSearching && searchResults && searchResults.length > 0 && (
+            <div className="divide-y divide-gray-100">
+              {searchResults
+                .filter((u: UserOption) => u.id !== user?.id) // Exclude current user
+                .map((userItem: UserOption) => (
+                <button
+                  key={userItem.id}
+                  onClick={() => handleSelectUser(userItem)}
+                  disabled={isCreating}
+                  className={cn(
+                    'w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 transition-colors',
+                    isCreating && 'opacity-50 cursor-not-allowed'
+                  )}
+                >
+                  {userItem.avatar ? (
+                    <img
+                      src={userItem.avatar}
+                      alt={`${userItem.firstName} ${userItem.lastName}`}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
+                      {(userItem.firstName?.[0] || userItem.email?.[0] || '?').toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900">
+                        {userItem.firstName} {userItem.lastName}
+                      </p>
+                      {getRoleBadge(userItem.role)}
+                    </div>
+                    <p className="text-sm text-gray-500 truncate">
+                      {userItem.email}
+                    </p>
+                  </div>
+                  {isCreating && (
+                    <Loader2 className="w-5 h-5 text-blue-500 animate-spin flex-shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* No results */}
+          {debouncedSearch.length >= 2 && !isSearching && (!searchResults || searchResults.length === 0) && (
+            <div className="py-16 text-center">
+              <User className="w-12 h-12 mx-auto text-gray-300" />
+              <p className="mt-4 text-gray-500">
+                Không tìm thấy người dùng nào
+              </p>
+              <p className="mt-1 text-sm text-gray-400">
+                Thử tìm kiếm với từ khóa khác
+              </p>
+            </div>
           )}
         </div>
-
-        {/* Footer with selected course info */}
-        {selectedCourse && step === 'user' && (
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <BookOpen className="w-4 h-4" />
-              <span>Khóa học: {selectedCourse.title}</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

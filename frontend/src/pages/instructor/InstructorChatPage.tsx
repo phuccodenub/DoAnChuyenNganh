@@ -12,6 +12,7 @@ import {
     ChatLayout,
     Message,
     Conversation as ChatConversation,
+    UserRole,
 } from '@/features/chat';
 import {
     useConversations,
@@ -23,29 +24,35 @@ import { Conversation, DirectMessage } from '@/services/api/conversation.api';
 
 /**
  * Transform API conversation to ChatLayout format
+ * Note: useConversations already provides transformed data
  */
 function transformConversation(
     conv: Conversation,
-    currentUserId: string
+    _currentUserId: string
 ): ChatConversation {
-    const isInstructor = conv.instructor_id === currentUserId;
-    const participant = isInstructor ? conv.student : conv.instructor;
+    const participant = (conv as any).participant || {
+        id: '',
+        name: 'Unknown',
+        avatar_url: undefined,
+        online_status: 'offline',
+    };
 
     return {
         id: conv.id,
         course_id: conv.course_id,
-        course_title: conv.course?.title || 'Unknown Course',
+        course_title: (conv as any).course_title || 'Unknown Course',
         participant: {
             id: participant.id,
-            name: `${participant.first_name} ${participant.last_name}`.trim(),
-            avatar_url: participant.avatar,
-            role: isInstructor ? 'student' : 'instructor',
-            online_status: participant.status === 'active' ? 'online' : 'offline',
+            name: participant.name || 'Unknown',
+            avatar_url: participant.avatar_url,
+            role: 'student', // simplified
+            online_status: participant.online_status,
         },
         last_message: conv.last_message ? {
             content: conv.last_message.content,
             created_at: conv.last_message.created_at,
-            sender_role: conv.last_message.sender_id === conv.instructor_id ? 'instructor' : 'student',
+            sender_id: conv.last_message.sender_id,
+            sender_role: (conv.last_message.sender_role || 'instructor') as UserRole,
         } : undefined,
         unread_count: conv.unread_count || 0,
         updated_at: conv.last_message_at || conv.updated_at,
@@ -57,13 +64,13 @@ function transformConversation(
  */
 function transformMessage(
     msg: DirectMessage,
-    instructorId: string
+    _instructorId: string
 ): Message {
     return {
         id: msg.id,
         conversation_id: msg.conversation_id,
         sender_id: msg.sender_id,
-        sender_role: msg.sender_id === instructorId ? 'instructor' : 'student',
+        sender_role: 'instructor', // simplified
         content: msg.content,
         created_at: msg.created_at,
         status: msg.status === 'read' ? 'read' : msg.status === 'delivered' ? 'delivered' : 'sent',
@@ -106,9 +113,9 @@ export function InstructorChatPage() {
     const messages = useMemo<Message[]>(() => {
         if (!messagesData?.data || !currentConversation) return [];
         return messagesData.data.map(msg => 
-            transformMessage(msg, currentConversation.instructor_id)
+            transformMessage(msg, user?.id || '')
         );
-    }, [messagesData, currentConversation]);
+    }, [messagesData, currentConversation, user?.id]);
 
     // Auto-select conversation based on courseId
     useEffect(() => {

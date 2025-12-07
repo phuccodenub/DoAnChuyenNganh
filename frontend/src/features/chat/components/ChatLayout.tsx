@@ -27,6 +27,7 @@ interface ChatLayoutProps {
     isTyping?: boolean;
     error?: string | null;
     onRetry?: () => void;
+    isParticipantOnline?: boolean;
     // For mobile: pre-select a conversation (e.g., from course page)
     initialConversationId?: string;
 }
@@ -44,6 +45,7 @@ export function ChatLayout({
     isTyping = false,
     error,
     onRetry,
+    isParticipantOnline,
 }: ChatLayoutProps) {
     const [filter, setFilter] = useState<'all' | 'unread'>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -156,6 +158,7 @@ export function ChatLayout({
                         onSendMessage={onSendMessage}
                         onRetry={onRetry}
                         error={error}
+                        isParticipantOnline={isParticipantOnline}
                     />
                 </div>
             </div>

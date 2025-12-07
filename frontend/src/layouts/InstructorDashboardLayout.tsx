@@ -49,6 +49,7 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const autoCollapseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -89,6 +90,11 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
       path: ROUTES.INSTRUCTOR.ANALYTICS,
       icon: <BarChart3 className="w-5 h-5" />,
     },
+    {
+      label: 'Cài đặt',
+      path: ROUTES.SETTINGS,
+      icon: <Settings className="w-5 h-5" />,
+    },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -122,6 +128,34 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [profileMenuOpen]);
+
+  // Auto-collapse sidebar after 15 seconds when expanded
+  useEffect(() => {
+    if (autoCollapseTimerRef.current) {
+      clearTimeout(autoCollapseTimerRef.current);
+      autoCollapseTimerRef.current = null;
+    }
+
+    if (!sidebarCollapsed) {
+      autoCollapseTimerRef.current = setTimeout(() => {
+        setSidebarCollapsed(true);
+      }, 15000);
+    }
+
+    return () => {
+      if (autoCollapseTimerRef.current) {
+        clearTimeout(autoCollapseTimerRef.current);
+      }
+    };
+  }, [sidebarCollapsed]);
+
+  // Expand sidebar when clicking on a nav item
+  const handleNavClick = () => {
+    setSidebarOpen(false);
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -218,7 +252,7 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
                   ? 'bg-blue-50 text-blue-600'
                   : 'text-gray-700 hover:bg-gray-50'
               )}
-              onClick={() => setSidebarOpen(false)}
+              onClick={handleNavClick}
               title={sidebarCollapsed ? item.label : undefined}
             >
               <span className={cn(

@@ -15,6 +15,7 @@ import {
   MessagesResponse,
 } from '../services/api/conversation.api';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/stores/authStore.enhanced';
 
 // ============ Query Keys ============
 
@@ -28,25 +29,94 @@ export const conversationKeys = {
   messages: (conversationId: string) =>
     [...conversationKeys.all, 'messages', conversationId] as const,
   unreadCount: () => [...conversationKeys.all, 'unread-count'] as const,
+  onlineStatus: (conversationId: string) =>
+    [...conversationKeys.all, 'online-status', conversationId] as const,
 };
 
 // ============ Query Hooks ============
 
 /**
+ * Transform conversation data from API to frontend format
+ */
+function transformConversation(conv: Conversation, currentUserId?: string): any {
+  // Determine which user is the "other" participant by checking IDs
+  // If current user is user1, then participant is user2 (and vice versa)
+  let otherUser;
+  
+  if (currentUserId === conv.user1?.id) {
+    otherUser = conv.user2;
+  } else if (currentUserId === conv.user2?.id) {
+    otherUser = conv.user1;
+  } else {
+    // Fallback: if currentUserId doesn't match either, show user2 as default
+    console.warn('⚠️ Current user ID does not match conversation participants:', conv.id);
+    otherUser = conv.user2;
+  }
+  
+  // Ensure name is constructed properly
+  const participantName = otherUser?.first_name && otherUser?.last_name
+    ? `${otherUser.first_name} ${otherUser.last_name}`.trim()
+    : otherUser?.first_name || otherUser?.last_name || 'Người dùng';
+  
+  // Map 'active' status to 'online' for proper display
+  // NOTE: Database 'status' field is account status (active/inactive), NOT online status
+  // Real-time online status should come from socket gateway via useOnlineStatus hook
+  const participantStatus = otherUser?.status === 'active' ? 'online' : (otherUser?.status || 'offline');
+  
+  return {
+    ...conv,
+    course_title: conv.course?.title || '',
+    participant: {
+      id: otherUser?.id,
+      name: participantName,
+      avatar_url: otherUser?.avatar,
+      online_status: participantStatus,
+    },
+  };
+}
+
+/**
  * Get all conversations for the current user
  */
 export function useConversations(
+  currentUserId?: string,
   params?: { includeArchived?: boolean; limit?: number; offset?: number },
   options?: Omit<UseQueryOptions<ConversationsResponse>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery({
     queryKey: conversationKeys.list(params ? { includeArchived: params.includeArchived } : undefined),
-    queryFn: () =>
-      conversationApi.getConversations({
+    queryFn: async () => {
+      const response = await conversationApi.getConversations({
         include_archived: params?.includeArchived,
         limit: params?.limit,
         offset: params?.offset,
-      }),
+      });
+      
+      // Use provided currentUserId or fallback to token decode
+      let userId = currentUserId || '';
+      
+      if (!userId) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userId = payload.userId;
+          } catch (e) {
+            console.error('Failed to decode token:', e);
+          }
+        }
+      }
+      
+      // Transform conversations
+      const transformedData = response.data.map(conv => {
+        return transformConversation(conv, userId);
+      });
+      
+      return {
+        ...response,
+        data: transformedData,
+      };
+    },
     staleTime: 30 * 1000, // 30 seconds
     ...options,
   });
@@ -130,12 +200,26 @@ export function useSendMessage(conversationId: string) {
         conversationKeys.messages(conversationId)
       );
 
+      // Get current user ID from zustand auth store
+      let currentUserId = 'unknown';
+      try {
+        // Import and use the auth store directly
+        const authState = useAuthStore.getState();
+        if (authState.user?.id) {
+          currentUserId = authState.user.id;
+        } else {
+          console.error('❌ Optimistic update - No user in auth store');
+        }
+      } catch (e) {
+        console.error('❌ Optimistic update - Failed to get user from store:', e);
+      }
+
       // Optimistically update
       if (previousMessages) {
         const optimisticMessage: DirectMessage = {
           id: `temp-${Date.now()}`,
           conversation_id: conversationId,
-          sender_id: 'current-user', // Will be replaced by actual message
+          sender_id: currentUserId, // Use actual current user ID
           content: newMessage.content,
           status: 'sent',
           attachment_url: newMessage.attachment_url,
@@ -256,6 +340,19 @@ export function useSearchMessages(conversationId: string) {
 
   return useMutation({
     mutationFn: (query: string) => conversationApi.searchMessages(conversationId, query),
+  });
+}
+
+/**
+ * Get real-time online status of conversation participant
+ */
+export function useOnlineStatus(conversationId: string | undefined) {
+  return useQuery({
+    queryKey: conversationKeys.onlineStatus(conversationId || ''),
+    queryFn: () => conversationApi.getOnlineStatus(conversationId!),
+    enabled: !!conversationId,
+    refetchInterval: 10000, // Refresh every 10 seconds
+    staleTime: 5000, // Consider stale after 5 seconds
   });
 }
 

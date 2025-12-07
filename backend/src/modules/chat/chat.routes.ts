@@ -15,6 +15,13 @@ const chatController = new ChatController();
 router.use(authMiddleware);
 
 /**
+ * @route   GET /chat/unread-count
+ * @desc    Get total unread message count for all enrolled courses
+ * @access  Private
+ */
+router.get('/unread-count', chatController.getUnreadCount);
+
+/**
  * @route   GET /chat/courses/:courseId/messages
  * @desc    Get messages for a course (with pagination)
  * @access  Private (authenticated users in the course)

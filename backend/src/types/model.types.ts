@@ -780,27 +780,27 @@ export interface CourseStatisticsInstance extends Model, CourseStatisticsAttribu
 
 export interface ConversationAttributes {
   id: string;
-  course_id: string;
-  student_id: string;
-  instructor_id: string;
+  course_id: string | null; // Nullable for direct messages without course context
+  user1_id: string;
+  user2_id: string;
   last_message_at?: Date;
-  student_last_read_at?: Date;
-  instructor_last_read_at?: Date;
-  is_archived_by_student: boolean;
-  is_archived_by_instructor: boolean;
+  user1_last_read_at?: Date;
+  user2_last_read_at?: Date;
+  is_archived_by_user1: boolean;
+  is_archived_by_user2: boolean;
   created_at: Date;
   updated_at: Date;
 }
 
 export interface ConversationCreationAttributes extends Optional<
   ConversationAttributes,
-  'id' | 'created_at' | 'updated_at' | 'last_message_at' | 'student_last_read_at' | 'instructor_last_read_at' | 'is_archived_by_student' | 'is_archived_by_instructor'
+  'id' | 'created_at' | 'updated_at' | 'last_message_at' | 'user1_last_read_at' | 'user2_last_read_at' | 'is_archived_by_user1' | 'is_archived_by_user2' | 'course_id'
 > {}
 
 export interface ConversationInstance extends Model, ConversationAttributes {
   // Associations (virtual fields from includes)
-  student?: UserInstance;
-  instructor?: UserInstance;
+  user1?: UserInstance;
+  user2?: UserInstance;
   course?: CourseInstance;
   messages?: DirectMessageInstance[];
 }

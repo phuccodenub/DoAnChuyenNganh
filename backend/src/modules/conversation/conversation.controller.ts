@@ -14,6 +14,7 @@ import {
   GetMessagesQuery,
   GetConversationsQuery,
 } from './conversation.validate';
+import { getConversationGateway } from './conversation.gateway';
 
 export class ConversationController {
   /**
@@ -210,6 +211,38 @@ export class ConversationController {
     res.json({
       success: true,
       data: { unread_count: count },
+    });
+  });
+
+  /**
+   * GET /api/v1/conversations/:conversationId/online-status
+   * Get real-time online status of conversation participant
+   */
+  getOnlineStatus = asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).user.userId;
+    const { conversationId } = req.params;
+
+    // Verify participation
+    const conversation = await conversationService.getConversation(conversationId, userId);
+    const gateway = getConversationGateway();
+    
+    if (!gateway) {
+      return res.json({
+        success: true,
+        data: { isOnline: false },
+      });
+    }
+
+    // Determine other user
+    const otherUserId = (conversation as any).user1_id === userId 
+      ? (conversation as any).user2_id 
+      : (conversation as any).user1_id;
+
+    const isOnline = gateway.isUserOnline(otherUserId);
+
+    res.json({
+      success: true,
+      data: { isOnline },
     });
   });
 }

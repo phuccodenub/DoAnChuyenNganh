@@ -409,26 +409,26 @@ export const setupAssociations = () => {
     as: 'course'
   });
 
-  // User (Student) 1 ---< Conversation
+  // User (user1) 1 ---< Conversation
   (User as any).hasMany(Conversation, {
-    foreignKey: 'student_id',
-    as: 'studentConversations',
+    foreignKey: 'user1_id',
+    as: 'conversationsAsUser1',
     onDelete: 'CASCADE'
   });
   (Conversation as any).belongsTo(User, {
-    foreignKey: 'student_id',
-    as: 'student'
+    foreignKey: 'user1_id',
+    as: 'user1'
   });
 
-  // User (Instructor) 1 ---< Conversation
+  // User (user2) 1 ---< Conversation
   (User as any).hasMany(Conversation, {
-    foreignKey: 'instructor_id',
-    as: 'instructorConversations',
+    foreignKey: 'user2_id',
+    as: 'conversationsAsUser2',
     onDelete: 'CASCADE'
   });
   (Conversation as any).belongsTo(User, {
-    foreignKey: 'instructor_id',
-    as: 'instructor'
+    foreignKey: 'user2_id',
+    as: 'user2'
   });
 
   // Conversation 1 ---< DirectMessage

@@ -28,6 +28,8 @@ import { up as allowNullMessageIdInCommentModerations, down as requireMessageIdI
 import { up as forceAllowNullMessageId, down as requireMessageIdAgain } from './022-force-allow-null-message-id';
 import { up as createConversationsTable, down as dropConversationsTable } from './023-create-conversations-table';
 import { up as createDirectMessagesTable, down as dropDirectMessagesTable } from './024-create-direct-messages-table';
+import { up as allowNullCourseIdConversations, down as revertNullCourseIdConversations } from './025-allow-null-course-id-conversations';
+import { up as redesignConversationsForAdmin, down as revertConversationsDesign } from './032-redesign-conversations-for-admin';
 
 // Migration interface
 export interface Migration {
@@ -194,6 +196,18 @@ export const migrations: Migration[] = [
     description: 'Create direct_messages table',
     up: createDirectMessagesTable,
     down: dropDirectMessagesTable
+  },
+  {
+    version: '025',
+    description: 'Allow null course_id in conversations for direct messages',
+    up: allowNullCourseIdConversations,
+    down: revertNullCourseIdConversations
+  },
+  {
+    version: '032',
+    description: 'Redesign conversations table for admin support (user1_id/user2_id)',
+    up: redesignConversationsForAdmin,
+    down: revertConversationsDesign
   }
 ];
 

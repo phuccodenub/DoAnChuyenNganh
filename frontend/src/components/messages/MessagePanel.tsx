@@ -26,6 +26,7 @@ export const MessagePanel: React.FC = () => {
 
     // Fetch real conversations from API
     const { data: conversationsData, isLoading: isLoadingConversations } = useConversations(
+        user?.id,
         { limit: 10, includeArchived: false },
         { enabled: !!user }
     );
@@ -52,6 +53,7 @@ export const MessagePanel: React.FC = () => {
             },
             last_message: conv.last_message || conv.lastMessage ? {
                 content: conv.last_message?.content || conv.lastMessage?.content || '',
+                sender_id: conv.last_message?.sender_id || conv.lastMessage?.senderId,
                 sender_role: conv.last_message?.sender_role || conv.lastMessage?.senderRole,
                 created_at: conv.last_message?.created_at || conv.lastMessage?.createdAt,
             } : null,

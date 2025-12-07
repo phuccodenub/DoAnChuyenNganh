@@ -14,6 +14,23 @@ export class DirectMessageRepository {
    */
   async findById(id: string) {
     return await DirectMessage.findByPk(id, {
+      attributes: [
+        'id',
+        'conversation_id',
+        'sender_id',
+        'content',
+        'status',
+        'attachment_type',
+        'attachment_url',
+        'attachment_name',
+        'attachment_size',
+        'is_edited',
+        'edited_at',
+        'is_deleted',
+        'deleted_at',
+        'created_at',
+        'updated_at',
+      ],
       include: [
         {
           model: User,
@@ -46,6 +63,23 @@ export class DirectMessageRepository {
 
     const messages = await DirectMessage.findAll({
       where: whereClause,
+      attributes: [
+        'id',
+        'conversation_id',
+        'sender_id',
+        'content',
+        'status',
+        'attachment_type',
+        'attachment_url',
+        'attachment_name',
+        'attachment_size',
+        'is_edited',
+        'edited_at',
+        'is_deleted',
+        'deleted_at',
+        'created_at', // Explicitly include timestamp
+        'updated_at', // Explicitly include timestamp
+      ],
       include: [
         {
           model: User,

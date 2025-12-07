@@ -320,6 +320,13 @@ export class ChatRepository {
         return false;
       }
 
+      // Check if user is admin (admin can access all course chats)
+      const User = (await import('../../models/user.model')).default;
+      const user = await User.findByPk(userId);
+      if (user && (user as any).role === 'admin') {
+        return true;
+      }
+
       // Check if user is instructor
       if (course.instructor_id === userId) {
         return true;

@@ -98,11 +98,30 @@ export class ChatController {
       const userId = req.user!.userId;
       const { content } = req.body;
 
-      const result = await this.chatService.updateMessage(messageId, userId, { content });
+      const result = await this.chatService.updateMessage(messageId, userId, content);
 
       responseUtils.sendSuccess(res, 'Message updated successfully', result);
     } catch (error: unknown) {
       logger.error('Error in updateMessage:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Get unread message count for all enrolled courses
+   * GET /chat/unread-count
+   */
+  getUnreadCount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+
+      // For now, return 0 as we just created the read_status table
+      // TODO: Implement logic to count unread messages per course
+      const unreadCount = 0;
+
+      responseUtils.sendSuccess(res, 'Unread count retrieved', { unread_count: unreadCount });
+    } catch (error: unknown) {
+      logger.error('Error in getUnreadCount:', error);
       next(error);
     }
   };

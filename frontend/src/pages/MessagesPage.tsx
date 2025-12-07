@@ -18,7 +18,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { apiClient } from '@/services/http/client';
 import {
     ChatLayout,
     ChatTabs,
@@ -32,6 +34,7 @@ import {
     useChatNotifications,
 } from '@/features/chat';
 import type { ChatTabType } from '@/features/chat';
+import { useCourseChatCourses } from '@/features/chat/hooks/useCourseChatCourses';
 import {
     useConversations,
     useMessages,
@@ -39,6 +42,7 @@ import {
     useMarkAsRead,
     useCreateConversation,
     useUnreadCount,
+    useOnlineStatus,
 } from '@/hooks/useConversations';
 import { Conversation, DirectMessage } from '@/services/api/conversation.api';
 import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
@@ -47,57 +51,37 @@ import AdminDashboardLayout from '@/layouts/AdminDashboardLayout';
 
 /**
  * Transform API conversation to ChatLayout format
- * Xử lý logic cho tất cả các role
+ * Note: useConversations already provides transformed data with .participant
  */
 function transformConversation(
     conv: Conversation,
-    currentUserId: string,
-    currentRole: string
+    _currentUserId: string,
+    _currentRole: string
 ): ChatConversation {
-    // Xác định participant dựa vào role hiện tại
-    let participant: Conversation['student'] | Conversation['instructor'];
-    let participantRole: UserRole;
-
-    if (currentRole === 'student') {
-        // Student đang chat -> participant là instructor
-        participant = conv.instructor;
-        participantRole = 'instructor';
-    } else if (currentRole === 'instructor') {
-        // Instructor đang chat -> participant là student
-        participant = conv.student;
-        participantRole = 'student';
-    } else {
-        // Admin: có thể chat với cả 2, xác định dựa vào ID
-        const isStudent = conv.student_id === currentUserId;
-        participant = isStudent ? conv.instructor : conv.student;
-        participantRole = isStudent ? 'instructor' : 'student';
-    }
-
-    // Xác định sender_role cho last_message
-    let lastMessageSenderRole: UserRole = 'student';
-    if (conv.last_message) {
-        if (conv.last_message.sender_id === conv.student_id) {
-            lastMessageSenderRole = 'student';
-        } else {
-            lastMessageSenderRole = 'instructor';
-        }
-    }
+    // useConversations hook đã transform, conv có .participant rồi
+    const participant = (conv as any).participant || {
+        id: '',
+        name: 'Unknown',
+        avatar_url: undefined,
+        online_status: 'offline',
+    };
 
     return {
         id: conv.id,
         course_id: conv.course_id,
-        course_title: conv.course?.title || 'Khóa học không xác định',
+        course_title: (conv as any).course_title || '',
         participant: {
             id: participant.id,
-            name: `${participant.first_name || ''} ${participant.last_name || ''}`.trim() || 'Người dùng',
-            avatar_url: participant.avatar,
-            role: participantRole,
-            online_status: participant.status === 'active' ? 'online' : 'offline',
+            name: participant.name || 'Người dùng',
+            avatar_url: participant.avatar_url,
+            role: 'student', // simplified, not critical for display
+            online_status: participant.online_status,
         },
         last_message: conv.last_message ? {
             content: conv.last_message.content,
             created_at: conv.last_message.created_at,
-            sender_role: lastMessageSenderRole,
+            sender_id: conv.last_message.sender_id,
+            sender_role: (conv.last_message.sender_role || 'student') as UserRole,
         } : undefined,
         unread_count: conv.unread_count || 0,
         updated_at: conv.last_message_at || conv.updated_at,
@@ -109,24 +93,28 @@ function transformConversation(
  */
 function transformMessage(
     msg: DirectMessage,
-    conv: Conversation,
+    _conv: Conversation,
     _currentRole: string
 ): Message {
-    // Xác định sender_role dựa trên sender_id
-    let senderRole: UserRole;
-    if (msg.sender_id === conv.student_id) {
-        senderRole = 'student';
-    } else {
-        senderRole = 'instructor';
+    // CRITICAL: created_at MUST exist from backend
+    // If missing, this is a backend serialization bug that needs to be fixed
+    if (!msg.created_at) {
+        console.error('❌ CRITICAL: Message missing created_at from backend!', {
+            id: msg.id?.substring(0, 8),
+            message: msg,
+        });
+        // Use empty string to make it obvious in UI
+        // DO NOT use fallback timestamp as it corrupts all message times
     }
-
+    
+    // Simplified: không cần determine role từ conv.student_id nữa
     return {
         id: msg.id,
         conversation_id: msg.conversation_id,
         sender_id: msg.sender_id,
-        sender_role: senderRole,
+        sender_role: 'student', // simplified for DM
         content: msg.content,
-        created_at: msg.created_at,
+        created_at: msg.created_at || '', // Empty string if missing
         status: msg.status === 'read' ? 'read' : msg.status === 'delivered' ? 'delivered' : 'sent',
         attachment: msg.attachment_url ? {
             type: msg.attachment_type === 'image' ? 'image' : 'file',
@@ -185,7 +173,7 @@ export function MessagesPage() {
     const { activeTab, setActiveTab } = useChatTabs('dm');
 
     // API Hooks
-    const { data: conversationsData, isLoading: isLoadingConversations, refetch: refetchConversations } = useConversations();
+    const { data: conversationsData, isLoading: isLoadingConversations, refetch: refetchConversations } = useConversations(user?.id);
     const { data: messagesData, isLoading: isLoadingMessages, refetch: refetchMessages } = useMessages(
         selectedConversationId || undefined
     );
@@ -193,6 +181,29 @@ export function MessagesPage() {
     const markAsReadMutation = useMarkAsRead();
     const createConversationMutation = useCreateConversation();
     const { data: unreadData } = useUnreadCount();
+    
+    // Real-time online status for selected conversation participant
+    const { data: onlineStatusData } = useOnlineStatus(selectedConversationId || undefined);
+
+    // Course chat list (shared with CourseChatPanel) for counts and caching
+    const { data: courseChatCourses } = useCourseChatCourses();
+    const courseTotalCount = courseChatCourses?.length ?? 0;
+
+    // Query for course chat unread count (separate from total courses)
+    const { data: courseUnreadCountData } = useQuery({
+        queryKey: ['course-chat-unread-count', user?.id],
+        queryFn: async () => {
+            try {
+                const response = await apiClient.get('/chat/unread-count');
+                return response.data?.data?.unread_count || 0;
+            } catch (error) {
+                console.error('Failed to fetch course chat unread count:', error);
+                return 0;
+            }
+        },
+        enabled: !!user,
+        staleTime: 1000 * 60, // 1 minute
+    });
 
     // Current user info
     const currentUserId = user?.id || '';
@@ -211,6 +222,11 @@ export function MessagesPage() {
     // Global chat notifications
     useChatNotifications();
 
+    // Track online users for current conversation participant
+    const currentConversation = useMemo(() => {
+        return conversationsData?.data?.find(c => c.id === selectedConversationId);
+    }, [conversationsData, selectedConversationId]);
+
     // Transform API data to ChatLayout format
     const conversations = useMemo<ChatConversation[]>(() => {
         if (!conversationsData?.data || !currentUserId) return [];
@@ -219,10 +235,8 @@ export function MessagesPage() {
         );
     }, [conversationsData, currentUserId, currentRole]);
 
-    // Get current conversation for message transformation
-    const currentConversation = useMemo(() => {
-        return conversationsData?.data?.find(c => c.id === selectedConversationId);
-    }, [conversationsData, selectedConversationId]);
+    // Get current conversation for message transformation (already defined above)
+    // const currentConversation = ...
 
     const messages = useMemo<Message[]>(() => {
         if (!messagesData?.data || !currentConversation) return [];
@@ -232,7 +246,7 @@ export function MessagesPage() {
     }, [messagesData, currentConversation, currentRole]);
 
     // Unread count
-    const dmUnreadCount = unreadData?.data?.unread_count || 0;
+    const dmUnreadCount = unreadData?.data?.unread_count || conversationsData?.data?.reduce((sum, conv: any) => sum + (conv.unread_count || 0), 0) || 0;
 
     // Auto-select conversation based on URL params
     useEffect(() => {
@@ -288,15 +302,12 @@ export function MessagesPage() {
 
     // Handle start new conversation
     const handleStartConversation = useCallback(async (data: {
-        courseId: string;
-        instructorId?: string;
-        studentId?: string;
+        recipientId: string;
+        recipientName: string;
     }) => {
         try {
             const result = await createConversationMutation.mutateAsync({
-                course_id: data.courseId,
-                instructor_id: data.instructorId,
-                student_id: data.studentId,
+                recipient_id: data.recipientId,
             });
             
             if (result.data) {
@@ -326,9 +337,11 @@ export function MessagesPage() {
                     <ChatTabs
                         activeTab={activeTab}
                         onTabChange={handleTabChange}
+                        dmTotalCount={conversations.length}
                         dmUnreadCount={dmUnreadCount}
-                        courseUnreadCount={0} // TODO: Implement course chat unread count
-                        showGroupsTab={false} // Future feature
+                        courseTotalCount={courseTotalCount}
+                        courseUnreadCount={courseUnreadCountData ?? 0}
+                        showGroupsTab={false}
                         className="flex-1"
                     />
                     <button
@@ -354,6 +367,7 @@ export function MessagesPage() {
                             isLoadingMessages={isLoadingMessages}
                             isLoadingConversations={isLoadingConversations}
                             onRetry={handleRetry}
+                            isParticipantOnline={onlineStatusData?.data?.isOnline}
                         />
                     )}
 

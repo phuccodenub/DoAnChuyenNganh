@@ -92,8 +92,22 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         order: [['created_at', 'DESC']]
       });
 
+      const courseIds = rows.map((course: any) => course.id);
+      const studentCounts = await this.getStudentCountsForCourses(courseIds);
+
+      const rowsWithCounts = rows.map((course: any) => {
+        const courseData = course.toJSON ? course.toJSON() : course;
+        // Always use the real-time student count from enrollments table
+        // instead of relying on potentially stale total_students field
+        const actualStudentCount = studentCounts.get(courseData.id) ?? 0;
+        return {
+          ...courseData,
+          total_students: actualStudentCount
+        };
+      });
+
       return {
-        data: rows,
+        data: rowsWithCounts,
         pagination: {
           page,
           limit,
@@ -267,6 +281,10 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         distinct: true
       });
 
+      // Get total students count for each course using a separate query
+      const courseIds = rows.map((c: any) => c.id);
+      const studentCounts = await this.getStudentCountsForCourses(courseIds);
+
       // Transform rows to include enrollment info at course level
       const transformedRows = rows.map((course: any) => {
         const courseData = course.toJSON ? course.toJSON() : { ...course };
@@ -283,6 +301,9 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
           last_accessed_at: enrollment.last_accessed_at,
           completed_at: enrollment.completion_date
         };
+        
+        // Add total_students from separate query (this is the total enrolled, not just current user)
+        courseData.total_students = studentCounts.get(courseData.id) || courseData.total_students || 0;
         
         // Ensure thumbnail_url exists
         if (courseData.thumbnail && !courseData.thumbnail_url) {
@@ -515,11 +536,20 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         order: [[sort_by, sort_order.toUpperCase()]]
       });
 
+      const courseIds = rows.map((course: any) => course.id);
+      const studentCounts = await this.getStudentCountsForCourses(courseIds);
+
       // Add student_count to each course
-      const coursesWithCount = rows.map((course: any) => ({
-        ...course.toJSON(),
-        student_count: 0 // Default, can be enhanced with actual enrollment count
-      }));
+      const coursesWithCount = rows.map((course: any) => {
+        const courseData = course.toJSON ? course.toJSON() : course;
+        // Always use the real-time student count from enrollments table
+        const actualStudentCount = studentCounts.get(courseData.id) ?? 0;
+        return {
+          ...courseData,
+          student_count: actualStudentCount,
+          total_students: actualStudentCount
+        };
+      });
 
       return {
         data: coursesWithCount,
@@ -565,6 +595,41 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
     } catch (error: unknown) {
       logger.error('Error getting admin course statistics:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get student counts for multiple courses
+   * Returns a Map of courseId -> studentCount
+   */
+  async getStudentCountsForCourses(courseIds: string[]): Promise<Map<string, number>> {
+    try {
+      if (!courseIds.length) return new Map();
+      
+      const { Sequelize, Op } = await import('sequelize');
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+      
+      const enrollmentCounts = await (EnrollmentModel as any).findAll({
+        attributes: [
+          'course_id',
+          [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+        ],
+        where: {
+          course_id: { [Op.in]: courseIds }
+        },
+        group: ['course_id'],
+        raw: true
+      });
+
+      const countMap = new Map<string, number>();
+      enrollmentCounts.forEach((item: any) => {
+        countMap.set(item.course_id, parseInt(item.count, 10) || 0);
+      });
+
+      return countMap;
+    } catch (error: unknown) {
+      logger.error('Error getting student counts for courses:', error);
+      return new Map();
     }
   }
 

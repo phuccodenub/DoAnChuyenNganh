@@ -165,11 +165,6 @@ export function MessageComposer({
                     <Send className={cn('w-4 h-4', canSend ? 'text-white' : 'text-gray-400')} />
                 </Button>
             </div>
-
-            {/* Hint text */}
-            <p className="text-xs text-gray-400 mt-2 text-center">
-                Nhấn Enter để gửi, Shift+Enter để xuống dòng
-            </p>
         </div>
     );
 }

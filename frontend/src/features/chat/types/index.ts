@@ -52,6 +52,7 @@ export interface Conversation {
   last_message?: {
     content: string;
     created_at: string;
+    sender_id: string;
     sender_role: UserRole;
   };
   unread_count: number;
@@ -87,6 +88,7 @@ export interface ConversationPanelProps {
   onSendMessage: (content: string) => void;
   onRetry?: () => void;
   error?: string | null;
+  isParticipantOnline?: boolean;
 }
 
 export interface MessageBubbleProps {

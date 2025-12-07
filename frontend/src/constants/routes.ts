@@ -94,6 +94,7 @@ export const ROUTES = {
 
   // Shared user routes (for all authenticated users)
   PROFILE: '/profile',
+  SETTINGS: '/settings',  // Universal settings page for all roles
 
   // Future feature routes (for marketing pages)
   ABOUT: '/about',

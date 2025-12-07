@@ -100,6 +100,11 @@ cd frontend && npm run dev  # Frontend chạy trên port 5174
 # ❌ SAI: Không chạy trực tiếp npm run dev ở backend!
 cd backend && npm run dev  # ← KHÔNG HOẠT ĐỘNG vì thiếu Redis, Postgres
 ```
+Cung cấp cho bạn các tài khoản để test :
+admin@example.com - Admin123!
+instructor1@example.com - Instructor123!
+student1@example.com - Student123!
+Hiện tại dự án cần hoạt động với supabase nên chú ý nếu seed data hay run migration thì đều phải trỏ vào supabase. 
 
 ### 📊 Ports mặc định
 | Service | Port | URL |

@@ -7,9 +7,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { BookOpen, MessageSquare, Users, Loader2, ChevronRight, Search } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import { apiClient } from '@/services/http/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useChatMessages, useSendMessage as useSendCourseMessage } from '@/hooks/useChat';
 import { useCourseChatSocket } from '../hooks/useChatSocket';
@@ -17,19 +15,7 @@ import { MessageComposer } from './MessageComposer';
 import { MessageBubble } from './MessageBubble';
 import { EmptyState } from './EmptyState';
 import { Message, UserRole } from '../types';
-
-interface CourseForChat {
-  id: string;
-  title: string;
-  thumbnail?: string;
-  instructor: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    avatar?: string;
-  };
-  enrollmentCount?: number;
-}
+import { useCourseChatCourses } from '../hooks/useCourseChatCourses';
 
 interface CourseChatPanelProps {
   className?: string;
@@ -41,35 +27,9 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const isStudent = user?.role === 'student';
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
-  // Fetch courses based on role
-  const { data: courses, isLoading: isLoadingCourses } = useQuery({
-    queryKey: isStudent ? ['my-enrolled-courses-panel'] : ['my-teaching-courses-panel'],
-    queryFn: async () => {
-      const endpoint = isStudent 
-        ? '/courses/enrolled' 
-        : '/courses/instructor/my-courses';
-      const response = await apiClient.get(endpoint);
-      // API returns { success, data: { data: Course[], pagination } }
-      // or { success, data: { courses: Course[] } } for enrolled
-      const respData = response.data?.data || response.data;
-      const rawCourses = respData?.data || respData?.courses || respData || [];
-      // Transform to CourseForChat format
-      return (Array.isArray(rawCourses) ? rawCourses : []).map((c: any) => ({
-        id: c.id,
-        title: c.title,
-        thumbnail: c.thumbnail_url || c.thumbnail,
-        instructor: c.instructor ? {
-          id: c.instructor.id,
-          firstName: c.instructor.first_name || c.instructor.firstName || '',
-          lastName: c.instructor.last_name || c.instructor.lastName || '',
-          avatar: c.instructor.avatar_url || c.instructor.avatar,
-        } : { id: user?.id || '', firstName: '', lastName: '' },
-        enrollmentCount: c.enrollment_count || c.enrollmentCount || c.total_students,
-      })) as CourseForChat[];
-    },
-    enabled: !!user,
-  });
+  const { data: courses, isLoading: isLoadingCourses } = useCourseChatCourses();
 
   // Fetch messages for selected course
   const { 
@@ -99,22 +59,44 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
 
   // Transform API messages to component format
   const messages = useMemo<Message[]>(() => {
-    if (!messagesData?.data || !user) return [];
-    return messagesData.data.map(msg => ({
+    // Safety check: only process if we have valid data array
+    if (!selectedCourseId || !messagesData?.data || !Array.isArray(messagesData.data) || !user) {
+      return [];
+    }
+    const mapped = messagesData.data.map(msg => ({
       id: msg.id,
-      conversation_id: msg.courseId,
-      sender_id: msg.senderId,
-      sender_role: (msg.senderId === user.id ? user.role : 'student') as UserRole,
+      conversation_id: msg.course_id,
+      sender_id: msg.user_id,
+      sender_role: (msg.user_id === user.id ? user.role : (msg.sender?.role || 'student')) as UserRole,
       content: msg.content,
       created_at: msg.createdAt,
       status: 'sent' as const,
-      attachment: msg.fileUrl ? {
+      attachment: msg.attachment_url ? {
         type: 'file' as const,
-        url: msg.fileUrl,
-        name: msg.fileName || 'file',
+        url: msg.attachment_url,
+        name: msg.attachment_name || 'file',
       } : undefined,
     }));
-  }, [messagesData, user]);
+    // Sort messages by date ascending (oldest first, newest last)
+    return mapped.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [messagesData, user, selectedCourseId]);
+
+  // Create sender info map for display
+  const senderInfoMap = useMemo(() => {
+    if (!selectedCourseId || !messagesData?.data || !Array.isArray(messagesData.data)) {
+      return new Map<string, { name: string; avatar?: string }>();
+    }
+    const map = new Map<string, { name: string; avatar?: string }>();
+    messagesData.data.forEach(msg => {
+      if (msg.sender && !map.has(msg.user_id)) {
+        map.set(msg.user_id, {
+          name: `${msg.sender.first_name} ${msg.sender.last_name}`.trim(),
+          avatar: msg.sender.avatar,
+        });
+      }
+    });
+    return map;
+  }, [messagesData]);
 
   // Get selected course info
   const selectedCourse = useMemo(() => {
@@ -151,7 +133,7 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            {isStudent ? 'Khóa học đã đăng ký' : 'Khóa học đang dạy'}
+            {isStudent ? 'Khóa học đã đăng ký' : isAdmin ? 'Tất cả khóa học' : 'Khóa học đang dạy'}
           </h2>
           
           {/* Search */}
@@ -286,13 +268,21 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
                   <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
                 </div>
               ) : messages.length > 0 ? (
-                messages.map((msg) => (
-                  <MessageBubble
-                    key={msg.id}
-                    message={msg}
-                    isOwn={msg.sender_id === currentUserId}
-                  />
-                ))
+                messages.map((msg, index) => {
+                  const senderInfo = senderInfoMap.get(msg.sender_id);
+                  // Show avatar chỉ cho tin nhắn đầu tiên hoặc khi sender thay đổi
+                  const showAvatar = index === 0 || messages[index - 1].sender_id !== msg.sender_id;
+                  return (
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      isOwn={msg.sender_id === currentUserId}
+                      showAvatar={showAvatar}
+                      senderName={senderInfo?.name}
+                      senderAvatar={senderInfo?.avatar}
+                    />
+                  );
+                })
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">

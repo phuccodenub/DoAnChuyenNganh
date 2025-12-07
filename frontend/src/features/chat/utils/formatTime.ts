@@ -10,7 +10,16 @@ import { CHAT_COPY } from '../constants/copy';
  * Format thời gian tin nhắn (HH:mm)
  */
 export function formatMessageTime(dateString: string): string {
+  if (!dateString) return '--:--';
+  
   const date = new Date(dateString);
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    console.warn('Invalid date string in formatMessageTime:', dateString);
+    return '--:--';
+  }
+  
   return date.toLocaleTimeString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
@@ -22,7 +31,16 @@ export function formatMessageTime(dateString: string): string {
  * Ví dụ: "Vừa xong", "5 phút trước", "Hôm qua"
  */
 export function formatRelativeTime(dateString: string): string {
+  if (!dateString) return '';
+  
   const date = new Date(dateString);
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    console.warn('Invalid date string:', dateString);
+    return '';
+  }
+  
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
   const diffInMinutes = Math.floor(diffInSeconds / 60);
@@ -60,7 +78,16 @@ export function formatRelativeTime(dateString: string): string {
  * Lấy label cho nhóm tin nhắn theo ngày
  */
 export function getDateGroupLabel(dateString: string): string {
+  if (!dateString) return 'Không xác định';
+  
   const date = new Date(dateString);
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    console.warn('Invalid date string in getDateGroupLabel:', dateString);
+    return 'Không xác định';
+  }
+  
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);

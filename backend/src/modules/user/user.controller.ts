@@ -207,5 +207,29 @@ export class UserModuleController {
       next(error);
     }
   }
-}
 
+  // Search users for chat/messaging
+  async searchUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const userRole = req.user?.role || 'student';
+      const { q, limit = 20, excludeSelf } = req.query;
+      
+      const searchTerm = (q as string) || '';
+      const limitNum = Math.min(Number(limit) || 20, 50);
+      const shouldExcludeSelf = excludeSelf === 'true' || excludeSelf === '1';
+      
+      const users = await this.userModuleService.searchUsers(searchTerm, {
+        limit: limitNum,
+        excludeUserId: shouldExcludeSelf ? userId : undefined,
+        currentUserId: userId,
+        currentUserRole: userRole,
+      });
+      
+      responseUtils.sendSuccess(res, 'Users found', { users });
+    } catch (error: unknown) {
+      logger.error('Error searching users:', error);
+      next(error);
+    }
+  }
+}

@@ -17,6 +17,7 @@ interface ChatTab {
   id: ChatTabType;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  totalCount?: number;
   badge?: number;
   disabled?: boolean;
 }
@@ -24,6 +25,11 @@ interface ChatTab {
 interface ChatTabsProps {
   activeTab: ChatTabType;
   onTabChange: (tab: ChatTabType) => void;
+  // Total counts
+  dmTotalCount?: number;
+  courseTotalCount?: number;
+  groupTotalCount?: number;
+  // Unread counts
   dmUnreadCount?: number;
   courseUnreadCount?: number;
   groupUnreadCount?: number;
@@ -34,6 +40,11 @@ interface ChatTabsProps {
 export function ChatTabs({
   activeTab,
   onTabChange,
+  // Total counts
+  dmTotalCount = 0,
+  courseTotalCount = 0,
+  groupTotalCount = 0,
+  // Unread counts
   dmUnreadCount = 0,
   courseUnreadCount = 0,
   groupUnreadCount = 0,
@@ -45,12 +56,14 @@ export function ChatTabs({
       id: 'dm',
       label: 'Tin nhắn riêng',
       icon: MessageCircle,
+      totalCount: dmTotalCount,
       badge: dmUnreadCount,
     },
     {
       id: 'courses',
       label: 'Thảo luận khóa học',
       icon: BookOpen,
+      totalCount: courseTotalCount,
       badge: courseUnreadCount,
     },
     ...(showGroupsTab
@@ -59,6 +72,7 @@ export function ChatTabs({
             id: 'groups' as ChatTabType,
             label: 'Nhóm chat',
             icon: Users,
+            totalCount: groupTotalCount,
             badge: groupUnreadCount,
             disabled: true, // Future feature
           },
@@ -82,6 +96,7 @@ export function ChatTabs({
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           const hasUnread = tab.badge && tab.badge > 0;
+          const hasTotal = tab.totalCount !== undefined && tab.totalCount > 0;
 
           return (
             <button
@@ -100,7 +115,12 @@ export function ChatTabs({
               aria-disabled={tab.disabled}
             >
               <Icon className="h-4 w-4" />
+              {/* Total count - Hiển thị trước label */}
+              {hasTotal && (
+                <span className="font-semibold">{tab.totalCount}</span>
+              )}
               <span className="hidden sm:inline">{tab.label}</span>
+              {/* Unread badge - Hiển thị sau label */}
               {hasUnread && (
                 <span
                   className={cn(
