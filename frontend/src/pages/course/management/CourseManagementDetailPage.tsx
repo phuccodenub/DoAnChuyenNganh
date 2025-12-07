@@ -11,6 +11,7 @@ import {
   Users, 
   Loader2, 
   AlertCircle,
+  Info,
 } from 'lucide-react';
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { useInstructorCourseDetail, useCourseStats } from '@/hooks/useInstructorCourse';
@@ -18,6 +19,7 @@ import { CourseDashboardTab } from './tabs/DashboardTab';
 import { CurriculumTab } from './tabs/CurriculumTab';
 import { SettingsTab } from './tabs/SettingsTab';
 import { StudentsTab } from './tabs/StudentsTab';
+import { CourseInfoTab } from './tabs/CourseInfoTab';
 
 /**
  * CourseManagementDetailPage
@@ -114,6 +116,18 @@ export function CourseManagementDetailPage() {
                 Dashboard
               </button>
               <button
+                onClick={() => setActiveTab('info')}
+                className={cn(
+                  'inline-flex items-center justify-center whitespace-nowrap rounded-none border-b-2 border-transparent px-6 py-4 text-sm font-medium transition-colors',
+                  activeTab === 'info'
+                    ? 'border-blue-600 text-blue-600 bg-transparent'
+                    : 'text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                )}
+              >
+                <Info className="w-4 h-4 mr-2" />
+                Thông tin
+              </button>
+              <button
                 onClick={() => setActiveTab('curriculum')}
                 className={cn(
                   'inline-flex items-center justify-center whitespace-nowrap rounded-none border-b-2 border-transparent px-6 py-4 text-sm font-medium transition-colors',
@@ -156,6 +170,12 @@ export function CourseManagementDetailPage() {
           {activeTab === 'dashboard' && (
             <div className="mt-6">
               <CourseDashboardTab courseId={courseId} course={course} stats={stats} isLoading={isStatsLoading} />
+            </div>
+          )}
+
+          {activeTab === 'info' && (
+            <div className="mt-6">
+              <CourseInfoTab courseId={courseId} course={course} />
             </div>
           )}
 

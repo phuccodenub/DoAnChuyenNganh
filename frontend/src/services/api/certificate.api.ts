@@ -173,5 +173,15 @@ export const certificateApi = {
   revokeCertificate: async (id: string, reason?: string): Promise<void> => {
     await apiClient.post(`/certificates/${id}/revoke`, { reason });
   },
+
+  /**
+   * Download certificate as PDF
+   */
+  downloadCertificatePDF: async (id: string): Promise<Blob> => {
+    const response = await apiClient.get(`/certificates/${id}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
 

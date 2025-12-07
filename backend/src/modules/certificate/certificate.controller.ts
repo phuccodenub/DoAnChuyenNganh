@@ -9,6 +9,7 @@ import { CreateCertificatePayload } from './certificate.types';
 import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
 import { ApiError } from '../../errors/api.error';
+import { certificatePDFService } from '../../services/certificate/pdf.service';
 
 export class CertificateController {
   private certificateService: CertificateService;
@@ -246,6 +247,40 @@ export class CertificateController {
       return responseUtils.success(res, { id, revoked: true }, 'Certificate revoked successfully');
     } catch (error) {
       logger.error('[CertificateController] Revoke certificate error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Download certificate as PDF
+   * GET /certificates/:id/download
+   */
+  downloadCertificatePDF = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const currentUserId = req.user!.userId;
+      const userRole = req.user!.role;
+
+      const certificate = await this.certificateService.getCertificateById(id);
+
+      // Check permissions: User can only download their own certificates unless admin/instructor
+      if (certificate.user_id !== currentUserId && !['admin', 'super_admin', 'instructor'].includes(userRole)) {
+        return responseUtils.sendForbiddenError(res, 'You can only download your own certificates');
+      }
+
+      // Generate PDF
+      const pdfBuffer = await certificatePDFService.generatePDF(certificate);
+
+      // Set response headers
+      const fileName = `Certificate-${certificate.certificate_number}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Length', pdfBuffer.length.toString());
+
+      // Send PDF
+      res.send(pdfBuffer);
+    } catch (error) {
+      logger.error('[CertificateController] Download PDF error:', error);
       next(error);
     }
   };

@@ -19,6 +19,7 @@ router.use(authMiddleware);
 // Student routes
 router.get('/user/:userId', certificateController.getUserCertificates);
 router.get('/number/:number', certificateController.getCertificateByNumber);
+router.get('/:id/download', certificateController.downloadCertificatePDF);
 router.get('/:id', certificateController.getCertificateById);
 
 // Instructor routes

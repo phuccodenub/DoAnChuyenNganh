@@ -4,19 +4,27 @@
  */
 
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useCertificate } from '@/hooks/useCertificateData';
+import { useCertificate, useRevokeCertificate } from '@/hooks/useCertificateData';
+import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/routes';
-import { Award, Download, Share2, CheckCircle2, Calendar, User, BookOpen, GraduationCap, Hash } from 'lucide-react';
+import { Award, Download, Share2, CheckCircle2, Calendar, User, BookOpen, GraduationCap, Hash, Ban } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { toast } from 'react-hot-toast';
+import { useState } from 'react';
 
 export default function CertificateDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: certificate, isLoading, error } = useCertificate(id || '');
+  const { user } = useAuth();
+  const { data: certificate, isLoading, error, refetch } = useCertificate(id || '');
+  const { mutate: revokeCertificate, isPending: isRevoking } = useRevokeCertificate();
+  const [showRevokeModal, setShowRevokeModal] = useState(false);
+  const [revokeReason, setRevokeReason] = useState('');
+  
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   if (isLoading) {
     return (
@@ -40,9 +48,25 @@ export default function CertificateDetailPage() {
   const verificationUrl = `${window.location.origin}${ROUTES.CERTIFICATES_VERIFY}?hash=${certificate.certificate_hash}`;
   const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${certificate.ipfs_hash}`;
 
-  const handleDownload = () => {
-    // TODO: Implement PDF download
-    toast.success('PDF download feature coming soon');
+  const handleDownload = async () => {
+    try {
+      const { certificateApi } = await import('@/services/api/certificate.api');
+      const blob = await certificateApi.downloadCertificatePDF(certificate.id);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Certificate-${certificate.certificate_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Certificate downloaded successfully');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to download certificate');
+    }
   };
 
   const handleShare = async () => {
@@ -166,7 +190,76 @@ export default function CertificateDetailPage() {
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
               </Button>
+              {isAdmin && certificate.status === 'active' && (
+                <Button 
+                  onClick={() => setShowRevokeModal(true)} 
+                  variant="outline" 
+                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  <Ban className="w-4 h-4 mr-2" />
+                  Revoke
+                </Button>
+              )}
             </div>
+            
+            {/* Revoke Modal */}
+            {showRevokeModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <Card className="p-6 max-w-md w-full mx-4">
+                  <h3 className="text-lg font-semibold mb-4">Revoke Certificate</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Are you sure you want to revoke this certificate? This action cannot be undone.
+                  </p>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Reason (optional)
+                    </label>
+                    <textarea
+                      value={revokeReason}
+                      onChange={(e) => setRevokeReason(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      rows={3}
+                      placeholder="Enter reason for revocation..."
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        setShowRevokeModal(false);
+                        setRevokeReason('');
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        revokeCertificate(
+                          { id: certificate.id, reason: revokeReason },
+                          {
+                            onSuccess: () => {
+                              toast.success('Certificate revoked successfully');
+                              setShowRevokeModal(false);
+                              setRevokeReason('');
+                              refetch();
+                            },
+                            onError: (error: any) => {
+                              toast.error(error.response?.data?.message || 'Failed to revoke certificate');
+                            },
+                          }
+                        );
+                      }}
+                      variant="outline"
+                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                      disabled={isRevoking}
+                    >
+                      {isRevoking ? 'Revoking...' : 'Revoke'}
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
           </div>
 
           {/* Sidebar: Verification Info */}

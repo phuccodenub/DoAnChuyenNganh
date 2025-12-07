@@ -12,12 +12,16 @@ import Course from '../../models/course.model';
 import Enrollment from '../../models/enrollment.model';
 import logger from '../../utils/logger.util';
 import { ApiError } from '../../errors/api.error';
+import { EmailService } from '../../services/global/email.service';
+import { env } from '../../config/env.config';
 
 export class CertificateService {
   private certificateRepository: CertificateRepository;
+  private emailService: EmailService;
 
   constructor() {
     this.certificateRepository = new CertificateRepository();
+    this.emailService = new EmailService();
   }
 
   /**
@@ -222,7 +226,93 @@ export class CertificateService {
       throw new ApiError(500, 'Failed to retrieve created certificate');
     }
 
+    // Send email notification (async, don't wait for it)
+    this.sendCertificateEmail(certificateWithDetails as any).catch((error) => {
+      logger.error('[CertificateService] Failed to send certificate email:', error);
+      // Don't throw - email failure shouldn't fail certificate issuance
+    });
+
     return certificateWithDetails as any;
+  }
+
+  /**
+   * Send email notification when certificate is issued
+   */
+  private async sendCertificateEmail(certificate: CertificateWithDetails): Promise<void> {
+    try {
+      const user = await User.findByPk(certificate.user_id, {
+        attributes: ['email', 'first_name', 'last_name'],
+      });
+
+      if (!user || !user.email) {
+        logger.warn(`[CertificateService] Cannot send email: user ${certificate.user_id} not found or has no email`);
+        return;
+      }
+
+      const studentName = `${user.first_name} ${user.last_name}`.trim() || user.email;
+      const courseTitle = certificate.metadata.course.title;
+      const certificateNumber = certificate.certificate_number;
+      const verificationUrl = `${env.frontendUrl}/certificates/verify?hash=${certificate.certificate_hash}`;
+      const certificateUrl = `${env.frontendUrl}/certificates/${certificate.id}`;
+
+      await this.emailService.sendEmail({
+        to: user.email,
+        subject: `🎓 Certificate Issued: ${courseTitle}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .content { background: #f7fafc; padding: 30px; border-radius: 0 0 10px 10px; }
+              .button { display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+              .button:hover { background: #764ba2; }
+              .certificate-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+              .footer { text-align: center; margin-top: 30px; color: #718096; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🎓 Certificate Issued!</h1>
+              </div>
+              <div class="content">
+                <p>Dear ${studentName},</p>
+                <p>Congratulations! You have successfully completed the course and received your certificate.</p>
+                
+                <div class="certificate-info">
+                  <h3>${courseTitle}</h3>
+                  <p><strong>Certificate Number:</strong> ${certificateNumber}</p>
+                  <p><strong>Issued Date:</strong> ${new Date(certificate.issued_at).toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+                
+                <div style="text-align: center;">
+                  <a href="${certificateUrl}" class="button">View Certificate</a>
+                </div>
+                
+                <p>You can verify your certificate anytime using this link:</p>
+                <p style="word-break: break-all; color: #667eea;">${verificationUrl}</p>
+                
+                <p>Thank you for your dedication and hard work!</p>
+              </div>
+              <div class="footer">
+                <p>This is an automated email. Please do not reply.</p>
+                <p>&copy; ${new Date().getFullYear()} LMS Platform. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+      });
+
+      logger.info(`[CertificateService] Certificate email sent to ${user.email}`);
+    } catch (error: any) {
+      logger.error('[CertificateService] Error sending certificate email:', error);
+      // Don't throw - email failure shouldn't fail certificate issuance
+    }
   }
 
   /**

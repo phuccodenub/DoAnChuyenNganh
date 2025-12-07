@@ -31,6 +31,7 @@ import { toast } from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import { quizApi, type Quiz } from '@/services/api/quiz.api';
 import { assignmentApi, type Assignment } from '@/services/api/assignment.api';
+import { getCourseThumbnailUrl } from '@/utils/course.utils';
 
 /**
  * Course Detail Page
@@ -660,19 +661,22 @@ export function DetailPage() {
                 <CardContent className="p-6">
                   {/* Thumbnail */}
                   <div className="aspect-video bg-gray-200 rounded-lg mb-4 overflow-hidden">
-                    {course.thumbnail_url ? (
-                      <img
-                        src={course.thumbnail_url}
-                        alt={course.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`w-full h-full flex items-center justify-center ${course.thumbnail_url ? 'hidden' : ''}`}>
+                    {(() => {
+                      const thumbnailUrl = getCourseThumbnailUrl(course);
+                      return thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null;
+                    })()}
+                    <div className={`w-full h-full flex items-center justify-center ${getCourseThumbnailUrl(course) ? 'hidden' : ''}`}>
                       <BookOpen className="w-16 h-16 text-gray-400" />
                     </div>
                   </div>

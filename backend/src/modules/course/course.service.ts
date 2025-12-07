@@ -295,6 +295,21 @@ export class CourseService {
       // Map frontend field names to backend model field names
       const mappedData: Record<string, unknown> = { ...updateData };
       
+      // Handle category_id - only accept valid UUID, otherwise set to null and store in metadata
+      if ('category_id' in mappedData && mappedData.category_id) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(mappedData.category_id as string)) {
+          // Store category name in metadata if provided as string
+          const existingCourseData = existingCourse.toJSON ? existingCourse.toJSON() : existingCourse;
+          const existingMetadata = (existingCourseData as any).metadata || {};
+          mappedData.metadata = {
+            ...existingMetadata,
+            category_name: mappedData.category_id
+          };
+          mappedData.category_id = null;
+        }
+      }
+      
       // Map thumbnail_url to thumbnail (backend model uses 'thumbnail')
       if ('thumbnail_url' in mappedData) {
         mappedData.thumbnail = mappedData.thumbnail_url;
