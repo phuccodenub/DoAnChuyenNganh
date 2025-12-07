@@ -310,6 +310,38 @@ export class ChatRepository {
   }
 
   /**
+   * Get all member IDs of a course (instructor + enrolled students)
+   */
+  async getCourseMemberIds(courseId: string): Promise<string[]> {
+    try {
+      const course = await Course.findByPk(courseId) as CourseInstance | null;
+      if (!course) {
+        return [];
+      }
+
+      const memberIds: string[] = [course.instructor_id];
+
+      // Get all enrolled students
+      const Enrollment = (await import('../../models/enrollment.model')).default;
+      const enrollments = await Enrollment.findAll({
+        where: {
+          course_id: courseId,
+          status: 'active'
+        },
+        attributes: ['user_id']
+      });
+
+      const studentIds = enrollments.map((e: any) => e.user_id);
+      memberIds.push(...studentIds);
+
+      return [...new Set(memberIds)]; // Remove duplicates
+    } catch (error: unknown) {
+      logger.error('Error getting course member IDs:', error);
+      return [];
+    }
+  }
+
+  /**
    * Check if user can access course chat
    */
   async canUserAccessChat(userId: string, courseId: string): Promise<boolean> {

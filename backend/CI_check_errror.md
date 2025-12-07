@@ -1,3 +1,4 @@
+#Không xóa
 Run e2e tests with PostgreSQL (hard-fail) : 
 Run npm run test:e2e
 > backend@1.0.0 test:e2e

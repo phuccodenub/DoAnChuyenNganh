@@ -155,6 +155,18 @@ export class ChatService {
   }
 
   /**
+   * Get all member IDs of a course
+   */
+  async getCourseMemberIds(courseId: string): Promise<string[]> {
+    try {
+      return await this.repository.getCourseMemberIds(courseId);
+    } catch (error: unknown) {
+      logger.error('Error getting course member IDs:', error);
+      return [];
+    }
+  }
+
+  /**
    * Check user access to chat
    */
   async checkUserAccess(userId: string, courseId: string): Promise<boolean> {

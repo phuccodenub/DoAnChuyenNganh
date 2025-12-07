@@ -67,15 +67,13 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
 
   // Join conversation room when conversationId changes
   useEffect(() => {
-    if (!conversationId || !isConnected) return;
+    if (!isConnected) return;
 
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    // Join conversation room
-    socket.emit('dm:join_conversation', { conversationId });
-
-    // Listen for new messages
+    // ✅ FIX: Listen to GLOBAL dm:new_message event (from user room)
+    // No need to join conversation room manually - backend auto-joins user room
     const handleNewMessage = (message: DirectMessage) => {
       // Only log if created_at is missing (critical error)
       if (!message.created_at) {
@@ -85,16 +83,64 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
         });
       }
       
-      // Update query cache
-      queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
+      console.log('✅ Received dm:new_message from global room:', {
+        messageId: message.id?.substring(0, 8),
+        conversationId: message.conversation_id,
+        currentConversationId: conversationId,
+      });
+      
+      // CRITICAL FIX: Update cache directly instead of invalidating
+      // Update cache for the message's conversation (might not be current one)
+      queryClient.setQueryData(
+        conversationKeys.messages(message.conversation_id),
+        (oldData: any) => {
+          if (!oldData?.data) return oldData;
+          // Check if message already exists (prevent duplicates)
+          const exists = oldData.data.some((m: DirectMessage) => m.id === message.id);
+          if (exists) return oldData;
+          // Add new message to the end
+          return {
+            ...oldData,
+            data: [...oldData.data, message],
+          };
+        }
+      );
+
+      // Update conversation list to show latest message
+      queryClient.setQueryData(
+        conversationKeys.lists(),
+        (oldData: any) => {
+          if (!oldData?.data) return oldData;
+          return {
+            ...oldData,
+            data: oldData.data.map((conv: any) => 
+              conv.id === message.conversation_id
+                ? {
+                    ...conv,
+                    last_message: {
+                      content: message.content,
+                      created_at: message.created_at,
+                      sender_id: message.sender_id,
+                    },
+                    last_message_at: message.created_at,
+                    updated_at: message.created_at,
+                  }
+                : conv
+            ),
+          };
+        }
+      );
+
+      // Invalidate unread count to refetch
       queryClient.invalidateQueries({ queryKey: conversationKeys.unreadCount() });
 
-      // Call callback
-      onNewMessage?.(message);
+      // Call callback only if message is for current conversation
+      if (message.conversation_id === conversationId) {
+        onNewMessage?.(message);
+      }
     };
 
-    // Listen for typing events
+    // Listen for typing events (still need conversation filter)
     const handleTyping = (data: { conversationId: string; user: TypingUser }) => {
       if (data.conversationId === conversationId) {
         onTyping?.(data.user);
@@ -107,7 +153,7 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
       }
     };
 
-    // Listen for read events
+    // Listen for read events (still need conversation filter)
     const handleRead = (data: { conversationId: string; userId: string }) => {
       if (data.conversationId === conversationId) {
         onRead?.(data.conversationId, data.userId);
@@ -115,19 +161,19 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
       }
     };
 
+    // Setup global listeners
     socket.on('dm:new_message', handleNewMessage);
     socket.on('dm:typing', handleTyping);
     socket.on('dm:stop_typing', handleStopTyping);
     socket.on('dm:read', handleRead);
 
     return () => {
-      socket.emit('dm:leave_conversation', { conversationId });
       socket.off('dm:new_message', handleNewMessage);
       socket.off('dm:typing', handleTyping);
       socket.off('dm:stop_typing', handleStopTyping);
       socket.off('dm:read', handleRead);
     };
-  }, [conversationId, isConnected, onNewMessage, onTyping, onStopTyping, onRead, queryClient]);
+  }, [isConnected, queryClient, conversationId, onNewMessage, onTyping, onStopTyping, onRead]);
 
   // Send typing indicator
   const sendTyping = useCallback(() => {
@@ -233,22 +279,37 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
 
   // Join course chat room when courseId changes
   useEffect(() => {
-    if (!courseId || !isConnected) return;
+    if (!isConnected) return;
 
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    // Join course room
-    socket.emit('chat:join_room', { courseId });
+    // ✅ FIX: Listen to GLOBAL chat:new_message event (from user room)
+    // Still join course room for typing/online users, but new messages come from global room
+    if (courseId) {
+      socket.emit('chat:join_room', { courseId });
+    }
 
-    // Listen for new messages
+    // Listen for new messages from GLOBAL room
     const handleNewMessage = (message: ChatMessage) => {
-      // Invalidate query cache
+      console.log('✅ Received chat:new_message from global room:', {
+        messageId: message.id?.substring(0, 8),
+        courseId: message.course_id,
+        currentCourseId: courseId,
+      });
+      
+      // CRITICAL FIX: Invalidate ALL message queries for this course (all pages)
+      // Because query key includes page number: ['chat', 'messages', courseId, page]
       queryClient.invalidateQueries({ 
-        queryKey: ['chat', 'messages', courseId] 
+        queryKey: ['chat', 'messages', message.course_id],
+        exact: false, // Match all pages
+        refetchType: 'active' // Only refetch active queries (current page)
       });
 
-      callbacksRef.current.onNewMessage?.(message);
+      // Call callback only if message is for current course
+      if (message.course_id === courseId) {
+        callbacksRef.current.onNewMessage?.(message);
+      }
     };
 
     // Listen for user join/leave events
@@ -295,7 +356,9 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
     socket.on('chat:online_users', handleOnlineUsers);
 
     return () => {
-      socket.emit('chat:leave_room', { courseId });
+      if (courseId) {
+        socket.emit('chat:leave_room', { courseId });
+      }
       socket.off('chat:new_message', handleNewMessage);
       socket.off('chat:user_joined', handleUserJoined);
       socket.off('chat:user_left', handleUserLeft);

@@ -5,7 +5,7 @@
  * Sử dụng cho tab "Thảo luận khóa học"
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { BookOpen, MessageSquare, Users, Loader2, ChevronRight, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,6 +25,8 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
   const { user } = useAuth();
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(0);
 
   const isStudent = user?.role === 'student';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
@@ -44,7 +46,11 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
   const { onlineUsers } = useCourseChatSocket({
     courseId: selectedCourseId || undefined,
     onNewMessage: () => {
-      refetchMessages();
+      // Messages will be updated automatically via cache update in useChatSocket
+      // Just trigger a small delay for scroll
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     },
   });
 
@@ -80,6 +86,19 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
     // Sort messages by date ascending (oldest first, newest last)
     return mapped.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }, [messagesData, user, selectedCourseId]);
+
+  // Auto scroll when messages change
+  useEffect(() => {
+    const messagesChanged = messages.length !== prevMessagesLengthRef.current;
+    
+    if (messagesChanged && messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      
+      prevMessagesLengthRef.current = messages.length;
+    }
+  }, [messages]);
 
   // Create sender info map for display
   const senderInfoMap = useMemo(() => {
@@ -268,21 +287,25 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
                   <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
                 </div>
               ) : messages.length > 0 ? (
-                messages.map((msg, index) => {
-                  const senderInfo = senderInfoMap.get(msg.sender_id);
-                  // Show avatar chỉ cho tin nhắn đầu tiên hoặc khi sender thay đổi
-                  const showAvatar = index === 0 || messages[index - 1].sender_id !== msg.sender_id;
-                  return (
-                    <MessageBubble
-                      key={msg.id}
-                      message={msg}
-                      isOwn={msg.sender_id === currentUserId}
-                      showAvatar={showAvatar}
-                      senderName={senderInfo?.name}
-                      senderAvatar={senderInfo?.avatar}
-                    />
-                  );
-                })
+                <>
+                  {messages.map((msg, index) => {
+                    const senderInfo = senderInfoMap.get(msg.sender_id);
+                    // Show avatar chỉ cho tin nhắn đầu tiên hoặc khi sender thay đổi
+                    const showAvatar = index === 0 || messages[index - 1].sender_id !== msg.sender_id;
+                    return (
+                      <MessageBubble
+                        key={msg.id}
+                        message={msg}
+                        isOwn={msg.sender_id === currentUserId}
+                        showAvatar={showAvatar}
+                        senderName={senderInfo?.name}
+                        senderAvatar={senderInfo?.avatar}
+                      />
+                    );
+                  })}
+                  {/* Scroll anchor */}
+                  <div ref={messagesEndRef} />
+                </>
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">

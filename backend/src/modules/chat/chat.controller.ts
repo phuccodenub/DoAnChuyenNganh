@@ -8,6 +8,7 @@ import { ChatService } from './chat.service';
 import { GetMessagesOptions, SearchMessagesOptions } from './chat.types';
 import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
+import { getChatGateway } from './chat.gateway';
 
 export class ChatController {
   private chatService: ChatService;
@@ -80,6 +81,14 @@ export class ChatController {
         attachment_type,
         reply_to_message_id
       });
+
+      // ✅ CRITICAL: Emit Socket.IO event for real-time delivery (excluding sender)
+      const gateway = getChatGateway();
+      if (gateway) {
+        await gateway.notifyNewMessage(courseId, result, userId);
+      } else {
+        logger.warn('[ChatController] ChatGateway not available for real-time notification');
+      }
 
       responseUtils.sendSuccess(res, 'Message sent successfully', result);
     } catch (error: unknown) {

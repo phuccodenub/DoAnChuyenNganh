@@ -30,10 +30,20 @@ export function ConversationPanel({
     isParticipantOnline,
 }: ConversationPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const prevMessagesLengthRef = useRef(messages.length);
 
-    // Auto scroll to bottom when new messages arrive
+    // Auto scroll to bottom when new messages arrive OR when messages initially load
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const messagesChanged = messages.length !== prevMessagesLengthRef.current;
+        
+        if (messagesChanged) {
+            // Use setTimeout to ensure DOM has updated
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+            
+            prevMessagesLengthRef.current = messages.length;
+        }
     }, [messages]);
 
     // No conversation selected

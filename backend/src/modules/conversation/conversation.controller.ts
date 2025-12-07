@@ -110,6 +110,14 @@ export class ConversationController {
       ...body,
     });
 
+    // ✅ CRITICAL: Emit Socket.IO event for real-time delivery (excluding sender)
+    const gateway = getConversationGateway();
+    if (gateway) {
+      await gateway.notifyNewMessage(conversationId, message, userId);
+    } else {
+      console.warn('[Controller] ConversationGateway not available for real-time notification');
+    }
+
     res.status(201).json({
       success: true,
       data: message,
