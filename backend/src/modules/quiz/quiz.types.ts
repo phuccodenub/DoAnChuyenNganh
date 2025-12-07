@@ -1,5 +1,6 @@
 export interface CreateQuizDto {
-  course_id: string;
+  course_id?: string;
+  section_id?: string;
   title: string;
   description?: string;
   duration_minutes?: number;
@@ -10,11 +11,14 @@ export interface CreateQuizDto {
   available_from?: string | Date | null;
   available_until?: string | Date | null;
   is_published?: boolean;
+  is_practice?: boolean; // true = Practice Quiz, false = Graded Quiz
   auto_grade?: boolean;
   time_limit_minutes?: number;
 }
 
 export interface UpdateQuizDto {
+  course_id?: string;
+  section_id?: string;
   title?: string;
   description?: string;
   duration_minutes?: number;
@@ -25,6 +29,7 @@ export interface UpdateQuizDto {
   available_from?: string | Date | null;
   available_until?: string | Date | null;
   is_published?: boolean;
+  is_practice?: boolean; // true = Practice Quiz, false = Graded Quiz
   auto_grade?: boolean;
   time_limit_minutes?: number;
 }
@@ -36,6 +41,7 @@ export interface CreateQuestionDto {
   order_index: number;
   explanation?: string;
   correct_answer?: string; // For true_false questions
+  options?: CreateOptionDto[]; // Options for the question
 }
 
 export interface UpdateQuestionDto {

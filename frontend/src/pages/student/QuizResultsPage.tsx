@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, Clock, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, RotateCcw, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { ROUTES, generateRoute } from '@/constants/routes';
-// Badge component - simplified inline
 import { useQuizAttempt } from '@/hooks/useQuizData';
 
 /**
@@ -71,6 +71,18 @@ export function QuizResultsPage() {
       <Card>
         <CardContent className="py-8">
           <div className="text-center space-y-4">
+            {/* Practice/Graded Badge */}
+            {quiz?.is_practice !== undefined && (
+              <div className="flex justify-center mb-2">
+                <Badge 
+                  variant={quiz.is_practice ? "warning" : "success"} 
+                  size="md"
+                >
+                  {quiz.is_practice ? 'Bài luyện tập' : 'Bài kiểm tra tính điểm'}
+                </Badge>
+              </div>
+            )}
+
             <div>
               {passed ? (
                 <CheckCircle className="w-16 h-16 text-green-600 mx-auto" />
@@ -92,13 +104,25 @@ export function QuizResultsPage() {
               {passed ? '✓ Đạt' : '✗ Không đạt'}
             </span>
 
+            {quiz?.is_practice && (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg max-w-md mx-auto">
+                <div className="flex gap-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-yellow-800 text-left">
+                    <p className="font-medium mb-1">Lưu ý</p>
+                    <p>Đây là bài luyện tập, điểm số không được tính vào tổng kết khóa học.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-center gap-6 pt-4 text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                <span>Thời gian: {timeTaken} phút</span>
+                <span>Thời gian: {timeTaken && timeTaken > 0 ? `${timeTaken} phút` : 'Không giới hạn thời gian'}</span>
               </div>
               <div>
-                Điểm đạt: {quiz?.passing_score}%
+                Điểm đạt: {quiz?.is_practice ? 'Không áp dụng' : (quiz?.passing_score ? `${quiz.passing_score}%` : '-')}
               </div>
             </div>
           </div>
@@ -133,7 +157,7 @@ export function QuizResultsPage() {
             <div>
               <p className="text-sm text-gray-600">Lần làm</p>
               <p className="font-semibold text-gray-900">
-                {(attempt as any).attempt_number || 1}/{(quiz as any)?.max_attempts}
+                {(attempt as any).attempt_number || 1}/{((quiz as any)?.max_attempts && (quiz as any).max_attempts > 0) ? (quiz as any).max_attempts : 'Không giới hạn'}
               </p>
             </div>
           </div>
@@ -216,9 +240,12 @@ export function QuizResultsPage() {
                           </div>
                         )}
 
-                        {question.feedback && (
+                        {question.explanation && (
                           <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                            <p className="text-sm text-blue-800">{question.feedback}</p>
+                            <p className="text-sm font-medium text-blue-900 mb-1">
+                              Giải thích:
+                            </p>
+                            <p className="text-sm text-blue-800">{question.explanation}</p>
                           </div>
                         )}
                       </div>

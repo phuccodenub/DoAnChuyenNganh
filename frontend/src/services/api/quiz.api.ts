@@ -6,6 +6,7 @@ import { apiClient } from '../http/client';
 export interface Quiz {
   id: string;
   course_id: string;
+  lesson_id?: string;
   section_id?: string;
   title: string;
   description: string | null;
@@ -13,9 +14,9 @@ export interface Quiz {
   passing_score: number;
   max_attempts: number;
   shuffle_questions: boolean;
-  shuffle_answers: boolean;
   show_correct_answers: boolean;
   is_published: boolean;
+  is_practice: boolean; // true = Practice Quiz, false = Graded Quiz
   created_at: string;
   updated_at: string;
   _count?: {
@@ -83,6 +84,13 @@ export interface QuizAttemptResult extends QuizAttempt {
     id: string;
     title: string;
     passing_score: number;
+    is_practice: boolean;
+    max_attempts: number;
+    shuffle_questions: boolean;
+    show_correct_answers: boolean;
+    available_from: string;
+    available_until: string;
+    is_published: boolean;
   };
   questions: Question[];
   percentage: number;
@@ -93,7 +101,8 @@ export interface QuizAttemptResult extends QuizAttempt {
 export interface CreateQuizData {
   title: string;
   description?: string;
-  course_id: string;
+  course_id?: string;
+  section_id?: string;
   duration_minutes?: number;
   max_attempts?: number;
   passing_score?: number;
@@ -102,12 +111,14 @@ export interface CreateQuizData {
   available_from?: string;
   available_until?: string;
   is_published?: boolean;
+  is_practice?: boolean; // true = Practice Quiz, false = Graded Quiz
 }
 
 export interface UpdateQuizData {
   title?: string;
   description?: string;
   course_id?: string;
+  section_id?: string;
   duration_minutes?: number;
   max_attempts?: number;
   passing_score?: number;
@@ -116,6 +127,7 @@ export interface UpdateQuizData {
   available_from?: string;
   available_until?: string;
   is_published?: boolean;
+  is_practice?: boolean; // true = Practice Quiz, false = Graded Quiz
 }
 
 export interface CreateQuestionData {
@@ -157,73 +169,125 @@ export const quizApi = {
    * Get quiz by ID
    */
   getQuiz: async (quizId: string): Promise<Quiz> => {
-    const response = await apiClient.get<Quiz>(`/quizzes/${quizId}`);
-    return response.data;
+    const response = await apiClient.get<{ success: boolean; message: string; data: Quiz }>(`/quizzes/${quizId}`);
+    // Backend trả về: { success, message, data: Quiz }
+    return response.data?.data || response.data as any;
   },
 
   /**
    * Get quiz questions (only available during active attempt)
    */
   getQuizQuestions: async (quizId: string): Promise<Question[]> => {
-    const response = await apiClient.get<Question[]>(
-      `/quizzes/${quizId}/questions`
-    );
-    return response.data;
+    const response = await apiClient.get<any>(`/quizzes/${quizId}/questions`);
+    const raw = response.data;
+
+    const questionsArray: any[] = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.data)
+        ? raw.data
+        : [];
+
+    // Chuẩn hoá options: đảm bảo có field text để UI hiển thị
+    return questionsArray.map((q) => ({
+      ...q,
+      options: (q.options || []).map((opt: any) => ({
+        ...opt,
+        text: opt.text ?? opt.option_text ?? '',
+      })),
+    })) as Question[];
+  },
+
+  /**
+   * Get quiz questions WITH answers (instructor view)
+   */
+  getQuizQuestionsWithAnswers: async (quizId: string): Promise<Question[]> => {
+    const response = await apiClient.get<any>(`/quizzes/${quizId}/questions-with-answers`);
+    const raw = response.data;
+
+    const questionsArray: any[] = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.data)
+        ? raw.data
+        : [];
+
+    return questionsArray.map((q) => ({
+      ...q,
+      options: (q.options || []).map((opt: any) => ({
+        ...opt,
+        text: opt.text ?? opt.option_text ?? '',
+      })),
+    })) as Question[];
   },
 
   /**
    * Start a new quiz attempt
    */
   startQuiz: async (quizId: string): Promise<QuizAttempt> => {
-    const response = await apiClient.post<QuizAttempt>(
+    const response = await apiClient.post<any>(
       `/quizzes/${quizId}/start`
     );
-    return response.data;
-  },
-
-  /**
-   * Submit answer for a question
-   */
-  submitAnswer: async (
-    attemptId: string,
-    questionId: string,
-    answer: string | string[]
-  ): Promise<{ success: boolean }> => {
-    const response = await apiClient.post<{ success: boolean }>(
-      `/quiz-attempts/${attemptId}/answers`,
-      { question_id: questionId, answer }
-    );
-    return response.data;
+    const raw = response.data;
+    // Backend: { success, message, data }
+    return (raw?.data || raw) as QuizAttempt;
   },
 
   /**
    * Submit quiz (finish attempt)
    */
-  submitQuiz: async (attemptId: string): Promise<QuizAttemptResult> => {
-    const response = await apiClient.post<QuizAttemptResult>(
-      `/quiz-attempts/${attemptId}/submit`
+  submitQuiz: async (
+    attemptId: string,
+    answers: {
+      question_id: string;
+      selected_option_id?: string;
+      selected_options?: string[];
+    }[]
+  ): Promise<QuizAttemptResult> => {
+    const response = await apiClient.post<any>(
+      `/quizzes/attempts/${attemptId}/submit`,
+      { answers }
     );
-    return response.data;
+    const raw = response.data;
+    return (raw?.data || raw) as QuizAttemptResult;
   },
 
   /**
    * Get quiz attempt by ID
    */
   getAttempt: async (attemptId: string): Promise<QuizAttemptResult> => {
-    const response = await apiClient.get<QuizAttemptResult>(
-      `/quiz-attempts/${attemptId}`
-    );
-    return response.data;
+    const response = await apiClient.get<any>(`/quizzes/attempts/${attemptId}`);
+    const raw = response.data;
+    // Backend: { success, message, data }
+    return (raw?.data || raw) as QuizAttemptResult;
   },
 
   /**
    * Get all attempts for a quiz by current user
    */
   getAttempts: async (quizId: string): Promise<QuizAttempt[]> => {
-    const response = await apiClient.get<QuizAttempt[]>(
+    const response = await apiClient.get<{ success: boolean; message: string; data: QuizAttempt[] }>(
       `/quizzes/${quizId}/attempts`
     );
-    return response.data;
+    // Backend trả về: { success, message, data: QuizAttempt[] }
+    const attempts = response.data?.data || response.data || [];
+    return Array.isArray(attempts) ? attempts : [];
+  },
+
+  /**
+   * Get quiz attempts for a specific student (Instructor only)
+   */
+  getStudentAttempts: async (quizId: string, studentId: string): Promise<QuizAttempt[]> => {
+    const response = await apiClient.get<{ success: boolean; message: string; data: QuizAttempt[] }>(
+      `/quizzes/${quizId}/attempts/student/${studentId}`
+    );
+    return response.data?.data || response.data || [];
+  },
+
+  /**
+   * Delete all quiz attempts for a specific student (Instructor only)
+   * Reset lượt làm bài cho học viên
+   */
+  resetStudentAttempts: async (quizId: string, studentId: string): Promise<void> => {
+    await apiClient.delete(`/quizzes/${quizId}/attempts/student/${studentId}`);
   },
 
   /**
@@ -231,10 +295,13 @@ export const quizApi = {
    */
   getCurrentAttempt: async (quizId: string): Promise<QuizAttempt | null> => {
     try {
-      const response = await apiClient.get<QuizAttempt>(
+      const response = await apiClient.get<any>(
         `/quizzes/${quizId}/current-attempt`
       );
-      return response.data;
+      const raw = response.data;
+      // Backend: { success, message, data } or directly DTO
+      const dto = (raw?.data || raw) as QuizAttempt | null;
+      return dto;
     } catch (error) {
       return null;
     }
@@ -249,26 +316,31 @@ export const quizApi = {
     page?: number;
     limit?: number;
     course_id?: string;
+    lesson_id?: string;
     status?: 'draft' | 'published' | 'archived';
   }): Promise<{ data: Quiz[]; pagination: { page: number; limit: number; total: number; pages: number } }> => {
-    const response = await apiClient.get<{ data: Quiz[]; pagination: any }>('/quizzes', { params });
-    return response.data;
+    const response = await apiClient.get<any>('/quizzes', { params });
+    // Backend trả về: { success, message, data: { data: [...], pagination: {...} } }
+    // Vậy response.data.data sẽ là { data: [...], pagination: {...} }
+    return response.data?.data || response.data;
   },
 
   /**
    * Create a new quiz (Instructor only)
    */
   createQuiz: async (data: CreateQuizData): Promise<Quiz> => {
-    const response = await apiClient.post<Quiz>('/quizzes', data);
-    return response.data;
+    const response = await apiClient.post<{ success: boolean; message: string; data: Quiz }>('/quizzes', data);
+    // Backend trả về: { success, message, data: Quiz }
+    return response.data?.data || response.data as any;
   },
 
   /**
    * Update a quiz (Instructor only)
    */
   updateQuiz: async (quizId: string, data: UpdateQuizData): Promise<Quiz> => {
-    const response = await apiClient.put<Quiz>(`/quizzes/${quizId}`, data);
-    return response.data;
+    const response = await apiClient.put<{ success: boolean; message: string; data: Quiz }>(`/quizzes/${quizId}`, data);
+    // Backend trả về: { success, message, data: Quiz }
+    return response.data?.data || response.data as any;
   },
 
   /**

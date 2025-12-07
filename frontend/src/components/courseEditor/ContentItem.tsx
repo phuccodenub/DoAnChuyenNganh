@@ -1,15 +1,17 @@
 import { Video, FileText, ListChecks, FileQuestion, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
 
 interface ContentItemProps {
     type: 'video' | 'document' | 'quiz' | 'assignment';
     title: string;
     duration?: number; // in minutes
     isPreview?: boolean;
+    isPractice?: boolean; // true = Practice, false = Graded (chỉ áp dụng cho quiz/assignment)
     onEdit?: () => void;
     onDelete?: () => void;
 }
 
-export function ContentItem({ type, title, duration, isPreview, onEdit, onDelete }: ContentItemProps) {
+export function ContentItem({ type, title, duration, isPreview, isPractice, onEdit, onDelete }: ContentItemProps) {
     const getIcon = () => {
         switch (type) {
             case 'video': return Video;
@@ -36,20 +38,22 @@ export function ContentItem({ type, title, duration, isPreview, onEdit, onDelete
         <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
             <Icon className={`w-5 h-5 ${getColor()}`} />
             <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium text-gray-900">{title}</span>
                     {isPreview && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                        <Badge variant="info" size="sm">
                             Preview
-                        </span>
+                        </Badge>
+                    )}
+                    {(type === 'quiz' || type === 'assignment') && isPractice !== undefined && (
+                        <Badge 
+                            variant={isPractice ? "warning" : "success"} 
+                            size="sm"
+                        >
+                            {isPractice ? 'Luyện tập' : 'Tính điểm'}
+                        </Badge>
                     )}
                 </div>
-                {duration && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                        <Clock className="w-3 h-3" />
-                        <span>{duration} minutes</span>
-                    </div>
-                )}
             </div>
             <div className="flex items-center gap-1">
                 {onEdit && (

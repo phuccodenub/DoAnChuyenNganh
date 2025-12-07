@@ -443,12 +443,88 @@ export class CourseContentController {
 
       const progress = await this.service.getCourseProgress(userId!, courseId);
       
+      // Auto-issue certificate if completion reaches 100%
+      if (progress.completion_percentage >= 100) {
+        try {
+          const { certificateAutoIssueService } = await import('../certificate/certificate.auto-issue.service');
+          // Find enrollment ID
+          const { Enrollment } = await import('../../models');
+          const enrollment = await (Enrollment as any).findOne({
+            where: {
+              user_id: userId,
+              course_id: courseId,
+            },
+            attributes: ['id'],
+          });
+          
+          if (enrollment) {
+            // Call auto-issue in background (don't wait)
+            certificateAutoIssueService.checkAndIssueCertificate(
+              userId!,
+              courseId,
+              enrollment.id
+            ).catch((err: any) => {
+              logger.error('[CourseContentController] Auto-issue certificate error:', err);
+            });
+          }
+        } catch (certError) {
+          // Don't fail the request if certificate issuance fails
+          logger.error('[CourseContentController] Certificate auto-issue error:', certError);
+        }
+      }
+      
       return responseUtils.success(
         res,
         progress,
         'Course progress retrieved successfully'
       );
     } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  /**
+   * Get student progress (for instructor - view any student's progress)
+   */
+  getStudentProgress = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { courseId, studentId } = req.params;
+      const instructorId = req.user?.userId;
+
+      if (!instructorId) {
+        return responseUtils.sendError(res, 'Unauthorized', 401);
+      }
+
+      // Verify instructor has access to this course
+      // Get course directly from repository to check instructor_id before normalization
+      const { CourseRepository } = await import('../course/course.repository');
+      const courseRepository = new CourseRepository();
+      const courseRaw = await courseRepository.findById(courseId);
+      
+      if (!courseRaw) {
+        return responseUtils.sendError(res, 'Course not found', 404);
+      }
+
+      // Check if instructor owns the course or is admin
+      const courseInstructorId = (courseRaw as any).instructor_id;
+      if (courseInstructorId !== instructorId) {
+        // Check if user is admin
+        const user = await courseRepository.findUserById(instructorId);
+        if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+          return responseUtils.sendError(res, 'Not authorized to view student progress', 403);
+        }
+      }
+
+      // Get student's progress
+      const progress = await this.service.getCourseProgress(studentId, courseId);
+      
+      return responseUtils.success(
+        res,
+        progress,
+        'Student progress retrieved successfully'
+      );
+    } catch (error: unknown) {
+      logger.error('Error getting student progress:', error);
       next(error);
     }
   };

@@ -10,7 +10,8 @@ import {
   FileText,
   DollarSign,
   Share2,
-  MessageCircle
+  MessageCircle,
+  ClipboardList
 } from 'lucide-react';
 import { useCourse, useEnrollCourse, useCourseProgress } from '@/hooks/useCoursesData';
 import { useCourseContent } from '@/hooks/useLessonData';
@@ -23,9 +24,14 @@ import { ROUTES, generateRoute } from '@/constants/routes';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { CurriculumTree } from '@/components/domain/lesson/CurriculumTree';
-import type { Section } from '@/services/api/lesson.api';
+import type { Section, CourseContent } from '@/services/api/lesson.api';
 import type { Course } from '@/services/api/course.api';
 import { MainLayout } from '@/layouts/MainLayout';
+import { toast } from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
+import { quizApi, type Quiz } from '@/services/api/quiz.api';
+import { assignmentApi, type Assignment } from '@/services/api/assignment.api';
+import { getCourseThumbnailUrl } from '@/utils/course.utils';
 
 /**
  * Course Detail Page
@@ -60,15 +66,293 @@ export function DetailPage() {
   // Không cần truyền điều kiện ở đây nữa
   const { data: courseContent, isLoading: isContentLoading } = useCourseContent(courseId);
 
+  // Fetch tất cả quizzes (bao gồm cả course-level và section-level)
+  const { data: allQuizzes } = useQuery<Quiz[]>({
+    queryKey: ['all-quizzes-detail', courseId],
+    queryFn: async () => {
+      try {
+      const res = await quizApi.getQuizzes({ course_id: courseId, status: 'published' });
+      const list = Array.isArray(res?.data) ? res.data : [];
+      return list
+          .filter((q: any) => {
+            // Chỉ lấy quizzes đã published, không có lesson_id
+            const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
+            return !hasLessonId && q.is_published;
+          })
+        .sort((a: any, b: any) => {
+          // Sắp xếp theo created_at (cũ nhất trước)
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateA - dateB; // ASC: cũ nhất trước
+        });
+      } catch (error: any) {
+        // Nếu lỗi permission, chỉ log và trả về mảng rỗng (không hiển thị toast)
+        if (error?.response?.status === 403 || error?.response?.status === 401) {
+          console.warn('[DetailPage] Permission denied when fetching quizzes:', error?.response?.data?.message);
+          return [];
+        }
+        // Nếu lỗi khác, throw để React Query xử lý
+        throw error;
+      }
+    },
+    enabled: !!courseId,
+    staleTime: 60 * 1000,
+    retry: false, // Không retry khi lỗi permission
+  });
+
+  // Course-level quizzes (không có lesson_id và không có section_id, có course_id)
+  const courseLevelQuizzes = (allQuizzes || []).filter((q: any) => {
+    const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
+    const hasSectionId = q.section_id != null && q.section_id !== '';
+    const hasCourseId = q.course_id != null && q.course_id !== '';
+    return !hasLessonId && !hasSectionId && hasCourseId;
+  });
+
+  // Fetch tất cả assignments (bao gồm cả course-level và section-level)
+  const { data: allAssignments } = useQuery<Assignment[]>({
+    queryKey: ['all-assignments-detail', courseId],
+    queryFn: async () => {
+      try {
+      const res = await assignmentApi.getCourseAssignments(courseId);
+      const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
+      return list
+          .filter((a: any) => {
+            // Chỉ lấy assignments đã published, không có lesson_id
+            const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
+            return !hasLessonId && a.is_published;
+          })
+        .sort((a: any, b: any) => {
+          // Sắp xếp theo created_at (cũ nhất trước)
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateA - dateB; // ASC: cũ nhất trước
+        });
+      } catch (error: any) {
+        // Nếu lỗi permission, chỉ log và trả về mảng rỗng (không hiển thị toast)
+        if (error?.response?.status === 403 || error?.response?.status === 401) {
+          console.warn('[DetailPage] Permission denied when fetching assignments:', error?.response?.data?.message);
+          return [];
+        }
+        // Nếu lỗi khác, throw để React Query xử lý
+        throw error;
+      }
+    },
+    enabled: !!courseId,
+    staleTime: 60 * 1000,
+    retry: false, // Không retry khi lỗi permission
+  });
+
+  // Course-level assignments (không có lesson_id và không có section_id, có course_id)
+  const courseLevelAssignments = (allAssignments || []).filter((a: any) => {
+    const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
+    const hasSectionId = a.section_id != null && a.section_id !== '';
+    const hasCourseId = a.course_id != null && a.course_id !== '';
+    return !hasLessonId && !hasSectionId && hasCourseId;
+  });
+
   // Sử dụng sections từ courseContent (nếu authenticated) hoặc course.sections (public fallback)
-  const curriculumSections = courseContent?.sections ?? course?.sections ?? [];
+  // Nếu courseContent.sections là empty array, vẫn fallback về course.sections
+  let curriculumSections = (courseContent?.sections && courseContent.sections.length > 0) 
+    ? courseContent.sections 
+    : (course?.sections ?? []);
+
+  // Thêm section-level quizzes và assignments vào sections
+  // Lấy section-level quizzes (có section_id nhưng không có lesson_id)
+  const sectionLevelQuizzes = (allQuizzes || []).filter((q: any) => {
+    const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
+    const hasSectionId = q.section_id != null && q.section_id !== '';
+    return !hasLessonId && hasSectionId;
+  });
+
+  // Lấy section-level assignments (có section_id nhưng không có lesson_id)
+  const sectionLevelAssignments = (allAssignments || []).filter((a: any) => {
+    const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
+    const hasSectionId = a.section_id != null && a.section_id !== '';
+    return !hasLessonId && hasSectionId;
+  });
+
+  // Fetch quiz attempts và assignment submissions để biết quiz/assignment nào đã hoàn thành
+  const { data: quizAttempts } = useQuery({
+    queryKey: ['quiz-attempts-for-completion', courseId, isUserEnrolled],
+    queryFn: async () => {
+      if (!isUserEnrolled || !allQuizzes || allQuizzes.length === 0) return [];
+      
+      const nonPracticeQuizzes = allQuizzes.filter((q: any) => !q.is_practice);
+      if (nonPracticeQuizzes.length === 0) return [];
+      
+      try {
+        const attempts = await Promise.all(
+          nonPracticeQuizzes.map(async (quiz: any) => {
+            try {
+              const studentAttempts = await quizApi.getAttempts(quiz.id);
+              const submittedAttempts = studentAttempts.filter(
+                (a: any) => a.submitted_at != null
+              );
+              if (submittedAttempts.length === 0) return null;
+              
+              const latestAttempt = submittedAttempts.sort(
+                (a: any, b: any) => 
+                  new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime()
+              )[0];
+              
+              return { quiz_id: quiz.id, attempt: latestAttempt };
+            } catch (error: any) {
+              if (error?.response?.status === 401 || error?.response?.status === 403) {
+                return null;
+              }
+              return null;
+            }
+          })
+        );
+        return attempts.filter(Boolean);
+      } catch (error) {
+        return [];
+      }
+    },
+    enabled: !!isUserEnrolled && !!allQuizzes && allQuizzes.length > 0,
+    staleTime: 60 * 1000,
+  });
+
+  // Fetch assignment submissions
+  const { data: assignmentSubmissions } = useQuery({
+    queryKey: ['assignment-submissions-for-completion', courseId, isUserEnrolled],
+    queryFn: async () => {
+      if (!isUserEnrolled || !allAssignments || allAssignments.length === 0) return [];
+      
+      const nonPracticeAssignments = allAssignments.filter((a: any) => !a.is_practice);
+      if (nonPracticeAssignments.length === 0) return [];
+      
+      try {
+        const submissions = await Promise.all(
+          nonPracticeAssignments.map(async (assignment: any) => {
+            try {
+              const submission = await assignmentApi.getSubmission(assignment.id);
+              return submission && submission.submitted_at 
+                ? { assignment_id: assignment.id, submission } 
+                : null;
+            } catch (error: any) {
+              if (error?.response?.status === 401 || error?.response?.status === 403 || error?.response?.status === 404) {
+                return null;
+              }
+              return null;
+            }
+          })
+        );
+        return submissions.filter(Boolean);
+      } catch (error) {
+        return [];
+      }
+    },
+    enabled: !!isUserEnrolled && !!allAssignments && allAssignments.length > 0,
+    staleTime: 60 * 1000,
+  });
+
+  // Tạo map để lookup completion status
+  const completedLessonIds = new Set(
+    progressData?.sections?.flatMap((s: any) => 
+      s.lessons?.filter((l: any) => l.is_completed).map((l: any) => l.lesson_id) || []
+    ) || []
+  );
+
+  const completedQuizIds = new Set(
+    (quizAttempts || []).map((item: any) => item.quiz_id)
+  );
+
+  const completedAssignmentIds = new Set(
+    (assignmentSubmissions || []).map((item: any) => item.assignment_id)
+  );
+
+  // Gắn quizzes và assignments vào sections tương ứng và thêm completion status
+  curriculumSections = curriculumSections.map((section: any) => {
+    const sectionQuizzes = sectionLevelQuizzes.filter((q: any) => {
+      const quizSectionId = q.section_id ? String(q.section_id).trim() : null;
+      const currentSectionId = section.id ? String(section.id).trim() : null;
+      return quizSectionId === currentSectionId && quizSectionId !== null;
+    });
+
+    const sectionAssignments = sectionLevelAssignments.filter((a: any) => {
+      const assignmentSectionId = a.section_id ? String(a.section_id).trim() : null;
+      const currentSectionId = section.id ? String(section.id).trim() : null;
+      return assignmentSectionId === currentSectionId && assignmentSectionId !== null;
+    });
+
+    // Merge completion status từ progressData vào lessons
+    const sectionProgress = progressData?.sections?.find((s: any) => s.section_id === section.id);
+    const completedLessonMap = new Map(
+      sectionProgress?.lessons?.map((l: any) => [l.lesson_id, l.is_completed]) || []
+    );
+
+    // Tạo lesson items từ quizzes và assignments với completion status
+    const quizLessons = sectionQuizzes.map((quiz: any) => ({
+      id: `quiz-${quiz.id}`,
+      title: quiz.title,
+      content_type: 'quiz' as const,
+      section_id: quiz.section_id,
+      order_index: quiz.order_index || 999,
+      is_practice: quiz.is_practice,
+      is_free_preview: false,
+      duration_minutes: quiz.duration_minutes,
+      quiz_id: quiz.id,
+      is_completed: !quiz.is_practice && completedQuizIds.has(quiz.id),
+    }));
+
+    const assignmentLessons = sectionAssignments.map((assignment: any) => ({
+      id: `assignment-${assignment.id}`,
+      title: assignment.title,
+      content_type: 'assignment' as const,
+      section_id: assignment.section_id,
+      order_index: assignment.order_index || 999,
+      is_practice: assignment.is_practice,
+      is_free_preview: false,
+      duration_minutes: assignment.duration_minutes,
+      assignment_id: assignment.id,
+      is_completed: !assignment.is_practice && completedAssignmentIds.has(assignment.id),
+    }));
+
+    return {
+      ...section,
+      lessons: [
+        ...(section.lessons || []).map((lesson: any) => ({
+          ...lesson,
+          is_completed: completedLessonMap.get(lesson.id) || completedLessonIds.has(lesson.id) || false,
+        })),
+        ...quizLessons,
+        ...assignmentLessons,
+      ].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
+    };
+  });
   const learningPath = courseId ? generateRoute.student.learning(courseId) : ROUTES.COURSES;
 
-  // Extract counts from API data
-  const totalSections = courseContent?.sections?.length || 0;
-  const totalLessons = courseContent?.total_lessons || 0;
-  const completedLessons = courseContent?.completed_lessons || 0;
-  const progressPercentage = progressData?.percent || courseContent?.progress_percentage || 0;
+  // Debug: Log để kiểm tra data
+  useEffect(() => {
+    if (course) {
+      console.log('[DetailPage] Course data:', course);
+      console.log('[DetailPage] Course sections:', course.sections);
+      console.log('[DetailPage] CourseContent sections:', courseContent?.sections);
+      console.log('[DetailPage] Final curriculumSections:', curriculumSections);
+    }
+  }, [course, courseContent, curriculumSections]);
+
+  // Extract counts from API data - ưu tiên dùng data từ progressData (chính xác nhất)
+  const totalSections = progressData?.total_sections ?? 
+    courseContent?.total_sections ?? 
+    courseContent?.sections?.length ?? 
+    course?.sections?.length ?? 0;
+  
+  const totalLessons = progressData?.total_lessons ?? 
+    courseContent?.total_lessons ?? 
+    (course?.sections?.reduce((sum, section) => sum + (section.lessons?.length || 0), 0) || 0) ??
+    course?.total_lessons ?? 0;
+  
+  const completedLessons = progressData?.completed_lessons ?? 
+    courseContent?.completed_lessons ?? 0;
+  
+  // completion_percentage từ progressData là giá trị chuẩn từ backend (đã tính toán đầy đủ)
+  const progressPercentage = progressData?.completion_percentage != null 
+    ? Number(progressData.completion_percentage) 
+    : (courseContent?.progress_percentage != null 
+      ? Number(courseContent.progress_percentage) 
+      : 0);
 
   useEffect(() => {
     if (!courseId) {
@@ -88,7 +372,45 @@ export function DetailPage() {
   }, [course?.is_enrolled, courseId, queryClient]);
 
   const handleLessonPreviewClick = (lessonId: string) => {
-    console.log('Preview lesson', lessonId);
+    if (!courseId) return;
+
+    // Xử lý quiz/assignment items (có id dạng quiz-${id} hoặc assignment-${id})
+    if (lessonId.startsWith('quiz-')) {
+      const quizId = lessonId.replace('quiz-', '');
+      if (isUserEnrolled) {
+        navigate(generateRoute.student.quiz(courseId, quizId));
+      } else {
+        toast.error('Vui lòng đăng ký khóa học để làm bài kiểm tra');
+      }
+      return;
+    }
+
+    if (lessonId.startsWith('assignment-')) {
+      const assignmentId = lessonId.replace('assignment-', '');
+      if (isUserEnrolled) {
+        navigate(`/assignments/${assignmentId}`);
+      } else {
+        toast.error('Vui lòng đăng ký khóa học để làm bài tập');
+      }
+      return;
+    }
+
+    // Tìm lesson trong curriculumSections để kiểm tra is_free_preview
+    const lesson = curriculumSections
+      .flatMap(s => s.lessons || [])
+      .find(l => l.id === lessonId);
+
+    const isFreePreview = lesson?.is_free_preview || false;
+
+    // Cho phép xem nếu:
+    // 1. Đã enrolled, HOẶC
+    // 2. Lesson có is_free_preview = true (cho phép xem trước miễn phí)
+    if (isUserEnrolled || isFreePreview) {
+      navigate(generateRoute.student.lesson(courseId, lessonId));
+    } else {
+      // Nếu chưa enrolled và không phải preview lesson, yêu cầu đăng ký
+      toast.error('Vui lòng đăng ký khóa học để xem nội dung bài học');
+    }
   };
 
   const handleEnrollClick = () => {
@@ -101,19 +423,104 @@ export function DetailPage() {
       return;
     }
 
+    // Nếu đã enrolled, navigate đến learning page ngay
+    if (isUserEnrolled) {
+      // Tìm lesson đầu tiên từ curriculumSections (public data, đã có sẵn)
+      // Hoặc từ courseContent nếu đã có
+      const sectionsToUse = (courseContent?.sections && courseContent.sections.length > 0)
+        ? courseContent.sections
+        : curriculumSections;
+      
+      const firstLesson = sectionsToUse
+        .flatMap(s => s.lessons || [])
+        .find(lesson => lesson);
+      
+      if (firstLesson) {
+        // Navigate đến trang chi tiết bài học đầu tiên
+        navigate(generateRoute.student.lesson(courseId, firstLesson.id));
+      } else {
+        // Nếu không có lesson, navigate đến learning page
+        navigate(learningPath);
+      }
+      return;
+    }
+
     // Enroll trực tiếp không cần modal
     enrollCourse(courseId, {
-      onSuccess: () => {
+      onSuccess: async () => {
         setIsUserEnrolled(true);
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.detail(courseId) });
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.enrolled() });
-        // Navigate to learning page
-        navigate(learningPath);
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lessons.content(courseId) });
+        
+        // Refetch courseContent để có data mới nhất
+        await queryClient.refetchQueries({ queryKey: QUERY_KEYS.lessons.content(courseId) });
+        
+        // Đợi một chút để data được update
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Lấy data mới nhất từ cache
+        const updatedCourseContent = queryClient.getQueryData<{ data?: CourseContent }>(
+          QUERY_KEYS.lessons.content(courseId)
+        );
+        
+        // Tìm lesson đầu tiên từ nhiều nguồn (ưu tiên courseContent, sau đó course.sections)
+        const sectionsToUse = (updatedCourseContent?.data?.sections && updatedCourseContent.data.sections.length > 0)
+          ? updatedCourseContent.data.sections
+          : (course?.sections && course.sections.length > 0)
+          ? course.sections
+          : [];
+        
+        console.log('[DetailPage] Finding first lesson after enrollment:', {
+          hasUpdatedContent: !!updatedCourseContent?.data?.sections,
+          updatedContentSections: updatedCourseContent?.data?.sections?.length || 0,
+          courseSections: course?.sections?.length || 0,
+          sectionsToUse: sectionsToUse.length,
+          allLessons: sectionsToUse.flatMap(s => s.lessons || []).length
+        });
+        
+        const firstLesson = sectionsToUse
+          .flatMap(s => s.lessons || [])
+          .find(lesson => lesson);
+        
+        if (firstLesson) {
+          console.log('[DetailPage] Found first lesson, navigating to:', firstLesson.id);
+          // Navigate đến trang chi tiết bài học đầu tiên
+          navigate(generateRoute.student.lesson(courseId, firstLesson.id));
+        } else {
+          console.log('[DetailPage] No lesson found, navigating to learning page');
+          // Nếu không có lesson, navigate đến learning page
+          navigate(learningPath);
+        }
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('Enrollment failed:', error);
-        // Still navigate even if enrollment fails (for testing)
-        navigate(learningPath);
+        const errorMessage = error?.response?.data?.message || '';
+        
+        // Nếu lỗi là "already enrolled", xử lý như đã enrolled
+        if (errorMessage.toLowerCase().includes('already enrolled') || 
+            errorMessage.toLowerCase().includes('đã đăng ký')) {
+          setIsUserEnrolled(true);
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.detail(courseId) });
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.enrolled() });
+          
+          // Navigate đến learning page
+          const sectionsToUse = (courseContent?.sections && courseContent.sections.length > 0)
+            ? courseContent.sections
+            : curriculumSections;
+          
+          const firstLesson = sectionsToUse
+            .flatMap(s => s.lessons || [])
+            .find(lesson => lesson);
+          
+          if (firstLesson) {
+            navigate(generateRoute.student.lesson(courseId, firstLesson.id));
+          } else {
+            navigate(learningPath);
+          }
+        } else {
+          toast.error('Không thể đăng ký khóa học. Vui lòng thử lại.');
+        }
       }
     });
   };
@@ -149,27 +556,31 @@ export function DetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spinner size="xl" />
-      </div>
+      <MainLayout showSidebar>
+        <div className="min-h-screen flex items-center justify-center">
+          <Spinner size="xl" />
+        </div>
+      </MainLayout>
     );
   }
 
   if (error || !course) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Không tìm thấy khóa học
-          </h1>
-          <Link
-            to={ROUTES.COURSES}
-            className="text-blue-600 hover:text-blue-700"
-          >
-            Quay lại danh sách khóa học
-          </Link>
+      <MainLayout showSidebar>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Không tìm thấy khóa học
+            </h1>
+            <Link
+              to={ROUTES.COURSES}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              Quay lại danh sách khóa học
+            </Link>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -181,10 +592,40 @@ export function DetailPage() {
   };
 
   return (
-    <MainLayout showSidebar={false}> {/* Chọn showSidebar=true nếu bạn muốn thanh điều hướng bên */}
+    <MainLayout showSidebar>
       {/* Hero section */}
-      <div className="bg-gradient-to-r from-green-500 via-teal-600 to-sky-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="relative bg-gradient-to-r from-green-500 via-teal-600 to-sky-900 text-white overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 opacity-25">
+          {/* Animated floating circles */}
+          <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-96 h-96 bg-blue-300 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-cyan-300 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-emerald-300 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+          
+          {/* Animated geometric shapes */}
+          <div className="absolute top-1/4 right-1/4 w-32 h-32 border-4 border-white/30 rounded-lg rotate-45 animate-spin" style={{ animationDuration: '20s' }}></div>
+          <div className="absolute bottom-1/4 left-1/4 w-24 h-24 border-4 border-white/30 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+          <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/20 rounded-lg rotate-12 animate-bounce" style={{ animationDuration: '3s' }}></div>
+          <div className="absolute bottom-10 left-1/2 w-20 h-20 border-2 border-white/40 rounded-full animate-ping" style={{ animationDuration: '2s' }}></div>
+          
+          {/* Additional animated circles */}
+          <div className="absolute top-20 right-1/4 w-40 h-40 border-3 border-white/25 rounded-full animate-pulse" style={{ animationDelay: '0.8s', animationDuration: '3s' }}></div>
+          <div className="absolute bottom-1/3 right-1/3 w-28 h-28 bg-white/15 rounded-full animate-pulse" style={{ animationDelay: '2.5s' }}></div>
+        </div>
+
+        {/* Pattern overlay - dots */}
+        <div 
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v22H20v-1.5zM0 20h2v20H0V20zm4 0h2v20H4V20zm4 0h2v20H8V20zm4 0h2v20h-2V20zm4 0h2v20h-2V20zm4 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2z'/%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        ></div>
+
+        {/* Gradient mesh overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent"></div>
+
+        <div className="relative max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left: Course info */}
             <div className="lg:col-span-2">
@@ -201,54 +642,17 @@ export function DetailPage() {
                 <span className="text-white">{course.title}</span>
               </div>
 
-              <h1 className="text-3xl lg:text-4xl font-bold mb-4">
-                {course.title}
-              </h1>
-
-              <p className="text-lg text-blue-50 mb-6">
-                {course.description}
-              </p>
-
-              {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-4 mb-6">
+              {/* Difficulty Badge */}
+              <div className="mb-3">
                 <Badge variant={(course.difficulty || course.level) === 'beginner' ? 'success' : 'warning'}>
                   {difficultyLabels[course.difficulty || course.level || 'beginner'] || 'Cơ bản'}
                 </Badge>
-
-                {course._count && (
-                  <div className="flex items-center gap-2 text-blue-50">
-                    <Users className="w-5 h-5" />
-                    <span>{course._count.enrollments} học viên</span>
-                  </div>
-                )}
-
-                {course.duration_hours && (
-                  <div className="flex items-center gap-2 text-blue-50">
-                    <Clock className="w-5 h-5" />
-                    <span>{course.duration_hours} giờ</span>
-                  </div>
-                )}
-
-                {totalSections > 0 && (
-                  <div className="flex items-center gap-2 text-blue-50">
-                    <BookOpen className="w-5 h-5" />
-                    <span>{totalSections} chương • {totalLessons} bài học</span>
-                  </div>
-                )}
               </div>
 
-              {/* Instructor */}
-              {course.instructor && (
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-semibold">
-                    {course.instructor.full_name?.charAt(0).toUpperCase() || 'I'}
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-100">Giảng viên</p>
-                    <p className="font-semibold">{course.instructor.full_name}</p>
-                  </div>
-                </div>
-              )}
+              {/* Title */}
+              <h1 className="text-4xl lg:text-5xl font-bold">
+                {course.title}
+              </h1>
             </div>
 
             {/* Right: Enroll card */}
@@ -257,19 +661,22 @@ export function DetailPage() {
                 <CardContent className="p-6">
                   {/* Thumbnail */}
                   <div className="aspect-video bg-gray-200 rounded-lg mb-4 overflow-hidden">
-                    {course.thumbnail_url ? (
-                      <img
-                        src={course.thumbnail_url}
-                        alt={course.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`w-full h-full flex items-center justify-center ${course.thumbnail_url ? 'hidden' : ''}`}>
+                    {(() => {
+                      const thumbnailUrl = getCourseThumbnailUrl(course);
+                      return thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null;
+                    })()}
+                    <div className={`w-full h-full flex items-center justify-center ${getCourseThumbnailUrl(course) ? 'hidden' : ''}`}>
                       <BookOpen className="w-16 h-16 text-gray-400" />
                     </div>
                   </div>
@@ -310,7 +717,7 @@ export function DetailPage() {
       </div>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8 border-b border-gray-200 flex gap-4">
           <button
             type="button"
@@ -396,12 +803,77 @@ export function DetailPage() {
               </div>
             ) : (
               // Curriculum tab - hiển thị nội dung hoặc thông báo
-              curriculumSections.length > 0 ? (
-                <CurriculumTree
-                  sections={curriculumSections}
-                  onLessonClick={handleLessonPreviewClick}
-                  isPreviewMode={true}
-                />
+              curriculumSections.length > 0 || (courseLevelQuizzes && courseLevelQuizzes.length > 0) || (courseLevelAssignments && courseLevelAssignments.length > 0) ? (
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-200">
+                  {/* Sections - hiển thị trước */}
+                  {curriculumSections.length > 0 && (
+                    <div className="[&>div]:border-0 [&>div]:rounded-none [&>div]:shadow-none">
+                      <CurriculumTree
+                        sections={curriculumSections}
+                        onLessonClick={handleLessonPreviewClick}
+                        isPreviewMode={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* Course-level Quizzes - hiển thị sau sections, cùng cấp */}
+                  {courseLevelQuizzes?.map((quiz) => {
+                    const isCompleted = !quiz.is_practice && completedQuizIds.has(quiz.id);
+                    return (
+                    <div
+                      key={`quiz-${quiz.id}`}
+                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => {
+                        if (isUserEnrolled) {
+                          navigate(generateRoute.student.quiz(courseId, quiz.id));
+                        } else {
+                          toast.error('Vui lòng đăng ký khóa học để làm bài kiểm tra');
+                        }
+                      }}
+                    >
+                      <ClipboardList className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-sm">Quiz: {quiz.title}</h3>
+                        {quiz.description && (
+                          <p className="text-xs text-gray-500 mt-1">{quiz.description}</p>
+                        )}
+                      </div>
+                        {isCompleted && (
+                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        )}
+                    </div>
+                    );
+                  })}
+
+                  {/* Course-level Assignments - hiển thị sau sections, cùng cấp */}
+                  {courseLevelAssignments?.map((asmt) => {
+                    const isCompleted = !asmt.is_practice && completedAssignmentIds.has(asmt.id);
+                    return (
+                    <div
+                      key={`assignment-${asmt.id}`}
+                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => {
+                        if (isUserEnrolled) {
+                          navigate(`/assignments/${asmt.id}`);
+                        } else {
+                          toast.error('Vui lòng đăng ký khóa học để làm bài tập');
+                        }
+                      }}
+                    >
+                      <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-sm">Assignment: {asmt.title}</h3>
+                        {asmt.description && (
+                          <p className="text-xs text-gray-500 mt-1">{asmt.description}</p>
+                        )}
+                      </div>
+                        {isCompleted && (
+                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        )}
+                    </div>
+                    );
+                  })}
+                </div>
               ) : isContentLoading ? (
                 <Card>
                   <CardContent className="py-12">
@@ -497,35 +969,54 @@ export function DetailPage() {
             )}
 
             {/* Progress (only for enrolled students) */}
-            {isUserEnrolled && progressData && (
+            {isUserEnrolled && (
               <Card>
                 <CardHeader>
                   <CardTitle>Tiến độ học tập</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">
-                          {completedLessons} / {totalLessons} bài học
-                        </span>
-                        <span className="text-sm font-semibold text-blue-600">
-                          {progressPercentage.toFixed(0)}%
-                        </span>
+                  {isUserEnrolled ? (
+                    progressData ? (
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">
+                            {completedLessons} / {totalLessons} bài học
+                          </span>
+                          <span className="text-sm font-semibold text-blue-600">
+                              {Math.round(progressPercentage)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div
+                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(Math.max(progressPercentage, 0), 100)}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div
-                          className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                          style={{ width: `${progressPercentage}%` }}
-                        />
-                      </div>
+                      {progressData.last_accessed_at && (
+                        <p className="text-xs text-gray-500">
+                          Hoạt động gần nhất: {new Date(progressData.last_accessed_at).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      )}
                     </div>
-                    {progressData.last_activity_at && (
-                      <p className="text-xs text-gray-500">
-                        Hoạt động gần nhất: {new Date(progressData.last_activity_at).toLocaleDateString('vi-VN')}
+                  ) : (
+                    <div className="text-center py-4">
+                      <Spinner size="sm" />
+                      <p className="text-sm text-gray-500 mt-2">Đang tải tiến độ...</p>
+                      </div>
+                    )
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500">
+                        Đăng ký khóa học để theo dõi tiến độ học tập
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

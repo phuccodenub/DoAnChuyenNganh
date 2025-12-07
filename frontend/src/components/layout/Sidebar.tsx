@@ -18,7 +18,7 @@ import {
 import { sidebarMenuItems } from './data'
 import type { SidebarMenuItem } from './types'
 import { ROUTES, generateRoute } from '@/constants/routes'
-import { useInstructorCourses } from '@/hooks/useCoursesData'
+import { useInstructorCourses } from '@/hooks/useInstructorCourse'
 import { useAuthStore } from '@/stores/authStore.enhanced'
 import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation'
 
@@ -47,8 +47,15 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const { navigateTo, canPerform } = useRoleBasedNavigation()
   const isInstructorOrHigher = user?.role === 'instructor' || user?.role === 'admin' || user?.role === 'super_admin'
 
-  const { data: instructorCoursesData } = useInstructorCourses(Boolean(isInstructorOrHigher))
-  const instructorCourses = instructorCoursesData?.data?.courses || []
+  // Dùng cùng hook với trang Instructor để tránh lệch cấu trúc response
+  const { data: instructorCoursesData } = useInstructorCourses(
+    isInstructorOrHigher ? {} : undefined
+  )
+  // API instructor trả về { data: { data: courses[], pagination } }
+  const instructorCourses =
+    (instructorCoursesData?.data as any)?.data ||
+    instructorCoursesData?.data ||
+    []
 
   const menuItems: SidebarMenuItem[] = useMemo(() => {
     if (!isInstructorOrHigher) return sidebarMenuItems
@@ -315,7 +322,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                               className={`
                                 flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group
                                 ${isChildActive 
-                                  ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-600 -ml-4 pl-3' 
+                                  ? 'bg-blue-50 text-blue-600 -ml-4 pl-3' 
                                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                 }
                               `}

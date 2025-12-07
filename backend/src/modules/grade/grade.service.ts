@@ -155,7 +155,32 @@ export class GradeService {
       let totalWeight = 0;
       let hasAllRequiredGrades = true;
 
+      // Import models để kiểm tra is_practice
+      const { Quiz, Assignment } = await import('../../models');
+
       for (const component of components) {
+        // Kiểm tra xem component có phải là practice quiz/assignment không
+        let isPractice = false;
+        
+        if (component.component_type === 'quiz' && component.component_id) {
+          const quiz = await (Quiz as any).findByPk(component.component_id);
+          if (quiz && quiz.is_practice) {
+            isPractice = true;
+            logger.debug(`Skipping practice quiz ${component.component_id} from final grade calculation`);
+          }
+        } else if (component.component_type === 'assignment' && component.component_id) {
+          const assignment = await (Assignment as any).findByPk(component.component_id);
+          if (assignment && assignment.is_practice) {
+            isPractice = true;
+            logger.debug(`Skipping practice assignment ${component.component_id} from final grade calculation`);
+          }
+        }
+
+        // Bỏ qua practice components khi tính điểm tổng kết
+        if (isPractice) {
+          continue;
+        }
+
         const grade = userGrades.find((g) => g.component_id === component.id);
 
         if (grade) {
@@ -180,7 +205,7 @@ export class GradeService {
       };
 
       const finalGrade = await this.repo.upsertFinalGrade(finalGradeData);
-      logger.info(`Final grade calculated for user ${userId} in course ${courseId}: ${finalScore}%`);
+      logger.info(`Final grade calculated for user ${userId} in course ${courseId}: ${finalScore}% (excluding practice components)`);
       
       return finalGrade;
     } catch (error: unknown) {

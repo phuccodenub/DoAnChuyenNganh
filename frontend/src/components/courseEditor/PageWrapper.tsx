@@ -9,7 +9,7 @@ interface PageWrapperProps {
 export function PageWrapper({
     children,
     className = '',
-    maxWidth = 'max-w-7xl'
+    maxWidth = 'max-w-8xl'
 }: PageWrapperProps) {
     return (
         <div className={`min-h-screen bg-gray-50 ${className}`}>

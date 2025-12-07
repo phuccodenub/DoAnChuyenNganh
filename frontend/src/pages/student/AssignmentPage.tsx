@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-// Badge simplified inline
+import { Badge } from '@/components/ui/Badge';
 import { useAssignment, useSubmission, useSubmitAssignment, useUploadFile } from '@/hooks/useAssignmentData';
 import { ROUTES, generateRoute } from '@/constants/routes';
 
@@ -174,7 +174,17 @@ export function AssignmentPage() {
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <CardTitle>{assignment.title}</CardTitle>
+              <div className="flex items-center gap-3 mb-2">
+                <CardTitle>{assignment.title}</CardTitle>
+                {assignment.is_practice !== undefined && (
+                  <Badge 
+                    variant={assignment.is_practice ? "warning" : "success"} 
+                    size="md"
+                  >
+                    {assignment.is_practice ? 'Luyện tập' : 'Tính điểm'}
+                  </Badge>
+                )}
+              </div>
               {timeRemaining && (
                 <div className={`flex items-center gap-2 mt-2 ${isOverdue ? 'text-red-600' : isNearDeadline ? 'text-orange-600' : 'text-gray-600'}`}>
                   <Clock className="w-4 h-4" />
@@ -190,6 +200,18 @@ export function AssignmentPage() {
         <CardContent className="space-y-4">
           {assignment.description && (
             <p className="text-gray-700">{assignment.description}</p>
+          )}
+
+          {assignment.is_practice && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex gap-2">
+                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium mb-1">Bài luyện tập</p>
+                  <p>Bài tập này không tính điểm vào tổng kết khóa học. Bạn có thể nộp để nhận feedback từ giảng viên.</p>
+                </div>
+              </div>
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg text-sm">

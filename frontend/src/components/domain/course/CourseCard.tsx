@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { Course } from '@/services/api/course.api';
 import { generateRoute } from '@/constants/routes';
+import { getCourseThumbnailUrl } from '@/utils/course.utils';
 
 interface CourseCardProps {
   course: Course;
@@ -54,6 +55,9 @@ export function CourseCard({
       [course.instructor.first_name, course.instructor.last_name].filter(Boolean).join(' ')
     : '';
 
+  // Get thumbnail URL using utility function
+  const thumbnailUrl = getCourseThumbnailUrl(course);
+
   const Wrapper = ({ children, className = '' }: { children: ReactNode; className?: string }) =>
     onCourseClick ? (
       <button
@@ -91,9 +95,9 @@ export function CourseCard({
     >
       <Wrapper>
         <div className="aspect-video bg-gray-100 relative overflow-hidden rounded-lg">
-          {course.thumbnail_url ? (
+          {thumbnailUrl ? (
             <img
-              src={course.thumbnail_url}
+              src={thumbnailUrl}
               alt={course.title}
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -105,7 +109,7 @@ export function CourseCard({
           ) : null}
           <div
             className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 ${
-              course.thumbnail_url ? 'hidden' : ''
+              thumbnailUrl ? 'hidden' : ''
             }`}
           >
             <img

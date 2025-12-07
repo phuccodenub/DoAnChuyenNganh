@@ -64,6 +64,24 @@ export interface CourseLesson {
   is_published: boolean;
   order_index: number;
   video_url?: string;
+  content?: string;
+  description?: string;
+  materials?: Array<{
+    id: string;
+    lesson_id: string;
+    file_name: string;
+    file_url: string;
+    file_type?: string;
+    file_size?: number;
+    file_extension?: string;
+    description?: string;
+    download_count: number;
+    is_downloadable: boolean;
+    uploaded_by?: string;
+    order_index: number;
+    created_at: string;
+    updated_at: string;
+  }>;
 }
 
 export interface CreateSectionData {

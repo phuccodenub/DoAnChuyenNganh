@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   User, Mail, Edit, Save, Camera,
-  BookOpen, Award, Clock, Activity, AlertCircle 
+  BookOpen, Award, Clock, Activity, AlertCircle, GraduationCap, ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/user.api';
+import { useUserCertificates } from '@/hooks/useCertificateData';
+import { Link } from 'react-router-dom';
+import { Spinner } from '@/components/ui/Spinner';
 
 // --- MOCK DATA ---
 const RECENT_ACTIVITIES = [
@@ -18,7 +21,7 @@ const RECENT_ACTIVITIES = [
 
 export default function ProfilePageContent() {
   const { user, updateProfile, updateUserData } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'certificates' | 'settings'>('overview');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>('');
@@ -179,7 +182,88 @@ export default function ProfilePageContent() {
     </div>
   );
 
-  // 2. Activity Tab
+  // 2. Certificates Tab
+  const CertificatesTab = () => {
+    const { user } = useAuth();
+    // Use userId if available, otherwise fallback to id
+    const userId = (user as any)?.userId || user?.id || '';
+    const { data: certificates, isLoading } = useUserCertificates(userId, {
+      status: 'active',
+      enabled: !!userId && activeTab === 'certificates',
+    });
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <GraduationCap className="w-5 h-5" />
+            Chứng chỉ của tôi
+          </CardTitle>
+          <p className="text-sm text-gray-500">Danh sách các chứng chỉ bạn đã nhận được</p>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner size="md" />
+            </div>
+          ) : !certificates || certificates.length === 0 ? (
+            <div className="text-center py-12">
+              <GraduationCap className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-600 mb-2">Bạn chưa có chứng chỉ nào</p>
+              <p className="text-sm text-gray-500">
+                Hoàn thành khóa học để nhận chứng chỉ
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {certificates.map((certificate) => (
+                <Link
+                  key={certificate.id}
+                  to={`/certificates/${certificate.id}`}
+                  className="block"
+                >
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                            <Award className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
+                            {certificate.metadata.course.title}
+                          </h3>
+                          <p className="text-sm text-gray-500 mb-2">
+                            {certificate.metadata.course.instructor.name}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(certificate.issued_at).toLocaleDateString('vi-VN')}
+                            </span>
+                            {certificate.metadata.completion.grade && (
+                              <span className="flex items-center gap-1">
+                                <Award className="w-3 h-3" />
+                                {certificate.metadata.completion.grade.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ExternalLink className="w-5 h-5 text-gray-400 shrink-0" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // 3. Activity Tab
   const ActivityTab = () => (
     <Card>
       <CardHeader><CardTitle>Hoạt động gần đây</CardTitle></CardHeader>
@@ -209,7 +293,7 @@ export default function ProfilePageContent() {
     </Card>
   );
 
-  // 3. Settings (Edit) Tab
+  // 4. Settings (Edit) Tab
   const SettingsTab = () => (
     <Card>
       <CardHeader>
@@ -386,6 +470,12 @@ export default function ProfilePageContent() {
                     <Activity size={18} /> Hoạt động
                 </button>
                 <button 
+                    onClick={() => setActiveTab('certificates')}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'certificates' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                    <GraduationCap size={18} /> Chứng chỉ
+                </button>
+                <button 
                     onClick={() => setActiveTab('settings')}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'settings' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
@@ -409,6 +499,7 @@ export default function ProfilePageContent() {
         <div className="lg:col-span-3">
             {activeTab === 'overview' && <OverviewTab />}
             {activeTab === 'activity' && <ActivityTab />}
+            {activeTab === 'certificates' && <CertificatesTab />}
             {activeTab === 'settings' && <SettingsTab />}
         </div>
 

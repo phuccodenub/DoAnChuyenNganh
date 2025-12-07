@@ -4,6 +4,7 @@ import { ApiError } from '../../errors/api.error';
 import { AuthorizationError } from '../../errors/authorization.error';
 import logger from '../../utils/logger.util';
 import type { CourseInstance } from '../../types/model.types';
+import { Op } from 'sequelize';
 
 export class AssignmentService {
   private repo: AssignmentRepository;
@@ -17,15 +18,28 @@ export class AssignmentService {
   // ===================================
 
   // List assignments with basic filters and pagination (used by controller)
-  async getAllAssignments(options: { page: number; limit: number; course_id?: string; lesson_id?: string; status?: string; }) {
-    const { page = 1, limit = 20, course_id, lesson_id, status } = options || ({} as any);
+  async getAllAssignments(options: { page: number; limit: number; course_id?: string; section_id?: string; status?: string; }) {
+    const { page = 1, limit = 20, course_id, section_id, status } = options || ({} as any);
     const offset = (page - 1) * limit;
     try {
       const { default: AssignmentModel } = await import('../../models/assignment.model');
       const where: any = {};
-      if (course_id) where.course_id = course_id;
-      if (lesson_id) where.lesson_id = lesson_id;
-      if (status) where.status = status;
+      if (course_id) {
+        const { default: Section } = await import('../../models/section.model');
+        const sections = await (Section as any).findAll({ where: { course_id }, attributes: ['id'] });
+        const sectionIds = sections.map((s: any) => s.id);
+        where[Op.or] = [
+          { course_id },
+          ...(sectionIds.length ? [{ section_id: sectionIds }] : []),
+        ];
+      }
+      if (section_id) where.section_id = section_id;
+      // Map status → is_published giống quiz
+      if (status === 'published') {
+        where.is_published = true;
+      } else if (status === 'draft') {
+        where.is_published = false;
+      }
       const { rows, count } = await (AssignmentModel as any).findAndCountAll({ where, limit, offset, order: [['created_at', 'DESC']] });
       return {
         data: rows,
@@ -40,11 +54,13 @@ export class AssignmentService {
   async createAssignment(userId: string, dto: CreateAssignmentDto) {
     try {
       // Verify user is instructor of the course
-      await this.verifyInstructorAccess(dto.course_id, userId);
+      await this.verifyInstructorAccess(dto.course_id, userId, dto.section_id);
       
-      // Convert DTO to model attributes (handle null → undefined)
+      // Convert DTO to model attributes (handle null → undefined, enforce XOR)
       const createData = {
         ...dto,
+        course_id: dto.section_id ? null : dto.course_id,
+        section_id: dto.section_id ?? null,
         due_date: dto.due_date === null ? undefined : (dto.due_date ? new Date(dto.due_date) : undefined)
       };
       
@@ -66,7 +82,7 @@ export class AssignmentService {
 
       // Check if assignment is published or user is instructor
       if (!assignment.is_published && userId) {
-        await this.verifyInstructorAccess(assignment.course_id, userId);
+        await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.section_id);
       }
 
       return assignment;
@@ -83,13 +99,23 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      await this.verifyInstructorAccess(assignment.course_id, userId);
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.lesson_id);
 
       // Convert DTO to model attributes (handle null → undefined)
-      const updateData = {
+      const updateData: any = {
         ...data,
         due_date: data.due_date === null ? undefined : (data.due_date ? new Date(data.due_date) : undefined)
       };
+
+      if (data.course_id !== undefined || data.section_id !== undefined) {
+        if (data.section_id) {
+          updateData.section_id = data.section_id;
+          updateData.course_id = null;
+        } else {
+          updateData.course_id = data.course_id ?? null;
+          updateData.section_id = null;
+        }
+      }
 
       const updated = await this.repo.updateAssignment(assignmentId, updateData);
       logger.info(`Assignment updated: ${assignmentId} by user ${userId}`);
@@ -107,7 +133,7 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      await this.verifyInstructorAccess(assignment.course_id, userId);
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.lesson_id);
 
       await this.repo.deleteAssignment(assignmentId);
       logger.info(`Assignment deleted: ${assignmentId} by user ${userId}`);
@@ -215,7 +241,7 @@ export class AssignmentService {
       // Check if user owns the submission or is instructor
       if (submission.user_id !== userId) {
         const assignment = await this.repo.getAssignmentById(submission.assignment_id);
-        await this.verifyInstructorAccess(assignment!.course_id, userId);
+        await this.verifyInstructorAccess(assignment!.course_id, userId, (assignment as any)?.lesson_id);
       }
 
       return submission;
@@ -237,7 +263,7 @@ export class AssignmentService {
       }
 
       const assignment = await this.repo.getAssignmentById(submission.assignment_id);
-      await this.verifyInstructorAccess(assignment!.course_id, graderId);
+      await this.verifyInstructorAccess(assignment!.course_id, graderId, (assignment as any)?.lesson_id);
 
       // Validate score
       if (data.score !== undefined) {
@@ -262,7 +288,7 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      await this.verifyInstructorAccess(assignment.course_id, userId);
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.lesson_id);
 
       return await this.repo.getAssignmentSubmissions(assignmentId, page, limit);
     } catch (error: unknown) {
@@ -278,7 +304,7 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      await this.verifyInstructorAccess(assignment.course_id, userId);
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.lesson_id);
 
       return await this.repo.getAssignmentStatistics(assignmentId);
     } catch (error: unknown) {
@@ -329,9 +355,23 @@ export class AssignmentService {
   // HELPER METHODS
   // ===================================
 
-  private async verifyInstructorAccess(courseId: string, userId: string) {
+  private async resolveCourseIdFromSection(sectionId?: string | null): Promise<string | null> {
+    if (!sectionId) return null;
+    const { default: Section } = await import('../../models/section.model');
+    const section = await (Section as any).findByPk(sectionId, { attributes: ['id', 'course_id'] });
+    if (!section) {
+      throw new ApiError('Section not found', 404);
+    }
+    return section.course_id;
+  }
+
+  private async verifyInstructorAccess(courseId: string | null | undefined, userId: string, sectionId?: string | null) {
+    const resolvedCourseId = courseId ?? await this.resolveCourseIdFromSection(sectionId);
+    if (!resolvedCourseId) {
+      throw new ApiError('Course context not found', 400);
+    }
     const { Course } = await import('../../models');
-    const course = await Course.findByPk(courseId) as CourseInstance | null;
+    const course = await Course.findByPk(resolvedCourseId) as CourseInstance | null;
     
     if (!course) {
       throw new ApiError('Course not found', 404);

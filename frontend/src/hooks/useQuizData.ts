@@ -41,31 +41,22 @@ export function useStartQuiz() {
 }
 
 /**
- * Hook to submit answer for a question
- */
-export function useSubmitAnswer() {
-  return useMutation({
-    mutationFn: ({ 
-      attemptId, 
-      questionId, 
-      answer 
-    }: { 
-      attemptId: string; 
-      questionId: string; 
-      answer: string | string[];
-    }) => quizApi.submitAnswer(attemptId, questionId, answer),
-  });
-}
-
-/**
  * Hook to submit quiz (finish attempt)
+ * FE gửi toàn bộ answers 1 lần khi nộp bài, không auto-save theo câu hỏi nữa.
  */
 export function useSubmitQuiz() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (attemptId: string) => quizApi.submitQuiz(attemptId),
-    onSuccess: (result, attemptId) => {
+    mutationFn: (payload: {
+      attemptId: string;
+      answers: {
+        question_id: string;
+        selected_option_id?: string;
+        selected_options?: string[];
+      }[];
+    }) => quizApi.submitQuiz(payload.attemptId, payload.answers),
+    onSuccess: (result, { attemptId }) => {
       queryClient.invalidateQueries({ queryKey: ['quiz-attempts', attemptId] });
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
       queryClient.setQueryData(['quiz-attempts', attemptId], result);
@@ -113,7 +104,6 @@ export default {
   useQuiz,
   useQuizQuestions,
   useStartQuiz,
-  useSubmitAnswer,
   useSubmitQuiz,
   useQuizAttempt,
   useQuizAttempts,

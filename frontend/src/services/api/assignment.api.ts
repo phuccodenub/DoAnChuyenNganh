@@ -6,6 +6,7 @@ import { apiClient } from '../http/client';
 export interface Assignment {
   id: string;
   course_id: string;
+  lesson_id?: string;
   section_id?: string;
   title: string;
   description: string;
@@ -17,6 +18,7 @@ export interface Assignment {
   max_file_size_mb: number;
   allowed_file_types: string[];
   is_published: boolean;
+  is_practice: boolean; // true = Practice Assignment, false = Graded Assignment
   created_at: string;
   updated_at: string;
   _count?: {

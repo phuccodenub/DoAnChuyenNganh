@@ -54,11 +54,20 @@ router.delete(
 
 // ===== QUIZ QUESTIONS MANAGEMENT ROUTES =====
 
-// Get all questions for a quiz (All authenticated users)
+// Get all questions for a quiz (All authenticated users, no correct answers)
 router.get(
   '/:id/questions',
   validateParams(quizSchemas.quizId),
   (req: Request, res: Response, next: NextFunction) => quizController.getQuizQuestions(req, res, next)
+);
+
+// Get all questions for a quiz WITH answers (Instructor/Admin only)
+router.get(
+  '/:id/questions-with-answers',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(quizSchemas.quizId),
+  (req: Request, res: Response, next: NextFunction) =>
+    quizController.getQuizQuestionsWithAnswers(req, res, next)
 );
 
 // Get question by ID (All authenticated users)
@@ -103,9 +112,25 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => quizController.startQuizAttempt(req, res, next)
 );
 
+// Get current/active quiz attempt for this quiz (All authenticated users)
+router.get(
+  '/:id/current-attempt',
+  validateParams(quizSchemas.quizId),
+  (req: Request, res: Response, next: NextFunction) => quizController.getCurrentAttempt(req, res, next)
+);
+
 // Submit quiz attempt (All authenticated users)
 router.post(
   '/attempts/:attemptId/submit',
+  validateParams(quizSchemas.quizAttemptParams),
+  validateBody(quizSchemas.submitQuizAttempt),
+  (req: Request, res: Response, next: NextFunction) => quizController.submitQuizAttempt(req, res, next)
+);
+
+// Backward-compatible: một số FE version cũ gọi POST /attempts/:attemptId (không có /submit)
+// Map về cùng handler để tránh 404.
+router.post(
+  '/attempts/:attemptId',
   validateParams(quizSchemas.quizAttemptParams),
   validateBody(quizSchemas.submitQuizAttempt),
   (req: Request, res: Response, next: NextFunction) => quizController.submitQuizAttempt(req, res, next)
@@ -123,6 +148,23 @@ router.get(
   '/:id/attempts',
   validateParams(quizSchemas.quizId),
   (req: Request, res: Response, next: NextFunction) => quizController.getUserQuizAttempts(req, res, next)
+);
+
+// Get quiz attempts for a specific student (Instructor/Admin only)
+router.get(
+  '/:id/attempts/student/:studentId',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(quizSchemas.studentQuizAttemptsParams),
+  (req: Request, res: Response, next: NextFunction) => quizController.getStudentQuizAttempts(req, res, next)
+);
+
+// Delete all quiz attempts for a specific student (Instructor/Admin only)
+// Reset lượt làm bài cho học viên
+router.delete(
+  '/:id/attempts/student/:studentId',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  validateParams(quizSchemas.studentQuizAttemptsParams),
+  (req: Request, res: Response, next: NextFunction) => quizController.deleteStudentQuizAttempts(req, res, next)
 );
 
 export default router;

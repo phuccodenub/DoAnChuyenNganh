@@ -59,6 +59,10 @@ export interface LessonWithMaterials {
   completion_criteria?: Record<string, any>;
   metadata?: Record<string, any>;
   materials?: LessonMaterialInfo[];
+  is_practice?: boolean; // true for practice quiz/assignment, false for graded
+  // Liên kết tới thực thể quiz/assignment tương ứng (nếu có)
+  quiz_id?: string;
+  assignment_id?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -128,12 +132,20 @@ export interface CourseProgressSummary {
   sections: SectionProgressInfo[];
 }
 
+export interface LessonProgressInfo {
+  lesson_id: string;
+  lesson_title: string;
+  completion_percentage: number;
+  is_completed: boolean;
+}
+
 export interface SectionProgressInfo {
   section_id: string;
   section_title: string;
   total_lessons: number;
   completed_lessons: number;
   completion_percentage: number;
+  lessons: LessonProgressInfo[];
 }
 
 // ===== COURSE CONTENT OVERVIEW =====

@@ -44,35 +44,17 @@ const videoUpload = multer({
   }
 });
 
-// All routes require authentication
-router.use(authMiddleware);
+// Upload routes require authentication
+router.post('/thumbnail', authMiddleware, imageUpload.single('file'), mediaController.uploadThumbnail);
+router.post('/video', authMiddleware, videoUpload.single('file'), mediaController.uploadVideo);
+router.post('/course-cover', authMiddleware, imageUpload.single('file'), mediaController.uploadCourseCover);
+router.post('/lesson-video', authMiddleware, videoUpload.single('file'), mediaController.uploadLessonVideo);
 
 /**
- * @route   POST /media/thumbnail
- * @desc    Upload thumbnail image to Cloudinary
- * @access  Private
+ * @route   GET /media/video-proxy
+ * @desc    Proxy video from R2 with CORS headers
+ * @access  Public (for video playback, CORS handled by proxy)
  */
-router.post('/thumbnail', imageUpload.single('file'), mediaController.uploadThumbnail);
-
-/**
- * @route   POST /media/video
- * @desc    Upload video to Cloudflare R2
- * @access  Private
- */
-router.post('/video', videoUpload.single('file'), mediaController.uploadVideo);
-
-/**
- * @route   POST /media/course-cover
- * @desc    Upload course cover image to Cloudinary
- * @access  Private
- */
-router.post('/course-cover', imageUpload.single('file'), mediaController.uploadCourseCover);
-
-/**
- * @route   POST /media/lesson-video
- * @desc    Upload lesson video to Cloudflare R2
- * @access  Private
- */
-router.post('/lesson-video', videoUpload.single('file'), mediaController.uploadLessonVideo);
+router.get('/video-proxy', mediaController.proxyVideo);
 
 export default router;

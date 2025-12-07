@@ -38,13 +38,13 @@ export class AssignmentController {
    */
   getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { page = 1, limit = 20, course_id, lesson_id, status } = req.query;
+      const { page = 1, limit = 20, course_id, section_id, status } = req.query;
       
       const result = await this.assignmentService.getAllAssignments({
         page: Number(page),
         limit: Number(limit),
         course_id: course_id as string,
-        lesson_id: lesson_id as string,
+        section_id: section_id as string,
         status: status as string
       });
 

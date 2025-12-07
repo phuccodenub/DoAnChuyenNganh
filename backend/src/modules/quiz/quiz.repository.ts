@@ -12,7 +12,10 @@ export class QuizRepository {
 
   async createQuiz(data: CreateQuizDto) {
     const payload = {
-      course_id: data.course_id,
+      // XOR logic: nếu có section_id thì course_id = null, ngược lại
+      // Nếu cả hai đều undefined (tạo từ Section), cả hai đều null (sẽ được update sau)
+      course_id: data.section_id ? null : (data.course_id ?? null),
+      section_id: data.section_id ?? null,
       title: data.title,
       description: data.description,
       duration_minutes: data.duration_minutes,
@@ -23,6 +26,7 @@ export class QuizRepository {
       available_from: data.available_from != null ? new Date(data.available_from) : undefined,
       available_until: data.available_until != null ? new Date(data.available_until) : undefined,
       is_published: data.is_published ?? false,
+      is_practice: data.is_practice ?? false, // Mặc định là Graded Quiz
     };
     return await Quiz.create(payload);
   }
@@ -48,6 +52,8 @@ export class QuizRepository {
 
   async updateQuiz(quizId: string, data: UpdateQuizDto) {
     const payload: Partial<{
+      course_id?: string | null;
+      section_id?: string | null;
       title: string;
       description?: string;
       duration_minutes?: number;
@@ -58,7 +64,19 @@ export class QuizRepository {
       available_from?: Date | null;
       available_until?: Date | null;
       is_published?: boolean;
+      is_practice?: boolean;
     }> = {};
+
+    if (data.course_id !== undefined || data.section_id !== undefined) {
+      // Enforce XOR at update time
+      if (data.section_id) {
+        payload.section_id = data.section_id;
+        payload.course_id = null;
+      } else {
+        payload.course_id = data.course_id ?? null;
+        payload.section_id = null;
+      }
+    }
 
     if (data.title !== undefined) payload.title = data.title;
     if (data.description !== undefined) payload.description = data.description;
@@ -70,6 +88,7 @@ export class QuizRepository {
     if (data.available_from !== undefined) payload.available_from = data.available_from == null ? undefined : new Date(data.available_from);
     if (data.available_until !== undefined) payload.available_until = data.available_until == null ? undefined : new Date(data.available_until);
     if (data.is_published !== undefined) payload.is_published = data.is_published;
+    if (data.is_practice !== undefined) payload.is_practice = data.is_practice;
 
     await Quiz.update(payload, { where: { id: quizId } });
     return await this.getQuizById(quizId);
@@ -84,19 +103,59 @@ export class QuizRepository {
   // ===================================
 
   async addQuestion(quizId: string, data: CreateQuestionDto) {
+    // Tính order_index an toàn ở backend để tránh trùng (quiz_id, order_index)
+    const existingCount = await QuizQuestion.count({
+      where: { quiz_id: quizId }
+    });
+    const nextOrderIndex = existingCount; // bỏ qua order_index từ client
+
     const payload = {
       quiz_id: quizId,
       question_text: data.question_text,
       question_type: data.question_type,
       points: data.points ?? 1.0,
-      order_index: data.order_index,
+      order_index: nextOrderIndex,
       explanation: data.explanation,
     };
-    return await QuizQuestion.create(payload);
+    const question = await QuizQuestion.create(payload);
+
+    // Tạo options nếu có
+    if (data.options && data.options.length > 0) {
+      const optionsToCreate = data.options.map((opt, idx) => ({
+        question_id: question.id,
+        option_text: opt.option_text,
+        is_correct: opt.is_correct ?? false,
+        // Luôn set order_index ở backend để đảm bảo không null và tuần tự
+        order_index: idx,
+      }));
+
+      await QuizOption.bulkCreate(optionsToCreate);
+    }
+
+    // Trả về question với options included
+    return await QuizQuestion.findByPk(question.id, {
+      include: [
+        {
+          model: QuizOption,
+          as: 'options',
+          attributes: ['id', 'option_text', 'is_correct', 'order_index'],
+          order: [['order_index', 'ASC']]
+        }
+      ]
+    });
   }
 
   async getQuestionById(questionId: string) {
-    return await QuizQuestion.findByPk(questionId);
+    return await QuizQuestion.findByPk(questionId, {
+      include: [
+        {
+          model: QuizOption,
+          as: 'options',
+          attributes: ['id', 'option_text', 'is_correct', 'order_index'],
+          order: [['order_index', 'ASC']]
+        }
+      ]
+    });
   }
 
   async updateQuestion(questionId: string, data: UpdateQuestionDto) {
@@ -138,6 +197,19 @@ export class QuizRepository {
         }
       ]
     });
+  }
+
+  async countQuestions(quizId: string) {
+    return await QuizQuestion.count({
+      where: { quiz_id: quizId }
+    });
+  }
+
+  async setAllQuestionPoints(quizId: string, points: number) {
+    await QuizQuestion.update(
+      { points },
+      { where: { quiz_id: quizId } }
+    );
   }
 
   // ===================================
@@ -381,6 +453,32 @@ export class QuizRepository {
       order: [['started_at', 'DESC']],
       limit,
       offset
+    });
+  }
+
+  async getStudentQuizAttempts(quizId: string, studentId: string) {
+    return await (QuizAttempt as any).findAll({
+      where: { 
+        quiz_id: quizId,
+        user_id: studentId
+      },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'first_name', 'last_name', 'email']
+        }
+      ],
+      order: [['started_at', 'DESC']]
+    });
+  }
+
+  async deleteStudentQuizAttempts(quizId: string, studentId: string) {
+    return await (QuizAttempt as any).destroy({
+      where: { 
+        quiz_id: quizId,
+        user_id: studentId
+      }
     });
   }
 }

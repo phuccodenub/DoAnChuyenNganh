@@ -64,10 +64,12 @@ export class CourseController {
   };
 
   // Get course by ID
-  getCourseById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getCourseById = async (req: Request | AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
-      const course = await this.courseService.getCourseById(id);
+      // Get userId if available (from optional auth middleware)
+      const userId = (req as AuthenticatedRequest).user?.userId;
+      const course = await this.courseService.getCourseById(id, userId);
       
       if (!course) {
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Course not found');

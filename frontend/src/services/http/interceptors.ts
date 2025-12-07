@@ -189,8 +189,18 @@ export const setupInterceptors = () => {
       }
 
       // Handle 403 (Forbidden)
+      // Skip toast cho các request fetch quizzes/assignments trên trang public (chỉ log)
       if (error.response?.status === 403) {
-        toast.error('Bạn không có quyền truy cập tài nguyên này');
+        const url = originalRequest?.url || '';
+        const isPublicFetchRequest = url.includes('/quizzes') || url.includes('/assignments/course/');
+        
+        if (isPublicFetchRequest) {
+          // Chỉ log, không hiển thị toast cho các request fetch trên trang public
+          console.warn('[HTTP Interceptor] Permission denied for public fetch request:', url, error.response?.data?.message);
+        } else {
+          const message = error.response?.data?.message || 'Bạn không có quyền truy cập tài nguyên này';
+          toast.error(message);
+        }
       }
 
       // Handle 404 (Not Found)
