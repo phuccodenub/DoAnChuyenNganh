@@ -268,7 +268,7 @@ export class MediaController {
           // Convert Web ReadableStream to Node.js stream
           const { Readable } = await import('stream');
           const nodeStream = Readable.fromWeb(stream as any);
-          nodeStream.pipe(res);
+          nodeStream.pipe(res as any);
         } else {
           res.end();
         }

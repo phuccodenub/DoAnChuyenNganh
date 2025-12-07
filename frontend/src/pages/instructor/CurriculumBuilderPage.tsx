@@ -344,11 +344,14 @@ export function CurriculumBuilderPage() {
 
   /**
    * Xử lý khi click Edit trên lesson/content item
+   * @param sectionId - ID của section chứa lesson
+   * @param lesson - Lesson object cần edit
    */
-  const handleEditContentItem = (sectionId: string, lessonId: string, contentItem: ContentItemData) => {
-    if (contentItem.type === 'quiz' && courseId) {
-      // Điều hướng đến QuizBuilderPage với quizId (nếu có) hoặc tạo mới
-      // TODO: Khi tích hợp API, cần lấy quizId thực từ contentItem
+  const handleEditContentItem = (sectionId: string, lesson: CourseLesson) => {
+    if (!courseId) return;
+
+    // Nếu là quiz, điều hướng đến QuizBuilderPage
+    if (lesson.content_type === 'quiz') {
       // Sử dụng role-based navigation
       if (canPerform.createQuiz) {
         navigateTo.quizCreate(courseId);
@@ -359,13 +362,15 @@ export function CurriculumBuilderPage() {
       return;
     }
 
-    // Tìm lesson từ contentItem để edit
-    const section = sections.find(s => s.id === sectionId);
-    const lesson = section?.lessons.find(l => l.id === lessonId);
-    if (!lesson) return;
+    // Nếu là assignment, điều hướng đến AssignmentBuilderPage
+    if (lesson.content_type === 'assignment') {
+      // TODO: Navigate to assignment builder
+      console.log('Edit assignment:', lesson);
+      return;
+    }
 
+    // Nếu là video hoặc document, mở LessonModal để chỉnh sửa
     if (lesson.content_type === 'video' || lesson.content_type === 'document') {
-      // Mở LessonModal để chỉnh sửa
       setEditingLesson({ sectionId, lesson });
       setLessonForm({
         title: lesson.title,
@@ -378,7 +383,7 @@ export function CurriculumBuilderPage() {
       return;
     }
 
-    // TODO: Mở modal chỉnh sửa cho assignment
+    // Text hoặc link không có edit modal
     console.log('Edit lesson:', lesson);
   };
 

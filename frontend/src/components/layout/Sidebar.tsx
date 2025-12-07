@@ -60,7 +60,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const menuItems: SidebarMenuItem[] = useMemo(() => {
     if (!isInstructorOrHigher) return sidebarMenuItems
 
-    const children = instructorCourses.map((course) => ({
+    const children = instructorCourses.map((course: { id: string; title: string }) => ({
       id: `course-${course.id}`,
       label: course.title,
       link: generateRoute.courseManagement(course.id),

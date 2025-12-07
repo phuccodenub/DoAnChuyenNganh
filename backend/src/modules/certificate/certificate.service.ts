@@ -66,7 +66,7 @@ export class CertificateService {
     });
 
     if (!user) {
-      throw new ApiError(404, 'User not found');
+      throw new ApiError('User not found', 404);
     }
 
     // Fetch course
@@ -82,7 +82,7 @@ export class CertificateService {
     });
 
     if (!course) {
-      throw new ApiError(404, 'Course not found');
+      throw new ApiError('Course not found', 404);
     }
 
     // Fetch enrollment for grade
@@ -149,7 +149,7 @@ export class CertificateService {
     // Check if certificate already exists
     const exists = await this.certificateRepository.existsForUserAndCourse(user_id, course_id);
     if (exists) {
-      throw new ApiError(400, 'Certificate already exists for this user and course');
+      throw new ApiError('Certificate already exists for this user and course', 400);
     }
 
     // Create metadata snapshot
@@ -216,14 +216,14 @@ export class CertificateService {
 
     // Update metadata with certificate ID
     metadata.certificate.id = certificate.id;
-    await certificate.update({ metadata: metadata as any });
+    await this.certificateRepository.update(certificate.id, { metadata: metadata as any });
 
     logger.info(`[CertificateService] Certificate issued: ${certificate.id} (${certificateNumber})`);
 
     // Fetch with relations
     const certificateWithDetails = await this.certificateRepository.findById(certificate.id, true);
     if (!certificateWithDetails) {
-      throw new ApiError(500, 'Failed to retrieve created certificate');
+      throw new ApiError('Failed to retrieve created certificate', 500);
     }
 
     // Send email notification (async, don't wait for it)
@@ -413,7 +413,7 @@ export class CertificateService {
   async getCertificateById(id: string): Promise<CertificateWithDetails> {
     const certificate = await this.certificateRepository.findById(id, true);
     if (!certificate) {
-      throw new ApiError(404, 'Certificate not found');
+      throw new ApiError('Certificate not found', 404);
     }
     return certificate as any;
   }
@@ -424,7 +424,7 @@ export class CertificateService {
   async getCertificateByNumber(certificateNumber: string): Promise<CertificateWithDetails> {
     const certificate = await this.certificateRepository.findByCertificateNumber(certificateNumber);
     if (!certificate) {
-      throw new ApiError(404, 'Certificate not found');
+      throw new ApiError('Certificate not found', 404);
     }
     return certificate as any;
   }
@@ -458,7 +458,7 @@ export class CertificateService {
   async revokeCertificate(id: string, reason?: string, userId?: string): Promise<boolean> {
     const certificate = await this.certificateRepository.findById(id, false);
     if (!certificate) {
-      throw new ApiError(404, 'Certificate not found');
+      throw new ApiError('Certificate not found', 404);
     }
 
     // Check permissions (only admin or certificate owner can revoke)
@@ -470,4 +470,5 @@ export class CertificateService {
     return await this.certificateRepository.revoke(id, reason);
   }
 }
+
 

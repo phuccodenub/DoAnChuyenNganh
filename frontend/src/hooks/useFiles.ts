@@ -106,7 +106,7 @@ export function useUploadFile() {
       }
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.quota() });
 
-      const fileName = data?.originalName || data?.file?.originalName || variables.file.name || 'File';
+      const fileName = data?.originalName || variables.file.name || 'File';
       toast.success(`File "${fileName}" uploaded successfully`);
       setProgress(null);
     },

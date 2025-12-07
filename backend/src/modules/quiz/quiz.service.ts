@@ -475,8 +475,8 @@ export class QuizService {
   }
 
   // Controller compatibility wrappers for attempts
-  async submitQuizAttempt(attemptId: string, userId: string, answers: SubmitQuizDto) {
-    return this.submitQuizAnswer(attemptId, userId, answers);
+  async submitQuizAttempt(attemptId: string, userId: string, submitDto: SubmitQuizDto) {
+    return this.submitQuizAnswer(attemptId, userId, submitDto.answers);
   }
 
   async getQuizAttemptById(attemptId: string, userId: string) {
@@ -732,7 +732,7 @@ export class QuizService {
   private async verifyInstructorAccess(courseId: string | null | undefined, userId: string, sectionId?: string | null) {
     logger.debug(`[QuizService] verifyInstructorAccess: courseId=${courseId}, sectionId=${sectionId}, userId=${userId}`);
     
-    let resolvedCourseId: string | null = courseId;
+    let resolvedCourseId: string | null = courseId ?? null;
     
     // Nếu courseId là null/undefined và có sectionId, thử resolve từ section
     if (!resolvedCourseId && sectionId) {

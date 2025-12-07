@@ -78,7 +78,7 @@ export function FileUpload({
       {
         onSuccess: (data) => {
           setSelectedFiles([]);
-          onFilesUploaded?.(data.map((r) => r.file));
+          onFilesUploaded?.(data);
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }

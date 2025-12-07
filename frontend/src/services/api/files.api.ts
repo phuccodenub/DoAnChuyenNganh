@@ -238,7 +238,7 @@ export const filesApi = {
    * Download file using token (no auth required)
    */
   async downloadFileWithToken(token: string): Promise<Blob> {
-    const { data } = await api.get(`/files/download/${token}`, {
+    const { data } = await httpClient.get(`/files/download/${token}`, {
       responseType: 'blob',
     });
     return data;
@@ -248,7 +248,7 @@ export const filesApi = {
    * Get storage quota
    */
   async getStorageQuota(): Promise<StorageQuota> {
-    const { data } = await api.get<StorageQuota>('/files/quota');
+    const { data } = await httpClient.get<StorageQuota>('/files/quota');
     return data;
   },
 
@@ -256,7 +256,7 @@ export const filesApi = {
    * Get file access logs
    */
   async getAccessLogs(fileId: string): Promise<any[]> {
-    const { data } = await api.get<any[]>(
+    const { data } = await httpClient.get<any[]>(
       `/files/${fileId}/access-logs`
     );
     return data;
@@ -266,7 +266,7 @@ export const filesApi = {
    * Share file (generate shareable link)
    */
   async shareFile(fileId: string, expiration?: number): Promise<string> {
-    const { data } = await api.post<{ url: string }>(
+    const { data } = await httpClient.post<{ url: string }>(
       `/files/${fileId}/share`,
       { expiration }
     );
@@ -277,7 +277,7 @@ export const filesApi = {
    * Get file statistics
    */
   async getStatistics(): Promise<any> {
-    const { data } = await api.get('/files/statistics');
+    const { data } = await httpClient.get('/files/statistics');
     return data;
   },
 };

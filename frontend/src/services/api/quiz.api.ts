@@ -103,6 +103,7 @@ export interface CreateQuizData {
   description?: string;
   course_id?: string;
   section_id?: string;
+  lesson_id?: string;
   duration_minutes?: number;
   max_attempts?: number;
   passing_score?: number;
@@ -132,7 +133,7 @@ export interface UpdateQuizData {
 
 export interface CreateQuestionData {
   question_text: string;
-  question_type: 'single_choice' | 'multiple_choice' | 'true_false';
+  question_type: 'single_choice' | 'multiple_choice' | 'true_false' | 'essay' | 'fill_blank';
   points?: number;
   order_index?: number;
   explanation?: string;
@@ -145,7 +146,7 @@ export interface CreateQuestionData {
 
 export interface UpdateQuestionData {
   question_text?: string;
-  question_type?: 'single_choice' | 'multiple_choice' | 'true_false';
+  question_type?: 'single_choice' | 'multiple_choice' | 'true_false' | 'essay' | 'fill_blank';
   points?: number;
   order_index?: number;
   explanation?: string;

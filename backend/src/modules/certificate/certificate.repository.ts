@@ -21,20 +21,20 @@ export class CertificateRepository {
     user_id: string;
     course_id: string;
     enrollment_id?: string;
-    ipfs_hash: string;
+    ipfs_hash: string | null;
     certificate_hash: string;
     metadata: any;
     certificate_number: string;
     issued_at: Date;
     status?: string;
-  }): Promise<Certificate> {
+  }): Promise<InstanceType<typeof Certificate>> {
     return await Certificate.create(data);
   }
 
   /**
    * Find certificate by ID
    */
-  async findById(id: string, includeRelations: boolean = true): Promise<Certificate | null> {
+  async findById(id: string, includeRelations: boolean = true): Promise<InstanceType<typeof Certificate> | null> {
     const include: any[] = [];
 
     if (includeRelations) {
@@ -58,7 +58,7 @@ export class CertificateRepository {
   /**
    * Find certificate by certificate hash
    */
-  async findByHash(certificateHash: string): Promise<Certificate | null> {
+  async findByHash(certificateHash: string): Promise<InstanceType<typeof Certificate> | null> {
     return await Certificate.findOne({
       where: { certificate_hash: certificateHash },
       include: [
@@ -79,7 +79,7 @@ export class CertificateRepository {
   /**
    * Find certificate by IPFS hash
    */
-  async findByIPFSHash(ipfsHash: string): Promise<Certificate | null> {
+  async findByIPFSHash(ipfsHash: string): Promise<InstanceType<typeof Certificate> | null> {
     return await Certificate.findOne({
       where: { ipfs_hash: ipfsHash },
       include: [
@@ -100,7 +100,7 @@ export class CertificateRepository {
   /**
    * Find certificate by certificate number
    */
-  async findByCertificateNumber(certificateNumber: string): Promise<Certificate | null> {
+  async findByCertificateNumber(certificateNumber: string): Promise<InstanceType<typeof Certificate> | null> {
     return await Certificate.findOne({
       where: { certificate_number: certificateNumber },
       include: [
@@ -135,7 +135,7 @@ export class CertificateRepository {
   /**
    * Find certificates by user ID
    */
-  async findByUserId(userId: string, options?: { status?: string; limit?: number; offset?: number }): Promise<Certificate[]> {
+  async findByUserId(userId: string, options?: { status?: string; limit?: number; offset?: number }): Promise<Array<InstanceType<typeof Certificate>>> {
     const where: any = { user_id: userId };
     if (options?.status) {
       where.status = options.status;
@@ -159,7 +159,7 @@ export class CertificateRepository {
   /**
    * Find certificates by course ID
    */
-  async findByCourseId(courseId: string, options?: { status?: string; limit?: number; offset?: number }): Promise<Certificate[]> {
+  async findByCourseId(courseId: string, options?: { status?: string; limit?: number; offset?: number }): Promise<Array<InstanceType<typeof Certificate>>> {
     const where: any = { course_id: courseId };
     if (options?.status) {
       where.status = options.status;
@@ -183,7 +183,7 @@ export class CertificateRepository {
   /**
    * List certificates with pagination and filters
    */
-  async list(query: CertificateListQuery): Promise<{ certificates: Certificate[]; total: number }> {
+  async list(query: CertificateListQuery): Promise<{ certificates: Array<InstanceType<typeof Certificate>>; total: number }> {
     const where: any = {};
     const page = query.page || 1;
     const limit = query.limit || 20;
@@ -239,6 +239,16 @@ export class CertificateRepository {
       }
     );
 
+    return affectedRows > 0;
+  }
+
+  /**
+   * Update certificate
+   */
+  async update(id: string, data: Partial<{ metadata: any; status: string }>): Promise<boolean> {
+    const [affectedRows] = await Certificate.update(data, {
+      where: { id },
+    });
     return affectedRows > 0;
   }
 

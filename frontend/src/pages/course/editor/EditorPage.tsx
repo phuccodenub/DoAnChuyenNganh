@@ -244,7 +244,7 @@ export function EditorPage() {
     }
     try {
       const response = await coverUpload.mutateAsync({ file });
-      setValue('thumbnail', response.file.url, { shouldDirty: true });
+      setValue('thumbnail', response.url, { shouldDirty: true });
     } catch {
       // Toast handled in hook
     }
@@ -257,7 +257,7 @@ export function EditorPage() {
     }
     try {
       const response = await videoUpload.mutateAsync({ file });
-      setValue('video_intro', response.file.url, { shouldDirty: true });
+      setValue('video_intro', response.url, { shouldDirty: true });
     } catch {
       // Toast handled in hook
     }
@@ -574,7 +574,7 @@ export function EditorPage() {
                 {...register('discount_percentage', {
                   valueAsNumber: true,
                   validate: (value) => {
-                    if (value === undefined || Number.isNaN(value)) return true;
+                    if (value === undefined || value === null || Number.isNaN(value)) return true;
                     if (value < 0 || value > 100) return 'Phần trăm giảm giá phải từ 0 - 100';
                     return true;
                   },

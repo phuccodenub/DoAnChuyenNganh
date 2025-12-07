@@ -56,12 +56,24 @@ export class AssignmentService {
       // Verify user is instructor of the course
       await this.verifyInstructorAccess(dto.course_id, userId, dto.section_id);
       
-      // Convert DTO to model attributes (handle null → undefined, enforce XOR)
-      const createData = {
-        ...dto,
-        course_id: dto.section_id ? null : dto.course_id,
-        section_id: dto.section_id ?? null,
-        due_date: dto.due_date === null ? undefined : (dto.due_date ? new Date(dto.due_date) : undefined)
+      // Ensure course_id is always provided (required by model)
+      if (!dto.course_id) {
+        throw new ApiError('course_id is required', 400);
+      }
+      
+      // Convert DTO to model attributes
+      const createData: any = {
+        course_id: dto.course_id,
+        section_id: dto.section_id ?? undefined,
+        title: dto.title,
+        description: dto.description,
+        max_score: dto.max_score,
+        due_date: dto.due_date === null ? undefined : (dto.due_date ? new Date(dto.due_date) : undefined),
+        allow_late_submission: dto.allow_late_submission,
+        submission_type: dto.submission_type,
+        is_published: dto.is_published,
+        is_practice: dto.is_practice,
+        instructions: dto.instructions,
       };
       
       const assignment = await this.repo.createAssignment(createData);

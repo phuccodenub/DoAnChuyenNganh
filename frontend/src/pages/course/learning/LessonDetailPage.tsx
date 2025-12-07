@@ -561,6 +561,7 @@ export function LessonDetailPage() {
   const { data: courseContent, isLoading: isContentLoading } = useCourseContent(courseId!);
   const { data: courseData } = useCourse(courseId!);
   const { isAuthenticated } = useAuth();
+  const { mutate: markComplete } = useMarkLessonComplete();
   const [isUserEnrolled, setIsUserEnrolled] = useState(false);
   
   // Fetch progress data để có thông tin completion status

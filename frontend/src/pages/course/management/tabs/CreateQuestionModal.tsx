@@ -57,7 +57,7 @@ export function CreateQuestionModal({
   const totalQuestions = isEditMode ? existingQuestions.length : existingQuestions.length + 1;
   const autoCalculatedPoints = totalQuestions > 0 ? totalPoints / totalQuestions : totalPoints;
   
-  const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false'>('single_choice');
+  const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false' | 'essay' | 'fill_blank'>('single_choice');
   const [questionText, setQuestionText] = useState('');
   const [explanation, setExplanation] = useState('');
   const [options, setOptions] = useState<QuestionOption[]>([

@@ -75,10 +75,10 @@ export function ManageQuizModal({
   if (questionsData) {
     if (Array.isArray(questionsData)) {
       questions = questionsData;
-    } else if (questionsData.data && Array.isArray(questionsData.data)) {
-      questions = questionsData.data;
-    } else if (questionsData.questions && Array.isArray(questionsData.questions)) {
-      questions = questionsData.questions;
+    } else if ((questionsData as any).data && Array.isArray((questionsData as any).data)) {
+      questions = (questionsData as any).data;
+    } else if ((questionsData as any).questions && Array.isArray((questionsData as any).questions)) {
+      questions = (questionsData as any).questions;
     }
   }
   

@@ -38,6 +38,7 @@ export interface Course {
   discount_end?: string;
   is_featured?: boolean;
   is_free: boolean;
+  is_enrolled?: boolean;
   learning_objectives?: string[];
   prerequisites?: string[];
   tags?: string[];
@@ -121,9 +122,23 @@ export interface CourseProgress {
   course_id: string;
   user_id: string;
   lessons_completed: number;
+  completed_lessons: number;
   total_lessons: number;
+  total_sections: number;
   percent: number;
+  completion_percentage: number;
   last_activity_at?: string;
+  last_accessed_at?: string;
+  sections: Array<{
+    section_id: string;
+    section_title: string;
+    lessons: Array<{
+      lesson_id: string;
+      lesson_title: string;
+      is_completed: boolean;
+      completion_percentage: number;
+    }>;
+  }>;
 }
 
 export interface CourseProgressResponse {

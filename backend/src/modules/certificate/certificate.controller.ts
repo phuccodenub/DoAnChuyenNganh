@@ -36,7 +36,7 @@ export class CertificateController {
       // Students get certificates automatically when completing course
       const userRole = req.user!.role;
       if (!['admin', 'super_admin', 'instructor'].includes(userRole)) {
-        return responseUtils.sendForbiddenError(res, 'Only instructors and admins can issue certificates');
+        return responseUtils.sendForbidden(res, 'Only instructors and admins can issue certificates');
       }
 
       // Create metadata snapshot
@@ -105,7 +105,7 @@ export class CertificateController {
 
       // Check permissions: User can only view their own certificates unless admin/instructor
       if (certificate.user_id !== currentUserId && !['admin', 'super_admin', 'instructor'].includes(userRole)) {
-        return responseUtils.sendForbiddenError(res, 'You can only view your own certificates');
+        return responseUtils.sendForbidden(res, 'You can only view your own certificates');
       }
 
       return responseUtils.success(res, certificate, 'Certificate retrieved successfully');
@@ -148,7 +148,7 @@ export class CertificateController {
 
       // Check permissions: User can only view their own certificates unless admin/instructor
       if (userId !== currentUserId && !['admin', 'super_admin', 'instructor'].includes(userRole)) {
-        return responseUtils.sendForbiddenError(res, 'You can only view your own certificates');
+        return responseUtils.sendForbidden(res, 'You can only view your own certificates');
       }
 
       const certificates = await this.certificateService.getUserCertificates(userId, {
@@ -176,7 +176,7 @@ export class CertificateController {
 
       // Only instructors and admins can view course certificates
       if (!['admin', 'super_admin', 'instructor'].includes(userRole)) {
-        return responseUtils.sendForbiddenError(res, 'Only instructors and admins can view course certificates');
+        return responseUtils.sendForbidden(res, 'Only instructors and admins can view course certificates');
       }
 
       const certificates = await this.certificateService.getCourseCertificates(courseId, {
@@ -202,7 +202,7 @@ export class CertificateController {
 
       // Only admins can list all certificates
       if (!['admin', 'super_admin'].includes(userRole)) {
-        return responseUtils.sendForbiddenError(res, 'Only admins can list all certificates');
+        return responseUtils.sendForbidden(res, 'Only admins can list all certificates');
       }
 
       const { user_id, course_id, status, page, limit } = req.query;
@@ -235,13 +235,13 @@ export class CertificateController {
 
       // Only admins can revoke certificates
       if (!['admin', 'super_admin'].includes(userRole)) {
-        return responseUtils.sendForbiddenError(res, 'Only admins can revoke certificates');
+        return responseUtils.sendForbidden(res, 'Only admins can revoke certificates');
       }
 
       const success = await this.certificateService.revokeCertificate(id, reason, currentUserId);
 
       if (!success) {
-        return responseUtils.sendError(res, 400, 'Failed to revoke certificate');
+        return responseUtils.sendError(res, 'Failed to revoke certificate', 400);
       }
 
       return responseUtils.success(res, { id, revoked: true }, 'Certificate revoked successfully');
@@ -265,7 +265,7 @@ export class CertificateController {
 
       // Check permissions: User can only download their own certificates unless admin/instructor
       if (certificate.user_id !== currentUserId && !['admin', 'super_admin', 'instructor'].includes(userRole)) {
-        return responseUtils.sendForbiddenError(res, 'You can only download your own certificates');
+        return responseUtils.sendForbidden(res, 'You can only download your own certificates');
       }
 
       // Generate PDF

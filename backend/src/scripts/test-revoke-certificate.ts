@@ -9,7 +9,7 @@
  */
 
 import 'dotenv-flow/config';
-import { getSequelize } from '../config/database.config';
+import { getSequelize } from '../config/db';
 import Certificate from '../models/certificate.model';
 import { CertificateService } from '../modules/certificate/certificate.service';
 

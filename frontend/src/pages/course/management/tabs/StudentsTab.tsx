@@ -21,8 +21,8 @@ export function StudentsTab({ courseId }: StudentsTabProps) {
 
   // API response structure từ backend (đã normalize):
   // { data: { data: CourseStudent[], pagination: {...} } }
-  const responseData = studentsData?.data || studentsData;
-  const students = responseData?.data || responseData?.students || [];
+  const responseData = (studentsData as any)?.data || studentsData;
+  const students = (responseData as any)?.data || (responseData as any)?.students || [];
 
   // Fetch progress detail cho tất cả học viên để có completion_percentage chính xác
   const { data: studentsProgress } = useQuery({

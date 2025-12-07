@@ -937,7 +937,7 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
               ) : (
                 <div className="space-y-4">
                   {sections.map((section) => {
-                    const sectionLessons = (section.lessons || []).sort((a, b) => 
+                    const sectionLessons = (section.lessons || []).sort((a: any, b: any) => 
                       (a.order_index || 0) - (b.order_index || 0)
                     );
                     if (sectionLessons.length === 0) return null;
@@ -946,7 +946,7 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                       <div key={section.id} className="border border-gray-200 rounded-lg p-4">
                         <h4 className="font-semibold text-gray-900 mb-3">{section.title}</h4>
                         <div className="space-y-2">
-                          {sectionLessons.map((lesson) => (
+                          {sectionLessons.map((lesson: any) => (
                             <div
                               key={lesson.id}
                               className="flex items-center gap-3 p-2 rounded hover:bg-gray-50"
