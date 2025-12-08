@@ -58,9 +58,7 @@ export class ReviewRepository {
 
     return (this.ReviewModel as any).findAndCountAll({
       where: whereClause,
-      attributes: {
-        include: ['id', 'course_id', 'user_id', 'rating', 'comment', 'is_published', 'instructor_reply', 'replied_at', 'created_at', 'updated_at']
-      },
+      attributes: ['id', 'course_id', 'user_id', 'rating', 'comment', 'is_published', 'instructor_reply', 'replied_at', 'created_at', 'updated_at'],
       include: [
         {
           model: User,
