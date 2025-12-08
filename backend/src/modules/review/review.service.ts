@@ -163,11 +163,13 @@ export class ReviewService {
         comment: data.comment || null,
       });
 
+      const normalized = this.normalizeReviewForFrontend(review);
+
       // Update course rating
       await this.updateCourseRating(data.course_id);
 
       logger.info(`Review created for course ${data.course_id} by user ${userId}`);
-      return review;
+      return normalized;
     } catch (error) {
       logger.error('Error creating review:', error);
       throw error;
@@ -182,20 +184,7 @@ export class ReviewService {
       const { rows, count } = await this.repo.getCourseReviews(courseId, page, limit);
       
       // Normalize reviews for frontend
-      const normalizedReviews = rows.map(review => {
-        const normalized = this.normalizeReviewForFrontend(review);
-        // Debug: log first review to check date format
-        if (normalized && normalized.id === rows[0]?.id) {
-          logger.info('Review date debug:', {
-            reviewId: normalized.id,
-            created_at: normalized.created_at,
-            createdAt: (review as any).createdAt,
-            raw_created_at: (review as any).created_at,
-            type: typeof normalized.created_at
-          });
-        }
-        return normalized;
-      });
+      const normalizedReviews = rows.map(review => this.normalizeReviewForFrontend(review));
       
       return {
         reviews: normalizedReviews,
@@ -275,18 +264,29 @@ export class ReviewService {
         throw new ApiError('Rating must be between 1 and 5', 400);
       }
 
-      const updated = await this.repo.update(reviewId, {
-        rating: data.rating,
-        comment: data.comment,
-      });
-
-      // Update course rating if rating changed
-      if (data.rating !== undefined && updated) {
-        await this.updateCourseRating(updated.course_id);
+      // Build partial update payload to avoid sending undefined (can null columns)
+      const updatePayload: Partial<ReviewAttributes> = {};
+      if (data.rating !== undefined) {
+        updatePayload.rating = data.rating;
+      }
+      if (data.comment !== undefined) {
+        updatePayload.comment = data.comment;
       }
 
+      const updated = await this.repo.update(reviewId, updatePayload);
+
+      if (!updated) {
+        // Handle race condition where review was deleted between fetch and update
+        throw new ApiError('Review not found', 404);
+      }
+
+      const normalized = this.normalizeReviewForFrontend(updated);
+
+      // Always refresh course rating (in case publication/visibility changes)
+      await this.updateCourseRating(updated.course_id);
+
       logger.info(`Review ${reviewId} updated by user ${userId}`);
-      return updated;
+      return normalized;
     } catch (error) {
       logger.error('Error updating review:', error);
       throw error;

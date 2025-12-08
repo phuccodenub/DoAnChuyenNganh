@@ -240,14 +240,17 @@ Nội dung cần kiểm duyệt (${contentType}):`;
           hasProfanity,
         });
         
+        const baseShouldBlock = moderationResult.shouldBlock === true;
+        const finalShouldBlock = baseShouldBlock || hasHighRisk || hasProfanity;
+
         moderationResult = {
-          approved: moderationResult.approved !== false && !hasHighRisk && !hasProfanity && moderationResult.shouldBlock !== true,
+          approved: moderationResult.approved !== false && !finalShouldBlock,
           riskScore,
           riskCategories: Array.isArray(moderationResult.riskCategories)
             ? moderationResult.riskCategories
             : [],
           reason: moderationResult.reason || undefined,
-          shouldBlock: moderationResult.shouldBlock === true || hasHighRisk || hasProfanity,
+          shouldBlock: finalShouldBlock,
           shouldWarn: moderationResult.shouldWarn === true || riskScore >= 0.4,
         };
       } catch (parseError) {

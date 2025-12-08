@@ -13,7 +13,24 @@ export class ReviewRepository {
    * Create a new review
    */
   async create(data: ReviewCreationAttributes): Promise<ReviewInstance> {
-    return this.ReviewModel.create(data as any);
+    const review = await this.ReviewModel.create(data as any);
+
+    // Reload with user association for frontend compatibility; throw if unexpectedly missing
+    const reloaded = await this.ReviewModel.findByPk((review as any).id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'first_name', 'last_name', 'avatar']
+        }
+      ]
+    });
+
+    if (!reloaded) {
+      throw new Error('Failed to reload created review with associations');
+    }
+
+    return reloaded;
   }
 
   /**
@@ -36,7 +53,14 @@ export class ReviewRepository {
    */
   async getUserReview(courseId: string, userId: string): Promise<ReviewInstance | null> {
     return this.ReviewModel.findOne({
-      where: { course_id: courseId, user_id: userId } as WhereOptions<ReviewAttributes>
+      where: { course_id: courseId, user_id: userId } as WhereOptions<ReviewAttributes>,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'first_name', 'last_name', 'avatar']
+        }
+      ]
     });
   }
 

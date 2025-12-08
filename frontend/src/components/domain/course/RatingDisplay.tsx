@@ -13,9 +13,13 @@ export function RatingDisplay({
   showLabel = true,
   size = 'md' 
 }: RatingDisplayProps) {
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 >= 0.5;
-  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  const clampedRating = Math.min(Math.max(rating, 0), 5);
+  const remainder = clampedRating - Math.floor(clampedRating);
+  const fullStars = remainder >= 0.75
+    ? Math.min(Math.floor(clampedRating) + 1, 5)
+    : Math.floor(clampedRating);
+  const hasHalfStar = fullStars < 5 && remainder >= 0.25 && remainder < 0.75;
+  const emptyStars = Math.max(0, 5 - fullStars - (hasHalfStar ? 1 : 0));
 
   const sizeClasses = {
     sm: 'w-3 h-3',
