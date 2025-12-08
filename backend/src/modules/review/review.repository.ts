@@ -25,7 +25,7 @@ export class ReviewRepository {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'first_name', 'last_name', 'avatar_url']
+          attributes: ['id', 'first_name', 'last_name', 'avatar']
         }
       ]
     });
@@ -58,11 +58,14 @@ export class ReviewRepository {
 
     return (this.ReviewModel as any).findAndCountAll({
       where: whereClause,
+      attributes: {
+        include: ['id', 'course_id', 'user_id', 'rating', 'comment', 'is_published', 'instructor_reply', 'replied_at', 'created_at', 'updated_at']
+      },
       include: [
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'first_name', 'last_name', 'avatar_url']
+          attributes: ['id', 'first_name', 'last_name', 'avatar']
         }
       ],
       order: [['created_at', 'DESC']],

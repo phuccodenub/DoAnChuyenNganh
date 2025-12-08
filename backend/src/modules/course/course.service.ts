@@ -39,6 +39,32 @@ export class CourseService {
       }
     }
     
+    // Calculate total_students from enrollments
+    if (courseData.enrollments && Array.isArray(courseData.enrollments)) {
+      // Count only active enrollments (not cancelled or suspended)
+      courseData.total_students = courseData.enrollments.filter((enrollment: any) => 
+        enrollment.status !== 'cancelled' && enrollment.status !== 'suspended'
+      ).length;
+      // Remove enrollments array from response (we only need the count)
+      delete courseData.enrollments;
+    } else if (courseData.total_students === undefined) {
+      // If enrollments not included, try to get count from database
+      try {
+        const { Op } = await import('sequelize');
+        const EnrollmentModel = Enrollment as unknown as any;
+        const count = await EnrollmentModel.count({
+          where: {
+            course_id: courseData.id,
+            status: { [Op.notIn]: ['cancelled', 'suspended'] }
+          }
+        });
+        courseData.total_students = count;
+      } catch (error) {
+        logger.error('Error counting enrollments:', error);
+        courseData.total_students = 0;
+      }
+    }
+    
     // Check enrollment status if userId is provided
     if (userId) {
       try {
@@ -163,6 +189,12 @@ export class CourseService {
               }
             ],
             order: [['order_index', 'ASC']]
+          },
+          {
+            model: Enrollment,
+            as: 'enrollments',
+            attributes: ['id', 'status'],
+            required: false
           }
         ]
       });

@@ -23,6 +23,7 @@ import CommentModeration from './comment-moderation.model';
 import Conversation from './conversation.model';
 import DirectMessage from './direct-message.model';
 import Certificate from './certificate.model';
+import Review from './review.model';
 
 export const setupAssociations = () => {
   // ===================================
@@ -489,6 +490,32 @@ export const setupAssociations = () => {
   (Certificate as any).belongsTo(Enrollment, {
     foreignKey: 'enrollment_id',
     as: 'enrollment'
+  });
+
+  // ===================================
+  // 11. REVIEW RELATIONSHIPS
+  // ===================================
+
+  // User 1 ---< Review
+  (User as any).hasMany(Review, {
+    foreignKey: 'user_id',
+    as: 'reviews',
+    onDelete: 'CASCADE'
+  });
+  (Review as any).belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user'
+  });
+
+  // Course 1 ---< Review
+  (Course as any).hasMany(Review, {
+    foreignKey: 'course_id',
+    as: 'reviews',
+    onDelete: 'CASCADE'
+  });
+  (Review as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course'
   });
 
   console.log('✅ Model associations setup completed');
