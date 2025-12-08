@@ -303,7 +303,7 @@ export class ReviewService {
         throw new ApiError('Review not found', 404);
       }
 
-      if (!isAdmin && review.user_id !== userId) {
+      if (!isAdmin && String(review.user_id) !== String(userId)) {
         throw new ApiError('You can only delete your own reviews', 403);
       }
 

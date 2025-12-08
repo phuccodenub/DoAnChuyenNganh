@@ -189,12 +189,6 @@ export class CourseService {
               }
             ],
             order: [['order_index', 'ASC']]
-          },
-          {
-            model: Enrollment,
-            as: 'enrollments',
-            attributes: ['id', 'status'],
-            required: false
           }
         ]
       });

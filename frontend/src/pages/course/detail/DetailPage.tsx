@@ -80,7 +80,7 @@ export function DetailPage() {
   const [reviewPage, setReviewPage] = useState(1);
   const { data: reviewsData, isLoading: isLoadingReviews } = useCourseReviews(courseId, reviewPage, 10);
   const { data: reviewStats } = useCourseReviewStats(courseId);
-  const { data: myReview } = useMyReview(courseId);
+  const { data: myReview } = useMyReview(courseId, user?.id, isAuthenticated);
   const createReviewMutation = useCreateReview();
   const updateReviewMutation = useUpdateReview();
   const deleteReviewMutation = useDeleteReview();

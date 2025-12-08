@@ -33,11 +33,11 @@ export function useCourseReviewStats(courseId: string) {
 /**
  * Get current user's review for a course
  */
-export function useMyReview(courseId: string) {
+export function useMyReview(courseId: string, userId?: string, isAuthenticated?: boolean) {
   return useQuery({
     queryKey: QUERY_KEYS.myReview(courseId),
     queryFn: () => reviewApi.getMyReview(courseId),
-    enabled: !!courseId,
+    enabled: !!courseId && !!userId && !!isAuthenticated,
     retry: false, // Don't retry on 404 (user hasn't reviewed yet)
   });
 }
