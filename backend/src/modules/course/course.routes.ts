@@ -131,6 +131,33 @@ router.get('/enrolled',
 
 /**
  * @swagger
+ * /api/courses/recommended:
+ *   get:
+ *     summary: Get recommended courses for student
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 6
+ *         description: Number of courses to return
+ *     responses:
+ *       200:
+ *         description: Recommended courses retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/recommended', 
+  authMiddleware, 
+  authorizeRoles(['student', 'instructor', 'admin', 'super_admin']),
+  courseController.getRecommendedCourses
+);
+
+/**
+ * @swagger
  * /api/courses/{id}:
  *   get:
  *     summary: Get course by ID

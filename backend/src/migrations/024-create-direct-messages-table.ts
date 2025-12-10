@@ -4,9 +4,24 @@
  * Messages within conversations (1-on-1 DM between student and instructor)
  */
 
-import { QueryInterface, DataTypes } from 'sequelize';
+import { QueryInterface, DataTypes, QueryTypes } from 'sequelize';
+
+// Helper to check if table exists
+async function tableExists(queryInterface: QueryInterface, tableName: string): Promise<boolean> {
+  const [results] = await queryInterface.sequelize.query(
+    `SELECT table_name FROM information_schema.tables WHERE table_name = '${tableName}'`,
+    { type: QueryTypes.SELECT }
+  ) as [{ table_name: string }[], unknown];
+  return results !== undefined && (results as any).table_name === tableName;
+}
 
 export const up = async (queryInterface: QueryInterface): Promise<void> => {
+  // Skip if table already exists
+  if (await tableExists(queryInterface, 'direct_messages')) {
+    console.log('Table direct_messages already exists, skipping...');
+    return;
+  }
+
   // Create message_status enum if not exists
   await queryInterface.sequelize.query(`
     DO $$ BEGIN

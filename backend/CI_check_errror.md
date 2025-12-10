@@ -1,15 +1,12 @@
+#Không xóa
 Run e2e tests with PostgreSQL (hard-fail) : 
 Run npm run test:e2e
-
 > backend@1.0.0 test:e2e
 > cross-env TEST_CATEGORY=integration E2E_SUITE=true jest --config jest.config.js --testPathPatterns=e2e --detectOpenHandles --runInBand
-
-FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
+PASS src/tests/e2e/course-enrollment.e2e.test.ts (22.022 s)
   ● Console
-
     console.warn
       [dotenv-flow@4.1.0]: ".env*" files loading failed: no ".env*" files matching pattern ".env[.test][.local]" in "/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend" dir undefined
-
       4 |  */
       5 |
     > 6 | import 'dotenv-flow/config';
@@ -17,23 +14,17 @@ FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
       7 | import path from 'path';
       8 | import dotenv from 'dotenv';
       9 | import { applySequelizeSqlShim } from './utils/test.utils';
-
       at warn (node_modules/dotenv-flow/lib/dotenv-flow.js:394:11)
       at failure (node_modules/dotenv-flow/lib/dotenv-flow.js:383:5)
       at Object.config (node_modules/dotenv-flow/lib/dotenv-flow.js:359:16)
       at Object.<anonymous> (node_modules/dotenv-flow/config.js:6:30)
       at Object.<anonymous> (src/tests/setup.ts:6:1)
-
     console.log
-      [dotenv@17.2.3] injecting env (25) from src/tests/integration/test.env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
-
+      [dotenv@17.2.3] injecting env (25) from src/tests/integration/test.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
       at _log (node_modules/dotenv/lib/main.js:142:11)
-
     console.log
       [API_ROUTE_DEBUG_COUNT] 4
-
       at Object.<anonymous> (src/app.ts:161:11)
-
     console.log
       [API_ROUTE_DEBUG_LIST] [
         'GET /users/profile',
@@ -41,72 +32,45 @@ FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
         'PUT /users/change-password',
         'GET /__routes_debug'
       ]
-
       at Object.<anonymous> (src/app.ts:163:11)
-
     console.log
       OpenTelemetry tracing started (local only, no OTLP export)
-
       at log (src/tracing/tracing.ts:45:15)
-
     console.log
       ✅ PostgreSQL enum types created successfully
-
       at Object.createEnumTypes [as up] (src/migrations/000-create-enum-types.ts:144:11)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.error
       [SQL_SHIM_ERROR] default column "email_verified_at" of relation "users" already exists ALTER TABLE "public"."users" ADD COLUMN "email_verified_at" TIMESTAMP WITH TIME ZONE; COMMENT ON COLUMN "users"."email_verified_at" IS 'Timestamp when email was verified';
-
       126 |         .catch((err: any) => {
       127 |         // eslint-disable-next-line no-console
     > 128 |         console.error('[SQL_SHIM_ERROR] default', err?.message, typeof sqlText === 'string' ? sqlText : '<<non-string-sql>>');
@@ -114,21 +78,16 @@ FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
       129 |         throw err;
       130 |       });
       131 |     };
-
       at src/tests/utils/test.utils.ts:128:17
       at PostgresQueryInterface.addColumn (node_modules/sequelize/src/dialects/abstract/query-interface.js:430:12)
       at Object.addEmailVerifiedAt [as up] (src/migrations/010-add-email-verified-at.ts:10:5)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
+      at MigrationManager.migrate (src/migrations/index.ts:305:9)
       at Object.<anonymous> (src/tests/setup.ts:147:7)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.error
       [SQL_SHIM_ERROR] default column "date_of_birth" of relation "users" already exists ALTER TABLE "public"."users" ADD COLUMN "date_of_birth" DATE; COMMENT ON COLUMN "users"."date_of_birth" IS 'Ngày sinh';
-
       126 |         .catch((err: any) => {
       127 |         // eslint-disable-next-line no-console
     > 128 |         console.error('[SQL_SHIM_ERROR] default', err?.message, typeof sqlText === 'string' ? sqlText : '<<non-string-sql>>');
@@ -136,17 +95,14 @@ FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
       129 |         throw err;
       130 |       });
       131 |     };
-
       at src/tests/utils/test.utils.ts:128:17
       at PostgresQueryInterface.addColumn (node_modules/sequelize/src/dialects/abstract/query-interface.js:430:12)
       at addColumnSafe (src/migrations/011-add-user-profile-columns.ts:11:7)
       at Object.addUserProfileColumns [as up] (src/migrations/011-add-user-profile-columns.ts:33:3)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
+      at MigrationManager.migrate (src/migrations/index.ts:305:9)
       at Object.<anonymous> (src/tests/setup.ts:147:7)
-
     console.error
       [SQL_SHIM_ERROR] default column "gender" of relation "users" already exists DO 'BEGIN CREATE TYPE "public"."enum_users_gender" AS ENUM(''male'', ''female'', ''other''); EXCEPTION WHEN duplicate_object THEN null; END';ALTER TABLE "public"."users" ADD COLUMN "gender" "public"."enum_users_gender"; COMMENT ON COLUMN "users"."gender" IS 'Giới tính';
-
       126 |         .catch((err: any) => {
       127 |         // eslint-disable-next-line no-console
     > 128 |         console.error('[SQL_SHIM_ERROR] default', err?.message, typeof sqlText === 'string' ? sqlText : '<<non-string-sql>>');
@@ -154,17 +110,14 @@ FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
       129 |         throw err;
       130 |       });
       131 |     };
-
       at src/tests/utils/test.utils.ts:128:17
       at PostgresQueryInterface.addColumn (node_modules/sequelize/src/dialects/abstract/query-interface.js:430:12)
       at addColumnSafe (src/migrations/011-add-user-profile-columns.ts:11:7)
       at Object.addUserProfileColumns [as up] (src/migrations/011-add-user-profile-columns.ts:34:3)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
+      at MigrationManager.migrate (src/migrations/index.ts:305:9)
       at Object.<anonymous> (src/tests/setup.ts:147:7)
-
     console.error
       [SQL_SHIM_ERROR] default column "address" of relation "users" already exists ALTER TABLE "public"."users" ADD COLUMN "address" TEXT; COMMENT ON COLUMN "users"."address" IS 'Địa chỉ';
-
       126 |         .catch((err: any) => {
       127 |         // eslint-disable-next-line no-console
     > 128 |         console.error('[SQL_SHIM_ERROR] default', err?.message, typeof sqlText === 'string' ? sqlText : '<<non-string-sql>>');
@@ -172,17 +125,14 @@ FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
       129 |         throw err;
       130 |       });
       131 |     };
-
       at src/tests/utils/test.utils.ts:128:17
       at PostgresQueryInterface.addColumn (node_modules/sequelize/src/dialects/abstract/query-interface.js:430:12)
       at addColumnSafe (src/migrations/011-add-user-profile-columns.ts:11:7)
       at Object.addUserProfileColumns [as up] (src/migrations/011-add-user-profile-columns.ts:35:3)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
+      at MigrationManager.migrate (src/migrations/index.ts:305:9)
       at Object.<anonymous> (src/tests/setup.ts:147:7)
-
     console.error
       [SQL_SHIM_ERROR] default column "emergency_contact" of relation "users" already exists ALTER TABLE "public"."users" ADD COLUMN "emergency_contact" VARCHAR(100); COMMENT ON COLUMN "users"."emergency_contact" IS 'Liên hệ khẩn cấp';
-
       126 |         .catch((err: any) => {
       127 |         // eslint-disable-next-line no-console
     > 128 |         console.error('[SQL_SHIM_ERROR] default', err?.message, typeof sqlText === 'string' ? sqlText : '<<non-string-sql>>');
@@ -190,17 +140,14 @@ FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
       129 |         throw err;
       130 |       });
       131 |     };
-
       at src/tests/utils/test.utils.ts:128:17
       at PostgresQueryInterface.addColumn (node_modules/sequelize/src/dialects/abstract/query-interface.js:430:12)
       at addColumnSafe (src/migrations/011-add-user-profile-columns.ts:11:7)
       at Object.addUserProfileColumns [as up] (src/migrations/011-add-user-profile-columns.ts:36:3)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
+      at MigrationManager.migrate (src/migrations/index.ts:305:9)
       at Object.<anonymous> (src/tests/setup.ts:147:7)
-
     console.error
       [SQL_SHIM_ERROR] default column "emergency_phone" of relation "users" already exists ALTER TABLE "public"."users" ADD COLUMN "emergency_phone" VARCHAR(20); COMMENT ON COLUMN "users"."emergency_phone" IS 'SĐT khẩn cấp';
-
       126 |         .catch((err: any) => {
       127 |         // eslint-disable-next-line no-console
     > 128 |         console.error('[SQL_SHIM_ERROR] default', err?.message, typeof sqlText === 'string' ? sqlText : '<<non-string-sql>>');
@@ -208,337 +155,102 @@ FAIL src/tests/e2e/course-enrollment.e2e.test.ts (19.759 s)
       129 |         throw err;
       130 |       });
       131 |     };
-
       at src/tests/utils/test.utils.ts:128:17
       at PostgresQueryInterface.addColumn (node_modules/sequelize/src/dialects/abstract/query-interface.js:430:12)
       at addColumnSafe (src/migrations/011-add-user-profile-columns.ts:11:7)
       at Object.addUserProfileColumns [as up] (src/migrations/011-add-user-profile-columns.ts:37:3)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
+      at MigrationManager.migrate (src/migrations/index.ts:305:9)
       at Object.<anonymous> (src/tests/setup.ts:147:7)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
       [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
-
       at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
-
     console.log
-      2025-12-01 16:59:11 [error]: Migration 020 failed: No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive. {
+      [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+      at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
+    console.log
+      [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+      at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
+    console.log
+      [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+      at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
+    console.log
+      [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+      at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
+    console.log
+      [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+      at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
+    console.log
+      [SQL_SHIM] replacements->bind INSERT INTO migrations (version, description, executed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+      at Sequelize.proto.query (src/tests/utils/test.utils.ts:97:21)
+    console.log
+      ✅ Model associations setup completed
+      at log (src/models/associations.ts:456:11)
+    console.log
+      ✅ Extended model associations setup completed
+      at log (src/models/associations-extended.ts:282:11)
+    console.log
+      2025-12-05 11:41:21 [error]: Error creating enrollment: Course not found {
         "service": "lms-backend",
-        "stack": "Error: No description found for \"comment_moderations\" table. Check the table name and schema; remember, they _are_ case sensitive.\n    at PostgresQueryInterface.describeTable (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at Object.up (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)\n    at MigrationManager.migrate (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/migrations/index.ts:284:9)\n    at Object.<anonymous> (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/tests/setup.ts:147:7)"
-      }
-
+        "statusCode": 404,
+        "stack": "Error: Course not found\n    at EnrollmentService.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.service.ts:59:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at EnrollmentController.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.controller.ts:22:26)"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
       at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
-
-  ● Course Enrollment E2E › POST /api/v1/enrollments › should enroll in course successfully
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › POST /api/v1/enrollments › should fail to enroll without authentication
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › POST /api/v1/enrollments › should fail to enroll in non-existent course
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › POST /api/v1/enrollments › should fail to enroll twice in same course
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › GET /api/v1/enrollments › should get user enrollments
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › GET /api/v1/enrollments › should get enrollments with pagination
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › GET /api/v1/enrollments › should filter enrollments by status
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › GET /api/v1/enrollments/:id › should get enrollment by ID
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › GET /api/v1/enrollments/:id › should return 404 for non-existent enrollment
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › PUT /api/v1/enrollments/:id/progress › should update enrollment progress
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › PUT /api/v1/enrollments/:id/progress › should fail to update progress without authentication
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › PUT /api/v1/enrollments/:id/complete › should complete enrollment successfully
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › PUT /api/v1/enrollments/:id/complete › should fail to complete enrollment without authentication
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › DELETE /api/v1/enrollments/:id › should drop enrollment successfully
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › DELETE /api/v1/enrollments/:id › should return 404 when dropping non-existent enrollment
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › GET /api/v1/courses/:id/enrollments › should get course enrollments (instructor only)
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Enrollment E2E › GET /api/v1/users/:id/enrollments › should get user enrollment history
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-FAIL src/tests/e2e/course-registration.e2e.test.ts
+    console.log
+      2025-12-05 11:41:21 [error]: Error creating enrollment: Course not found {
+        "service": "lms-backend",
+        "statusCode": 404,
+        "stack": "Error: Course not found\n    at EnrollmentService.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.service.ts:59:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at EnrollmentController.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.controller.ts:22:26)"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+    console.log
+      2025-12-05 11:41:21 [error]: HTTP error occurred {
+        "service": "lms-backend",
+        "error": "Course not found",
+        "stack": "Error: Course not found\n    at EnrollmentService.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.service.ts:59:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at EnrollmentController.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.controller.ts:22:26)",
+        "method": "POST",
+        "url": "/api/v1/enrollments",
+        "statusCode": 404,
+        "ip": "::ffff:127.0.0.1"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+    console.log
+      2025-12-05 11:41:21 [error]: Error creating enrollment: User is already enrolled in this course {
+        "service": "lms-backend",
+        "statusCode": 409,
+        "stack": "Error: User is already enrolled in this course\n    at EnrollmentService.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.service.ts:81:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at EnrollmentController.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.controller.ts:22:26)"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+    console.log
+      2025-12-05 11:41:21 [error]: Error creating enrollment: User is already enrolled in this course {
+        "service": "lms-backend",
+        "statusCode": 409,
+        "stack": "Error: User is already enrolled in this course\n    at EnrollmentService.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.service.ts:81:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at EnrollmentController.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.controller.ts:22:26)"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+    console.log
+      2025-12-05 11:41:21 [error]: HTTP error occurred {
+        "service": "lms-backend",
+        "error": "User is already enrolled in this course",
+        "stack": "Error: User is already enrolled in this course\n    at EnrollmentService.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.service.ts:81:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at EnrollmentController.createEnrollment (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/enrollment/enrollment.controller.ts:22:26)",
+        "method": "POST",
+        "url": "/api/v1/enrollments",
+        "statusCode": 409,
+        "ip": "::ffff:127.0.0.1"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+PASS src/tests/e2e/course-registration.e2e.test.ts
   ● Console
-
     console.warn
       [dotenv-flow@4.1.0]: ".env*" files loading failed: no ".env*" files matching pattern ".env[.test][.local]" in "/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend" dir undefined
-
       4 |  */
       5 |
     > 6 | import 'dotenv-flow/config';
@@ -546,23 +258,17 @@ FAIL src/tests/e2e/course-registration.e2e.test.ts
       7 | import path from 'path';
       8 | import dotenv from 'dotenv';
       9 | import { applySequelizeSqlShim } from './utils/test.utils';
-
       at warn (node_modules/dotenv-flow/lib/dotenv-flow.js:394:11)
       at failure (node_modules/dotenv-flow/lib/dotenv-flow.js:383:5)
       at Object.config (node_modules/dotenv-flow/lib/dotenv-flow.js:359:16)
       at Object.<anonymous> (node_modules/dotenv-flow/config.js:6:30)
       at Object.<anonymous> (src/tests/setup.ts:6:1)
-
     console.log
-      [dotenv@17.2.3] injecting env (25) from src/tests/integration/test.env -- tip: ⚙️  override existing env vars with { override: true }
-
+      [dotenv@17.2.3] injecting env (25) from src/tests/integration/test.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
       at _log (node_modules/dotenv/lib/main.js:142:11)
-
     console.log
       [API_ROUTE_DEBUG_COUNT] 4
-
       at Object.<anonymous> (src/app.ts:161:11)
-
     console.log
       [API_ROUTE_DEBUG_LIST] [
         'GET /users/profile',
@@ -570,232 +276,66 @@ FAIL src/tests/e2e/course-registration.e2e.test.ts
         'PUT /users/change-password',
         'GET /__routes_debug'
       ]
-
       at Object.<anonymous> (src/app.ts:163:11)
-
     console.log
       OpenTelemetry tracing started (local only, no OTLP export)
-
       at log (src/tracing/tracing.ts:45:15)
-
     console.log
-      2025-12-01 16:59:14 [error]: Migration 020 failed: No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive. {
+      ✅ Model associations setup completed
+      at log (src/models/associations.ts:456:11)
+    console.log
+      ✅ Extended model associations setup completed
+      at log (src/models/associations-extended.ts:282:11)
+    console.log
+      2025-12-05 11:41:24 [error]: Zod validation error {
         "service": "lms-backend",
-        "stack": "Error: No description found for \"comment_moderations\" table. Check the table name and schema; remember, they _are_ case sensitive.\n    at PostgresQueryInterface.describeTable (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at Object.up (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)\n    at MigrationManager.migrate (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/migrations/index.ts:284:9)\n    at Object.<anonymous> (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/tests/setup.ts:147:7)"
-      }
-
+        "method": "POST",
+        "path": "/",
+        "issues": [
+          {
+            "path": [
+              "title"
+            ],
+            "message": "Course title must be at least 3 characters",
+            "code": "too_small"
+          }
+        ]
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
       at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
-
-  ● Course Registration E2E › POST /api/v1/courses › should create a new course successfully
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › POST /api/v1/courses › should fail to create course without authentication
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › POST /api/v1/courses › should fail to create course with invalid data
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E �� GET /api/v1/courses › should get all courses
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › GET /api/v1/courses › should get courses with pagination
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › GET /api/v1/courses › should filter courses by category
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › GET /api/v1/courses/:id › should get course by ID
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › GET /api/v1/courses/:id › should return 404 for non-existent course
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › PUT /api/v1/courses/:id › should update course successfully
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › PUT /api/v1/courses/:id › should fail to update course without authentication
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › DELETE /api/v1/courses/:id › should delete course successfully
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● Course Registration E2E › DELETE /api/v1/courses/:id › should return 404 when deleting non-existent course
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-FAIL src/tests/e2e/health.e2e.test.ts
+    console.log
+      2025-12-05 11:41:25 [error]: HTTP error occurred {
+        "service": "lms-backend",
+        "error": "Course not found",
+        "stack": "Error: Course not found\n    at CourseController.getCourseById (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/course/course.controller.ts:73:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)",
+        "method": "GET",
+        "url": "/api/v1/courses/00000000-0000-0000-0000-000000000000",
+        "statusCode": 404,
+        "ip": "::ffff:127.0.0.1"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+    console.log
+      2025-12-05 11:41:25 [error]: Error deleting course: Course not found {
+        "service": "lms-backend",
+        "statusCode": 404,
+        "isOperational": true,
+        "stack": "Error: Course not found\n    at CourseService.deleteCourse (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/course/course.service.ts:173:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at CourseController.deleteCourse (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/course/course.controller.ts:112:7)"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+    console.log
+      2025-12-05 11:41:25 [error]: HTTP error occurred {
+        "service": "lms-backend",
+        "error": "Course not found",
+        "stack": "Error: Course not found\n    at CourseService.deleteCourse (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/course/course.service.ts:173:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at CourseController.deleteCourse (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/modules/course/course.controller.ts:112:7)",
+        "method": "DELETE",
+        "url": "/api/v1/courses/00000000-0000-0000-0000-000000000000",
+        "statusCode": 404,
+        "ip": "::ffff:127.0.0.1"
+      } traceId=00000000000000000000000000000000 spanId=0000000000000000
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+PASS src/tests/e2e/health.e2e.test.ts
   ● Console
-
     console.warn
       [dotenv-flow@4.1.0]: ".env*" files loading failed: no ".env*" files matching pattern ".env[.test][.local]" in "/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend" dir undefined
-
       4 |  */
       5 |
     > 6 | import 'dotenv-flow/config';
@@ -803,23 +343,17 @@ FAIL src/tests/e2e/health.e2e.test.ts
       7 | import path from 'path';
       8 | import dotenv from 'dotenv';
       9 | import { applySequelizeSqlShim } from './utils/test.utils';
-
       at warn (node_modules/dotenv-flow/lib/dotenv-flow.js:394:11)
       at failure (node_modules/dotenv-flow/lib/dotenv-flow.js:383:5)
       at Object.config (node_modules/dotenv-flow/lib/dotenv-flow.js:359:16)
       at Object.<anonymous> (node_modules/dotenv-flow/config.js:6:30)
       at Object.<anonymous> (src/tests/setup.ts:6:1)
-
     console.log
-      [dotenv@17.2.3] injecting env (25) from src/tests/integration/test.env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
-
+      [dotenv@17.2.3] injecting env (25) from src/tests/integration/test.env -- tip: ⚙️  write to custom object with { processEnv: myObject }
       at _log (node_modules/dotenv/lib/main.js:142:11)
-
     console.log
       [API_ROUTE_DEBUG_COUNT] 4
-
       at Object.<anonymous> (src/app.ts:161:11)
-
     console.log
       [API_ROUTE_DEBUG_LIST] [
         'GET /users/profile',
@@ -827,96 +361,20 @@ FAIL src/tests/e2e/health.e2e.test.ts
         'PUT /users/change-password',
         'GET /__routes_debug'
       ]
-
       at Object.<anonymous> (src/app.ts:163:11)
-
     console.log
       OpenTelemetry tracing started (local only, no OTLP export)
-
       at log (src/tracing/tracing.ts:45:15)
-
     console.log
-      2025-12-01 16:59:18 [error]: Migration 020 failed: No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive. {
-        "service": "lms-backend",
-        "stack": "Error: No description found for \"comment_moderations\" table. Check the table name and schema; remember, they _are_ case sensitive.\n    at PostgresQueryInterface.describeTable (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at Object.up (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)\n    at MigrationManager.migrate (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/migrations/index.ts:284:9)\n    at Object.<anonymous> (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/tests/setup.ts:147:7)"
-      }
-
-      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
-
-  ● E2E: Health endpoints › GET /ping should return 200 and plain text pong
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● E2E: Health endpoints › GET /health should return overall health
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● E2E: Health endpoints › GET /health/ready should return readiness
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● E2E: Health endpoints › GET /health/database should return db health payload
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-FAIL src/tests/e2e/metrics.e2e.test.ts
+      ✅ Model associations setup completed
+      at log (src/models/associations.ts:456:11)
+    console.log
+      ✅ Extended model associations setup completed
+      at log (src/models/associations-extended.ts:282:11)
+PASS src/tests/e2e/metrics.e2e.test.ts
   ● Console
-
     console.warn
       [dotenv-flow@4.1.0]: ".env*" files loading failed: no ".env*" files matching pattern ".env[.test][.local]" in "/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend" dir undefined
-
       4 |  */
       5 |
     > 6 | import 'dotenv-flow/config';
@@ -924,23 +382,17 @@ FAIL src/tests/e2e/metrics.e2e.test.ts
       7 | import path from 'path';
       8 | import dotenv from 'dotenv';
       9 | import { applySequelizeSqlShim } from './utils/test.utils';
-
       at warn (node_modules/dotenv-flow/lib/dotenv-flow.js:394:11)
       at failure (node_modules/dotenv-flow/lib/dotenv-flow.js:383:5)
       at Object.config (node_modules/dotenv-flow/lib/dotenv-flow.js:359:16)
       at Object.<anonymous> (node_modules/dotenv-flow/config.js:6:30)
       at Object.<anonymous> (src/tests/setup.ts:6:1)
-
     console.log
-      [dotenv@17.2.3] injecting env (25) from src/tests/integration/test.env -- tip: ⚙️  override existing env vars with { override: true }
-
+      [dotenv@17.2.3] injecting env (25) from src/tests/integration/test.env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
       at _log (node_modules/dotenv/lib/main.js:142:11)
-
     console.log
       [API_ROUTE_DEBUG_COUNT] 4
-
       at Object.<anonymous> (src/app.ts:161:11)
-
     console.log
       [API_ROUTE_DEBUG_LIST] [
         'GET /users/profile',
@@ -948,71 +400,31 @@ FAIL src/tests/e2e/metrics.e2e.test.ts
         'PUT /users/change-password',
         'GET /__routes_debug'
       ]
-
       at Object.<anonymous> (src/app.ts:163:11)
-
     console.log
       OpenTelemetry tracing started (local only, no OTLP export)
-
       at log (src/tracing/tracing.ts:45:15)
-
     console.log
-      2025-12-01 16:59:20 [error]: Migration 020 failed: No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive. {
-        "service": "lms-backend",
-        "stack": "Error: No description found for \"comment_moderations\" table. Check the table name and schema; remember, they _are_ case sensitive.\n    at PostgresQueryInterface.describeTable (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at Object.up (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)\n    at MigrationManager.migrate (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/migrations/index.ts:284:9)\n    at Object.<anonymous> (/home/runner/work/DoAnChuyenNganh/DoAnChuyenNganh/backend/src/tests/setup.ts:147:7)"
-      }
-
-      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
-
-  ● E2E: Metrics endpoints › GET /metrics/prometheus should return text/plain and include baseline metrics
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
-  ● E2E: Metrics endpoints › GET /metrics should return json with success
-
-    No description found for "comment_moderations" table. Check the table name and schema; remember, they _are_ case sensitive.
-
-      12 | export async function up(queryInterface: QueryInterface): Promise<void> {
-      13 |   // Check if column already exists
-    > 14 |   const tableDescription = await queryInterface.describeTable('comment_moderations');
-         |                            ^
-      15 |   
-      16 |   if (!tableDescription.message_content) {
-      17 |     await queryInterface.addColumn('comment_moderations', 'message_content', {
-
-      at PostgresQueryInterface.describeTable (node_modules/sequelize/src/dialects/abstract/query-interface.js:394:15)
-      at Object.up (src/migrations/020-add-message-content-to-comment-moderations.ts:14:28)
-      at MigrationManager.migrate (src/migrations/index.ts:284:9)
-      at Object.<anonymous> (src/tests/setup.ts:147:7)
-
+      ✅ Model associations setup completed
+      at log (src/models/associations.ts:456:11)
+    console.log
+      ✅ Extended model associations setup completed
+      at log (src/models/associations-extended.ts:282:11)
 -----------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------
 File                               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                                                                                                
 -----------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------
-All files                          |    17.1 |     6.07 |    7.79 |      17 |                                                                                                                                                                  
+All files                          |   21.94 |      9.5 |   11.08 |   21.99 |                                                                                                                                                                  
  api                               |   59.64 |        0 |   14.28 |   62.26 |                                                                                                                                                                  
   index.ts                         |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   routes.ts                        |   55.76 |        0 |       0 |   59.18 | 34-52,73-87                                                                                                                                                      
  api/v1                            |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   index.ts                         |     100 |      100 |     100 |     100 |                                                                                                                                                                  
- api/v1/routes                     |   91.34 |      100 |       0 |     100 |                                                                                                                                                                  
+ api/v1/routes                     |   91.74 |      100 |       0 |     100 |                                                                                                                                                                  
   assignment.routes.ts             |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   auth.routes.ts                   |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   course.routes.ts                 |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   enrollment.routes.ts             |     100 |      100 |     100 |     100 |                                                                                                                                                                  
-  index.ts                         |   89.74 |      100 |       0 |     100 |                                                                                                                                                                  
+  index.ts                         |   90.36 |      100 |       0 |     100 |                                                                                                                                                                  
   lesson.routes.ts                 |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   quiz.routes.ts                   |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   section.routes.ts                |     100 |      100 |     100 |     100 |                                                                                                                                                                  
@@ -1041,9 +453,9 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   hybrid.strategy.ts               |    2.56 |        0 |       0 |    2.68 | 26-423                                                                                                                                                           
   memory.strategy.ts               |    1.03 |        0 |       0 |    1.05 | 17-496                                                                                                                                                           
   redis.strategy.ts                |    1.94 |        0 |       0 |    2.01 | 11-397                                                                                                                                                           
- config                            |   41.25 |    63.12 |   33.33 |   39.47 |                                                                                                                                                                  
+ config                            |      40 |    62.34 |   33.33 |   38.21 |                                                                                                                                                                  
   cors.config.ts                   |   52.38 |     12.5 |      50 |   52.63 | 17-31                                                                                                                                                            
-  db.ts                            |   36.58 |    26.53 |      25 |   35.89 | 20-25,52-73,80-103                                                                                                                                               
+  db.ts                            |    32.6 |    25.49 |      25 |   31.81 | 20-25,52-73,80-120                                                                                                                                               
   env.config.ts                    |   83.33 |    83.11 |   77.77 |   81.25 | 18-21                                                                                                                                                            
   index.ts                         |       0 |      100 |     100 |       0 | 2-5                                                                                                                                                              
   jwt.config.ts                    |     100 |       90 |       0 |     100 | 3                                                                                                                                                                
@@ -1055,45 +467,47 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   response.constants.ts            |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   roles.enum.ts                    |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   user.constants.ts                |       0 |      100 |     100 |       0 | 2-65                                                                                                                                                             
- errors                            |   13.38 |        0 |       0 |   12.42 |                                                                                                                                                                  
+ errors                            |   23.59 |    10.82 |    7.57 |   24.04 |                                                                                                                                                                  
   api.error.ts                     |    6.89 |        0 |       0 |       8 | 27-198                                                                                                                                                           
   authentication.error.ts          |    5.71 |        0 |       0 |    7.14 | 42-203                                                                                                                                                           
   authorization.error.ts           |    5.55 |        0 |       0 |    7.14 | 32-188                                                                                                                                                           
-  base.error.ts                    |    3.33 |        0 |       0 |    3.33 | 44-162                                                                                                                                                           
+  base.error.ts                    |      60 |    46.66 |   27.27 |      60 | 75-94,108,122-162                                                                                                                                                
   database.error.ts                |    3.27 |        0 |       0 |    4.08 | 45-289                                                                                                                                                           
   error.constants.ts               |     100 |      100 |     100 |     100 |                                                                                                                                                                  
-  error.factory.ts                 |   11.25 |        0 |       0 |   11.25 | 26-306                                                                                                                                                           
-  error.handler.ts                 |   26.47 |        0 |       0 |   26.47 | 32-221                                                                                                                                                           
-  error.utils.ts                   |    2.63 |        0 |       0 |    2.66 | 14-275                                                                                                                                                           
+  error.factory.ts                 |      30 |       24 |    8.33 |      30 | 26-134,149-152,162-171,191-199,213-306                                                                                                                           
+  error.handler.ts                 |   51.47 |    32.43 |      30 |   51.47 | 36,51,65-137,152,154,156,158-159,161,163-164,176-221                                                                                                             
+  error.utils.ts                   |   14.47 |    12.72 |   16.66 |   14.66 | 14-78,104,110-131,150-160,175-275                                                                                                                                
   external-service.error.ts        |       4 |        0 |       0 |    4.87 | 47-238                                                                                                                                                           
   file.error.ts                    |    5.55 |        0 |       0 |    7.14 | 45-211                                                                                                                                                           
   index.ts                         |     100 |      100 |       0 |     100 |                                                                                                                                                                  
   validation.error.ts              |    5.71 |        0 |       0 |    6.89 | 46-185                                                                                                                                                           
- middlewares                       |   33.88 |    22.05 |   32.69 |   32.15 |                                                                                                                                                                  
+ middlewares                       |   46.51 |    33.08 |   46.15 |   45.22 |                                                                                                                                                                  
   auth-rate-limit.middleware.ts    |   66.66 |    30.76 |   33.33 |   63.63 | 7,26-28                                                                                                                                                          
-  auth.middleware.ts               |   46.93 |    33.33 |      75 |   43.47 | 22-28,40-51,70-91,97-115                                                                                                                                         
-  error.middleware.ts              |   55.55 |        0 |       0 |   55.55 | 20-24                                                                                                                                                            
+  auth.middleware.ts               |   51.02 |    38.88 |      75 |   47.82 | 40-51,70-91,97-115                                                                                                                                               
+  error.middleware.ts              |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   logger.middleware.ts             |     100 |    71.42 |     100 |     100 | 11-24                                                                                                                                                            
-  message-rate-limit.middleware.ts |       0 |        0 |       0 |       0 | 7-166                                                                                                                                                            
-  tracing.middleware.ts            |   60.52 |    42.85 |   42.85 |   60.52 | 37-38,40-41,50-53,61-67,71-72,77-78                                                                                                                              
+  message-rate-limit.middleware.ts |   11.47 |        0 |    12.5 |   11.47 | 29-158                                                                                                                                                           
+  tracing.middleware.ts            |   71.05 |       50 |   42.85 |   71.05 | 50-53,61-67,71-72,77-78                                                                                                                                          
   uuid-validation.middleware.ts    |       0 |        0 |       0 |       0 | 3-66                                                                                                                                                             
   validate-dto.middleware.ts       |       0 |        0 |       0 |       0 | 2-118                                                                                                                                                            
-  validate.middleware.ts           |   44.64 |    13.04 |   46.15 |   40.81 | 23-31,37,43-69,88-103,117-134                                                                                                                                    
- models                            |   45.12 |       10 |    9.63 |   43.14 |                                                                                                                                                                  
+  validate.middleware.ts           |   82.14 |    60.86 |   84.61 |   81.63 | 69,103,117-134                                                                                                                                                   
+ models                            |   71.42 |    10.34 |   11.11 |   70.85 |                                                                                                                                                                  
   assignment-submission.model.ts   |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   assignment.model.ts              |     100 |      100 |     100 |     100 |                                                                                                                                                                  
-  associations-extended.ts         |       0 |      100 |       0 |       0 | 8-285                                                                                                                                                            
-  associations.ts                  |       0 |      100 |       0 |       0 | 6-398                                                                                                                                                            
+  associations-extended.ts         |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+  associations.ts                  |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   category.model.ts                |   47.05 |        0 |       0 |   47.05 | 108,115-163                                                                                                                                                      
-  chat-message.model.ts            |    87.5 |      100 |       0 |    87.5 | 85                                                                                                                                                               
+  chat-message.model.ts            |    87.5 |      100 |       0 |    87.5 | 126                                                                                                                                                              
   comment-moderation.model.ts      |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+  conversation.model.ts            |   46.66 |        0 |       0 |   46.66 | 84-120                                                                                                                                                           
   course-statistics.model.ts       |     100 |      100 |     100 |     100 |                                                                                                                                                                  
-  course.model.ts                  |     100 |       75 |     100 |     100 | 68-129                                                                                                                                                           
+  course.model.ts                  |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+  direct-message.model.ts          |   36.84 |        0 |       0 |   36.84 | 94-150                                                                                                                                                           
   enrollment.model.ts              |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   final-grade.model.ts             |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   grade-component.model.ts         |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   grade.model.ts                   |     100 |      100 |     100 |     100 |                                                                                                                                                                  
-  index.ts                         |   98.66 |       50 |   20.68 |   97.87 | 58                                                                                                                                                               
+  index.ts                         |   98.76 |       50 |   19.35 |   98.03 | 63                                                                                                                                                               
   lesson-material.model.ts         |      40 |        0 |       0 |    42.1 | 109-117,124-142                                                                                                                                                  
   lesson-progress.model.ts         |   20.51 |        0 |       0 |   21.62 | 128-158,165-219                                                                                                                                                  
   lesson.model.ts                  |   25.92 |        0 |       0 |   25.92 | 121-134,140-170                                                                                                                                                  
@@ -1103,7 +517,7 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   livestream-policy.model.ts       |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   notification-recipient.model.ts  |   16.12 |        0 |       0 |   17.54 | 118-156,179-288                                                                                                                                                  
   notification.model.ts            |   38.09 |        0 |       0 |   38.09 | 145-161,168-212                                                                                                                                                  
-  password-reset-token.model.ts    |       0 |        0 |       0 |       0 | 1-119                                                                                                                                                            
+  password-reset-token.model.ts    |   61.53 |        0 |       0 |   61.53 | 86-90,97-109                                                                                                                                                     
   quiz-answer.model.ts             |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   quiz-attempt.model.ts            |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   quiz-option.model.ts             |     100 |      100 |     100 |     100 |                                                                                                                                                                  
@@ -1125,18 +539,18 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   analytics.service.ts             |      60 |        0 |   33.33 |      60 | 11-15                                                                                                                                                            
   analytics.validate.ts            |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   index.ts                         |       0 |      100 |       0 |       0 | 2-7                                                                                                                                                              
- modules/assignment                |   14.55 |        0 |    4.34 |   14.98 |                                                                                                                                                                  
-  assignment.controller.ts         |   16.05 |        0 |    5.88 |   16.05 | 22-32,40-58,66-76,84-97,105-117,129-146,154-167,179-189,197-216,224-237,245-264,272-285,293-306,318-328,336-349,357-371                                          
-  assignment.repository.ts         |    5.47 |        0 |    4.34 |    5.79 | 21-454                                                                                                                                                           
+ modules/assignment                |   13.12 |        0 |    3.61 |   13.54 |                                                                                                                                                                  
+  assignment.controller.ts         |   15.86 |        0 |    5.55 |   15.86 | 22-32,40-58,66-76,84-97,105-117,129-146,154-167,179-189,197-216,224-237,245-264,272-285,293-306,318-328,336-349,357-371,379-397                                  
+  assignment.repository.ts         |     3.3 |        0 |    2.85 |     3.5 | 21-603                                                                                                                                                           
   assignment.routes.ts             |     100 |      100 |     100 |     100 |                                                                                                                                                                  
-  assignment.service.ts            |    3.59 |        0 |    4.54 |    3.65 | 21-357                                                                                                                                                           
+  assignment.service.ts            |     3.5 |        0 |    4.34 |    3.57 | 21-373                                                                                                                                                           
   assignment.validate.ts           |      50 |        0 |       0 |      50 | 6-7                                                                                                                                                              
   index.ts                         |       0 |      100 |       0 |       0 | 2-7                                                                                                                                                              
- modules/auth                      |   12.94 |     3.09 |      10 |   12.72 |                                                                                                                                                                  
+ modules/auth                      |   12.73 |     3.06 |      10 |   12.51 |                                                                                                                                                                  
   auth.controller.ts               |    7.87 |        0 |    12.5 |    7.87 | 17-46,57-249                                                                                                                                                     
   auth.repository.ts               |   11.53 |     4.76 |   18.18 |   11.53 | 22-23,37,44-45,72-469                                                                                                                                            
   auth.routes.ts                   |      65 |      100 |    6.66 |      65 | 27,35,42,48,56,64,75,81,87,93,100,108,115,122                                                                                                                    
-  auth.service.ts                  |    8.45 |     3.63 |   11.76 |    8.72 | 34,41,47,53,70-677                                                                                                                                               
+  auth.service.ts                  |    8.13 |     3.57 |   11.76 |    8.39 | 34,41,47,53,70-698                                                                                                                                               
   auth.validate.ts                 |       0 |        0 |       0 |       0 | 1-450                                                                                                                                                            
   index.ts                         |     100 |      100 |   33.33 |     100 |                                                                                                                                                                  
  modules/category                  |   36.45 |        0 |   13.04 |   39.77 |                                                                                                                                                                  
@@ -1146,21 +560,31 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   category.service.ts              |   33.33 |        0 |   14.28 |   33.33 | 14-49                                                                                                                                                            
   category.validate.ts             |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   index.ts                         |       0 |      100 |       0 |       0 | 1-6                                                                                                                                                              
- modules/chat                      |       0 |        0 |       0 |       0 |                                                                                                                                                                  
-  chat.controller.ts               |       0 |        0 |       0 |       0 | 7-179                                                                                                                                                            
-  chat.gateway.ts                  |       0 |        0 |       0 |       0 | 7-507                                                                                                                                                            
-  chat.repository.ts               |       0 |        0 |       0 |       0 | 6-385                                                                                                                                                            
-  chat.routes.ts                   |       0 |      100 |     100 |       0 | 6-70                                                                                                                                                             
-  chat.service.ts                  |       0 |        0 |       0 |       0 | 6-176                                                                                                                                                            
-  chat.types.ts                    |       0 |        0 |       0 |       0 | 152-192                                                                                                                                                          
-  index.ts                         |       0 |      100 |       0 |       0 | 6-11                                                                                                                                                             
- modules/course                    |    15.7 |     3.41 |    8.33 |   16.01 |                                                                                                                                                                  
+ modules/chat                      |   18.43 |     2.98 |    7.93 |   18.41 |                                                                                                                                                                  
+  chat.controller.ts               |   18.18 |        0 |    12.5 |   18.18 | 24-50,59-87,96-106,115-124,133-154,163-171,180-188                                                                                                               
+  chat.gateway.ts                  |    4.57 |        0 |       0 |    4.65 | 31-517                                                                                                                                                           
+  chat.repository.ts               |    6.52 |        0 |       0 |    6.59 | 46-386                                                                                                                                                           
+  chat.routes.ts                   |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+  chat.service.ts                  |    7.84 |        0 |      10 |    7.84 | 27-177                                                                                                                                                           
+  chat.types.ts                    |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+  index.ts                         |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+ modules/conversation              |   26.23 |     2.35 |     5.2 |    24.7 |                                                                                                                                                                  
+  conversation.controller.ts       |      25 |        0 |    8.33 |      25 | 24-33,49-54,65-70,82-92,103-112,123-129,140-145,156-161,172-178,189-195,206-210                                                                                  
+  conversation.gateway.ts          |   21.31 |     8.33 |    6.89 |   21.48 | 60-354,362,366                                                                                                                                                   
+  conversation.repository.ts       |   13.15 |        0 |       0 |   14.28 | 16-205                                                                                                                                                           
+  conversation.routes.ts           |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+  conversation.service.ts          |     6.2 |        0 |       0 |    6.29 | 46-419                                                                                                                                                           
+  conversation.validate.ts         |   73.33 |        0 |       0 |   73.33 | 48,57-59                                                                                                                                                         
+  direct-message.repository.ts     |   15.62 |        0 |       0 |   15.62 | 16-204                                                                                                                                                           
+  index.ts                         |     100 |      100 |   18.18 |     100 |                                                                                                                                                                  
+  message.routes.ts                |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+ modules/course                    |   24.38 |     9.57 |   16.52 |   24.89 |                                                                                                                                                                  
   course.admin.controller.ts       |    9.25 |        0 |    9.09 |    9.25 | 34-277                                                                                                                                                           
   course.admin.routes.ts           |   66.66 |      100 |       0 |   66.66 | 24,33,42,51,62,71,80,89,98,107                                                                                                                                   
-  course.controller.ts             |      19 |        0 |   15.38 |      19 | 30,36-62,68-78,84-99,105-120,126-146,152-175,181-204,210-226,232-247,253-269,275-292                                                                             
-  course.repository.ts             |    5.33 |        0 |    7.31 |    5.47 | 33-686                                                                                                                                                           
+  course.controller.ts             |   38.93 |    23.52 |   42.85 |   38.93 | 30,62,88-89,99,109-110,126-146,152-175,181-210,216-232,238-253,259-275,281-298,304-317                                                                           
+  course.repository.ts             |    8.97 |     2.45 |   11.11 |     9.2 | 33-47,65,69,74,105-808                                                                                                                                           
   course.routes.ts                 |     100 |      100 |     100 |     100 |                                                                                                                                                                  
-  course.service.ts                |   13.88 |    12.12 |   23.07 |   13.98 | 29,45,53-60,66,76-339                                                                                                                                            
+  course.service.ts                |   34.64 |    23.88 |   46.66 |   35.09 | 29,45,53-60,66,76-77,93-94,116-117,131,136-138,147-148,158-159,178-180,198-360                                                                                   
   course.validate.ts               |       0 |        0 |       0 |       0 | 1-231                                                                                                                                                            
   index.ts                         |       0 |      100 |       0 |       0 | 7-53                                                                                                                                                             
  modules/course-content            |   13.75 |        0 |    3.29 |   14.17 |                                                                                                                                                                  
@@ -1170,12 +594,12 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   course-content.service.ts        |    4.32 |        0 |    3.33 |    4.34 | 35-530                                                                                                                                                           
   course-content.validate.ts       |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   index.ts                         |       0 |      100 |       0 |       0 | 2-7                                                                                                                                                              
- modules/enrollment                |   10.58 |        0 |     3.7 |   10.98 |                                                                                                                                                                  
-  enrollment.controller.ts         |    4.23 |        0 |    5.88 |    4.23 | 20-299                                                                                                                                                           
-  enrollment.repository.ts         |    5.22 |        0 |       4 |    5.78 | 20-367                                                                                                                                                           
-  enrollment.routes.ts             |    62.5 |      100 |       0 |    62.5 | 21,28,35,44,52,60,69,78,87,94,102,110,119,127,134                                                                                                                
-  enrollment.service.ts            |    4.92 |        0 |    5.26 |    5.03 | 7-8,30-351                                                                                                                                                       
-  enrollment.validate.ts           |      30 |        0 |       0 |      30 | 28-130                                                                                                                                                           
+ modules/enrollment                |   48.42 |    53.67 |   46.91 |      50 |                                                                                                                                                                  
+  enrollment.controller.ts         |   42.37 |    73.33 |   52.94 |   42.37 | 60-61,74-90,105-106,119-120,134-253,276-277,298-299                                                                                                              
+  enrollment.repository.ts         |    38.8 |     22.5 |      32 |   42.14 | 82-83,115-121,144-145,177-178,210-367                                                                                                                            
+  enrollment.routes.ts             |    77.5 |      100 |      40 |    77.5 | 44,69,87,94,102,110,119,127,134                                                                                                                                  
+  enrollment.service.ts            |   53.52 |    64.28 |   63.15 |   54.67 | 68,91,121-122,134,139-140,153,158,163,170,179-180,192,197-198,211,223-224,240-241,255-341                                                                        
+  enrollment.validate.ts           |      60 |       60 |      60 |      60 | 91-130                                                                                                                                                           
  modules/files                     |   26.09 |    18.39 |   17.39 |   25.52 |                                                                                                                                                                  
   files.controller.ts              |   12.96 |        0 |    8.33 |   12.96 | 25-44,53-77,86-112,121-147,156-169,178-191,200-212,221-233,242-259                                                                                               
   files.routes.ts                  |     100 |      100 |     100 |     100 |                                                                                                                                                                  
@@ -1211,10 +635,10 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   moderation.controller.ts         |   10.58 |        0 |    9.09 |   11.11 | 17-22,30-82,90-163,171-200,208-221                                                                                                                               
   moderation.routes.ts             |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   moderation.service.ts            |       7 |        0 |    12.5 |       7 | 40-497                                                                                                                                                           
- modules/notifications             |   19.94 |     1.06 |    5.12 |   21.44 |                                                                                                                                                                  
+ modules/notifications             |   19.07 |     1.03 |    4.87 |   20.44 |                                                                                                                                                                  
   index.ts                         |       0 |      100 |       0 |       0 | 2-7                                                                                                                                                              
   notifications.controller.ts      |   19.04 |        0 |    7.69 |   19.04 | 17-22,30-40,48-73,81-86,94-99,107-113,121-127,135-141,149-154,162-167,175-187,195-206                                                                            
-  notifications.gateway.ts         |   21.91 |    14.28 |       5 |   21.91 | 64-242,251,255                                                                                                                                                   
+  notifications.gateway.ts         |   17.77 |       10 |    4.16 |   17.77 | 64-282,291,295                                                                                                                                                   
   notifications.repository.ts      |   10.81 |        0 |    4.34 |   13.18 | 25-367                                                                                                                                                           
   notifications.routes.ts          |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   notifications.service.ts         |    7.93 |        0 |    6.25 |    7.93 | 18-267                                                                                                                                                           
@@ -1241,13 +665,13 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   system.settings.controller.ts    |   26.31 |        0 |   33.33 |   26.31 | 14-41                                                                                                                                                            
   system.settings.routes.ts        |   84.61 |      100 |       0 |     100 |                                                                                                                                                                  
   system.settings.service.ts       |   57.14 |      100 |      50 |   57.14 | 41-54                                                                                                                                                            
- modules/user                      |   13.46 |        0 |    6.14 |   12.82 |                                                                                                                                                                  
+ modules/user                      |   13.61 |        0 |    7.01 |   12.97 |                                                                                                                                                                  
   index.ts                         |     100 |      100 |      60 |     100 |                                                                                                                                                                  
   user.admin.controller.ts         |    6.61 |        0 |    6.66 |    6.61 | 32-343                                                                                                                                                           
   user.admin.routes.ts             |   65.62 |      100 |       0 |   65.62 | 29,41,53,65,77,93,106,118,131,140,149                                                                                                                            
   user.controller.ts               |     5.2 |        0 |    7.14 |     5.2 | 21-207                                                                                                                                                           
   user.repository.ts               |    2.68 |        0 |    5.26 |    2.68 | 57-485                                                                                                                                                           
-  user.routes.ts                   |    57.4 |        0 |       0 |    57.4 | 24-27,43-47,57-61,68,75,81,87,95,101,106,113,119,126,133,146                                                                                                     
+  user.routes.ts                   |   59.25 |        0 |    5.88 |   59.25 | 24-27,43-47,57-61,68,75,81,87,95,101,106,113,119,126,133                                                                                                         
   user.service.ts                  |    4.93 |        0 |    5.26 |    4.96 | 26-428                                                                                                                                                           
   user.validate.ts                 |       0 |        0 |       0 |       0 | 1-369                                                                                                                                                            
  modules/webrtc                    |       0 |        0 |       0 |       0 |                                                                                                                                                                  
@@ -1255,25 +679,25 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   webrtc.gateway.ts                |       0 |        0 |       0 |       0 | 7-579                                                                                                                                                            
   webrtc.service.ts                |       0 |        0 |       0 |       0 | 6-164                                                                                                                                                            
   webrtc.types.ts                  |       0 |        0 |       0 |       0 | 27-166                                                                                                                                                           
- monitoring                        |   94.73 |      100 |      40 |      90 |                                                                                                                                                                  
+ monitoring                        |     100 |      100 |      50 |     100 |                                                                                                                                                                  
   index.ts                         |     100 |      100 |   44.44 |     100 |                                                                                                                                                                  
-  ping.routes.ts                   |      80 |      100 |       0 |      80 | 28                                                                                                                                                               
- monitoring/health                 |   22.35 |        0 |   11.11 |   20.95 |                                                                                                                                                                  
-  health.controller.ts             |   23.07 |        0 |   11.11 |   23.07 | 23-28,37-42,51-60,69-78,87-96,105-114,123-128,137-142                                                                                                            
+  ping.routes.ts                   |     100 |      100 |     100 |     100 |                                                                                                                                                                  
+ monitoring/health                 |   48.23 |    21.66 |   51.85 |    47.3 |                                                                                                                                                                  
+  health.controller.ts             |   44.23 |       25 |   44.44 |   44.23 | 28,37-42,55,60,69-78,93-96,105-114,123-128,137-142                                                                                                               
   health.routes.ts                 |     100 |      100 |     100 |     100 |                                                                                                                                                                  
-  health.service.ts                |    7.07 |        0 |    6.66 |    7.07 | 131-432                                                                                                                                                          
+  health.service.ts                |    40.4 |    21.15 |      60 |    40.4 | 146-174,214,255-294,314,316,333-336,363-365,380-385,401-432                                                                                                      
   index.ts                         |     100 |      100 |   33.33 |     100 |                                                                                                                                                                  
- monitoring/metrics                |   26.57 |    24.01 |   18.57 |   27.01 |                                                                                                                                                                  
+ monitoring/metrics                |   31.04 |    29.27 |   21.42 |   31.71 |                                                                                                                                                                  
   background-tasks.metrics.ts      |       0 |        0 |       0 |       0 | 7-318                                                                                                                                                            
   database.metrics.ts              |       0 |        0 |       0 |       0 | 8-235                                                                                                                                                            
   index.ts                         |     100 |      100 |      40 |     100 |                                                                                                                                                                  
-  metrics.controller.ts            |   10.21 |        0 |     3.7 |   10.38 | 36-40,49-53,62-78,87-103,112-131,140-159,168-178,187-191,200-209,218-227,236-245,254-265,274-382                                                                 
-  metrics.middleware.ts            |   64.21 |    44.26 |   39.13 |   71.76 | 49,88,96,145-167,176,183,190,205,212,226,233,246-255                                                                                                             
+  metrics.controller.ts            |   23.11 |      2.5 |   11.11 |   23.49 | 40,49-53,62-78,87-103,112-131,140-159,168-178,187-191,200-209,218-227,236-245,254-265,281-284,289-356,382                                                        
+  metrics.middleware.ts            |   69.47 |    68.85 |   43.47 |   77.64 | 88,96,176,183,190,205,212,226,233,246-255                                                                                                                        
   metrics.routes.ts                |     100 |       50 |     100 |     100 | 14-324                                                                                                                                                           
-  metrics.service.ts               |   49.32 |    45.56 |      40 |    50.7 | 103,161,185,217,238-397,411,438-441,459-470,478,488-515                                                                                                          
+  metrics.service.ts               |   51.35 |    45.56 |   42.85 |   52.81 | 103,161,185,217,238-317,327,337-397,411,438-441,459-470,478,488-515                                                                                              
   redis.metrics.ts                 |       0 |        0 |       0 |       0 | 8-292                                                                                                                                                            
- repositories                      |   13.11 |     9.52 |   10.14 |    11.3 |                                                                                                                                                                  
-  base.repository.ts               |   13.51 |    18.75 |   22.22 |   13.51 | 53-77,92,99-393                                                                                                                                                  
+ repositories                      |   22.48 |     23.8 |   17.39 |   21.35 |                                                                                                                                                                  
+  base.repository.ts               |   40.54 |    56.25 |      50 |   40.54 | 53-54,76-77,99-100,117-136,156,161,167-168,185,190-191,208-393                                                                                                   
   enrollment.repository.ts         |       0 |        0 |       0 |       0 | 2-245                                                                                                                                                            
   index.ts                         |       0 |      100 |       0 |       0 | 7-40                                                                                                                                                             
   user.repository.ts               |   19.78 |     4.54 |    8.82 |   15.72 | 32,39-492                                                                                                                                                        
@@ -1337,7 +761,7 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
  types/dtos                        |       0 |        0 |       0 |       0 |                                                                                                                                                                  
   enrollment.dto.ts                |       0 |        0 |       0 |       0 | 1-59                                                                                                                                                             
   index.ts                         |       0 |      100 |     100 |       0 | 6-21                                                                                                                                                             
- utils                             |   14.64 |     2.67 |    6.14 |   15.09 |                                                                                                                                                                  
+ utils                             |   17.47 |     7.88 |    9.21 |   18.05 |                                                                                                                                                                  
   bcrypt.util.ts                   |   14.28 |       10 |   14.28 |   14.28 | 20-130                                                                                                                                                           
   constants.util.ts                |     100 |      100 |     100 |     100 |                                                                                                                                                                  
   date.util.ts                     |    6.61 |     1.92 |    2.85 |    6.61 | 20-34,57-311                                                                                                                                                     
@@ -1346,11 +770,11 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   index.ts                         |     100 |      100 |    12.5 |     100 |                                                                                                                                                                  
   jwt.util.ts                      |   28.57 |        0 |      15 |   28.57 | 72-73,89-223,243-270                                                                                                                                             
   logger.util.ts                   |   33.33 |    13.95 |      20 |   35.13 | 126-137,142-145,150,154,158,181-265                                                                                                                              
-  message-delivery.util.ts         |       0 |        0 |       0 |       0 | 32-123                                                                                                                                                           
+  message-delivery.util.ts         |    14.7 |        0 |    12.5 |    14.7 | 40-113,123                                                                                                                                                       
   model-extension.util.ts          |   45.16 |    10.71 |   23.52 |   45.16 | 17-20,41,56,125-128,139-146,161,171,185-186,196-197,208,218-219,233-240,255,264-267                                                                              
-  object.util.ts                   |    0.46 |        0 |       0 |    0.53 | 11-375                                                                                                                                                           
-  pagination.util.ts               |    1.85 |        0 |       0 |    1.88 | 46-235                                                                                                                                                           
-  response.util.ts                 |   32.65 |     5.76 |    9.52 |   33.33 | 35-126,145-249                                                                                                                                                   
+  object.util.ts                   |    5.58 |     8.47 |    5.55 |    6.38 | 11-63,73-121,130,133,146-375                                                                                                                                     
+  pagination.util.ts               |   11.11 |    22.72 |    9.09 |   11.32 | 73-235                                                                                                                                                           
+  response.util.ts                 |   67.34 |    38.46 |   42.85 |   66.66 | 79-103,145-165,175,179,191,207-249                                                                                                                               
   role.util.ts                     |    3.44 |        0 |       0 |    3.84 | 15-178                                                                                                                                                           
   secure.util.ts                   |    5.76 |        0 |       0 |       6 | 16-149                                                                                                                                                           
   token.util.ts                    |   17.09 |     3.03 |   18.18 |   17.54 | 100-101,118,127-128,154-365,381-504                                                                                                                              
@@ -1374,11 +798,98 @@ All files                          |    17.1 |     6.07 |    7.79 |      17 |
   index.ts                         |       0 |      100 |       0 |       0 | 7-53                                                                                                                                                             
   user.validate.ts                 |   35.71 |        0 |       0 |   35.71 | 99-114,215-238                                                                                                                                                   
 -----------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Jest: "global" coverage threshold for branches (9%) not met: 6.07%
-Jest: "global" coverage threshold for functions (10%) not met: 7.79%
-Test Suites: 4 failed, 4 total
-Tests:       35 failed, 35 total
+Test Suites: 4 passed, 4 total
+Tests:       35 passed, 35 total
 Snapshots:   0 total
-Time:        33.726 s
+Time:        36.427 s
 Ran all test suites matching e2e.
-Error: Process completed with exit code 1.
+Jest has detected the following 4 open handles potentially keeping Jest from exiting:
+  ●  Timeout
+      120 |
+      121 | // Run cleanup every 30 minutes
+    > 122 | setInterval(() => {
+          | ^
+      123 |   deliveryTracker.cleanup();
+      124 | }, 30 * 60 * 1000);
+      125 |
+      at Object.setInterval (src/utils/message-delivery.util.ts:122:1)
+      at Object.require (src/modules/chat/chat.gateway.ts:24:1)
+      at Object.require (src/modules/chat/index.ts:10:1)
+      at Object.require (src/api/v1/routes/index.ts:36:1)
+      at Object.require (src/api/v1/index.ts:6:1)
+      at Object.require (src/api/routes.ts:8:1)
+      at Object.require (src/api/index.ts:6:1)
+      at Object.<anonymous> (src/app.ts:25:1)
+      at Object.<anonymous> (src/tests/e2e/course-enrollment.e2e.test.ts:7:1)
+  ●  Timeout
+      120 |
+      121 | // Run cleanup every 30 minutes
+    > 122 | setInterval(() => {
+          | ^
+      123 |   deliveryTracker.cleanup();
+      124 | }, 30 * 60 * 1000);
+      125 |
+      at Object.setInterval (src/utils/message-delivery.util.ts:122:1)
+      at Object.require (src/modules/chat/chat.gateway.ts:24:1)
+      at Object.require (src/modules/chat/index.ts:10:1)
+      at Object.require (src/api/v1/routes/index.ts:36:1)
+      at Object.require (src/api/v1/index.ts:6:1)
+      at Object.require (src/api/routes.ts:8:1)
+      at Object.require (src/api/index.ts:6:1)
+      at Object.<anonymous> (src/app.ts:25:1)
+      at Object.<anonymous> (src/tests/e2e/course-registration.e2e.test.ts:7:1)
+  ●  Timeout
+      120 |
+      121 | // Run cleanup every 30 minutes
+    > 122 | setInterval(() => {
+          | ^
+      123 |   deliveryTracker.cleanup();
+      124 | }, 30 * 60 * 1000);
+      125 |
+      at Object.setInterval (src/utils/message-delivery.util.ts:122:1)
+      at Object.require (src/modules/chat/chat.gateway.ts:24:1)
+      at Object.require (src/modules/chat/index.ts:10:1)
+      at Object.require (src/api/v1/routes/index.ts:36:1)
+      at Object.require (src/api/v1/index.ts:6:1)
+      at Object.require (src/api/routes.ts:8:1)
+      at Object.require (src/api/index.ts:6:1)
+      at Object.<anonymous> (src/app.ts:25:1)
+      at Object.<anonymous> (src/tests/e2e/health.e2e.test.ts:2:1)
+  ●  Timeout
+      120 |
+      121 | // Run cleanup every 30 minutes
+    > 122 | setInterval(() => {
+          | ^
+      123 |   deliveryTracker.cleanup();
+      124 | }, 30 * 60 * 1000);
+      125 |
+      at Object.setInterval (src/utils/message-delivery.util.ts:122:1)
+      at Object.require (src/modules/chat/chat.gateway.ts:24:1)
+      at Object.require (src/modules/chat/index.ts:10:1)
+      at Object.require (src/api/v1/routes/index.ts:36:1)
+      at Object.require (src/api/v1/index.ts:6:1)
+      at Object.require (src/api/routes.ts:8:1)
+      at Object.require (src/api/index.ts:6:1)
+      at Object.<anonymous> (src/app.ts:25:1)
+      at Object.<anonymous> (src/tests/e2e/metrics.e2e.test.ts:2:1)
+(node:2810) [JEST-01] DeprecationWarning: 'version' property was accessed on [Object] after it was soft deleted
+  Jest deletes objects that were set on the global scope between test files to reduce memory leaks.
+  Currently it only "soft" deletes them and emits this warning if those objects were accessed after their deletion.
+  In future versions of Jest, this behavior will change to "on", which will likely fail tests.
+  You can change the behavior in your test configuration now to reduce memory usage.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:2810) [JEST-01] DeprecationWarning: 'version' property was accessed on [Object] after it was soft deleted
+  Jest deletes objects that were set on the global scope between test files to reduce memory leaks.
+  Currently it only "soft" deletes them and emits this warning if those objects were accessed after their deletion.
+  In future versions of Jest, this behavior will change to "on", which will likely fail tests.
+  You can change the behavior in your test configuration now to reduce memory usage.
+(node:2810) [JEST-01] DeprecationWarning: 'version' property was accessed on [Object] after it was soft deleted
+  Jest deletes objects that were set on the global scope between test files to reduce memory leaks.
+  Currently it only "soft" deletes them and emits this warning if those objects were accessed after their deletion.
+  In future versions of Jest, this behavior will change to "on", which will likely fail tests.
+  You can change the behavior in your test configuration now to reduce memory usage.
+(node:2810) [JEST-01] DeprecationWarning: 'version' property was accessed on [Object] after it was soft deleted
+  Jest deletes objects that were set on the global scope between test files to reduce memory leaks.
+  Currently it only "soft" deletes them and emits this warning if those objects were accessed after their deletion.
+  In future versions of Jest, this behavior will change to "on", which will likely fail tests.
+  You can change the behavior in your test configuration now to reduce memory usage.

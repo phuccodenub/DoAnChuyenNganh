@@ -11,8 +11,9 @@ import { ApiError } from '../../errors/api.error';
 import logger from '../../utils/logger.util';
 
 export interface CreateConversationDto {
-  course_id: string;
-  instructor_id: string;
+  recipient_id?: string;  // New: direct user-to-user conversation
+  course_id?: string;     // Legacy: course-based conversation
+  instructor_id?: string; // Legacy: instructor for course
   initial_message?: string;
 }
 
@@ -42,21 +43,16 @@ export class ConversationService {
    * Get all conversations for a user
    */
   async getConversations(userId: string, options: GetConversationsOptions = {}) {
-    // Determine user role
-    const user = await User.findByPk(userId);
-    if (!user) {
-      throw new ApiError('User not found', 404);
-    }
-
-    const role = (user as any).role === 'instructor' ? 'instructor' : 'student';
-    const result = await conversationRepository.findByUserId(userId, role, options);
+    // No need to determine role - repository handles both user1/user2
+    const result = await conversationRepository.findByUserId(userId, 'student', options);
 
     // Enrich with unread counts and last message
     const enrichedConversations = await Promise.all(
       result.rows.map(async (conv: any) => {
-        const lastReadAt = role === 'student' 
-          ? conv.student_last_read_at 
-          : conv.instructor_last_read_at;
+        // Determine which lastReadAt field to use based on userId
+        const lastReadAt = conv.user1_id === userId 
+          ? conv.user1_last_read_at 
+          : conv.user2_last_read_at;
 
         const unreadCount = await directMessageRepository.countUnread(
           conv.id,
@@ -100,11 +96,10 @@ export class ConversationService {
       throw new ApiError('Conversation not found', 404);
     }
 
-    // Get role and unread count
-    const role = await conversationRepository.getParticipantRole(conversationId, userId);
-    const lastReadAt = role === 'student'
-      ? (conversation as any).student_last_read_at
-      : (conversation as any).instructor_last_read_at;
+    // Determine which lastReadAt field to use
+    const lastReadAt = (conversation as any).user1_id === userId
+      ? (conversation as any).user1_last_read_at
+      : (conversation as any).user2_last_read_at;
 
     const unreadCount = await directMessageRepository.countUnread(
       conversationId,
@@ -130,7 +125,17 @@ export class ConversationService {
    * Create or get existing conversation
    */
   async createConversation(userId: string, dto: CreateConversationDto) {
-    const { course_id, instructor_id, initial_message } = dto;
+    const { recipient_id, course_id, instructor_id, initial_message } = dto;
+
+    // New approach: direct user-to-user conversation
+    if (recipient_id) {
+      return this.createDirectConversation(userId, recipient_id, initial_message);
+    }
+
+    // Legacy approach: course-based conversation
+    if (!course_id || !instructor_id) {
+      throw new ApiError('Either recipient_id or both course_id and instructor_id are required', 400);
+    }
 
     // Validate course exists
     const course = await Course.findByPk(course_id);
@@ -194,6 +199,70 @@ export class ConversationService {
   }
 
   /**
+   * Create direct conversation between two users (no course required)
+   */
+  private async createDirectConversation(userId: string, recipientId: string, initialMessage?: string) {
+    // Validate recipient exists
+    const recipient = await User.findByPk(recipientId);
+    if (!recipient) {
+      throw new ApiError('Recipient not found', 404);
+    }
+
+    // Cannot message yourself
+    if (userId === recipientId) {
+      throw new ApiError('Cannot start conversation with yourself', 400);
+    }
+
+    // Determine roles
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      throw new ApiError('User not found', 404);
+    }
+
+    const currentUserRole = (currentUser as any).role;
+    const recipientRole = (recipient as any).role;
+
+    // Determine student and instructor for the conversation model
+    // If one is instructor, they're the instructor_id
+    // If both are students or both are instructors, current user is "student" role in conversation
+    let studentId: string;
+    let instructorIdFinal: string;
+
+    if (currentUserRole === 'instructor' && recipientRole !== 'instructor') {
+      instructorIdFinal = userId;
+      studentId = recipientId;
+    } else if (recipientRole === 'instructor' && currentUserRole !== 'instructor') {
+      instructorIdFinal = recipientId;
+      studentId = userId;
+    } else {
+      // Both same role - use alphabetical order for consistency
+      if (userId < recipientId) {
+        studentId = userId;
+        instructorIdFinal = recipientId;
+      } else {
+        studentId = recipientId;
+        instructorIdFinal = userId;
+      }
+    }
+
+    // Find or create conversation (null course_id for direct messages)
+    const { conversation, created } = await conversationRepository.findOrCreateDirect(
+      studentId,
+      instructorIdFinal
+    );
+
+    // Send initial message if provided
+    if (initialMessage && conversation) {
+      await this.sendMessage(userId, {
+        conversation_id: conversation.id,
+        content: initialMessage,
+      });
+    }
+
+    return { conversation, created };
+  }
+
+  /**
    * Get messages for a conversation
    */
   async getMessages(conversationId: string, userId: string, options: GetMessagesOptions = {}) {
@@ -205,14 +274,12 @@ export class ConversationService {
 
     const messages = await directMessageRepository.findByConversationId(conversationId, options);
 
-    // Mark messages as read
-    const role = await conversationRepository.getParticipantRole(conversationId, userId);
-    if (role) {
-      await conversationRepository.markAsRead(conversationId, userId, role);
-      await directMessageRepository.markAsRead(conversationId, userId);
-    }
+    // Mark messages as read (repository will auto-detect user1/user2)
+    await conversationRepository.markAsRead(conversationId, userId, 'student');
+    await directMessageRepository.markAsRead(conversationId, userId);
 
-    return messages;
+    // Serialize messages to ensure all fields including created_at are included
+    return messages.map(msg => (msg as any).toJSON());
   }
 
   /**
@@ -282,12 +349,13 @@ export class ConversationService {
    * Mark messages as read
    */
   async markAsRead(conversationId: string, userId: string) {
-    const role = await conversationRepository.getParticipantRole(conversationId, userId);
-    if (!role) {
+    const isParticipant = await conversationRepository.isParticipant(conversationId, userId);
+    if (!isParticipant) {
       throw new ApiError('You are not a participant in this conversation', 403);
     }
 
-    await conversationRepository.markAsRead(conversationId, userId, role);
+    // Repository will auto-detect user1/user2
+    await conversationRepository.markAsRead(conversationId, userId, 'student');
     await directMessageRepository.markAsRead(conversationId, userId);
 
     return { success: true };
@@ -322,25 +390,24 @@ export class ConversationService {
   }
 
   /**
-   * Get unread count for all conversations
+   * Get count of conversations with unread messages (not total message count)
    */
   async getTotalUnreadCount(userId: string): Promise<number> {
-    const user = await User.findByPk(userId);
-    if (!user) return 0;
+    const result = await conversationRepository.findByUserId(userId, 'student', { includeArchived: false });
 
-    const role = (user as any).role === 'instructor' ? 'instructor' : 'student';
-    const result = await conversationRepository.findByUserId(userId, role, { includeArchived: false });
-
-    let totalUnread = 0;
+    let conversationsWithUnread = 0;
     for (const conv of result.rows) {
-      const lastReadAt = role === 'student'
-        ? (conv as any).student_last_read_at
-        : (conv as any).instructor_last_read_at;
+      const lastReadAt = (conv as any).user1_id === userId
+        ? (conv as any).user1_last_read_at
+        : (conv as any).user2_last_read_at;
 
-      totalUnread += await directMessageRepository.countUnread((conv as any).id, userId, lastReadAt);
+      const unreadCount = await directMessageRepository.countUnread((conv as any).id, userId, lastReadAt);
+      if (unreadCount > 0) {
+        conversationsWithUnread++;
+      }
     }
 
-    return totalUnread;
+    return conversationsWithUnread;
   }
 
   /**
@@ -360,8 +427,8 @@ export class ConversationService {
     const convData = (conv as any).toJSON();
     return {
       id: convData.id,
-      studentId: convData.student_id,
-      instructorId: convData.instructor_id,
+      user1Id: convData.user1_id,
+      user2Id: convData.user2_id,
       courseId: convData.course_id,
     };
   }
@@ -422,4 +489,3 @@ export class ConversationService {
 
 export const conversationService = new ConversationService();
 export default conversationService;
-

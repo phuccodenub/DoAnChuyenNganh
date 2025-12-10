@@ -178,16 +178,16 @@ export const setupAssociations = () => {
   });
 
   // ===================================
-  // 3. CHAT RELATIONSHIPS (Current Simple Version)
+  // 3. CHAT RELATIONSHIPS (Supabase Schema)
   // ===================================
   
-  // User 1 ---< ChatMessage
+  // User 1 ---< ChatMessage (Supabase uses user_id)
   (User as any).hasMany(ChatMessage, {
-    foreignKey: 'sender_id',
+    foreignKey: 'user_id',
     as: 'sentMessages'
   });
   (ChatMessage as any).belongsTo(User, {
-    foreignKey: 'sender_id',
+    foreignKey: 'user_id',
     as: 'sender'
   });
 
@@ -201,13 +201,13 @@ export const setupAssociations = () => {
     as: 'course'
   });
 
-  // ChatMessage (self-referencing) - Reply functionality
+  // ChatMessage (self-referencing) - Reply functionality (Supabase uses reply_to_message_id)
   (ChatMessage as any).hasMany(ChatMessage, {
-    foreignKey: 'reply_to',
+    foreignKey: 'reply_to_message_id',
     as: 'replies'
   });
   (ChatMessage as any).belongsTo(ChatMessage, {
-    foreignKey: 'reply_to',
+    foreignKey: 'reply_to_message_id',
     as: 'replyToMessage'
   });
 
@@ -411,26 +411,26 @@ export const setupAssociations = () => {
     as: 'course'
   });
 
-  // User (Student) 1 ---< Conversation
+  // User (user1) 1 ---< Conversation
   (User as any).hasMany(Conversation, {
-    foreignKey: 'student_id',
-    as: 'studentConversations',
+    foreignKey: 'user1_id',
+    as: 'conversationsAsUser1',
     onDelete: 'CASCADE'
   });
   (Conversation as any).belongsTo(User, {
-    foreignKey: 'student_id',
-    as: 'student'
+    foreignKey: 'user1_id',
+    as: 'user1'
   });
 
-  // User (Instructor) 1 ---< Conversation
+  // User (user2) 1 ---< Conversation
   (User as any).hasMany(Conversation, {
-    foreignKey: 'instructor_id',
-    as: 'instructorConversations',
+    foreignKey: 'user2_id',
+    as: 'conversationsAsUser2',
     onDelete: 'CASCADE'
   });
   (Conversation as any).belongsTo(User, {
-    foreignKey: 'instructor_id',
-    as: 'instructor'
+    foreignKey: 'user2_id',
+    as: 'user2'
   });
 
   // Conversation 1 ---< DirectMessage

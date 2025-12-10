@@ -13,6 +13,12 @@ export function SocketStatus() {
   const [socketId, setSocketId] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
+  const env = import.meta.env as any;
+  const socketUrl =
+    env.VITE_WS_URL ||
+    env.VITE_SOCKET_URL ||
+    (env.DEV && typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+
   useEffect(() => {
     // Chỉ hiển thị trong development
     if (import.meta.env.PROD) {
@@ -94,7 +100,7 @@ export function SocketStatus() {
         </div>
       )}
       <div className="text-gray-500 mt-1">
-        URL: {import.meta.env.VITE_WS_URL || 'http://localhost:3000'}
+        URL: {socketUrl}
       </div>
     </div>
   );

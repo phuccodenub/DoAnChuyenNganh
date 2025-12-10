@@ -64,8 +64,51 @@ export class ConversationGateway {
   constructor(io: SocketIOServer) {
     this.io = io;
     this.conversationService = new ConversationService();
+    this.setupMiddleware();  // ✅ ADD: Setup auth middleware
     this.setupNamespace();
     logger.info('Conversation Gateway initialized');
+  }
+
+  /**
+   * Setup authentication middleware
+   * CRITICAL: This ensures every socket has authenticated user attached
+   */
+  private setupMiddleware(): void {
+    this.io.use(async (socket: Socket, next) => {
+      try {
+        // Check if user already attached by another gateway (ChatGateway)
+        if ((socket as any).user) {
+          logger.debug(`[ConversationGateway] Socket ${socket.id} already authenticated`);
+          return next();
+        }
+
+        const token = socket.handshake.auth.token || 
+                     socket.handshake.headers.authorization?.replace('Bearer ', '');
+
+        if (!token) {
+          logger.warn(`[ConversationGateway] ❌ Socket ${socket.id} - No token provided`);
+          socket.emit('auth_error', { message: 'Authentication token required' });
+          return next(new Error('Authentication token required'));
+        }
+
+        // Verify JWT token
+        const decoded = jwtUtils.verifyAccessToken(token);
+        
+        // Attach user to socket
+        (socket as any).user = {
+          userId: decoded.userId,
+          email: decoded.email,
+          role: decoded.role
+        } as SocketUser;
+
+        logger.info(`[ConversationGateway] ✅ Socket ${socket.id} authenticated - User: ${decoded.userId} (${decoded.email})`);
+        next();
+      } catch (error: unknown) {
+        logger.error(`[ConversationGateway] ❌ Socket auth error:`, error);
+        socket.emit('auth_error', { message: 'Authentication failed', error: (error as Error).message });
+        next(new Error('Authentication failed'));
+      }
+    });
   }
 
   /**
@@ -74,24 +117,34 @@ export class ConversationGateway {
   private setupNamespace(): void {
     // Use the main io connection but with dm: prefix for events
     this.io.on('connection', (socket: Socket) => {
-      // Only handle DM events if authenticated
+      // ✅ FIX: Middleware ensures user is always attached
       const user = (socket as any).user as SocketUser | undefined;
-      if (!user) return;
+      
+      if (!user) {
+        logger.warn(`[ConversationGateway] Socket ${socket.id} has no user (auth middleware failed), disconnecting`);
+        socket.disconnect();
+        return;
+      }
 
+      logger.info(`[ConversationGateway] User ${user.userId} connected (${socket.id})`);
+      
+      // Track user connection
       this.trackUserConnection(user.userId, socket.id, user);
+      
+      // ✅ Auto-join global user room (ensures messages received even if conversation not open)
+      const userRoom = `user:${user.userId}`;
+      socket.join(userRoom);
+      logger.info(`✅ [ConversationGateway] User ${user.userId} auto-joined global room: ${userRoom}`);
+      
+      // Setup DM event handlers
       this.setupDMEventHandlers(socket, user);
+      
+      // Handle disconnect
+      socket.on('disconnect', (reason) => {
+        this.handleDisconnect(socket, user);
+        logger.info(`[ConversationGateway] User ${user.userId} disconnected (reason: ${reason})`);
+      });
     });
-  }
-
-  /**
-   * Track user connection
-   */
-  private trackUserConnection(userId: string, socketId: string, user: SocketUser): void {
-    if (!this.userSockets.has(userId)) {
-      this.userSockets.set(userId, new Set());
-    }
-    this.userSockets.get(userId)!.add(socketId);
-    this.socketUsers.set(socketId, user);
   }
 
   /**
@@ -136,6 +189,18 @@ export class ConversationGateway {
     socket.on('disconnect', () => {
       this.handleDisconnect(socket, user);
     });
+  }
+
+  /**
+   * Track user connection
+   */
+  private trackUserConnection(userId: string, socketId: string, user: SocketUser): void {
+    if (!this.userSockets.has(userId)) {
+      this.userSockets.set(userId, new Set());
+    }
+
+    this.userSockets.get(userId)!.add(socketId);
+    this.socketUsers.set(socketId, user);
   }
 
   /**
@@ -215,23 +280,31 @@ export class ConversationGateway {
         attachmentType: data.attachmentType
       });
 
-      // Broadcast to conversation room
-      this.io.to(`dm:${data.conversationId}`).emit(DMSocketEvents.NEW_MESSAGE, message);
-
-      // Confirm to sender
-      socket.emit(DMSocketEvents.MESSAGE_SENT, {
-        message,
-        conversationId: data.conversationId
+      // Serialize message to plain object (ensures created_at is included)
+      const serializedMessage = message ? (message as any).toJSON() : message;
+      
+      // Debug log to verify created_at is included
+      logger.info(`📤 [Socket.IO] Emitting NEW_MESSAGE (excluding sender):`, {
+        messageId: serializedMessage?.id?.substring(0, 8),
+        senderId: user.userId.substring(0, 8),
       });
 
-      // Notify other user if they're online but not in the conversation room
+      // ✅ Broadcast to conversation room (EXCLUDING sender via broadcast)
+      socket.broadcast.to(`dm:${data.conversationId}`).emit(DMSocketEvents.NEW_MESSAGE, serializedMessage);
+
+      // ✅ FIX: ALSO emit to other user's global room (like notification gateway)
+      // This ensures instant delivery even if receiver hasn't opened the conversation
       const conversation = await this.conversationService.getConversationById(data.conversationId);
       if (conversation) {
-        const otherUserId = conversation.studentId === user.userId
-          ? conversation.instructorId
-          : conversation.studentId;
+        const otherUserId = conversation.user1Id === user.userId
+          ? conversation.user2Id
+          : conversation.user1Id;
 
-        // Send notification to other user's sockets
+        // Emit to other user's global room (sender excluded automatically since it's their own room)
+        this.io.to(`user:${otherUserId}`).emit(DMSocketEvents.NEW_MESSAGE, serializedMessage);
+        logger.info(`✅ [Socket.IO] Emitted NEW_MESSAGE to user:${otherUserId.substring(0, 8)} global room`);
+
+        // Update unread count for other user
         const otherUserSockets = this.userSockets.get(otherUserId);
         if (otherUserSockets) {
           otherUserSockets.forEach(socketId => {
@@ -242,6 +315,12 @@ export class ConversationGateway {
           });
         }
       }
+
+      // Confirm to sender
+      socket.emit(DMSocketEvents.MESSAGE_SENT, {
+        message: serializedMessage,
+        conversationId: data.conversationId
+      });
 
       logger.info(`DM sent in conversation ${data.conversationId} by user ${user.userId}`);
     } catch (error) {
@@ -342,9 +421,40 @@ export class ConversationGateway {
 
   /**
    * Notify user about new message (can be called from controller)
+   * Emits to both conversation room AND global user rooms for instant delivery
+   * EXCLUDES the sender to prevent duplicate messages on sender's UI
    */
-  public notifyNewMessage(conversationId: string, message: any): void {
-    this.io.to(`dm:${conversationId}`).emit(DMSocketEvents.NEW_MESSAGE, message);
+  public async notifyNewMessage(conversationId: string, message: any, senderId: string): Promise<void> {
+    // Serialize message to plain object
+    const serializedMessage = message?.toJSON ? message.toJSON() : message;
+    
+    logger.info(`📤 [REST API] Emitting NEW_MESSAGE (excluding sender ${senderId.substring(0, 8)}):`, {
+      messageId: serializedMessage?.id?.substring(0, 8),
+      conversationId: conversationId.substring(0, 8),
+    });
+    
+    // Emit to conversation room (for users currently in conversation)
+    // Use broadcast to exclude sender's sockets
+    this.io.to(`dm:${conversationId}`).emit(DMSocketEvents.NEW_MESSAGE, serializedMessage);
+    
+    // ✅ CRITICAL: Emit to OTHER user's global room only (NOT sender's room)
+    try {
+      const conversation = await this.conversationService.getConversationById(conversationId);
+      if (conversation) {
+        const user1Id = conversation.user1Id;
+        const user2Id = conversation.user2Id;
+        
+        // Determine recipient (the user who is NOT the sender)
+        const recipientId = user1Id === senderId ? user2Id : user1Id;
+        
+        // Emit ONLY to recipient's global room (sender already has message from API response)
+        this.io.to(`user:${recipientId}`).emit(DMSocketEvents.NEW_MESSAGE, serializedMessage);
+        
+        logger.info(`✅ [REST API] Emitted NEW_MESSAGE to recipient's global room: user:${recipientId.substring(0, 8)} (sender: ${senderId.substring(0, 8)} excluded)`);
+      }
+    } catch (error) {
+      logger.error(`❌ [REST API] Failed to emit to global rooms:`, error);
+    }
   }
 
   /**

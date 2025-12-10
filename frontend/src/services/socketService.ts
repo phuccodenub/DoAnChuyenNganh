@@ -67,13 +67,38 @@ class SocketService {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000; // Start with 1 second
   private isRefreshing = false;
+  private connectionPromise: Promise<Socket | null> | null = null;
+  
+  // Event emitter for connection state changes
+  private connectCallbacks: Set<() => void> = new Set();
+  private disconnectCallbacks: Set<() => void> = new Set();
 
   /**
-   * Get WebSocket URL from environment or use default
+   * Get WebSocket URL from environment or use default.
+   *
+   * Ưu tiên:
+   * 1. VITE_WS_URL (mới, override trực tiếp)
+   * 2. VITE_SOCKET_URL (tương thích với Docker/.env cũ)
+   * 3. Sử dụng window.location.origin để socket đi qua cùng host với frontend
+   *    - Vite dev: http://localhost:5174 → Vite proxy → backend:3000
+   *    - Docker nginx: http://localhost:3001 → nginx proxy → backend:3000
+   * 4. Fallback http://localhost:3000 (chỉ khi không có window)
    */
   private getSocketUrl(): string {
-    const wsUrl = (import.meta as any).env?.VITE_WS_URL || 'http://localhost:3000';
-    return wsUrl;
+    const env: any = (import.meta as any).env || {};
+
+    // 1. / 2. Ưu tiên env nếu được cấu hình
+    if (env.VITE_WS_URL) return env.VITE_WS_URL as string;
+    if (env.VITE_SOCKET_URL) return env.VITE_SOCKET_URL as string;
+
+    // 3. Sử dụng cùng origin với frontend (để proxy xử lý)
+    // Hoạt động với cả Vite dev server và nginx production
+    if (typeof window !== 'undefined') {
+      return window.location.origin;
+    }
+
+    // 4. Fallback cho SSR hoặc khi không có window
+    return 'http://localhost:3000';
   }
 
   /**
@@ -87,12 +112,28 @@ class SocketService {
       return this.socket;
     }
 
-    // Nếu đang trong quá trình kết nối trước đó, đợi tối đa 2s rồi trả về socket hiện tại
+    // Nếu đang trong quá trình kết nối trước đó, đợi với polling
     if (this.socket && !this.socket.connected) {
       console.log('[SocketService] Connection in progress, waiting for existing socket...');
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      if (this.socket?.connected) {
-        console.log('[SocketService] Existing socket connected after wait:', this.socket.id);
+      
+      // Poll every 500ms for up to 5s total
+      let waitTime = 0;
+      const maxWait = 5000;
+      const pollInterval = 500;
+      
+      while (waitTime < maxWait && this.socket && !this.socket.connected) {
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        waitTime += pollInterval;
+        
+        if (this.socket?.connected) {
+          console.log('[SocketService] Existing socket connected after wait:', this.socket.id);
+          return this.socket;
+        }
+      }
+      
+      // Nếu socket vẫn đang pending nhưng chưa connected, tiếp tục chờ nó
+      if (this.socket && !this.socket.connected) {
+        console.log('[SocketService] Socket still connecting, returning existing socket...');
         return this.socket;
       }
     }
@@ -111,9 +152,22 @@ class SocketService {
       console.log('[SocketService] Token expired, refreshing...');
       
       if (this.isRefreshing) {
-        // Wait for ongoing refresh
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for ongoing refresh (max 5 retries x 1s = 5s total)
+        let waitAttempts = 0;
+        const maxWaitAttempts = 5;
+        
+        while (this.isRefreshing && waitAttempts < maxWaitAttempts) {
+          console.log(`[SocketService] Waiting for token refresh... (${waitAttempts + 1}/${maxWaitAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          waitAttempts++;
+        }
+        
         token = useAuthStore.getState().tokens?.accessToken || undefined;
+        
+        if (!token || isTokenExpired(token)) {
+          console.error('[SocketService] Token still invalid after waiting');
+          return null;
+        }
       } else {
         this.isRefreshing = true;
         const newToken = await refreshAccessToken();
@@ -180,10 +234,16 @@ class SocketService {
       console.log('[SocketService] Socket URL:', socketUrl);
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000; // Reset delay
+      
+      // Notify all connect callbacks
+      this.notifyConnect();
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('[SocketService] ❌ Disconnected:', reason);
+      
+      // Notify all disconnect callbacks
+      this.notifyDisconnect();
       
       // Nếu disconnect do server, thử reconnect
       if (reason === 'io server disconnect') {
@@ -335,6 +395,115 @@ class SocketService {
     
     // Reconnect
     await this.connect();
+  }
+
+  // ============================================
+  // NON-BLOCKING CONNECTION METHODS
+  // ============================================
+
+  /**
+   * Start socket connection in background (non-blocking)
+   * Use this when you don't need to wait for the connection
+   */
+  connectNonBlocking(): void {
+    // Already connected
+    if (this.socket?.connected) {
+      console.log('[SocketService] connectNonBlocking: Already connected');
+      return;
+    }
+    
+    // Connection already in progress
+    if (this.connectionPromise) {
+      console.log('[SocketService] connectNonBlocking: Connection already in progress');
+      return;
+    }
+    
+    console.log('[SocketService] connectNonBlocking: Starting background connection...');
+    
+    // Start connection in background
+    this.connectionPromise = this.connect()
+      .then((socket) => {
+        if (socket?.connected) {
+          console.log('[SocketService] connectNonBlocking: Connected successfully');
+          // Notify all connect callbacks
+          this.notifyConnect();
+        }
+        return socket;
+      })
+      .catch((error) => {
+        console.error('[SocketService] connectNonBlocking: Connection failed:', error);
+        return null;
+      })
+      .finally(() => {
+        this.connectionPromise = null;
+      });
+  }
+
+  /**
+   * Get socket only if already connected (non-blocking)
+   * Returns null if not connected - never waits
+   */
+  getSocketIfConnected(): Socket | null {
+    return this.socket?.connected ? this.socket : null;
+  }
+
+  /**
+   * Subscribe to connection events
+   */
+  onConnect(callback: () => void): void {
+    this.connectCallbacks.add(callback);
+    
+    // If already connected, call immediately
+    if (this.socket?.connected) {
+      callback();
+    }
+  }
+
+  /**
+   * Unsubscribe from connection events
+   */
+  offConnect(callback: () => void): void {
+    this.connectCallbacks.delete(callback);
+  }
+
+  /**
+   * Subscribe to disconnection events
+   */
+  onDisconnect(callback: () => void): void {
+    this.disconnectCallbacks.add(callback);
+  }
+
+  /**
+   * Unsubscribe from disconnection events
+   */
+  offDisconnect(callback: () => void): void {
+    this.disconnectCallbacks.delete(callback);
+  }
+
+  /**
+   * Notify all connect callbacks
+   */
+  private notifyConnect(): void {
+    this.connectCallbacks.forEach((cb) => {
+      try {
+        cb();
+      } catch (error) {
+        console.error('[SocketService] Error in connect callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Notify all disconnect callbacks
+   */
+  private notifyDisconnect(): void {
+    this.disconnectCallbacks.forEach((cb) => {
+      try {
+        cb();
+      } catch (error) {
+        console.error('[SocketService] Error in disconnect callback:', error);
+      }
+    });
   }
 }
 

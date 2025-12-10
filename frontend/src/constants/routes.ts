@@ -14,6 +14,12 @@ export const ROUTES = {
   VERIFY_EMAIL: '/verify-email/:token',
   TWO_FACTOR: '/2fa',
   
+  // Shared routes (accessible by all authenticated users)
+  SHARED: {
+    MESSAGES: '/messages',
+    MESSAGES_DETAIL: '/messages/:conversationId',
+  },
+  
   // Course catalog (public)
   COURSES: '/courses',
   COURSE_DETAIL: '/courses/:id',
@@ -71,6 +77,8 @@ export const ROUTES = {
     USER_DETAIL: '/admin/users/:userId',
     COURSES: '/admin/courses',
     COURSE_DETAIL: '/admin/courses/:courseId',
+    COURSE_EDIT: '/admin/courses/:courseId/edit',
+    COURSE_CURRICULUM: '/admin/courses/:courseId/curriculum',
     CATEGORIES: '/admin/categories',
     SYSTEM_SETTINGS: '/admin/settings',
     REPORTS: '/admin/reports',
@@ -87,6 +95,7 @@ export const ROUTES = {
 
   // Shared user routes (for all authenticated users)
   PROFILE: '/profile',
+  SETTINGS: '/settings',  // Universal settings page for all roles
 
   // Future feature routes (for marketing pages)
   ABOUT: '/about',
@@ -120,7 +129,7 @@ export const generateRoute = {
     assignment: (courseId: string, assignmentId: string) => 
       `/student/courses/${courseId}/assignments/${assignmentId}`,
     chat: (courseId?: string) => 
-      courseId ? `/student/chat?courseId=${courseId}` : '/student/chat',
+      courseId ? `/messages?courseId=${courseId}` : '/messages',
   },
   
   instructor: {
@@ -140,7 +149,7 @@ export const generateRoute = {
     courseGrades: (courseId: string) => `/instructor/courses/${courseId}/grades`,
     livestreamSession: (sessionId: string) => `/instructor/livestream/${sessionId}`,
     chat: (courseId?: string) => 
-      courseId ? `/instructor/chat?courseId=${courseId}` : '/instructor/chat',
+      courseId ? `/messages?courseId=${courseId}` : '/messages',
   },
   livestream: {
     session: (sessionId: string) => `/livestream/${sessionId}`,
@@ -149,6 +158,15 @@ export const generateRoute = {
   admin: {
     userDetail: (userId: string) => `/admin/users/${userId}`,
     courseDetail: (courseId: string) => `/admin/courses/${courseId}`,
+    courseEdit: (courseId: string) => `/admin/courses/${courseId}/edit`,
+    courseCurriculum: (courseId: string) => `/admin/courses/${courseId}/curriculum`,
+  },
+
+  // Shared route helpers
+  shared: {
+    messages: (courseId?: string) =>
+      courseId ? `/messages?courseId=${courseId}` : '/messages',
+    conversation: (conversationId: string) => `/messages/${conversationId}`,
   },
 };
 

@@ -24,7 +24,7 @@ import { ErrorHandler } from './errors/error.handler';
 import './models';
 
 // Import Socket.IO gateways
-import { ChatGateway } from './modules/chat/chat.gateway';
+import { ChatGateway, setChatGateway } from './modules/chat/chat.gateway';
 import { WebRTCGateway } from './modules/webrtc/webrtc.gateway';
 import { LiveStreamGateway } from './modules/livestream/livestream.gateway';
 import { NotificationGateway, setNotificationGateway } from './modules/notifications/notifications.gateway';
@@ -68,7 +68,9 @@ async function startServer() {
     
     // Initialize Socket.IO gateways with shared server instance
     logger.info('Initializing Socket.IO gateways...');
-    new ChatGateway(io);
+    const chatGateway = new ChatGateway(io);
+    setChatGateway(chatGateway);
+    
     new WebRTCGateway(io);
     const livestreamGateway = new LiveStreamGateway(io);
     // Export gateway instance for use in controllers/services

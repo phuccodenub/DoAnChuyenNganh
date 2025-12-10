@@ -473,6 +473,155 @@ export class AssignmentRepository {
       };
     }
   }
+
+  /**
+   * Get all assignments for a student from their enrolled courses (with status and stats)
+   */
+  async getMyAssignmentsWithStats(userId: string, options: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }): Promise<any> {
+    try {
+      const { Op } = await import('sequelize');
+      const { Enrollment } = await import('../../models');
+      
+      const page = options.page || 1;
+      const limit = options.limit || 20;
+      const offset = (page - 1) * limit;
+
+      // Get enrolled course IDs
+      const enrollments = await Enrollment.findAll({
+        where: { user_id: userId },
+        attributes: ['course_id'],
+        raw: true
+      });
+      
+      const courseIds = enrollments.map((e: any) => e.course_id);
+      
+      if (courseIds.length === 0) {
+        return {
+          assignments: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+          stats: { pending: 0, overdue: 0, submitted: 0, graded: 0, total: 0 }
+        };
+      }
+
+      // Build where clause for assignments
+      const assignmentWhere: any = {
+        course_id: { [Op.in]: courseIds }
+      };
+
+      if (options.search) {
+        assignmentWhere[Op.or] = [
+          { title: { [Op.iLike]: `%${options.search}%` } }
+        ];
+      }
+
+      // Get all assignments from enrolled courses
+      const assignments = await this.AssignmentModel.findAll({
+        where: assignmentWhere,
+        include: [
+          {
+            model: Course,
+            as: 'course',
+            attributes: ['id', 'title', 'thumbnail']
+          }
+        ],
+        order: [['due_date', 'ASC']],
+        raw: false
+      });
+
+      // Get submissions for this user
+      const assignmentIds = assignments.map((a: any) => a.id);
+      const submissions = await this.AssignmentSubmissionModel.findAll({
+        where: {
+          assignment_id: { [Op.in]: assignmentIds },
+          user_id: userId
+        },
+        raw: true
+      });
+
+      // Map submissions by assignment_id
+      const submissionMap = new Map<string, any>();
+      submissions.forEach((sub: any) => {
+        submissionMap.set(sub.assignment_id, sub);
+      });
+
+      // Calculate status for each assignment
+      const now = new Date();
+      const assignmentsWithStatus = assignments.map((assignment: any) => {
+        const a = assignment.toJSON ? assignment.toJSON() : assignment;
+        const submission = submissionMap.get(a.id);
+        
+        let status = 'pending';
+        if (submission) {
+          if (submission.graded_at) {
+            status = 'graded';
+          } else if (submission.submitted_at && a.due_date && new Date(submission.submitted_at) > new Date(a.due_date)) {
+            status = 'late';
+          } else {
+            status = 'submitted';
+          }
+        } else if (a.due_date && new Date(a.due_date) < now) {
+          status = 'overdue';
+        }
+
+        return {
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          course_id: a.course_id,
+          course_name: a.course?.title || '',
+          course_thumbnail: a.course?.thumbnail || null,
+          due_date: a.due_date,
+          status,
+          max_points: a.max_score || 100,
+          score: submission?.score || null,
+          submitted_at: submission?.submitted_at || null,
+          graded_at: submission?.graded_at || null,
+          feedback: submission?.feedback || null
+        };
+      });
+
+      // Filter by status if specified
+      let filteredAssignments = assignmentsWithStatus;
+      if (options.status && options.status !== 'all') {
+        filteredAssignments = assignmentsWithStatus.filter((a: any) => a.status === options.status);
+      }
+
+      // Calculate stats
+      const stats = {
+        pending: assignmentsWithStatus.filter((a: any) => a.status === 'pending').length,
+        overdue: assignmentsWithStatus.filter((a: any) => a.status === 'overdue').length,
+        submitted: assignmentsWithStatus.filter((a: any) => a.status === 'submitted' || a.status === 'late').length,
+        graded: assignmentsWithStatus.filter((a: any) => a.status === 'graded').length,
+        total: assignmentsWithStatus.length
+      };
+
+      // Paginate
+      const paginatedAssignments = filteredAssignments.slice(offset, offset + limit);
+
+      return {
+        assignments: paginatedAssignments,
+        pagination: {
+          page,
+          limit,
+          total: filteredAssignments.length,
+          totalPages: Math.ceil(filteredAssignments.length / limit)
+        },
+        stats
+      };
+    } catch (error) {
+      console.error('Error in getStudentAssignments:', error);
+      return {
+        assignments: [],
+        pagination: { page: options.page || 1, limit: options.limit || 20, total: 0, totalPages: 0 },
+        stats: { pending: 0, overdue: 0, submitted: 0, graded: 0, total: 0 }
+      };
+    }
+  }
 }
 
 

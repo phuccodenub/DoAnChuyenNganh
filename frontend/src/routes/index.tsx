@@ -9,6 +9,9 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
 const ForbiddenPage = lazy(() => import('@/pages/ForbiddenPage'));
 
+// Shared pages (accessible by all authenticated users)
+const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
+
 // Public course pages
 const HomePage = lazy(() => import('@/pages/HomePage/index'));
 const CourseCatalogPage = lazy(() => import('@/pages/course/catalog/CatalogPage'));
@@ -25,7 +28,6 @@ const LessonDetailPage = lazy(() => import('@/pages/course/learning/LessonDetail
 const QuizPage = lazy(() => import('@/pages/student/QuizPage'));
 const QuizResultsPage = lazy(() => import('@/pages/student/QuizResultsPage'));
 const AssignmentPage = lazy(() => import('@/pages/student/AssignmentPage'));
-const StudentChatPage = lazy(() => import('@/pages/student/ChatPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 
@@ -45,7 +47,6 @@ const ManagementPage = lazy(() => import('@/pages/livestream/management/Manageme
 const CreateLiveStreamPage = lazy(() => import('@/pages/livestream/create/CreatePage'));
 const LiveStreamHostPage = lazy(() => import('@/pages/livestream/host/HostPage'));
 const InstructorAnalyticsPage = lazy(() => import('@/pages/instructor/AnalyticsPage'));
-const InstructorChatPage = lazy(() => import('@/pages/instructor/InstructorChatPage'));
 
 // Admin pages
 const AdminDashboardLayout = lazy(() => import('@/layouts/AdminDashboardLayout'));
@@ -111,6 +112,10 @@ function AppRoutes() {
 
         {/* Protected routes - Cần authentication */}
         <Route element={<ProtectedRoute />}>
+          {/* Shared routes - Accessible by all authenticated users */}
+          <Route path={ROUTES.SHARED.MESSAGES} element={<MessagesPage />} />
+          <Route path={ROUTES.SHARED.MESSAGES_DETAIL} element={<MessagesPage />} />
+
           {/* Shared livestream hub */}
           <Route path={ROUTES.LIVESTREAM.HUB} element={<LiveStreamLobbyPage />} />
           <Route path={ROUTES.LIVESTREAM.SESSION} element={<LiveStreamSessionPage />} />
@@ -121,6 +126,9 @@ function AppRoutes() {
           
           {/* Certificate routes (Protected) */}
           <Route path="/certificates/:id" element={<CertificateDetailPage />} />
+          
+          {/* Universal settings route for all authenticated users */}
+          <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
 
           {/* Learning routes - accessible to all authenticated users who can enroll (student, instructor, admin, super_admin) */}
           <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>
@@ -133,12 +141,17 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
             <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentMyCoursesPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENTS} element={<StudentAssignmentsPage />} />
-            <Route path={ROUTES.STUDENT.SETTINGS} element={<SettingsPage />} />
+            <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
+            <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
+            <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
+            {/* Settings moved to universal route */}
             <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
-            <Route path={ROUTES.STUDENT.CHAT} element={<StudentChatPage />} />
+            {/* Redirect old chat route to shared messages page */}
+            <Route path={ROUTES.STUDENT.CHAT} element={<Navigate to={ROUTES.SHARED.MESSAGES} replace />} />
             {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
           </Route>
 
+<<<<<<< HEAD
           {/* Quiz & Assignment routes: cho phép cả student + instructor xem giao diện làm bài */}
           <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>
             <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
@@ -157,6 +170,10 @@ function AppRoutes() {
 
           {/* Instructor & Admin routes (admin cũng có thể host livestream) */}
           <Route element={<RoleGuard allowedRoles={['instructor', 'admin']} />}>
+=======
+          {/* Instructor routes - CHỈ dành cho instructor */}
+          <Route element={<RoleGuard allowedRoles={['instructor']} />}>
+>>>>>>> origin/done-chat-noti
             <Route element={<InstructorDashboardLayout />}>
               <Route path={ROUTES.INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
               <Route path={ROUTES.INSTRUCTOR.MY_COURSES} element={<MyCoursesPage />} />
@@ -182,7 +199,8 @@ function AppRoutes() {
               <Route path={ROUTES.INSTRUCTOR.ANALYTICS} element={<InstructorAnalyticsPage />} />
               <Route path={ROUTES.INSTRUCTOR.LIVESTREAM} element={<ManagementPage />} />
               <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_HOST} element={<LiveStreamHostPage />} />
-              <Route path={ROUTES.INSTRUCTOR.CHAT} element={<InstructorChatPage />} />
+              {/* Redirect old chat route to shared messages page */}
+              <Route path={ROUTES.INSTRUCTOR.CHAT} element={<Navigate to={ROUTES.SHARED.MESSAGES} replace />} />
               <Route path={ROUTES.INSTRUCTOR.NOTIFICATIONS} element={<InstructorNotificationsPage />} />
             </Route>
             {/* Livestream create page sử dụng layout riêng giống Facebook */}
@@ -195,6 +213,9 @@ function AppRoutes() {
               <Route path={ROUTES.ADMIN.DASHBOARD} element={<AdminDashboard />} />
               <Route path={ROUTES.ADMIN.USERS} element={<UserManagementPage />} />
               <Route path={ROUTES.ADMIN.COURSES} element={<CourseManagementPage />} />
+              {/* Admin course management routes */}
+              <Route path={ROUTES.ADMIN.COURSE_EDIT} element={<CourseEditorPage />} />
+              <Route path={ROUTES.ADMIN.COURSE_CURRICULUM} element={<CurriculumBuilderPage />} />
               <Route path={ROUTES.ADMIN.CATEGORIES} element={<CategoryManagementPage />} />
               <Route path={ROUTES.ADMIN.SYSTEM_SETTINGS} element={<SystemSettingsPage />} />
               <Route path={ROUTES.ADMIN.REPORTS} element={<ReportsPage />} />

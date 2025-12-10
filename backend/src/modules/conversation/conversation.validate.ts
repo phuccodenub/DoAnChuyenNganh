@@ -6,19 +6,22 @@
 
 import { z } from 'zod';
 
-// Create conversation schema
+// Create conversation schema - supports both recipient_id (new) and course_id/instructor_id (legacy)
 export const createConversationSchema = z.object({
   body: z.object({
-    course_id: z.string().uuid('Invalid course ID'),
-    instructor_id: z.string().uuid('Invalid instructor ID'),
+    recipient_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid recipient ID').optional(),
+    course_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid course ID').optional(),
+    instructor_id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid instructor ID').optional(),
     initial_message: z.string().max(5000, 'Message too long').optional(),
+  }).refine(data => data.recipient_id || (data.course_id && data.instructor_id), {
+    message: 'Either recipient_id or both course_id and instructor_id are required',
   }),
 });
 
 // Send message schema
 export const sendMessageSchema = z.object({
   params: z.object({
-    conversationId: z.string().uuid('Invalid conversation ID'),
+    conversationId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid conversation ID'),
   }),
   body: z.object({
     content: z.string().min(1, 'Message cannot be empty').max(5000, 'Message too long'),
@@ -32,7 +35,7 @@ export const sendMessageSchema = z.object({
 // Edit message schema
 export const editMessageSchema = z.object({
   params: z.object({
-    messageId: z.string().uuid('Invalid message ID'),
+    messageId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid message ID'),
   }),
   body: z.object({
     content: z.string().min(1, 'Message cannot be empty').max(5000, 'Message too long'),
@@ -42,7 +45,7 @@ export const editMessageSchema = z.object({
 // Get messages query schema
 export const getMessagesQuerySchema = z.object({
   params: z.object({
-    conversationId: z.string().uuid('Invalid conversation ID'),
+    conversationId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid conversation ID'),
   }),
   query: z.object({
     limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 50),
@@ -63,14 +66,14 @@ export const getConversationsQuerySchema = z.object({
 // Mark as read schema
 export const markAsReadSchema = z.object({
   params: z.object({
-    conversationId: z.string().uuid('Invalid conversation ID'),
+    conversationId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid conversation ID'),
   }),
 });
 
 // Archive schema
 export const archiveSchema = z.object({
   params: z.object({
-    conversationId: z.string().uuid('Invalid conversation ID'),
+    conversationId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid conversation ID'),
   }),
   body: z.object({
     archive: z.boolean().default(true),
@@ -80,7 +83,7 @@ export const archiveSchema = z.object({
 // Search messages schema
 export const searchMessagesSchema = z.object({
   params: z.object({
-    conversationId: z.string().uuid('Invalid conversation ID'),
+    conversationId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid conversation ID'),
   }),
   query: z.object({
     q: z.string().min(1, 'Search query required').max(100),
@@ -90,14 +93,14 @@ export const searchMessagesSchema = z.object({
 // Conversation ID param schema
 export const conversationIdParamSchema = z.object({
   params: z.object({
-    conversationId: z.string().uuid('Invalid conversation ID'),
+    conversationId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid conversation ID'),
   }),
 });
 
 // Message ID param schema
 export const messageIdParamSchema = z.object({
   params: z.object({
-    messageId: z.string().uuid('Invalid message ID'),
+    messageId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid message ID'),
   }),
 });
 

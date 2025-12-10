@@ -14,6 +14,23 @@ export class DirectMessageRepository {
    */
   async findById(id: string) {
     return await DirectMessage.findByPk(id, {
+      attributes: [
+        'id',
+        'conversation_id',
+        'sender_id',
+        'content',
+        'status',
+        'attachment_type',
+        'attachment_url',
+        'attachment_name',
+        'attachment_size',
+        'is_edited',
+        'edited_at',
+        'is_deleted',
+        'deleted_at',
+        'created_at',
+        'updated_at',
+      ],
       include: [
         {
           model: User,
@@ -46,6 +63,23 @@ export class DirectMessageRepository {
 
     const messages = await DirectMessage.findAll({
       where: whereClause,
+      attributes: [
+        'id',
+        'conversation_id',
+        'sender_id',
+        'content',
+        'status',
+        'attachment_type',
+        'attachment_url',
+        'attachment_name',
+        'attachment_size',
+        'is_edited',
+        'edited_at',
+        'is_deleted',
+        'deleted_at',
+        'created_at', // Explicitly include timestamp
+        'updated_at', // Explicitly include timestamp
+      ],
       include: [
         {
           model: User,
@@ -53,14 +87,13 @@ export class DirectMessageRepository {
           attributes: ['id', 'first_name', 'last_name', 'avatar', 'role'],
         },
       ],
-      order: [['created_at', before ? 'DESC' : 'ASC']],
+      // Always fetch DESC (newest first), then reverse for chronological order
+      order: [['created_at', 'DESC']],
       limit,
     });
 
-    // If fetching "before", reverse to get chronological order
-    if (before) {
-      messages.reverse();
-    }
+    // Reverse to get chronological order (oldest to newest)
+    messages.reverse();
 
     return messages;
   }

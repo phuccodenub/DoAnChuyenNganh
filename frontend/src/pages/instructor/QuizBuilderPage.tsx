@@ -26,7 +26,7 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PageHeader, PageWrapper } from '@/components/courseEditor';
-import { ROUTES } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 import {
   useInstructorQuiz,
   useCreateQuiz,
@@ -75,6 +75,7 @@ interface Question {
 export function QuizBuilderPage() {
   const { courseId, quizId } = useParams<{ courseId: string; quizId?: string }>();
   const navigate = useNavigate();
+  const { navigateTo } = useRoleBasedNavigation();
   const isEditMode = !!quizId;
 
   // API Hooks
@@ -401,8 +402,8 @@ export function QuizBuilderPage() {
         }
       }
 
-      // Navigate back on success
-      navigate(ROUTES.INSTRUCTOR.MY_COURSES);
+      // Navigate back on success - role-based navigation
+      navigateTo.myCourses();
     } catch (error) {
       console.error('Failed to save quiz:', error);
       alert('Lưu quiz thất bại. Vui lòng thử lại.');

@@ -68,6 +68,7 @@ services:
       - ../../../.env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
+      # DB settings (Docker local Postgres, used only by setup scripts)
       - DB_HOST=${DB_HOST:-postgres-dev}
       - DB_PORT=${DB_PORT:-5432}
       - DB_NAME=${DB_NAME:-${POSTGRES_DB:-lms_db}}
@@ -82,7 +83,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-debug}
       - FRONTEND_URL=http://localhost:${FRONTEND_PORT:-3001}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
-      - CORS_ALLOWED_ORIGINS=http://localhost:${BACKEND_PORT:-3000},http://127.0.0.1:${BACKEND_PORT:-3000},http://localhost:${FRONTEND_PORT:-3001},http://127.0.0.1:${FRONTEND_PORT:-3001},http://localhost:5173,http://127.0.0.1:5173
+      - CORS_ALLOWED_ORIGINS=http://localhost:${BACKEND_PORT:-3000},http://127.0.0.1:${BACKEND_PORT:-3000},http://localhost:${FRONTEND_PORT:-3001},http://127.0.0.1:${FRONTEND_PORT:-3001},http://localhost:5174,http://127.0.0.1:5174
       - CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With,X-Request-Start
       - DISABLE_RATE_LIMIT=${DISABLE_RATE_LIMIT:-true}
     ports:
@@ -94,6 +95,12 @@ services:
       #   condition: service_healthy
       redis-dev:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     volumes:
       - ../../../backend:/app
       - /app/node_modules
@@ -114,8 +121,8 @@ services:
       context: ../../..
       dockerfile: frontend/Dockerfile
       args:
-        VITE_API_URL: "http://localhost:${BACKEND_PORT:-3000}/api/v1.3.0"
-        VITE_SOCKET_URL: "http://localhost:${BACKEND_PORT:-3000}"
+        VITE_API_URL: "/api/v1.3.0"
+        VITE_SOCKET_URL: ""
     image: lms-frontend-dev:latest
     container_name: lms-frontend-dev
     restart: unless-stopped
@@ -132,7 +139,7 @@ services:
       - lms-dev-network
     depends_on:
       backend-dev:
-        condition: service_started
+        condition: service_healthy
     stdin_open: true
     tty: true
 

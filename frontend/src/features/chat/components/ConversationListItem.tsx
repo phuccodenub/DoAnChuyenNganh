@@ -9,13 +9,22 @@ import { cn } from '@/lib/utils';
 import { ConversationListItemProps } from '../types';
 import { formatRelativeTime } from '../utils/formatTime';
 import { OnlineStatusDot } from './OnlineStatusDot';
+import { TypingStatus } from './TypingIndicator';
+import { useAuth } from '@/hooks/useAuth';
+
+interface ExtendedConversationListItemProps extends ConversationListItemProps {
+    /** Is the other user typing */
+    isTyping?: boolean;
+}
 
 export function ConversationListItem({
     conversation,
     isSelected,
     onClick,
-}: ConversationListItemProps) {
+    isTyping = false,
+}: ExtendedConversationListItemProps) {
     const { participant, course_title, last_message, unread_count } = conversation;
+    const { user } = useAuth();
 
     return (
         <button
@@ -67,31 +76,32 @@ export function ConversationListItem({
                     )}
                 </div>
 
-                {/* Course title */}
-                <p className="text-xs text-blue-600 truncate mb-1">{course_title}</p>
-
-                {/* Last message preview */}
-                <div className="flex items-center gap-2">
-                    <p
-                        className={cn(
-                            'text-sm truncate flex-1',
-                            unread_count > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'
-                        )}
-                    >
+                {/* Online/Offline status + Last message preview */}
+                <div className="flex items-start justify-between gap-2">
+                    {/* Last message or online status */}
+                    <div className="flex-1 min-w-0">
                         {last_message ? (
-                            <>
-                                {last_message.sender_role === 'student' && (
+                            <p className={cn(
+                                "text-sm truncate",
+                                unread_count > 0 ? "font-medium text-gray-900" : "text-gray-500"
+                            )}>
+                                {last_message.sender_id === user?.id && (
                                     <span className="text-gray-400">Bạn: </span>
                                 )}
                                 {last_message.content}
-                            </>
+                            </p>
                         ) : (
-                            <span className="text-gray-400 italic">Chưa có tin nhắn</span>
+                            <div className="flex items-center gap-1.5">
+                                <OnlineStatusDot status={participant.online_status} className="flex-shrink-0" />
+                                <span className="text-xs text-gray-500">
+                                    {participant.online_status === 'online' ? 'Đang hoạt động' : 'Không hoạt động'}
+                                </span>
+                            </div>
                         )}
-                    </p>
+                    </div>
 
                     {/* Unread badge */}
-                    {unread_count > 0 && (
+                    {unread_count > 0 && !isTyping && (
                         <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-blue-600 text-white text-xs font-medium rounded-full flex items-center justify-center">
                             {unread_count > 99 ? '99+' : unread_count}
                         </span>

@@ -92,8 +92,22 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         order: [['created_at', 'DESC']]
       });
 
+      const courseIds = rows.map((course: any) => course.id);
+      const studentCounts = await this.getStudentCountsForCourses(courseIds);
+
+      const rowsWithCounts = rows.map((course: any) => {
+        const courseData = course.toJSON ? course.toJSON() : course;
+        // Always use the real-time student count from enrollments table
+        // instead of relying on potentially stale total_students field
+        const actualStudentCount = studentCounts.get(courseData.id) ?? 0;
+        return {
+          ...courseData,
+          total_students: actualStudentCount
+        };
+      });
+
       return {
-        data: rows,
+        data: rowsWithCounts,
         pagination: {
           page,
           limit,
@@ -193,44 +207,121 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
 
   /**
    * Find enrolled courses by user
+   * Supports filtering by enrollment progress status (in-progress, completed, not-started)
    */
   async findEnrolledByUser(userId: string, options: CourseTypes.GetEnrolledCoursesOptions): Promise<CourseTypes.CoursesResponse> {
     try {
       const { Course, Enrollment } = await import('../../models');
+      const { Op } = await import('sequelize');
       
-      const { page, limit, status } = options;
+      const { page = 1, limit = 10, status, search, sort } = options;
       const offset = (page - 1) * limit;
 
-      const whereClause: WhereOptions<CourseAttributes> = {};
+      // Course where clause - only published courses
+      const courseWhereClause: WhereOptions<CourseAttributes> = {
+        status: 'published'
+      };
       
-      if (status) {
-        whereClause.status = status;
+      // Add search filter
+      if (search) {
+        (courseWhereClause as any)[Op.or] = [
+          { title: { [Op.iLike]: `%${search}%` } },
+          { description: { [Op.iLike]: `%${search}%` } }
+        ];
+      }
+
+      // Enrollment where clause - filter by progress status
+      const enrollmentWhere: any = { 
+        user_id: userId,
+        status: 'active' // Only active enrollments
+      };
+      
+      // Filter by enrollment progress status (not course status)
+      if (status && status !== 'all') {
+        if (status === 'completed') {
+          enrollmentWhere.progress_percentage = 100;
+        } else if (status === 'in-progress') {
+          enrollmentWhere.progress_percentage = { [Op.gt]: 0, [Op.lt]: 100 };
+        } else if (status === 'not-started') {
+          enrollmentWhere.progress_percentage = { [Op.lte]: 0 };
+        }
+      }
+
+      // Build order clause based on sort option
+      let orderClause: any[] = [['created_at', 'DESC']];
+      if (sort === 'last_accessed') {
+        orderClause = [[{ model: Enrollment, as: 'enrollments' }, 'last_accessed_at', 'DESC NULLS LAST']];
+      } else if (sort === 'progress') {
+        orderClause = [[{ model: Enrollment, as: 'enrollments' }, 'progress_percentage', 'DESC']];
+      } else if (sort === 'title') {
+        orderClause = [['title', 'ASC']];
       }
 
       const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
       const { count, rows } = await (CourseModel as any).findAndCountAll({
-        where: whereClause,
+        where: courseWhereClause,
         include: [
           {
             model: Enrollment,
             as: 'enrollments',
-            where: { user_id: userId },
+            where: enrollmentWhere,
             required: true,
-            attributes: ['id', 'created_at', 'status']
+            attributes: ['id', 'created_at', 'updated_at', 'status', 'progress_percentage', 'completed_lessons', 'total_lessons', 'last_accessed_at', 'completion_date']
           },
           {
             model: User,
             as: 'instructor',
-            attributes: ['id', 'first_name', 'last_name', 'email']
+            // Note: full_name is computed, not stored in DB
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
           }
         ],
         limit,
         offset,
-        order: [['created_at', 'DESC']]
+        order: orderClause,
+        distinct: true
+      });
+
+      // Get total students count for each course using a separate query
+      const courseIds = rows.map((c: any) => c.id);
+      const studentCounts = await this.getStudentCountsForCourses(courseIds);
+
+      // Transform rows to include enrollment info at course level
+      const transformedRows = rows.map((course: any) => {
+        const courseData = course.toJSON ? course.toJSON() : { ...course };
+        const enrollment = courseData.enrollments?.[0] || {};
+        
+        // Add enrollment info at course level for frontend convenience
+        courseData.enrollment = {
+          id: enrollment.id,
+          status: enrollment.status,
+          progress_percentage: Number(enrollment.progress_percentage) || 0,
+          completed_lessons: enrollment.completed_lessons || 0,
+          total_lessons: enrollment.total_lessons || 0,
+          enrolled_at: enrollment.created_at,
+          last_accessed_at: enrollment.last_accessed_at,
+          completed_at: enrollment.completion_date
+        };
+        
+        // Add total_students from separate query (this is the total enrolled, not just current user)
+        courseData.total_students = studentCounts.get(courseData.id) || courseData.total_students || 0;
+        
+        // Ensure thumbnail_url exists
+        if (courseData.thumbnail && !courseData.thumbnail_url) {
+          courseData.thumbnail_url = courseData.thumbnail;
+        }
+        
+        // Ensure instructor full_name exists
+        if (courseData.instructor) {
+          courseData.instructor.full_name = courseData.instructor.full_name || 
+            `${courseData.instructor.first_name || ''} ${courseData.instructor.last_name || ''}`.trim();
+          courseData.instructor.avatar_url = courseData.instructor.avatar;
+        }
+        
+        return courseData;
       });
 
       return {
-        data: rows,
+        data: transformedRows,
         pagination: {
           page,
           limit,
@@ -526,11 +617,20 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         order: [[sort_by, sort_order.toUpperCase()]]
       });
 
+      const courseIds = rows.map((course: any) => course.id);
+      const studentCounts = await this.getStudentCountsForCourses(courseIds);
+
       // Add student_count to each course
-      const coursesWithCount = rows.map((course: any) => ({
-        ...course.toJSON(),
-        student_count: 0 // Default, can be enhanced with actual enrollment count
-      }));
+      const coursesWithCount = rows.map((course: any) => {
+        const courseData = course.toJSON ? course.toJSON() : course;
+        // Always use the real-time student count from enrollments table
+        const actualStudentCount = studentCounts.get(courseData.id) ?? 0;
+        return {
+          ...courseData,
+          student_count: actualStudentCount,
+          total_students: actualStudentCount
+        };
+      });
 
       return {
         data: coursesWithCount,
@@ -576,6 +676,41 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
     } catch (error: unknown) {
       logger.error('Error getting admin course statistics:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get student counts for multiple courses
+   * Returns a Map of courseId -> studentCount
+   */
+  async getStudentCountsForCourses(courseIds: string[]): Promise<Map<string, number>> {
+    try {
+      if (!courseIds.length) return new Map();
+      
+      const { Sequelize, Op } = await import('sequelize');
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+      
+      const enrollmentCounts = await (EnrollmentModel as any).findAll({
+        attributes: [
+          'course_id',
+          [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+        ],
+        where: {
+          course_id: { [Op.in]: courseIds }
+        },
+        group: ['course_id'],
+        raw: true
+      });
+
+      const countMap = new Map<string, number>();
+      enrollmentCounts.forEach((item: any) => {
+        countMap.set(item.course_id, parseInt(item.count, 10) || 0);
+      });
+
+      return countMap;
+    } catch (error: unknown) {
+      logger.error('Error getting student counts for courses:', error);
+      return new Map();
     }
   }
 
@@ -764,6 +899,58 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       };
     } catch (error: unknown) {
       logger.error('Error getting instructor course stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find recommended courses for a user
+   * Returns published courses the user hasn't enrolled in, ordered by rating and enrollment count
+   */
+  async findRecommendedCourses(userId: string, limit: number = 6): Promise<CourseInstance[]> {
+    try {
+      const CourseModel = this.getModel();
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+
+      // Get user's enrolled course IDs
+      const enrollments = await EnrollmentModel.findAll({
+        where: { user_id: userId },
+        attributes: ['course_id']
+      });
+      const enrolledCourseIds = enrollments.map((e: any) => e.course_id);
+
+      // Build where clause
+      const where: WhereOptions<CourseAttributes> = {
+        status: 'published'
+      };
+
+      // Exclude enrolled courses if any
+      if (enrolledCourseIds.length > 0) {
+        (where as any).id = {
+          [require('sequelize').Op.notIn]: enrolledCourseIds
+        };
+      }
+
+      // Find recommended courses
+      const courses = await CourseModel.findAll({
+        where,
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'first_name', 'last_name', 'avatar']
+          }
+        ],
+        order: [
+          ['rating', 'DESC'],
+          ['created_at', 'DESC']
+        ],
+        limit
+      });
+
+      return courses;
+    } catch (error: unknown) {
+      logger.error('Error finding recommended courses:', error);
       throw error;
     }
   }

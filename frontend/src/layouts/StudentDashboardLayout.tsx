@@ -31,10 +31,10 @@ const navigation = [
   { name: 'Trang chủ', href: ROUTES.STUDENT.DASHBOARD, icon: Home },
   { name: 'Khóa học của tôi', href: ROUTES.STUDENT.MY_COURSES, icon: BookOpen },
   { name: 'Bài tập', href: ROUTES.STUDENT.ASSIGNMENTS, icon: ClipboardList },
-  { name: 'Tin nhắn', href: ROUTES.STUDENT.CHAT, icon: MessageCircle },
+  { name: 'Tin nhắn', href: ROUTES.SHARED.MESSAGES, icon: MessageCircle },
   { name: 'Thông báo', href: ROUTES.STUDENT.NOTIFICATIONS, icon: Bell },
   { name: 'Hồ sơ', href: ROUTES.PROFILE, icon: User },
-  { name: 'Cài đặt', href: ROUTES.STUDENT.SETTINGS, icon: Settings },
+  { name: 'Cài đặt', href: ROUTES.SETTINGS, icon: Settings },
 ];
 
 /**
@@ -47,6 +47,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const autoCollapseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -80,6 +81,38 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [profileMenuOpen]);
+
+  // Auto-collapse sidebar after 15 seconds when expanded
+  useEffect(() => {
+    // Clear any existing timer
+    if (autoCollapseTimerRef.current) {
+      clearTimeout(autoCollapseTimerRef.current);
+      autoCollapseTimerRef.current = null;
+    }
+
+    // If sidebar is expanded, start a 15-second timer to collapse it
+    if (!sidebarCollapsed) {
+      autoCollapseTimerRef.current = setTimeout(() => {
+        setSidebarCollapsed(true);
+      }, 15000); // 15 seconds
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (autoCollapseTimerRef.current) {
+        clearTimeout(autoCollapseTimerRef.current);
+      }
+    };
+  }, [sidebarCollapsed]);
+
+  // Expand sidebar when clicking on a nav item (will auto-collapse after 15s)
+  const handleNavClick = () => {
+    setSidebarOpen(false);
+    // Expand sidebar when clicking nav item if it's collapsed
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -178,7 +211,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
                     ? 'bg-blue-50 text-blue-600'
                     : 'text-gray-700 hover:bg-gray-50'
                 )}
-                onClick={() => setSidebarOpen(false)}
+                onClick={handleNavClick}
                 title={sidebarCollapsed ? item.name : undefined}
               >
                 <item.icon className={cn(
@@ -341,7 +374,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
                       <button
                         type="button"
                         onClick={() => {
-                          navigate(ROUTES.STUDENT.SETTINGS);
+                          navigate(ROUTES.SETTINGS);
                           setProfileMenuOpen(false);
                         }}
                         className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"

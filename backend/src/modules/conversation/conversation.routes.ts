@@ -105,6 +105,16 @@ router.put(
 );
 
 /**
+ * @route   GET /api/v1/conversations/:conversationId/online-status
+ * @desc    Get real-time online status of conversation participant
+ * @access  Private
+ */
+router.get(
+  '/:conversationId/online-status',
+  conversationController.getOnlineStatus
+);
+
+/**
  * @route   PUT /api/v1/conversations/:conversationId/archive
  * @desc    Archive or unarchive a conversation
  * @access  Private

@@ -34,6 +34,12 @@ router.use(authMiddleware);
 
 // ===== NGHIỆP VỤ RIÊNG CỦA USER =====
 
+// Search users for chat/messaging
+router.get(
+  '/search',
+  (req: Request, res: Response, next: NextFunction) => userModuleController.searchUsers(req, res, next)
+);
+
 // Get user profile (authenticated users only)
 router.get(
   '/profile',

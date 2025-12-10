@@ -3,12 +3,176 @@
  * 
  * Helper functions for routing and navigation across the application.
  * Centralized logic to ensure consistent navigation behavior.
+ * 
+ * === HYBRID MODEL FOR LMS ===
+ * Mô hình Hybrid kết hợp:
+ * 1. Resource-Centric: Tài nguyên chung (courses, lessons) được quản lý bởi cả admin & instructor
+ * 2. Role-Centric: Mỗi role có workspace riêng với UI/UX phù hợp
+ * 
+ * Admin và Instructor có thể CHIA SẺ chức năng quản lý khóa học, nhưng mỗi role
+ * sẽ ở trong WORKSPACE riêng của mình (/admin/* hoặc /instructor/*)
  */
 
-import { ROUTES } from '@/constants/routes';
+import { ROUTES, generateRoute } from '@/constants/routes';
 import type { User } from '@/stores/authStore.enhanced';
 
 type UserRole = User['role'];
+
+/**
+ * Check if user has admin role (admin or super_admin)
+ */
+export const isAdminRole = (role?: UserRole | null): boolean => {
+  return role === 'admin' || role === 'super_admin';
+};
+
+/**
+ * Check if user has instructor role
+ */
+export const isInstructorRole = (role?: UserRole | null): boolean => {
+  return role === 'instructor';
+};
+
+/**
+ * Check if user can manage courses (admin, super_admin, or instructor)
+ */
+export const canManageCourses = (role?: UserRole | null): boolean => {
+  return isAdminRole(role) || isInstructorRole(role);
+};
+
+// ============================================================
+// ROLE-BASED ROUTE GENERATORS
+// Các hàm này trả về route phù hợp với role của user
+// ============================================================
+
+/**
+ * Get the appropriate "My Courses" route based on role
+ * Admin: /admin/courses
+ * Instructor: /instructor/my-courses
+ */
+export const getMyCoursesRoute = (role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    return ROUTES.ADMIN.COURSES;
+  }
+  return ROUTES.INSTRUCTOR.MY_COURSES;
+};
+
+/**
+ * Get the appropriate course detail route based on role
+ * Admin: /admin/courses/:courseId (view only, no assignments/grades)
+ * Instructor: /instructor/courses/:courseId (full management)
+ */
+export const getCourseDetailRoute = (courseId: string, role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    return generateRoute.admin.courseDetail(courseId);
+  }
+  return generateRoute.instructor.courseDetail(courseId);
+};
+
+/**
+ * Get the appropriate course edit route based on role
+ */
+export const getCourseEditRoute = (courseId: string, role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    return generateRoute.admin.courseEdit(courseId);
+  }
+  return generateRoute.instructor.courseEdit(courseId);
+};
+
+/**
+ * Get the appropriate curriculum route based on role
+ */
+export const getCourseCurriculumRoute = (courseId: string, role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    return generateRoute.admin.courseCurriculum(courseId);
+  }
+  return generateRoute.instructor.curriculum(courseId);
+};
+
+/**
+ * Get the appropriate course create route based on role
+ * Note: Admin typically doesn't create courses, but navigates to admin dashboard
+ */
+export const getCourseCreateRoute = (role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    // Admin không tạo khóa học, redirect về danh sách
+    return ROUTES.ADMIN.COURSES;
+  }
+  return ROUTES.INSTRUCTOR.COURSE_CREATE;
+};
+
+/**
+ * Get the appropriate quiz create route based on role
+ * Admin: redirect to admin courses (không có quyền tạo quiz)
+ * Instructor: /instructor/courses/:courseId/quizzes/create
+ */
+export const getQuizCreateRoute = (courseId: string, role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    // Admin không tạo quiz, redirect về chi tiết khóa học
+    return generateRoute.admin.courseDetail(courseId);
+  }
+  return generateRoute.instructor.quizCreate(courseId);
+};
+
+/**
+ * Get the appropriate assignment create route based on role
+ */
+export const getAssignmentCreateRoute = (courseId: string, role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    return generateRoute.admin.courseDetail(courseId);
+  }
+  return generateRoute.instructor.assignmentCreate(courseId);
+};
+
+/**
+ * Get the appropriate grades route based on role
+ */
+export const getGradesRoute = (courseId: string, role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    return generateRoute.admin.courseDetail(courseId);
+  }
+  return generateRoute.instructor.courseGrades(courseId);
+};
+
+/**
+ * Get the appropriate livestream management route based on role
+ * Both admin and instructor can manage livestreams
+ */
+export const getLivestreamRoute = (role?: UserRole | null): string => {
+  // Livestream hiện tại chỉ có route instructor, cần thêm route admin nếu cần
+  // Tạm thời: Admin redirect về dashboard, instructor đi đến livestream
+  if (isAdminRole(role)) {
+    return ROUTES.ADMIN.DASHBOARD;
+  }
+  return ROUTES.INSTRUCTOR.LIVESTREAM;
+};
+
+/**
+ * Get the appropriate livestream create route based on role
+ */
+export const getLivestreamCreateRoute = (role?: UserRole | null): string => {
+  if (isAdminRole(role)) {
+    return ROUTES.ADMIN.DASHBOARD;
+  }
+  return ROUTES.INSTRUCTOR.LIVESTREAM_CREATE;
+};
+
+// ============================================================
+// ROLE-BASED NAVIGATION OBJECT
+// Object tập trung tất cả role-aware routes
+// ============================================================
+
+export const roleBasedRoutes = {
+  myCourses: getMyCoursesRoute,
+  courseDetail: getCourseDetailRoute,
+  courseEdit: getCourseEditRoute,
+  courseCurriculum: getCourseCurriculumRoute,
+  courseCreate: getCourseCreateRoute,
+  quizCreate: getQuizCreateRoute,
+  assignmentCreate: getAssignmentCreateRoute,
+  grades: getGradesRoute,
+  livestream: getLivestreamRoute,
+  livestreamCreate: getLivestreamCreateRoute,
+};
 
 /**
  * Get the appropriate dashboard route based on user role
@@ -113,10 +277,28 @@ export const getLoginRoute = (redirectTo?: string): string => {
 };
 
 export default {
+  // Role checking
+  isAdminRole,
+  isInstructorRole,
+  canManageCourses,
+  // Dashboard routes
   getDashboardByRole,
+  getHomeRouteByRole,
+  // Role-based routes
+  roleBasedRoutes,
+  getMyCoursesRoute,
+  getCourseDetailRoute,
+  getCourseEditRoute,
+  getCourseCurriculumRoute,
+  getCourseCreateRoute,
+  getQuizCreateRoute,
+  getAssignmentCreateRoute,
+  getGradesRoute,
+  getLivestreamRoute,
+  getLivestreamCreateRoute,
+  // Utility functions
   buildUrlWithParams,
   isRouteMatch,
-  getHomeRouteByRole,
   getLandingRoute,
   getLoginRoute,
 };

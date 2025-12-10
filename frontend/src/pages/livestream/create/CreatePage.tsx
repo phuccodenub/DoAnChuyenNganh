@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { useCreateSession } from '@/hooks/useLivestream';
 import { useCourses } from '@/hooks/useCoursesData';
 import { ROUTES } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 import { livestreamApi } from '@/services/api/livestream.api';
 import { useQueryClient } from '@tanstack/react-query';
 import { livestreamQueryKeys } from '@/hooks/useLivestream';
@@ -17,6 +18,7 @@ import type { CreateSessionForm } from './types';
 
 export function CreateLiveStreamPage() {
   const navigate = useNavigate();
+  const { navigateTo } = useRoleBasedNavigation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: coursesResponse } = useCourses();
   const courses = coursesResponse?.data?.courses || [];
@@ -953,13 +955,13 @@ export function CreateLiveStreamPage() {
         } else {
           // Nếu schedule, redirect đến danh sách
           console.log('[CreateLiveStreamPage] Redirecting to list page (scheduled)');
-          navigate(ROUTES.INSTRUCTOR.LIVESTREAM);
+          navigateTo.livestream();
         }
       } else {
         // Fallback: redirect về danh sách nếu không có session ID
         console.error('[CreateLiveStreamPage] Created session không có ID:', createdSession);
         alert('Tạo phiên thành công nhưng không có ID. Vui lòng kiểm tra lại.');
-        navigate(ROUTES.INSTRUCTOR.LIVESTREAM);
+        navigateTo.livestream();
       }
     } catch (error: any) {
       console.error('[CreateLiveStreamPage] Create session error:', error);
@@ -979,7 +981,7 @@ export function CreateLiveStreamPage() {
           <div className="mb-6">
             <Button 
               variant="ghost" 
-              onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)} 
+              onClick={() => navigateTo.livestream()} 
               className="mb-4 text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -1542,7 +1544,7 @@ export function CreateLiveStreamPage() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)}
+                onClick={() => navigateTo.livestream()}
                 disabled={isSubmitting}
               >
                 Hủy

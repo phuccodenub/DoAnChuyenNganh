@@ -1,5 +1,5 @@
 # API TEST PLAN - LMS SYSTEM
-
+#Không xóa
 > **Ngày tạo:** 04/11/2025  
 > **Phiên bản:** 1.0  
 > **Mục đích:** Test toàn bộ API endpoints của hệ thống LMS

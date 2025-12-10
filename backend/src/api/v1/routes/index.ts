@@ -34,6 +34,7 @@ import { default as reviewRoutes } from '../../../modules/review/review.routes';
 import { filesRoutes, mediaRoutes } from '../../../modules/files';
 import { conversationRoutes, messageRoutes } from '../../../modules/conversation';
 import certificateRoutes from '../../../modules/certificate/certificate.routes';
+import { chatRoutes } from '../../../modules/chat';
 import logger from '../../../utils/logger.util';
 
 const router = Router();
@@ -116,5 +117,8 @@ router.use('/messages', messageRoutes);
 
 // Certificate routes
 router.use('/certificates', certificateRoutes);
+
+// Course Chat routes (Socket.IO fallback)
+router.use('/chat', chatRoutes);
 
 export default router;

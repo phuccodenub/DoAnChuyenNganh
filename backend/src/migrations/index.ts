@@ -29,6 +29,7 @@ import { up as allowNullMessageIdInCommentModerations, down as requireMessageIdI
 import { up as forceAllowNullMessageId, down as requireMessageIdAgain } from './022-force-allow-null-message-id';
 import { up as createConversationsTable, down as dropConversationsTable } from './023-create-conversations-table';
 import { up as createDirectMessagesTable, down as dropDirectMessagesTable } from './024-create-direct-messages-table';
+import { up as allowNullCourseIdConversations, down as revertNullCourseIdConversations } from './025-allow-null-course-id-conversations';
 import { up as addIsPracticeToQuizzesAssignments, down as removeIsPracticeFromQuizzesAssignments } from './025-add-is-practice-to-quizzes-assignments';
 import { up as addLessonIdToQuizzesAssignments, down as removeLessonIdFromQuizzesAssignments } from './026-add-lesson-id-to-quizzes-assignments';
 import { up as allowNullableCourseForQuizAssignment, down as revertNullableCourseForQuizAssignment } from './027-allow-nullable-course-for-quiz-assignment';
@@ -36,6 +37,7 @@ import { up as replaceLessonIdWithSectionIdInQuizzes, down as revertReplaceLesso
 import { up as addSectionIdToAssignments, down as removeSectionIdFromAssignments } from './029-add-section-id-to-assignments';
 import { up as createCertificatesTable, down as dropCertificatesTable } from './030-create-certificates-table';
 import { up as makeIpfsHashNullable, down as revertIpfsHashNullable } from './031-make-ipfs-hash-nullable';
+import { up as redesignConversationsForAdmin, down as revertConversationsDesign } from './032-redesign-conversations-for-admin';
 
 // Migration interface
 export interface Migration {
@@ -212,45 +214,57 @@ export const migrations: Migration[] = [
   },
   {
     version: '025',
+    description: 'Allow null course_id in conversations for direct messages',
+    up: allowNullCourseIdConversations,
+    down: revertNullCourseIdConversations
+  },
+  {
+    version: '026',
     description: 'Add is_practice field to quizzes and assignments',
     up: addIsPracticeToQuizzesAssignments,
     down: removeIsPracticeFromQuizzesAssignments
   },
   {
-    version: '026',
+    version: '027',
     description: 'Add lesson_id field to quizzes and assignments',
     up: addLessonIdToQuizzesAssignments,
     down: removeLessonIdFromQuizzesAssignments
   },
   {
-    version: '027',
+    version: '028',
     description: 'Allow nullable course_id for quiz/assignment (XOR with lesson)',
     up: allowNullableCourseForQuizAssignment,
     down: revertNullableCourseForQuizAssignment
   },
   {
-    version: '028',
+    version: '029',
     description: 'Replace lesson_id with section_id in quizzes',
     up: replaceLessonIdWithSectionIdInQuizzes,
     down: revertReplaceLessonIdWithSectionIdInQuizzes
   },
   {
-    version: '029',
+    version: '030',
     description: 'Add section_id to assignments',
     up: addSectionIdToAssignments,
     down: removeSectionIdFromAssignments
   },
   {
-    version: '030',
+    version: '031',
     description: 'Create certificates table',
     up: createCertificatesTable,
     down: dropCertificatesTable
   },
   {
-    version: '031',
+    version: '032',
     description: 'Make ipfs_hash nullable in certificates table',
     up: makeIpfsHashNullable,
     down: revertIpfsHashNullable
+  },
+  {
+    version: '033',
+    description: 'Redesign conversations table for admin support (user1_id/user2_id)',
+    up: redesignConversationsForAdmin,
+    down: revertConversationsDesign
   }
 ];
 

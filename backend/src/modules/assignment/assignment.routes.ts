@@ -95,6 +95,13 @@ router.get(
 router.get('/', controller.getAll);
 
 /**
+ * @route   GET /api/assignments/my
+ * @desc    Get all assignments for current student from enrolled courses
+ * @access  Authenticated (Student)
+ */
+router.get('/my', controller.getMyAssignments);
+
+/**
  * @route   POST /api/assignments
  * @desc    Create new assignment
  * @access  Instructor, Admin

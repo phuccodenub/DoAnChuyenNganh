@@ -30,7 +30,9 @@ export function MessageBubble({
         <div
             className={cn(
                 'flex gap-2 max-w-[80%]',
-                isOwn ? 'ml-auto flex-row-reverse' : 'mr-auto'
+                isOwn ? 'ml-auto flex-row-reverse' : 'mr-auto',
+                // Add left margin for non-own messages when avatar is hidden (Messenger style)
+                !isOwn && !showAvatar && 'ml-10'
             )}
         >
             {/* Avatar */}
@@ -52,8 +54,8 @@ export function MessageBubble({
 
             {/* Message Content */}
             <div className={cn('flex flex-col', isOwn ? 'items-end' : 'items-start')}>
-                {/* Sender name (chỉ hiển thị khi không phải tin nhắn của mình) */}
-                {!isOwn && senderName && (
+                {/* Sender name - Chỉ hiển thị cho tin nhắn đầu tiên (showAvatar=true) */}
+                {!isOwn && senderName && showAvatar && (
                     <span className="text-xs text-gray-500 mb-1 px-1">{senderName}</span>
                 )}
 
@@ -97,7 +99,7 @@ export function MessageBubble({
                 {/* Timestamp & Status */}
                 <div className="flex items-center gap-1 mt-1 px-1">
                     <span className="text-xs text-gray-400">
-                        {formatMessageTime(message.created_at)}
+                        {formatMessageTime(message.created_at) || 'Đang gửi...'}
                     </span>
                     {isOwn && statusIcon[message.status]}
                 </div>

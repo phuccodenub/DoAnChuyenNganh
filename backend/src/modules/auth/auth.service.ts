@@ -114,52 +114,73 @@ export class AuthModuleService {
         throw ApiError.forbidden('Account is inactive');
       }
 
-      // Check for suspicious activity
-      const suspiciousActivity = await globalServices.sessionManagement.checkSuspiciousActivity(
-        user.id, 
-        ipAddress, 
-        userAgent
-      );
-      
-      if (suspiciousActivity.isSuspicious) {
-        logger.warn('Suspicious activity detected', { 
-          userId: user.id, 
-          email: user.email, 
-          reason: suspiciousActivity.reason 
-        });
-        // You might want to require additional verification here
+      // Check for suspicious activity (best-effort, never fail login)
+      try {
+        const suspiciousActivity = await globalServices.sessionManagement.checkSuspiciousActivity(
+          user.id,
+          ipAddress,
+          userAgent
+        );
+        
+        if (suspiciousActivity.isSuspicious) {
+          logger.warn('Suspicious activity detected', { 
+            userId: user.id, 
+            email: user.email, 
+            reason: suspiciousActivity.reason 
+          });
+          // TODO: optional additional verification flow
+        }
+      } catch (suspiciousError) {
+        // Do not block login if Redis/cache is down
+        logger.error('Error checking suspicious activity (non-blocking):', suspiciousError);
       }
 
       // Reset failed attempts on successful login
       await globalServices.accountLockout.resetFailedAttempts(credentials.email);
 
-      // Update last login
-      await this.authRepository.updateLastLogin(user.id);
+      // Update last login (best-effort)
+      try {
+        await this.authRepository.updateLastLogin(user.id);
+      } catch (updateLastLoginError) {
+        logger.error('Error updating last login (non-blocking):', updateLastLoginError);
+      }
 
       // Generate tokens
       const tokens = await globalServices.auth.generateTokens(user);
 
-      // Create session
-      const session = await globalServices.sessionManagement.createSession(
-        user.id,
-        device,
-        ipAddress,
-        userAgent
-      );
+      // Create session (best-effort, do not block login if Redis/cache fails)
+      let sessionId: string | null = null;
+      try {
+        const session = await globalServices.sessionManagement.createSession(
+          user.id,
+          device,
+          ipAddress,
+          userAgent
+        );
+        sessionId = session.id;
+      } catch (sessionError) {
+        logger.error('Error creating session (non-blocking):', sessionError);
+      }
 
       // Cache user data (using full user instance, not just profile)
       await globalServices.user.cacheUser(user.id, user);
-
-      // Cache session data
-      const sessionData = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        loginTime: new Date(),
-        tokenVersion: user.token_version,
-        sessionId: session.id
-      };
-      await globalServices.cache.cacheSession(`session:${user.id}`, sessionData);
+      
+      // Cache session data (best-effort)
+      if (sessionId) {
+        const sessionData = {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          loginTime: new Date(),
+          tokenVersion: user.token_version,
+          sessionId
+        };
+        try {
+          await globalServices.cache.cacheSession(`session:${user.id}`, sessionData);
+        } catch (cacheError) {
+          logger.error('Error caching session (non-blocking):', cacheError);
+        }
+      }
 
       // Return profile for response
       const userProfile = userUtils.getPublicProfile(user as any) as AuthTypes.UserProfile;

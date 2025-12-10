@@ -21,7 +21,7 @@ export function PopularCourses({ courses, isLoading, onCourseClick }: PopularCou
 
   // Lấy danh sách khóa học đang học (enrolled) - không giới hạn tối đa ở FE
   const { data: enrolledData, isLoading: isLoadingEnrolled } = useEnrolledCourses();
-  const studyingCourses = enrolledData?.data?.courses ?? [];
+  const studyingCourses = enrolledData?.courses ?? [];
 
   if (isLoading) {
     return (

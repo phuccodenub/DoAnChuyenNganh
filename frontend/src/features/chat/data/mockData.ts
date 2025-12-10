@@ -71,6 +71,7 @@ export const mockStudentConversations: Conversation[] = [
     last_message: {
       content: 'Chào em, em có thể giải thích rõ hơn về useEffect không?',
       created_at: '2025-12-01T10:30:00Z',
+      sender_id: 'ins-001',
       sender_role: 'instructor',
     },
     unread_count: 2,
@@ -84,6 +85,7 @@ export const mockStudentConversations: Conversation[] = [
     last_message: {
       content: 'Dạ em cảm ơn cô ạ!',
       created_at: '2025-11-30T16:45:00Z',
+      sender_id: 'current-student',
       sender_role: 'student',
     },
     unread_count: 0,
@@ -97,6 +99,7 @@ export const mockStudentConversations: Conversation[] = [
     last_message: {
       content: 'Bài tập tuần này em nộp muộn được không ạ?',
       created_at: '2025-11-29T14:20:00Z',
+      sender_id: 'current-student',
       sender_role: 'student',
     },
     unread_count: 0,
@@ -115,6 +118,7 @@ export const mockInstructorConversations: Conversation[] = [
     last_message: {
       content: 'Dạ thầy ơi, em không hiểu phần này...',
       created_at: '2025-12-01T11:00:00Z',
+      sender_id: 'stu-001',
       sender_role: 'student',
     },
     unread_count: 1,
@@ -128,6 +132,7 @@ export const mockInstructorConversations: Conversation[] = [
     last_message: {
       content: 'Em đã hoàn thành bài tập rồi ạ',
       created_at: '2025-12-01T09:30:00Z',
+      sender_id: 'stu-002',
       sender_role: 'student',
     },
     unread_count: 0,
@@ -141,6 +146,7 @@ export const mockInstructorConversations: Conversation[] = [
     last_message: {
       content: 'Generic types khó quá thầy ơi',
       created_at: '2025-11-30T20:15:00Z',
+      sender_id: 'stu-003',
       sender_role: 'student',
     },
     unread_count: 3,

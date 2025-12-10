@@ -33,12 +33,15 @@ export function AppProviders({ children }: AppProvidersProps) {
   // - Quiz tương tác (bảng xếp hạng real-time)
   // - Livestream events (participant join/leave)
   // - Notifications real-time (thông báo mới)
+  // 
+  // ⚠️ NON-BLOCKING: Socket connection không block UI rendering
+  // Các features vẫn hoạt động bình thường với API data
+  // Socket chỉ là enhancement cho real-time updates
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('[AppProviders] User authenticated, connecting Socket.IO for real-time features...');
-      socketService.connect().catch((error) => {
-        console.error('[AppProviders] Failed to connect Socket.IO:', error);
-      });
+      console.log('[AppProviders] User authenticated, initiating Socket.IO connection (non-blocking)...');
+      // Non-blocking: Start connection in background
+      socketService.connectNonBlocking();
     } else {
       console.log('[AppProviders] User not authenticated, disconnecting Socket.IO...');
       socketService.disconnect();
