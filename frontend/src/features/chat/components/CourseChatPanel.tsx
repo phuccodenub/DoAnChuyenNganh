@@ -9,7 +9,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { BookOpen, MessageSquare, Users, Loader2, ChevronRight, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { useChatMessages, useSendMessage as useSendCourseMessage } from '@/hooks/useChat';
+import { useChatMessages, useSendMessage as useSendCourseMessage, useMarkCourseAsRead, useUnreadCountPerCourse, useInfiniteChatMessages, useLoadOlderChatMessages } from '@/hooks/useChat';
 import { useCourseChatSocket } from '../hooks/useChatSocket';
 import { MessageComposer } from './MessageComposer';
 import { MessageBubble } from './MessageBubble';
@@ -26,21 +26,50 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(0);
+  const prevCourseIdRef = useRef<string | null>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
   const isStudent = user?.role === 'student';
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const { data: courses, isLoading: isLoadingCourses } = useCourseChatCourses();
 
-  // Fetch messages for selected course
+  // Fetch unread count per course
+  const { data: unreadCountsData } = useUnreadCountPerCourse();
+  
+  // Create a map for quick lookup of unread counts by course_id
+  const unreadCountMap = useMemo(() => {
+    if (!unreadCountsData) return new Map<string, number>();
+    const map = new Map<string, number>();
+    unreadCountsData.forEach(item => {
+      map.set(item.course_id, item.unread_count);
+    });
+    return map;
+  }, [unreadCountsData]);
+
+  // Fetch messages for selected course (using infinite scroll)
   const { 
     data: messagesData, 
     isLoading: isLoadingMessages,
     refetch: refetchMessages 
-  } = useChatMessages(selectedCourseId || '', 1, 50);
+  } = useInfiniteChatMessages(selectedCourseId || '');
 
+  const loadOlderMessagesMutation = useLoadOlderChatMessages(selectedCourseId || '');
   const sendMessageMutation = useSendCourseMessage(selectedCourseId || '');
+  const markAsReadMutation = useMarkCourseAsRead();
+
+  // Mark course as read immediately when opening (no debounce for instant update)
+  useEffect(() => {
+    if (selectedCourseId) {
+      markAsReadMutation.mutate(selectedCourseId, {
+        onError: (error) => {
+          console.error('Failed to mark course as read:', error);
+        }
+      });
+    }
+  }, [selectedCourseId]);
 
   // Real-time socket for course chat
   const { onlineUsers } = useCourseChatSocket({
@@ -51,6 +80,15 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
+      
+      // Mark as read immediately when viewing and receiving new message
+      if (selectedCourseId) {
+        markAsReadMutation.mutate(selectedCourseId, {
+          onError: (error) => {
+            console.error('Failed to mark course as read:', error);
+          }
+        });
+      }
     },
   });
 
@@ -87,18 +125,56 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
     return mapped.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }, [messagesData, user, selectedCourseId]);
 
-  // Auto scroll when messages change
+  // Scroll to bottom on initial load (when course changes)
+  useEffect(() => {
+    if (selectedCourseId && selectedCourseId !== prevCourseIdRef.current && messages.length > 0) {
+      // New course selected - scroll to bottom immediately
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      }, 150);
+      prevCourseIdRef.current = selectedCourseId;
+      prevMessagesLengthRef.current = messages.length;
+    }
+  }, [selectedCourseId, messages.length]);
+
+  // Auto scroll when new messages arrive (only if near bottom)
   useEffect(() => {
     const messagesChanged = messages.length !== prevMessagesLengthRef.current;
     
-    if (messagesChanged && messages.length > 0) {
+    if (messagesChanged && messages.length > 0 && isNearBottom && selectedCourseId === prevCourseIdRef.current) {
+      // Only auto-scroll if user is near bottom and same course
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       
       prevMessagesLengthRef.current = messages.length;
     }
-  }, [messages]);
+  }, [messages, isNearBottom, selectedCourseId]);
+
+  // Handle infinite scroll - load older messages when scrolled to top
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedCourseId) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      
+      // Check if near bottom (for auto-scroll behavior)
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      setIsNearBottom(distanceFromBottom < 100);
+      
+      // Load more when scrolled to top
+      if (scrollTop < 100 && !loadOlderMessagesMutation.isPending && messages.length > 0) {
+        const oldestMessage = messages[0];
+        if (oldestMessage && oldestMessage.id) {
+          loadOlderMessagesMutation.mutate(oldestMessage.id);
+        }
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [messages, selectedCourseId, loadOlderMessagesMutation]);
 
   // Create sender info map for display
   const senderInfoMap = useMemo(() => {
@@ -176,45 +252,63 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
             </div>
           ) : filteredCourses.length > 0 ? (
             <div className="divide-y divide-gray-100">
-              {filteredCourses.map((course) => (
-                <button
-                  key={course.id}
-                  onClick={() => handleSelectCourse(course.id)}
-                  className={cn(
-                    'w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors',
-                    selectedCourseId === course.id && 'bg-blue-50 border-l-4 border-blue-500'
-                  )}
-                >
-                  {course.thumbnail ? (
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <BookOpen className="w-6 h-6 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">
-                      {course.title}
-                    </p>
-                    {course.enrollmentCount !== undefined && (
-                      <div className="flex items-center gap-1 text-sm text-gray-500 mt-0.5">
-                        <Users className="w-3 h-3" />
-                        <span>
-                          {isStudent 
-                            ? `${course.enrollmentCount} học viên • 1 giảng viên`
-                            : `${course.enrollmentCount} học viên`
-                          }
-                        </span>
+              {filteredCourses.map((course) => {
+                const unreadCount = unreadCountMap.get(course.id) || 0;
+                const hasUnread = unreadCount > 0;
+                
+                return (
+                  <button
+                    key={course.id}
+                    onClick={() => handleSelectCourse(course.id)}
+                    className={cn(
+                      'w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors',
+                      selectedCourseId === course.id && 'bg-blue-50 border-l-4 border-blue-500',
+                      hasUnread && selectedCourseId !== course.id && 'bg-blue-50/30 font-semibold'
+                    )}
+                  >
+                    {course.thumbnail ? (
+                      <img
+                        src={course.thumbnail}
+                        alt={course.title}
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <BookOpen className="w-6 h-6 text-gray-400" />
                       </div>
                     )}
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
-                </button>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <p className={cn(
+                        "font-medium text-gray-900 truncate",
+                        hasUnread && "font-bold"
+                      )}>
+                        {course.title}
+                      </p>
+                      {course.enrollmentCount !== undefined && (
+                        <div className="flex items-center gap-1 text-sm text-gray-500 mt-0.5">
+                          <Users className="w-3 h-3" />
+                          <span>
+                            {isStudent 
+                              ? `${course.enrollmentCount} học viên • 1 giảng viên`
+                              : `${course.enrollmentCount} học viên`
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {hasUnread ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </div>
+                        <MessageSquare className="w-4 h-4 text-red-500" />
+                      </div>
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="py-12 text-center">
@@ -281,7 +375,14 @@ export function CourseChatPanel({ className }: CourseChatPanelProps) {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Loading more indicator */}
+              {loadOlderMessagesMutation.isPending && (
+                <div className="text-center py-2">
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              )}
+
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />

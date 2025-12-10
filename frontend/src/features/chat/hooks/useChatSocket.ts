@@ -292,10 +292,11 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
 
     // Listen for new messages from GLOBAL room
     const handleNewMessage = (message: ChatMessage) => {
-      console.log('✅ Received chat:new_message from global room:', {
+      console.log('✅ [SOCKET] New message received:', {
         messageId: message.id?.substring(0, 8),
         courseId: message.course_id,
         currentCourseId: courseId,
+        timestamp: new Date().toLocaleTimeString(),
       });
       
       // CRITICAL FIX: Invalidate ALL message queries for this course (all pages)
@@ -304,6 +305,28 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
         queryKey: ['chat', 'messages', message.course_id],
         exact: false, // Match all pages
         refetchType: 'active' // Only refetch active queries (current page)
+      });
+
+      // INSTANT REFETCH: Invalidate and refetch unread counts immediately
+      console.log('🔄 [SOCKET] Invalidating unread counts...');
+      
+      // Invalidate with active refetch only (not all) to reduce load
+      queryClient.invalidateQueries({
+        queryKey: ['course-chat-unread-count'],
+        refetchType: 'active', // Only refetch active queries
+      }).then(() => {
+        console.log('✅ [SOCKET] Total unread count refetched');
+      }).catch((err) => {
+        console.warn('⚠️ [SOCKET] Failed to refetch total count:', err.message);
+      });
+      
+      queryClient.invalidateQueries({
+        queryKey: ['course-chat-unread-per-course'],
+        refetchType: 'active', // Only refetch active queries
+      }).then(() => {
+        console.log('✅ [SOCKET] Per-course unread counts refetched');
+      }).catch((err) => {
+        console.warn('⚠️ [SOCKET] Failed to refetch per-course counts:', err.message);
       });
 
       // Call callback only if message is for current course

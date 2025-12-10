@@ -87,14 +87,13 @@ export class DirectMessageRepository {
           attributes: ['id', 'first_name', 'last_name', 'avatar', 'role'],
         },
       ],
-      order: [['created_at', before ? 'DESC' : 'ASC']],
+      // Always fetch DESC (newest first), then reverse for chronological order
+      order: [['created_at', 'DESC']],
       limit,
     });
 
-    // If fetching "before", reverse to get chronological order
-    if (before) {
-      messages.reverse();
-    }
+    // Reverse to get chronological order (oldest to newest)
+    messages.reverse();
 
     return messages;
   }

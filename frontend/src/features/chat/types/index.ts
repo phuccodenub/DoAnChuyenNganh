@@ -89,6 +89,8 @@ export interface ConversationPanelProps {
   onRetry?: () => void;
   error?: string | null;
   isParticipantOnline?: boolean;
+  onLoadMore?: (oldestMessageDate: string) => void;
+  isLoadingMore?: boolean;
 }
 
 export interface MessageBubbleProps {

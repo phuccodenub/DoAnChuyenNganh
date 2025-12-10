@@ -119,18 +119,36 @@ export class ChatController {
   /**
    * Get unread message count for all enrolled courses
    * GET /chat/unread-count
+   * Returns the number of COURSES that have unread messages (not total message count)
    */
   getUnreadCount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.userId;
 
-      // For now, return 0 as we just created the read_status table
-      // TODO: Implement logic to count unread messages per course
-      const unreadCount = 0;
+      // Get total count of courses with unread messages
+      const unreadCount = await this.chatService.getTotalUnreadCount(userId);
 
       responseUtils.sendSuccess(res, 'Unread count retrieved', { unread_count: unreadCount });
     } catch (error: unknown) {
       logger.error('Error in getUnreadCount:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Get unread count for each enrolled course
+   * GET /chat/unread-count-per-course
+   * Returns array of { course_id, unread_count }
+   */
+  getUnreadCountPerCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+
+      const unreadCounts = await this.chatService.getUnreadCountPerCourse(userId);
+
+      responseUtils.sendSuccess(res, 'Unread counts retrieved', unreadCounts);
+    } catch (error: unknown) {
+      logger.error('Error in getUnreadCountPerCourse:', error);
       next(error);
     }
   };
@@ -213,6 +231,24 @@ export class ChatController {
       responseUtils.sendSuccess(res, 'Messages retrieved successfully', result);
     } catch (error: unknown) {
       logger.error('Error in getMessagesByType:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Mark all messages in a course as read
+   * POST /chat/courses/:courseId/mark-read
+   */
+  markAsRead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseId } = req.params;
+      const userId = req.user!.userId;
+
+      await this.chatService.markCourseAsRead(courseId, userId);
+
+      responseUtils.sendSuccess(res, 'Messages marked as read', null);
+    } catch (error: unknown) {
+      logger.error('Error in markAsRead:', error);
       next(error);
     }
   };

@@ -3,9 +3,10 @@
  * 
  * Panel chính hiển thị cuộc trò chuyện
  * Bao gồm: header, message list, composer
+ * Supports infinite scroll for loading older messages
  */
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConversationPanelProps, Message } from '../types';
@@ -28,23 +29,65 @@ export function ConversationPanel({
     onRetry,
     error,
     isParticipantOnline,
+    onLoadMore,
+    isLoadingMore = false,
 }: ConversationPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const prevMessagesLengthRef = useRef(messages.length);
+    const prevConversationIdRef = useRef<string | null>(null);
+    const [isNearBottom, setIsNearBottom] = useState(true);
 
-    // Auto scroll to bottom when new messages arrive OR when messages initially load
+    // Scroll to bottom on initial load (when conversation changes)
+    useEffect(() => {
+        if (conversation?.id && conversation.id !== prevConversationIdRef.current) {
+            // New conversation opened - scroll to bottom immediately
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+            }, 100);
+            prevConversationIdRef.current = conversation.id;
+            prevMessagesLengthRef.current = messages.length;
+        }
+    }, [conversation?.id, messages.length]);
+
+    // Auto scroll to bottom when new messages arrive (only if near bottom)
     useEffect(() => {
         const messagesChanged = messages.length !== prevMessagesLengthRef.current;
         
-        if (messagesChanged) {
-            // Use setTimeout to ensure DOM has updated
+        if (messagesChanged && isNearBottom && conversation?.id === prevConversationIdRef.current) {
+            // Only auto-scroll if user is near bottom and same conversation
             setTimeout(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             }, 100);
             
             prevMessagesLengthRef.current = messages.length;
         }
-    }, [messages]);
+    }, [messages, isNearBottom, conversation?.id]);
+
+    // Handle infinite scroll - load older messages when scrolled to top
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container || !onLoadMore) return;
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            
+            // Check if near bottom (for auto-scroll behavior)
+            const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+            setIsNearBottom(distanceFromBottom < 100);
+            
+            // Load more when scrolled to top
+            if (scrollTop < 100 && !isLoadingMore && messages.length > 0) {
+                const oldestMessage = messages[0];
+                if (oldestMessage && oldestMessage.created_at) {
+                    onLoadMore(oldestMessage.created_at);
+                }
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [messages, isLoadingMore, onLoadMore]);
 
     // No conversation selected
     if (!conversation) {
@@ -102,7 +145,14 @@ export function ConversationPanel({
             </div>
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                {/* Loading more indicator */}
+                {isLoadingMore && (
+                    <div className="text-center py-2">
+                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    </div>
+                )}
+
                 {/* Loading state */}
                 {isLoading ? (
                     <div className="space-y-4">

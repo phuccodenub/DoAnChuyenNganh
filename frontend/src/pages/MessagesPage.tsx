@@ -38,6 +38,8 @@ import { useCourseChatCourses } from '@/features/chat/hooks/useCourseChatCourses
 import {
     useConversations,
     useMessages,
+    useInfiniteMessages,
+    useLoadOlderMessages,
     useSendMessage,
     useMarkAsRead,
     useCreateConversation,
@@ -174,9 +176,10 @@ export function MessagesPage() {
 
     // API Hooks
     const { data: conversationsData, isLoading: isLoadingConversations, refetch: refetchConversations } = useConversations(user?.id);
-    const { data: messagesData, isLoading: isLoadingMessages, refetch: refetchMessages } = useMessages(
+    const { data: messagesData, isLoading: isLoadingMessages, refetch: refetchMessages } = useInfiniteMessages(
         selectedConversationId || undefined
     );
+    const loadOlderMessagesMutation = useLoadOlderMessages(selectedConversationId || undefined);
     const sendMessageMutation = useSendMessage(selectedConversationId || '');
     const markAsReadMutation = useMarkAsRead();
     const createConversationMutation = useCreateConversation();
@@ -189,7 +192,7 @@ export function MessagesPage() {
     const { data: courseChatCourses } = useCourseChatCourses();
     const courseTotalCount = courseChatCourses?.length ?? 0;
 
-    // Query for course chat unread count (separate from total courses)
+    // Query for course chat unread count (counts how many COURSES have unread messages, not total messages)
     const { data: courseUnreadCountData } = useQuery({
         queryKey: ['course-chat-unread-count', user?.id],
         queryFn: async () => {
@@ -202,7 +205,9 @@ export function MessagesPage() {
             }
         },
         enabled: !!user,
-        staleTime: 1000 * 60, // 1 minute
+        staleTime: 1000 * 5, // 5 seconds - balance between freshness and load
+        refetchInterval: 1000 * 15, // 15 seconds backup (reduced frequency)
+        refetchOnWindowFocus: false, // Disable to reduce requests
     });
 
     // Current user info
@@ -368,6 +373,8 @@ export function MessagesPage() {
                             isLoadingConversations={isLoadingConversations}
                             onRetry={handleRetry}
                             isParticipantOnline={onlineStatusData?.data?.isOnline}
+                            onLoadMore={(oldestDate) => loadOlderMessagesMutation.mutate(oldestDate)}
+                            isLoadingMore={loadOlderMessagesMutation.isPending}
                         />
                     )}
 

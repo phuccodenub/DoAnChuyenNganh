@@ -16,10 +16,17 @@ router.use(authMiddleware);
 
 /**
  * @route   GET /chat/unread-count
- * @desc    Get total unread message count for all enrolled courses
+ * @desc    Get total count of courses with unread messages (not total message count)
  * @access  Private
  */
 router.get('/unread-count', chatController.getUnreadCount);
+
+/**
+ * @route   GET /chat/unread-count-per-course
+ * @desc    Get unread count for each enrolled course
+ * @access  Private
+ */
+router.get('/unread-count-per-course', chatController.getUnreadCountPerCourse);
 
 /**
  * @route   GET /chat/courses/:courseId/messages
@@ -59,6 +66,13 @@ router.get('/courses/:courseId/statistics', chatController.getStatistics);
  * @access  Private (authenticated users in the course)
  */
 router.get('/courses/:courseId/messages/type/:messageType', chatController.getMessagesByType);
+
+/**
+ * @route   POST /chat/courses/:courseId/mark-read
+ * @desc    Mark all messages in a course as read
+ * @access  Private (authenticated users in the course)
+ */
+router.post('/courses/:courseId/mark-read', chatController.markAsRead);
 
 /**
  * @route   PUT /chat/messages/:messageId

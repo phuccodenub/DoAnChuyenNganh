@@ -150,6 +150,61 @@ export function useMessages(
 }
 
 /**
+ * Get messages with infinite scroll support
+ * Returns latest 50 messages, with ability to load older messages
+ */
+export function useInfiniteMessages(conversationId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: [...conversationKeys.messages(conversationId!), 'infinite'],
+    queryFn: async () => {
+      // Fetch latest 50 messages
+      const response = await conversationApi.getMessages(conversationId!, { limit: 50 });
+      return response;
+    },
+    enabled: !!conversationId,
+    staleTime: 10 * 1000,
+  });
+}
+
+/**
+ * Load older messages (for infinite scroll)
+ */
+export function useLoadOlderMessages(conversationId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (oldestMessageDate: string) => {
+      const response = await conversationApi.getMessages(conversationId!, {
+        limit: 50,
+        before: oldestMessageDate,
+      });
+      return response;
+    },
+    onSuccess: (newMessages) => {
+      if (!conversationId) return;
+
+      // Get current messages
+      const currentData = queryClient.getQueryData<MessagesResponse>(
+        [...conversationKeys.messages(conversationId), 'infinite']
+      );
+
+      if (currentData && newMessages.data.length > 0) {
+        // Prepend older messages to the beginning
+        queryClient.setQueryData<MessagesResponse>(
+          [...conversationKeys.messages(conversationId), 'infinite'],
+          {
+            ...currentData,
+            data: [...newMessages.data, ...currentData.data],
+          }
+        );
+      }
+    },
+  });
+}
+
+/**
  * Get unread message count
  */
 export function useUnreadCount() {
@@ -192,12 +247,16 @@ export function useSendMessage(conversationId: string) {
   return useMutation({
     mutationFn: (data: SendMessageInput) => conversationApi.sendMessage(conversationId, data),
     onMutate: async (newMessage) => {
-      // Cancel outgoing refetches
+      // Cancel outgoing refetches for both query keys
       await queryClient.cancelQueries({ queryKey: conversationKeys.messages(conversationId) });
+      await queryClient.cancelQueries({ queryKey: [...conversationKeys.messages(conversationId), 'infinite'] });
 
-      // Snapshot the previous value
+      // Snapshot the previous values
       const previousMessages = queryClient.getQueryData<MessagesResponse>(
         conversationKeys.messages(conversationId)
+      );
+      const previousInfiniteMessages = queryClient.getQueryData<MessagesResponse>(
+        [...conversationKeys.messages(conversationId), 'infinite']
       );
 
       // Get current user ID from zustand auth store
@@ -214,24 +273,25 @@ export function useSendMessage(conversationId: string) {
         console.error('❌ Optimistic update - Failed to get user from store:', e);
       }
 
-      // Optimistically update
-      if (previousMessages) {
-        const optimisticMessage: DirectMessage = {
-          id: `temp-${Date.now()}`,
-          conversation_id: conversationId,
-          sender_id: currentUserId, // Use actual current user ID
-          content: newMessage.content,
-          status: 'sent',
-          attachment_url: newMessage.attachment_url,
-          attachment_type: newMessage.attachment_type,
-          is_read: false,
-          is_edited: false,
-          is_deleted: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          sender: {} as any, // Will be replaced
-        };
+      // Create optimistic message
+      const optimisticMessage: DirectMessage = {
+        id: `temp-${Date.now()}`,
+        conversation_id: conversationId,
+        sender_id: currentUserId, // Use actual current user ID
+        content: newMessage.content,
+        status: 'sent',
+        attachment_url: newMessage.attachment_url,
+        attachment_type: newMessage.attachment_type,
+        is_read: false,
+        is_edited: false,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sender: {} as any, // Will be replaced
+      };
 
+      // Optimistically update both queries
+      if (previousMessages) {
         queryClient.setQueryData<MessagesResponse>(
           conversationKeys.messages(conversationId),
           {
@@ -241,14 +301,30 @@ export function useSendMessage(conversationId: string) {
         );
       }
 
-      return { previousMessages };
+      if (previousInfiniteMessages) {
+        queryClient.setQueryData<MessagesResponse>(
+          [...conversationKeys.messages(conversationId), 'infinite'],
+          {
+            ...previousInfiniteMessages,
+            data: [...previousInfiniteMessages.data, optimisticMessage],
+          }
+        );
+      }
+
+      return { previousMessages, previousInfiniteMessages };
     },
     onError: (error, _variables, context) => {
-      // Rollback on error
+      // Rollback on error for both queries
       if (context?.previousMessages) {
         queryClient.setQueryData(
           conversationKeys.messages(conversationId),
           context.previousMessages
+        );
+      }
+      if (context?.previousInfiniteMessages) {
+        queryClient.setQueryData(
+          [...conversationKeys.messages(conversationId), 'infinite'],
+          context.previousInfiniteMessages
         );
       }
       toast.error(error.message || 'Failed to send message');

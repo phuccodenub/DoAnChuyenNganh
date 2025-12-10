@@ -80,6 +80,34 @@ export const chatApi = {
   },
 
   /**
+   * Get chat messages with infinite scroll support (timestamp-based)
+   */
+  getMessagesInfinite: async (
+    courseId: string, 
+    options?: { limit?: number; beforeMessageId?: string; afterMessageId?: string }
+  ): Promise<ChatMessagesResponse> => {
+    if (!courseId) {
+      return { data: [], pagination: { page: 1, limit: 50, total: 0, totalPages: 0, hasMore: false } };
+    }
+    const params: Record<string, any> = { 
+      limit: options?.limit || 50,
+      page: 1 // Page 1 for timestamp-based queries
+    };
+    if (options?.beforeMessageId) params.beforeMessageId = options.beforeMessageId;
+    if (options?.afterMessageId) params.afterMessageId = options.afterMessageId;
+
+    const response = await apiClient.get(
+      `/chat/courses/${courseId}/messages`,
+      { params }
+    );
+    const respData = response.data?.data || response.data;
+    return {
+      data: respData?.data || [],
+      pagination: respData?.pagination || { page: 1, limit: 50, total: 0, totalPages: 0, hasMore: false }
+    };
+  },
+
+  /**
    * Send a chat message
    */
   sendMessage: async (courseId: string, content: string, replyToMessageId?: string): Promise<ChatMessage> => {
@@ -146,5 +174,29 @@ export const chatApi = {
       `/chat/courses/${courseId}/statistics`
     );
     return response.data.data;
+  },
+
+  /**
+   * Get total count of courses with unread messages (not total message count)
+   */
+  getUnreadCount: async (): Promise<number> => {
+    const response = await apiClient.get<{ data: { unread_count: number } }>('/chat/unread-count');
+    return response.data.data.unread_count;
+  },
+
+  /**
+   * Get unread count for each enrolled course
+   * Returns array of { course_id, unread_count }
+   */
+  getUnreadCountPerCourse: async (): Promise<Array<{ course_id: string; unread_count: number }>> => {
+    const response = await apiClient.get<{ data: Array<{ course_id: string; unread_count: number }> }>('/chat/unread-count-per-course');
+    return response.data.data;
+  },
+
+  /**
+   * Mark all messages in a course as read
+   */
+  markAsRead: async (courseId: string): Promise<void> => {
+    await apiClient.post(`/chat/courses/${courseId}/mark-read`);
   },
 };

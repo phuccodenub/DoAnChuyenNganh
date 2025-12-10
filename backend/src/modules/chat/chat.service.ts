@@ -189,4 +189,54 @@ export class ChatService {
       throw error;
     }
   }
+
+  /**
+   * Get unread message count for a user in a specific course
+   */
+  async getUnreadCountForCourse(courseId: string, userId: string): Promise<number> {
+    try {
+      return await this.repository.countUnreadForUser(courseId, userId);
+    } catch (error: unknown) {
+      logger.error('Error getting unread count for course:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get unread count for each enrolled course
+   * Returns array of { course_id, unread_count }
+   */
+  async getUnreadCountPerCourse(userId: string): Promise<Array<{ course_id: string; unread_count: number }>> {
+    try {
+      return await this.repository.getUnreadCountPerCourse(userId);
+    } catch (error: unknown) {
+      logger.error('Error getting unread count per course:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get total number of COURSES with unread messages (not total message count)
+   * This counts how many courses have at least 1 unread message
+   */
+  async getTotalUnreadCount(userId: string): Promise<number> {
+    try {
+      return await this.repository.getTotalUnreadCountForUser(userId);
+    } catch (error: unknown) {
+      logger.error('Error getting total unread course count:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark all messages in a course as read for a user
+   */
+  async markCourseAsRead(courseId: string, userId: string): Promise<void> {
+    try {
+      await this.repository.markAsRead(courseId, userId);
+    } catch (error: unknown) {
+      logger.error('Error marking course as read:', error);
+      throw error;
+    }
+  }
 }

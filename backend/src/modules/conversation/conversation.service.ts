@@ -390,21 +390,24 @@ export class ConversationService {
   }
 
   /**
-   * Get unread count for all conversations
+   * Get count of conversations with unread messages (not total message count)
    */
   async getTotalUnreadCount(userId: string): Promise<number> {
     const result = await conversationRepository.findByUserId(userId, 'student', { includeArchived: false });
 
-    let totalUnread = 0;
+    let conversationsWithUnread = 0;
     for (const conv of result.rows) {
       const lastReadAt = (conv as any).user1_id === userId
         ? (conv as any).user1_last_read_at
         : (conv as any).user2_last_read_at;
 
-      totalUnread += await directMessageRepository.countUnread((conv as any).id, userId, lastReadAt);
+      const unreadCount = await directMessageRepository.countUnread((conv as any).id, userId, lastReadAt);
+      if (unreadCount > 0) {
+        conversationsWithUnread++;
+      }
     }
 
-    return totalUnread;
+    return conversationsWithUnread;
   }
 
   /**
@@ -486,4 +489,3 @@ export class ConversationService {
 
 export const conversationService = new ConversationService();
 export default conversationService;
-

@@ -28,6 +28,8 @@ interface ChatLayoutProps {
     error?: string | null;
     onRetry?: () => void;
     isParticipantOnline?: boolean;
+    onLoadMore?: (oldestMessageDate: string) => void;
+    isLoadingMore?: boolean;
     // For mobile: pre-select a conversation (e.g., from course page)
     initialConversationId?: string;
 }
@@ -46,6 +48,8 @@ export function ChatLayout({
     error,
     onRetry,
     isParticipantOnline,
+    onLoadMore,
+    isLoadingMore = false,
 }: ChatLayoutProps) {
     const [filter, setFilter] = useState<'all' | 'unread'>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -159,6 +163,8 @@ export function ChatLayout({
                         onRetry={onRetry}
                         error={error}
                         isParticipantOnline={isParticipantOnline}
+                        onLoadMore={onLoadMore}
+                        isLoadingMore={isLoadingMore}
                     />
                 </div>
             </div>
