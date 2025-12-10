@@ -151,7 +151,6 @@ function AppRoutes() {
             {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
           </Route>
 
-<<<<<<< HEAD
           {/* Quiz & Assignment routes: cho phép cả student + instructor xem giao diện làm bài */}
           <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>
             <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
@@ -168,12 +167,8 @@ function AppRoutes() {
             <Route path={ROUTES.COURSE_CURRICULUM} element={<CurriculumBuilderPage />} />
           </Route>
 
-          {/* Instructor & Admin routes (admin cũng có thể host livestream) */}
-          <Route element={<RoleGuard allowedRoles={['instructor', 'admin']} />}>
-=======
           {/* Instructor routes - CHỈ dành cho instructor */}
           <Route element={<RoleGuard allowedRoles={['instructor']} />}>
->>>>>>> origin/done-chat-noti
             <Route element={<InstructorDashboardLayout />}>
               <Route path={ROUTES.INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
               <Route path={ROUTES.INSTRUCTOR.MY_COURSES} element={<MyCoursesPage />} />
