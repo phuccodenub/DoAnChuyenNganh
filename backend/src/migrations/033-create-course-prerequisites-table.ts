@@ -1,7 +1,7 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
 /**
- * Migration 032: Create course_prerequisites table
+ * Migration 033: Create course_prerequisites table
  *
  * Mục tiêu:
  * - Tạo bảng course_prerequisites để quản lý yêu cầu trước khi học khóa học

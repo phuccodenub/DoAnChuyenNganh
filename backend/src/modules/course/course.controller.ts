@@ -81,6 +81,26 @@ export class CourseController {
     }
   };
 
+  // Get course for management (owner/admin only)
+  getCourseForManagement = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
+
+      const course = await this.courseService.getCourseForManagement(id, userId, userRole);
+
+      responseUtils.sendSuccess(res, 'Course retrieved successfully', course);
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
   // Update course
   updateCourse = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -218,12 +238,13 @@ export class CourseController {
     try {
       const { courseId } = req.params;
       const userId = req.user?.userId;
+      const userRole = req.user?.role;
       if (!userId) {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
         return;
       }
       
-      const enrollment = await this.courseService.enrollInCourse(courseId, userId!);
+      const enrollment = await this.courseService.enrollInCourse(courseId, userId!, userRole);
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.CREATED).json({
         success: true,

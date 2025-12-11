@@ -357,6 +357,49 @@ export class CourseContentRepository {
     });
   }
 
+  async getBookmarkedLessons(userId: string, courseId: string) {
+    const progressList = await LessonProgress.findAll({
+      where: { user_id: userId, bookmarked: true },
+      include: [
+        {
+          model: Lesson,
+          as: 'lesson',
+          attributes: ['id', 'title', 'order_index', 'section_id', 'content_type'],
+          include: [
+            {
+              model: Section,
+              as: 'section',
+              attributes: ['id', 'title', 'order_index', 'course_id'],
+              where: { course_id: courseId }
+            }
+          ]
+        }
+      ],
+      order: [
+        [{ model: Lesson, as: 'lesson' }, { model: Section, as: 'section' }, 'order_index', 'ASC'],
+        [{ model: Lesson, as: 'lesson' }, 'order_index', 'ASC']
+      ]
+    });
+
+    return progressList
+      .map((p: any) => {
+        const lesson = p.lesson;
+        const section = lesson?.section;
+        if (!lesson || !section) return null;
+        return {
+          lesson_id: lesson.id,
+          lesson_title: lesson.title,
+          lesson_order: lesson.order_index,
+          content_type: lesson.content_type,
+          section_id: section.id,
+          section_title: section.title,
+          section_order: section.order_index,
+          bookmarked_at: p.updated_at || p.created_at
+        };
+      })
+      .filter(Boolean);
+  }
+
   async getUserCourseProgress(userId: string, courseId: string): Promise<CourseProgressDTO> {
     // Get all sections and lessons for the course
     const sections = await Section.findAll({

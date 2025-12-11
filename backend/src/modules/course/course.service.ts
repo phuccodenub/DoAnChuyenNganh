@@ -47,8 +47,8 @@ export class CourseService {
       ).length;
       // Remove enrollments array from response (we only need the count)
       delete courseData.enrollments;
-    } else if (courseData.total_students === undefined) {
-      // If enrollments not included, try to get count from database
+    } else {
+      // Always refresh enrollment count to avoid stale cached total_students
       try {
         const { Op } = await import('sequelize');
         const EnrollmentModel = Enrollment as unknown as any;
@@ -61,7 +61,8 @@ export class CourseService {
         courseData.total_students = count;
       } catch (error) {
         logger.error('Error counting enrollments:', error);
-        courseData.total_students = 0;
+        // keep existing value if any, otherwise fallback to 0
+        courseData.total_students = courseData.total_students ?? 0;
       }
     }
     
@@ -298,6 +299,41 @@ export class CourseService {
   }
 
   /**
+   * Get course detail for management (owner/admin only)
+   */
+  async getCourseForManagement(id: string, userId: string, userRole?: string): Promise<any> {
+    try {
+      logger.info('Getting course for management', { courseId: id, userId, userRole });
+
+      const course = await this.courseRepository.findById(id, {
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
+          },
+        ]
+      });
+
+      if (!course) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Course not found');
+      }
+
+      const isOwner = (course as any).instructor_id === userId;
+      const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+
+      if (!isOwner && !isAdmin) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'Not authorized to manage this course');
+      }
+
+      return await this.normalizeCourseForFrontend(course, userId);
+    } catch (error: unknown) {
+      logger.error('Error getting course for management:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Update course
    */
   async updateCourse(id: string, updateData: CourseTypes.UpdateCourseData, userId: string): Promise<CourseInstance> {
@@ -424,7 +460,7 @@ export class CourseService {
   /**
    * Enroll in course
    */
-  async enrollInCourse(courseId: string, userId: string): Promise<EnrollmentInstance> {
+  async enrollInCourse(courseId: string, userId: string, userRole?: string): Promise<EnrollmentInstance> {
     try {
       logger.info('Enrolling in course', { courseId, userId });
 
@@ -438,6 +474,26 @@ export class CourseService {
       const existingEnrollment = await this.courseRepository.findEnrollment(courseId, userId);
       if (existingEnrollment) {
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.CONFLICT, 'User is already enrolled in this course');
+      }
+
+      // Check prerequisites (skip for admin/super_admin and course instructor)
+      const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+      const isInstructor = (course as any).instructor_id === userId;
+      
+      if (!isAdmin && !isInstructor) {
+        const { PrerequisiteService } = await import('./prerequisite.service');
+        const prerequisiteService = new PrerequisiteService();
+        const prerequisitesCheck = await prerequisiteService.checkPrerequisitesForEnrollment(courseId, userId);
+        
+        if (!prerequisitesCheck.satisfied) {
+          const missingTitles = prerequisitesCheck.missingPrerequisites.map(p => p.title).join(', ');
+          const error = new ApiError(
+            RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST,
+            `Bạn cần hoàn thành các khóa học sau trước khi đăng ký: ${missingTitles}`
+          );
+          (error as any).missingPrerequisites = prerequisitesCheck.missingPrerequisites;
+          throw error;
+        }
       }
 
       // Create enrollment

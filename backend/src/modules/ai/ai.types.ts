@@ -16,7 +16,18 @@ export interface ChatRequest {
     courseId?: string;
     courseTitle?: string;
     courseDescription?: string;
+    lessonTitle?: string;
   };
+  options?: {
+    temperature?: number;
+    maxTokens?: number;
+  };
+}
+
+export interface LessonChatRequest {
+  lesson: any;
+  message: string;
+  conversationHistory?: ChatMessage[];
   options?: {
     temperature?: number;
     maxTokens?: number;

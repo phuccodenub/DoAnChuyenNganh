@@ -210,17 +210,18 @@ export const setupInterceptors = () => {
       }
 
       // Handle 403 (Forbidden)
-      // Skip toast cho các request fetch quizzes/assignments trên trang public (chỉ log)
+      // Giảm spam toast: bỏ toast cho các endpoint quản lý khóa học (page đã hiển thị lỗi)
       if (error.response?.status === 403) {
         const url = originalRequest?.url || '';
         const isPublicFetchRequest = url.includes('/quizzes') || url.includes('/assignments/course/');
+        const isCourseManagement =
+          url.includes('/courses/') && (url.includes('/manage') || url.includes('/stats') || url.includes('/students'));
         
-        if (isPublicFetchRequest) {
-          // Chỉ log, không hiển thị toast cho các request fetch trên trang public
-          console.warn('[HTTP Interceptor] Permission denied for public fetch request:', url, error.response?.data?.message);
+        if (isPublicFetchRequest || isCourseManagement) {
+          console.warn('[HTTP Interceptor] Permission denied (no toast):', url, error.response?.data?.message);
         } else {
           const message = error.response?.data?.message || 'Bạn không có quyền truy cập tài nguyên này';
-          toast.error(message);
+          toast.error(message, { id: 'forbidden' });
         }
       }
 

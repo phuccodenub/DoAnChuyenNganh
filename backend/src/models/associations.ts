@@ -24,6 +24,7 @@ import Conversation from './conversation.model';
 import DirectMessage from './direct-message.model';
 import Certificate from './certificate.model';
 import Review from './review.model';
+import CoursePrerequisite from './course-prerequisite.model';
 
 export const setupAssociations = () => {
   // ===================================
@@ -516,6 +517,33 @@ export const setupAssociations = () => {
   (Review as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
+  });
+
+  // ===================================
+  // COURSE PREREQUISITES RELATIONSHIPS
+  // ===================================
+
+  // Course 1 ---< CoursePrerequisite (prerequisites của course này)
+  // Dùng alias khác để tránh đụng name attribute "prerequisites" trên Course
+  (Course as any).hasMany(CoursePrerequisite, {
+    foreignKey: 'course_id',
+    as: 'prerequisiteLinks', // changed from 'prerequisites' to avoid collision with column
+    onDelete: 'CASCADE'
+  });
+  (CoursePrerequisite as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course'
+  });
+
+  // Course 1 ---< CoursePrerequisite (course này là prerequisite của course khác)
+  (Course as any).hasMany(CoursePrerequisite, {
+    foreignKey: 'prerequisite_course_id',
+    as: 'prerequisiteForCourses', // renamed from requiredByCourses for clarity
+    onDelete: 'CASCADE'
+  });
+  (CoursePrerequisite as any).belongsTo(Course, {
+    foreignKey: 'prerequisite_course_id',
+    as: 'prerequisiteCourse'
   });
 
   console.log('✅ Model associations setup completed');

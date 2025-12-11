@@ -31,6 +31,7 @@ export { default as Conversation } from './conversation.model';
 export { default as DirectMessage } from './direct-message.model';
 export { default as Certificate } from './certificate.model';
 export { default as CourseChatReadStatus } from './course-chat-read-status.model';
+export { default as CoursePrerequisite } from './course-prerequisite.model';
 
 // Import models for associations
 import User from './user.model';
@@ -52,13 +53,14 @@ import Conversation from './conversation.model';
 import DirectMessage from './direct-message.model';
 import Certificate from './certificate.model';
 import CourseChatReadStatus from './course-chat-read-status.model';
+import CoursePrerequisite from './course-prerequisite.model';
 
 // Define associations
 const models: { [key: string]: any } = { 
   User, Course, Enrollment, Lesson, ChatMessage, 
   Section, LessonMaterial, LessonProgress, Notification, NotificationRecipient,
   Quiz, QuizQuestion, QuizAttempt, QuizAnswer, QuizOption,
-  Conversation, DirectMessage, Certificate, CourseChatReadStatus
+  Conversation, DirectMessage, Certificate, CourseChatReadStatus, CoursePrerequisite
 };
 
 // Call associate methods

@@ -12,6 +12,7 @@ import {
   Loader2, 
   AlertCircle,
   Info,
+  ListChecks,
 } from 'lucide-react';
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { useInstructorCourseDetail, useCourseStats } from '@/hooks/useInstructorCourse';
@@ -20,6 +21,7 @@ import { CurriculumTab } from './tabs/CurriculumTab';
 import { SettingsTab } from './tabs/SettingsTab';
 import { StudentsTab } from './tabs/StudentsTab';
 import { CourseInfoTab } from './tabs/CourseInfoTab';
+import { ContentTab } from './tabs/ContentTab';
 
 /**
  * CourseManagementDetailPage
@@ -27,6 +29,7 @@ import { CourseInfoTab } from './tabs/CourseInfoTab';
  * Trang quản lý chi tiết khóa học với tabs:
  * - Dashboard: Thống kê tổng quát
  * - Curriculum: Quản lý nội dung (sections, lessons)
+ * - Content: Tổng quan tương tác nội dung (lesson/quiz/assignment)
  * - Students: Danh sách học viên
  * - Settings: Cài đặt khóa học
  */
@@ -70,6 +73,14 @@ export function CourseManagementDetailPage() {
   }
 
   // Error state
+  const errorStatus = (courseError as any)?.response?.status || (courseError as any)?.status;
+  const errorMessage =
+    errorStatus === 403
+      ? 'Bạn không có quyền quản lý khóa học này.'
+      : errorStatus === 404
+      ? 'Khóa học không tồn tại hoặc đã bị xóa.'
+      : 'Đã có lỗi xảy ra khi tải thông tin khóa học.';
+
   if (courseError || !course) {
     return (
       <MainLayout showSidebar>
@@ -77,7 +88,7 @@ export function CourseManagementDetailPage() {
           <div className="flex flex-col items-center justify-center min-h-[400px]">
             <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Không thể tải khóa học</h3>
-            <p className="text-gray-600 mb-4">Đã có lỗi xảy ra khi tải thông tin khóa học.</p>
+            <p className="text-gray-600 mb-4 text-center px-4">{errorMessage}</p>
             <button
               onClick={() => navigate(ROUTES.COURSE_MANAGEMENT)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -140,6 +151,18 @@ export function CourseManagementDetailPage() {
                 Curriculum
               </button>
               <button
+                onClick={() => setActiveTab('content')}
+                className={cn(
+                  'inline-flex items-center justify-center whitespace-nowrap rounded-none border-b-2 border-transparent px-6 py-4 text-sm font-medium transition-colors',
+                  activeTab === 'content'
+                    ? 'border-blue-600 text-blue-600 bg-transparent'
+                    : 'text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                )}
+              >
+                <ListChecks className="w-4 h-4 mr-2" />
+                Nội dung
+              </button>
+              <button
                 onClick={() => setActiveTab('students')}
                 className={cn(
                   'inline-flex items-center justify-center whitespace-nowrap rounded-none border-b-2 border-transparent px-6 py-4 text-sm font-medium transition-colors',
@@ -182,6 +205,12 @@ export function CourseManagementDetailPage() {
           {activeTab === 'curriculum' && (
             <div className="mt-6">
               <CurriculumTab courseId={courseId} />
+            </div>
+          )}
+
+          {activeTab === 'content' && (
+            <div className="mt-6">
+              <ContentTab courseId={courseId} />
             </div>
           )}
 

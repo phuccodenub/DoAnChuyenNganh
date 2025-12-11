@@ -38,6 +38,7 @@ import { up as addSectionIdToAssignments, down as removeSectionIdFromAssignments
 import { up as createCertificatesTable, down as dropCertificatesTable } from './030-create-certificates-table';
 import { up as makeIpfsHashNullable, down as revertIpfsHashNullable } from './031-make-ipfs-hash-nullable';
 import { up as redesignConversationsForAdmin, down as revertConversationsDesign } from './032-redesign-conversations-for-admin';
+import { up as createCoursePrerequisitesTable, down as dropCoursePrerequisitesTable } from './033-create-course-prerequisites-table';
 
 // Migration interface
 export interface Migration {
@@ -261,10 +262,16 @@ export const migrations: Migration[] = [
     down: revertIpfsHashNullable
   },
   {
-    version: '033',
+    version: '032',
     description: 'Redesign conversations table for admin support (user1_id/user2_id)',
     up: redesignConversationsForAdmin,
     down: revertConversationsDesign
+  },
+  {
+    version: '033',
+    description: 'Create course_prerequisites table',
+    up: createCoursePrerequisitesTable,
+    down: dropCoursePrerequisitesTable
   }
 ];
 

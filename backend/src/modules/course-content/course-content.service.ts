@@ -620,6 +620,43 @@ data: LessonProgressInput
   }
 
   /**
+   * Get user's bookmarked lessons in a course
+   */
+  async getBookmarkedLessons(userId: string, courseId: string) {
+    // Allow if enrolled OR instructor OR admin
+    await this.verifyEnrollmentOrInstructorLegacy(courseId, userId);
+    return this.repository.getBookmarkedLessons(userId, courseId);
+  }
+
+  /**
+   * Legacy helper: allow course instructor, admin/super_admin, or enrolled student
+   */
+  private async verifyEnrollmentOrInstructorLegacy(courseId: string, userId: string) {
+    // Try instructor check
+    try {
+      await this.verifyInstructorAccess(courseId, userId);
+      return;
+    } catch (_) {
+      // ignore, fallback to enrollment check
+    }
+
+    // Check enrollment
+    const { CourseRepository } = await import('../course/course.repository');
+    const courseRepository = new CourseRepository();
+    const enrollment = await courseRepository.findEnrollment(courseId, userId);
+    if (enrollment) return;
+
+    // Check admin/super_admin
+    const user = await courseRepository.findUserById(userId);
+    if (user && (user.role === 'admin' || user.role === 'super_admin')) return;
+
+    throw new (await import('../../errors/authorization.error')).AuthorizationError(
+      'Only enrolled students or instructors/admins can access bookmarks',
+      403
+    );
+  }
+
+  /**
    * Get user's overall progress for a course
    */
   async getCourseProgress(

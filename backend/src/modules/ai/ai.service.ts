@@ -6,10 +6,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import env from '../../config/env.config';
 import logger from '../../utils/logger.util';
+import { formatAiAnswer, shorten } from '../../utils/ai-format.util';
+import { ApiError } from '../../errors/api.error';
 import {
   ChatRequest,
   ChatResponse,
   ChatMessage,
+  LessonChatRequest,
   GenerateQuizRequest,
   GenerateQuizResponse,
   ContentRecommendationRequest,
@@ -38,6 +41,190 @@ export class AIService {
     }
   }
 
+  private truncate(text: string, maxLength: number) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+  }
+
+  private mapGeminiError(error: any): never {
+    const message =
+      '[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com';
+    const isGeminiFetchError =
+      typeof error?.message === 'string' && error.message.includes(message);
+
+    const status = (error as any)?.status || (error as any)?.response?.status;
+    if (isGeminiFetchError && (status === 429 || status === 503)) {
+      throw new ApiError('AI đang quá tải, vui lòng thử lại sau.', 503);
+    }
+    throw error;
+  }
+
+  private buildLessonContext(lesson: any): string {
+    let ctx = '';
+    ctx += `Tiêu đề bài học: ${lesson.title || 'N/A'}\n`;
+    if (lesson.description) {
+      ctx += `Mô tả: ${this.truncate(lesson.description, 600)}\n`;
+    }
+    if (lesson.content) {
+      ctx += `Nội dung chính:\n${this.truncate(
+        typeof lesson.content === 'string' ? lesson.content.replace(/<[^>]+>/g, ' ') : JSON.stringify(lesson.content),
+        2400
+      )}\n`;
+    }
+    if (lesson.materials?.length) {
+      ctx += '\nTài liệu đính kèm:\n';
+      lesson.materials.slice(0, 5).forEach((m: any, idx: number) => {
+        const size = m.file_size ? ` (${Math.round(m.file_size / 1024)} KB)` : '';
+        const urlPart = m.file_url ? ` - URL: ${m.file_url}` : '';
+        ctx += `${idx + 1}. ${m.file_name || 'Tệp'} [${m.file_type || 'unknown'}]${size}${urlPart}\n`;
+      });
+      if (lesson.materials.length > 5) {
+        ctx += `... còn ${lesson.materials.length - 5} tệp khác\n`;
+      }
+    }
+    return ctx;
+  }
+
+  /**
+   * Lesson-aware chat (RAG-lite)
+   */
+  async chatWithLessonContext(request: LessonChatRequest): Promise<ChatResponse> {
+    if (!this.model) {
+      throw new Error('AI service is not available. Please configure GEMINI_API_KEY.');
+    }
+
+    const contextText = this.buildLessonContext(request.lesson);
+
+    // Build prompt with context + history + formatting rules
+    let prompt = 'Bạn là trợ lý AI cho khóa học. Trả lời ngắn gọn, rõ ràng, hữu ích.\n';
+    prompt += 'Định dạng đầu ra (markdown gọn):\n';
+    prompt += '- Chỉ trả về nội dung chính, không mở đầu/kết thúc.\n';
+    prompt += '- Nếu tóm tắt: dùng 4-8 bullet, mỗi bullet ≤ 18 từ, prefix "- ".\n';
+    prompt += '- Nếu hướng dẫn bước: dùng danh sách số.\n';
+    prompt += '- Nếu cần code: dùng ```lang\\n...```, không thêm lời dẫn.\n';
+    prompt += '- Không dùng in đậm/in nghiêng, không lặp lại câu hỏi/tiêu đề.\n';
+    prompt += '\nNgữ cảnh bài học:\n';
+    prompt += contextText;
+
+    if (request.conversationHistory && request.conversationHistory.length > 0) {
+      const recent = request.conversationHistory.slice(-6);
+      prompt += '\nLịch sử hội thoại:\n';
+      recent.forEach((m: ChatMessage, idx: number) => {
+        prompt += `${idx + 1}. ${m.role === 'user' ? 'Người dùng' : 'AI'}: ${shorten(m.content, 240)}\n`;
+      });
+    }
+
+    prompt += '\nCâu hỏi:\n';
+    prompt += request.message;
+
+    const maxTokens = Math.min(env.ai.gemini.maxTokens, 512);
+    const attempts = 3;
+    const delays = [300, 800, 1600];
+
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const result = await this.model.generateContent(prompt, {
+          generationConfig: {
+            temperature: request.options?.temperature ?? env.ai.gemini.temperature,
+            maxOutputTokens: request.options?.maxTokens ?? maxTokens,
+          },
+        });
+
+        const response = result.response;
+        const text = formatAiAnswer(response.text());
+        let usage: any = undefined;
+        if (response && typeof (response as any).usageMetadata === 'function') {
+          usage = (response as any).usageMetadata();
+        } else if (response && (response as any).usageMetadata) {
+          usage = (response as any).usageMetadata;
+        }
+
+        return {
+          response: text,
+          usage: usage
+            ? {
+                promptTokens: usage.promptTokenCount,
+                completionTokens: usage.candidatesTokenCount,
+                totalTokens: usage.totalTokenCount,
+              }
+            : undefined,
+        };
+      } catch (error) {
+        const status = (error as any)?.status || (error as any)?.response?.status;
+        if (i < attempts - 1 && (status === 429 || status === 503)) {
+          const delay = delays[i] ?? 1200;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+        this.mapGeminiError(error);
+      }
+    }
+
+    throw new ApiError('AI đang quá tải, vui lòng thử lại sau.', 503);
+  }
+
+  /**
+   * Summarize lesson
+   */
+  async summarizeLesson(lesson: any): Promise<ChatResponse> {
+    if (!this.model) {
+      throw new Error('AI service is not available. Please configure GEMINI_API_KEY.');
+    }
+
+    const contextText = this.buildLessonContext(lesson);
+    let prompt = 'Tóm tắt ngắn gọn bài học sau. Quy tắc:\n';
+    prompt += '- Trả về 4-8 bullet, mỗi bullet ≤ 18 từ, prefix "- ".\n';
+    prompt += '- Không intro/outro, không in đậm/nghiêng, không lặp lại tiêu đề.\n';
+    prompt += '- Nếu thấy số liệu quan trọng, giữ lại ngắn gọn.\n\n';
+    prompt += contextText;
+
+    const maxTokens = Math.min(env.ai.gemini.maxTokens, 512);
+    const attempts = 3;
+    const delays = [300, 800, 1600];
+
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const result = await this.model.generateContent(prompt, {
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: maxTokens,
+          },
+        });
+
+        const response = result.response;
+        const text = formatAiAnswer(response.text());
+        let usage: any = undefined;
+        if (response && typeof (response as any).usageMetadata === 'function') {
+          usage = (response as any).usageMetadata();
+        } else if (response && (response as any).usageMetadata) {
+          usage = (response as any).usageMetadata;
+        }
+
+        return {
+          response: text,
+          usage: usage
+            ? {
+                promptTokens: usage.promptTokenCount,
+                completionTokens: usage.candidatesTokenCount,
+                totalTokens: usage.totalTokenCount,
+              }
+            : undefined,
+        };
+      } catch (error) {
+        const status = (error as any)?.status || (error as any)?.response?.status;
+        if (i < attempts - 1 && (status === 429 || status === 503)) {
+          const delay = delays[i] ?? 1200;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+        this.mapGeminiError(error);
+      }
+    }
+
+    throw new ApiError('AI đang quá tải, vui lòng thử lại sau.', 503);
+  }
+
   /**
    * Check if AI service is available
    */
@@ -54,63 +241,81 @@ export class AIService {
     }
 
     try {
-      // Build system instruction with context
-      let systemInstruction = 'Bạn là một trợ lý AI thông minh cho hệ thống học tập trực tuyến (LMS). ';
-      systemInstruction += 'Nhiệm vụ của bạn là trả lời câu hỏi của học viên về khóa học, bài tập, và các vấn đề liên quan đến học tập. ';
-      systemInstruction += 'Hãy trả lời một cách rõ ràng, chính xác và hữu ích. ';
+      // Build instruction + context as a single prompt to avoid invalid system_instruction
+      let prompt = 'Bạn là một trợ lý AI cho hệ thống học tập trực tuyến (LMS). ';
+      prompt += 'Trả lời ngắn gọn, rõ ràng, hữu ích cho học viên.\n';
 
       if (request.context?.courseTitle) {
-        systemInstruction += `\n\nThông tin khóa học hiện tại:\n`;
-        systemInstruction += `- Tiêu đề: ${request.context.courseTitle}\n`;
+        prompt += '\nThông tin khóa học:\n';
+        prompt += `- Tiêu đề: ${request.context.courseTitle}\n`;
         if (request.context.courseDescription) {
-          systemInstruction += `- Mô tả: ${request.context.courseDescription}\n`;
+          prompt += `- Mô tả: ${request.context.courseDescription}\n`;
         }
       }
+      if (request.context?.lessonTitle) {
+        prompt += `- Bài học: ${request.context.lessonTitle}\n`;
+      }
 
-      // Build conversation history (limit to last 10 messages to avoid token limit)
-      const history: Array<{ role: string; parts: Array<{ text: string }> }> = [];
-      
+      // Append brief history (as text) to give context
       if (request.conversationHistory && request.conversationHistory.length > 0) {
-        const recentHistory = request.conversationHistory.slice(-10);
-        for (const msg of recentHistory) {
-          if (msg.role !== 'system') {
-            history.push({
-              role: msg.role === 'user' ? 'user' : 'model',
-              parts: [{ text: msg.content }],
-            });
+        const recent = request.conversationHistory.slice(-6);
+        prompt += '\nLịch sử hội thoại (tóm tắt):\n';
+        recent.forEach((m, idx) => {
+          prompt += `${idx + 1}. ${m.role === 'user' ? 'Người dùng' : 'AI'}: ${shorten(m.content, 240)}\n`;
+        });
+      }
+
+      prompt += '\nCâu hỏi hiện tại:\n';
+      prompt += request.message;
+
+      const maxTokens = Math.min(env.ai.gemini.maxTokens, 512);
+      const attempts = 3;
+      const delays = [300, 800, 1600];
+
+      for (let i = 0; i < attempts; i++) {
+        try {
+          const result = await this.model.generateContent(prompt, {
+            generationConfig: {
+              temperature: request.options?.temperature ?? env.ai.gemini.temperature,
+              maxOutputTokens: request.options?.maxTokens ?? maxTokens,
+            },
+          });
+
+          const response = result.response;
+          const text = formatAiAnswer(response.text());
+          let usage: any = undefined;
+          if (response && typeof (response as any).usageMetadata === 'function') {
+            usage = (response as any).usageMetadata();
+          } else if (response && (response as any).usageMetadata) {
+            usage = (response as any).usageMetadata;
           }
+
+          return {
+            response: text,
+            usage: usage ? {
+              promptTokens: usage.promptTokenCount,
+              completionTokens: usage.candidatesTokenCount,
+              totalTokens: usage.totalTokenCount,
+            } : undefined,
+          };
+        } catch (error) {
+          const status = (error as any)?.status || (error as any)?.response?.status;
+          if (i < attempts - 1 && (status === 429 || status === 503)) {
+            const delay = delays[i] ?? 1200;
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            continue;
+          }
+          logger.error('[AIService] Chat error:', error);
+          this.mapGeminiError(error);
         }
       }
 
-      // Start chat with history and system instruction
-      const chat = this.model.startChat({
-        history: history,
-        systemInstruction: systemInstruction,
-        generationConfig: {
-          temperature: request.options?.temperature ?? env.ai.gemini.temperature,
-          maxOutputTokens: request.options?.maxTokens ?? env.ai.gemini.maxTokens,
-        },
-      });
-
-      // Get response - use request.message
-      const result = await chat.sendMessage(request.message);
-      const response = result.response;
-      const text = response.text();
-
-      // Get usage information if available
-      const usage = response.usageMetadata();
-
-      return {
-        response: text,
-        usage: usage ? {
-          promptTokens: usage.promptTokenCount,
-          completionTokens: usage.candidatesTokenCount,
-          totalTokens: usage.totalTokenCount,
-        } : undefined,
-      };
-    } catch (error) {
+    // Nếu hết retry mà vẫn lỗi, ném lỗi quá tải
+    throw new ApiError('AI đang quá tải, vui lòng thử lại sau.', 503);
+    }
+    catch (error) {
       logger.error('[AIService] Chat error:', error);
-      throw new Error(`Failed to get AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.mapGeminiError(error);
     }
   }
 
@@ -133,7 +338,7 @@ export class AIService {
       });
 
       const response = result.response;
-      const text = response.text();
+      const text = formatAiAnswer(response.text());
 
       // Get usage information if available
       const usage = response.usageMetadata();
@@ -148,7 +353,7 @@ export class AIService {
       };
     } catch (error) {
       logger.error('[AIService] Generate content error:', error);
-      throw new Error(`Failed to generate content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.mapGeminiError(error);
     }
   }
 

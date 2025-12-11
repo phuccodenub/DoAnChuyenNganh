@@ -281,6 +281,24 @@ export interface EnrollmentCreationAttributes extends Optional<EnrollmentAttribu
 export interface EnrollmentInstance extends Model, EnrollmentAttributes {}
 
 // ===================================
+// COURSE PREREQUISITE MODEL INTERFACES
+// ===================================
+
+export interface CoursePrerequisiteAttributes {
+  id: string;
+  course_id: string;
+  prerequisite_course_id: string;
+  is_required: boolean;
+  order_index: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CoursePrerequisiteCreationAttributes extends Optional<CoursePrerequisiteAttributes, 'id' | 'created_at' | 'updated_at' | 'is_required' | 'order_index'> {}
+
+export interface CoursePrerequisiteInstance extends Model, CoursePrerequisiteAttributes {}
+
+// ===================================
 // CATEGORY MODEL INTERFACES
 // ===================================
 
