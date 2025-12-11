@@ -95,6 +95,18 @@ export const responseUtils = {
     );
   },
 
+  // Send bad request response
+  sendBadRequest(
+    res: Response,
+    message: string = 'Bad Request'
+  ): void {
+    this.sendError(
+      res,
+      message,
+      RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST
+    );
+  },
+
   // Send conflict response
   sendConflict(
     res: Response,

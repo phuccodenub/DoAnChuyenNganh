@@ -10,9 +10,11 @@ import {
   FileText,
   DollarSign,
   Share2,
-  MessageCircle
+  MessageCircle,
+  ClipboardList
 } from 'lucide-react';
 import { useCourse, useEnrollCourse, useCourseProgress } from '@/hooks/useCoursesData';
+import { usePrerequisites } from '@/hooks/usePrerequisites';
 import { useCourseContent } from '@/hooks/useLessonData';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/ui/Spinner';
@@ -23,9 +25,21 @@ import { ROUTES, generateRoute } from '@/constants/routes';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { CurriculumTree } from '@/components/domain/lesson/CurriculumTree';
-import type { Section } from '@/services/api/lesson.api';
+import type { Section, CourseContent } from '@/services/api/lesson.api';
 import type { Course } from '@/services/api/course.api';
 import { MainLayout } from '@/layouts/MainLayout';
+import { toast } from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
+import { quizApi, type Quiz } from '@/services/api/quiz.api';
+import { assignmentApi, type Assignment } from '@/services/api/assignment.api';
+import { getCourseThumbnailUrl } from '@/utils/course.utils';
+import { RatingDisplay } from '@/components/domain/course/RatingDisplay';
+import { RatingForm } from '@/components/domain/course/RatingForm';
+import { ReviewsList } from '@/components/domain/course/ReviewsList';
+import { useCourseReviews, useCourseReviewStats, useMyReview, useCreateReview, useUpdateReview, useDeleteReview } from '@/hooks/useReviewData';
+import { useUserCertificates } from '@/hooks/useCertificateData';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
 /**
  * Course Detail Page
@@ -44,31 +58,406 @@ export function DetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'reviews' | 'certificate'>('overview');
   const [isUserEnrolled, setIsUserEnrolled] = useState(false);
+  const [missingPrereqs, setMissingPrereqs] = useState<Array<{ id: string; title: string; is_required: boolean }>>([]);
 
   const courseId = id!;
   const { data: courseData, isLoading, error } = useCourse(courseId);
   const course = courseData as DetailedCourse | undefined;
+  const { data: prerequisitesData } = usePrerequisites(courseId);
 
   const { mutate: enrollCourse, isPending: isEnrolling } = useEnrollCourse();
+  const { user } = useAuth();
 
-  // Fetch additional data - chỉ khi user đã enrolled và authenticated
-  const { data: progressData } = useCourseProgress(courseId, isUserEnrolled);
+  // Check if current user is the instructor of this course
+  const isInstructor = user && course && (
+    String(user.id) === String(course.instructor_id) || 
+    String(user.id) === String(course.instructor?.id)
+  );
+
+  // User can access course content if enrolled OR is the instructor
+  const canAccessContent = isUserEnrolled || isInstructor;
+
+  // Fetch reviews data
+  const [reviewPage, setReviewPage] = useState(1);
+  const { data: reviewsData, isLoading: isLoadingReviews } = useCourseReviews(courseId, reviewPage, 10);
+  const { data: reviewStats } = useCourseReviewStats(courseId);
+  const { data: myReview } = useMyReview(courseId, user?.id, isAuthenticated);
+  const createReviewMutation = useCreateReview();
+  const updateReviewMutation = useUpdateReview();
+  const deleteReviewMutation = useDeleteReview();
+  const [isEditingReview, setIsEditingReview] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+
+  // Fetch additional data - chỉ khi user đã enrolled hoặc là instructor
+  const { data: progressData } = useCourseProgress(courseId, !!canAccessContent);
+
+  // Fetch user certificates để check xem có certificate cho course này không
+  const { data: userCertificates } = useUserCertificates(user?.id || '', {
+    enabled: !!user?.id && isAuthenticated,
+  });
+
+  // Tìm certificate của user cho course hiện tại
+  const courseCertificate = userCertificates?.find(
+    (cert) => cert.course_id === courseId && cert.status && cert.status === 'active'
+  );
+
+  // Disable text selection và F12 khi ở tab certificate
+  useEffect(() => {
+    if (activeTab === 'certificate') {
+      // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // F12
+        if (e.key === 'F12') {
+          e.preventDefault();
+          return false;
+        }
+        // Ctrl+Shift+I (DevTools)
+        if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+          e.preventDefault();
+          return false;
+        }
+        // Ctrl+Shift+J (Console)
+        if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+          e.preventDefault();
+          return false;
+        }
+        // Ctrl+U (View Source)
+        if (e.ctrlKey && e.key === 'u') {
+          e.preventDefault();
+          return false;
+        }
+        // Ctrl+S (Save Page)
+        if (e.ctrlKey && e.key === 's') {
+          e.preventDefault();
+          return false;
+        }
+      };
+
+      // Disable right-click context menu
+      const handleContextMenu = (e: MouseEvent) => {
+        e.preventDefault();
+        return false;
+      };
+
+      // Disable text selection
+      const handleSelectStart = (e: Event) => {
+        e.preventDefault();
+        return false;
+      };
+
+      // Disable drag
+      const handleDragStart = (e: DragEvent) => {
+        e.preventDefault();
+        return false;
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('contextmenu', handleContextMenu);
+      document.addEventListener('selectstart', handleSelectStart);
+      document.addEventListener('dragstart', handleDragStart);
+
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('contextmenu', handleContextMenu);
+        document.removeEventListener('selectstart', handleSelectStart);
+        document.removeEventListener('dragstart', handleDragStart);
+      };
+    }
+  }, [activeTab]);
 
   // useCourseContent đã tự động check authentication bên trong hook
   // Không cần truyền điều kiện ở đây nữa
   const { data: courseContent, isLoading: isContentLoading } = useCourseContent(courseId);
 
+  // Fetch tất cả quizzes (bao gồm cả course-level và section-level)
+  const { data: allQuizzes } = useQuery<Quiz[]>({
+    queryKey: ['all-quizzes-detail', courseId],
+    queryFn: async () => {
+      try {
+      const res = await quizApi.getQuizzes({ course_id: courseId, status: 'published' });
+      const list = Array.isArray(res?.data) ? res.data : [];
+      return list
+          .filter((q: any) => {
+            // Chỉ lấy quizzes đã published, không có lesson_id
+            const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
+            return !hasLessonId && q.is_published;
+          })
+        .sort((a: any, b: any) => {
+          // Sắp xếp theo created_at (cũ nhất trước)
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateA - dateB; // ASC: cũ nhất trước
+        });
+      } catch (error: any) {
+        // Nếu lỗi permission, chỉ log và trả về mảng rỗng (không hiển thị toast)
+        if (error?.response?.status === 403 || error?.response?.status === 401) {
+          console.warn('[DetailPage] Permission denied when fetching quizzes:', error?.response?.data?.message);
+          return [];
+        }
+        // Nếu lỗi khác, throw để React Query xử lý
+        throw error;
+      }
+    },
+    enabled: !!courseId,
+    staleTime: 60 * 1000,
+    retry: false, // Không retry khi lỗi permission
+  });
+
+  // Course-level quizzes (không có lesson_id và không có section_id, có course_id)
+  const courseLevelQuizzes = (allQuizzes || []).filter((q: any) => {
+    const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
+    const hasSectionId = q.section_id != null && q.section_id !== '';
+    const hasCourseId = q.course_id != null && q.course_id !== '';
+    return !hasLessonId && !hasSectionId && hasCourseId;
+  });
+
+  // Fetch tất cả assignments (bao gồm cả course-level và section-level)
+  const { data: allAssignments } = useQuery<Assignment[]>({
+    queryKey: ['all-assignments-detail', courseId],
+    queryFn: async () => {
+      try {
+      const res = await assignmentApi.getCourseAssignments(courseId);
+      const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
+      return list
+          .filter((a: any) => {
+            // Chỉ lấy assignments đã published, không có lesson_id
+            const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
+            return !hasLessonId && a.is_published;
+          })
+        .sort((a: any, b: any) => {
+          // Sắp xếp theo created_at (cũ nhất trước)
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateA - dateB; // ASC: cũ nhất trước
+        });
+      } catch (error: any) {
+        // Nếu lỗi permission, chỉ log và trả về mảng rỗng (không hiển thị toast)
+        if (error?.response?.status === 403 || error?.response?.status === 401) {
+          console.warn('[DetailPage] Permission denied when fetching assignments:', error?.response?.data?.message);
+          return [];
+        }
+        // Nếu lỗi khác, throw để React Query xử lý
+        throw error;
+      }
+    },
+    enabled: !!courseId,
+    staleTime: 60 * 1000,
+    retry: false, // Không retry khi lỗi permission
+  });
+
+  // Course-level assignments (không có lesson_id và không có section_id, có course_id)
+  const courseLevelAssignments = (allAssignments || []).filter((a: any) => {
+    const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
+    const hasSectionId = a.section_id != null && a.section_id !== '';
+    const hasCourseId = a.course_id != null && a.course_id !== '';
+    return !hasLessonId && !hasSectionId && hasCourseId;
+  });
+
   // Sử dụng sections từ courseContent (nếu authenticated) hoặc course.sections (public fallback)
-  const curriculumSections = courseContent?.sections ?? course?.sections ?? [];
+  // Nếu courseContent.sections là empty array, vẫn fallback về course.sections
+  let curriculumSections = (courseContent?.sections && courseContent.sections.length > 0) 
+    ? courseContent.sections 
+    : (course?.sections ?? []);
+
+  // Thêm section-level quizzes và assignments vào sections
+  // Lấy section-level quizzes (có section_id nhưng không có lesson_id)
+  const sectionLevelQuizzes = (allQuizzes || []).filter((q: any) => {
+    const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
+    const hasSectionId = q.section_id != null && q.section_id !== '';
+    return !hasLessonId && hasSectionId;
+  });
+
+  // Lấy section-level assignments (có section_id nhưng không có lesson_id)
+  const sectionLevelAssignments = (allAssignments || []).filter((a: any) => {
+    const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
+    const hasSectionId = a.section_id != null && a.section_id !== '';
+    return !hasLessonId && hasSectionId;
+  });
+
+  // Fetch quiz attempts và assignment submissions để biết quiz/assignment nào đã hoàn thành
+  const { data: quizAttempts } = useQuery({
+    queryKey: ['quiz-attempts-for-completion', courseId, canAccessContent],
+    queryFn: async () => {
+      if (!canAccessContent || !allQuizzes || allQuizzes.length === 0) return [];
+      
+      const nonPracticeQuizzes = allQuizzes.filter((q: any) => !q.is_practice);
+      if (nonPracticeQuizzes.length === 0) return [];
+      
+      try {
+        const attempts = await Promise.all(
+          nonPracticeQuizzes.map(async (quiz: any) => {
+            try {
+              const studentAttempts = await quizApi.getAttempts(quiz.id);
+              const submittedAttempts = studentAttempts.filter(
+                (a: any) => a.submitted_at != null
+              );
+              if (submittedAttempts.length === 0) return null;
+              
+              const latestAttempt = submittedAttempts.sort(
+                (a: any, b: any) => 
+                  new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime()
+              )[0];
+              
+              return { quiz_id: quiz.id, attempt: latestAttempt };
+            } catch (error: any) {
+              if (error?.response?.status === 401 || error?.response?.status === 403) {
+                return null;
+              }
+              return null;
+            }
+          })
+        );
+        return attempts.filter(Boolean);
+      } catch (error) {
+        return [];
+      }
+    },
+    enabled: !!canAccessContent && !!allQuizzes && allQuizzes.length > 0,
+    staleTime: 60 * 1000,
+  });
+
+  // Fetch assignment submissions
+  const { data: assignmentSubmissions } = useQuery({
+    queryKey: ['assignment-submissions-for-completion', courseId, canAccessContent],
+    queryFn: async () => {
+      if (!canAccessContent || !allAssignments || allAssignments.length === 0) return [];
+      
+      const nonPracticeAssignments = allAssignments.filter((a: any) => !a.is_practice);
+      if (nonPracticeAssignments.length === 0) return [];
+      
+      try {
+        const submissions = await Promise.all(
+          nonPracticeAssignments.map(async (assignment: any) => {
+            try {
+              const submission = await assignmentApi.getSubmission(assignment.id);
+              return submission && submission.submitted_at 
+                ? { assignment_id: assignment.id, submission } 
+                : null;
+            } catch (error: any) {
+              if (error?.response?.status === 401 || error?.response?.status === 403 || error?.response?.status === 404) {
+                return null;
+              }
+              return null;
+            }
+          })
+        );
+        return submissions.filter(Boolean);
+      } catch (error) {
+        return [];
+      }
+    },
+    enabled: !!canAccessContent && !!allAssignments && allAssignments.length > 0,
+    staleTime: 60 * 1000,
+  });
+
+  // Tạo map để lookup completion status
+  const completedLessonIds = new Set(
+    progressData?.sections?.flatMap((s: any) => 
+      s.lessons?.filter((l: any) => l.is_completed).map((l: any) => l.lesson_id) || []
+    ) || []
+  );
+
+  const completedQuizIds = new Set(
+    (quizAttempts || []).map((item: any) => item.quiz_id)
+  );
+
+  const completedAssignmentIds = new Set(
+    (assignmentSubmissions || []).map((item: any) => item.assignment_id)
+  );
+
+  // Gắn quizzes và assignments vào sections tương ứng và thêm completion status
+  curriculumSections = curriculumSections.map((section: any) => {
+    const sectionQuizzes = sectionLevelQuizzes.filter((q: any) => {
+      const quizSectionId = q.section_id ? String(q.section_id).trim() : null;
+      const currentSectionId = section.id ? String(section.id).trim() : null;
+      return quizSectionId === currentSectionId && quizSectionId !== null;
+    });
+
+    const sectionAssignments = sectionLevelAssignments.filter((a: any) => {
+      const assignmentSectionId = a.section_id ? String(a.section_id).trim() : null;
+      const currentSectionId = section.id ? String(section.id).trim() : null;
+      return assignmentSectionId === currentSectionId && assignmentSectionId !== null;
+    });
+
+    // Merge completion status từ progressData vào lessons
+    const sectionProgress = progressData?.sections?.find((s: any) => s.section_id === section.id);
+    const completedLessonMap = new Map(
+      sectionProgress?.lessons?.map((l: any) => [l.lesson_id, l.is_completed]) || []
+    );
+
+    // Tạo lesson items từ quizzes và assignments với completion status
+    const quizLessons = sectionQuizzes.map((quiz: any) => ({
+      id: `quiz-${quiz.id}`,
+      title: quiz.title,
+      content_type: 'quiz' as const,
+      section_id: quiz.section_id,
+      order_index: quiz.order_index || 999,
+      is_practice: quiz.is_practice,
+      is_free_preview: false,
+      duration_minutes: quiz.duration_minutes,
+      quiz_id: quiz.id,
+      is_completed: !quiz.is_practice && completedQuizIds.has(quiz.id),
+    }));
+
+    const assignmentLessons = sectionAssignments.map((assignment: any) => ({
+      id: `assignment-${assignment.id}`,
+      title: assignment.title,
+      content_type: 'assignment' as const,
+      section_id: assignment.section_id,
+      order_index: assignment.order_index || 999,
+      is_practice: assignment.is_practice,
+      is_free_preview: false,
+      duration_minutes: assignment.duration_minutes,
+      assignment_id: assignment.id,
+      is_completed: !assignment.is_practice && completedAssignmentIds.has(assignment.id),
+    }));
+
+    return {
+      ...section,
+      lessons: [
+        ...(section.lessons || []).map((lesson: any) => ({
+          ...lesson,
+          is_completed: completedLessonMap.get(lesson.id) || completedLessonIds.has(lesson.id) || false,
+        })),
+        ...quizLessons,
+        ...assignmentLessons,
+      ].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
+    };
+  });
   const learningPath = courseId ? generateRoute.student.learning(courseId) : ROUTES.COURSES;
 
-  // Extract counts from API data
-  const totalSections = courseContent?.sections?.length || 0;
-  const totalLessons = courseContent?.total_lessons || 0;
-  const completedLessons = courseContent?.completed_lessons || 0;
-  const progressPercentage = progressData?.percent || courseContent?.progress_percentage || 0;
+  // Debug: Log để kiểm tra data
+  useEffect(() => {
+    if (course) {
+      console.log('[DetailPage] Course data:', course);
+      console.log('[DetailPage] Course sections:', course.sections);
+      console.log('[DetailPage] CourseContent sections:', courseContent?.sections);
+      console.log('[DetailPage] Final curriculumSections:', curriculumSections);
+    }
+  }, [course, courseContent, curriculumSections]);
+
+  // Extract counts from API data - ưu tiên dùng data từ progressData (chính xác nhất)
+  const totalSections = progressData?.total_sections ?? 
+    courseContent?.total_sections ?? 
+    courseContent?.sections?.length ?? 
+    course?.sections?.length ?? 0;
+  
+  const totalLessons = progressData?.total_lessons ?? 
+    courseContent?.total_lessons ?? 
+    (course?.sections?.reduce((sum, section) => sum + (section.lessons?.length || 0), 0) || 0) ??
+    course?.total_lessons ?? 0;
+  
+  const completedLessons = progressData?.completed_lessons ?? 
+    courseContent?.completed_lessons ?? 0;
+  
+  // completion_percentage từ progressData là giá trị chuẩn từ backend (đã tính toán đầy đủ)
+  const progressPercentage = progressData?.completion_percentage != null 
+    ? Number(progressData.completion_percentage) 
+    : (courseContent?.progress_percentage != null 
+      ? Number(courseContent.progress_percentage) 
+      : 0);
 
   useEffect(() => {
     if (!courseId) {
@@ -88,7 +477,46 @@ export function DetailPage() {
   }, [course?.is_enrolled, courseId, queryClient]);
 
   const handleLessonPreviewClick = (lessonId: string) => {
-    console.log('Preview lesson', lessonId);
+    if (!courseId) return;
+
+    // Xử lý quiz/assignment items (có id dạng quiz-${id} hoặc assignment-${id})
+    if (lessonId.startsWith('quiz-')) {
+      const quizId = lessonId.replace('quiz-', '');
+      if (canAccessContent) {
+        navigate(generateRoute.student.quiz(courseId, quizId));
+      } else {
+        toast.error('Vui lòng đăng ký khóa học để làm bài kiểm tra');
+      }
+      return;
+    }
+
+    if (lessonId.startsWith('assignment-')) {
+      const assignmentId = lessonId.replace('assignment-', '');
+      if (canAccessContent) {
+        navigate(`/assignments/${assignmentId}`);
+      } else {
+        toast.error('Vui lòng đăng ký khóa học để làm bài tập');
+      }
+      return;
+    }
+
+    // Tìm lesson trong curriculumSections để kiểm tra is_free_preview
+    const lesson = curriculumSections
+      .flatMap(s => s.lessons || [])
+      .find(l => l.id === lessonId);
+
+    const isFreePreview = lesson?.is_free_preview || false;
+
+    // Cho phép xem nếu:
+    // 1. Đã enrolled, HOẶC
+    // 2. Là instructor của course, HOẶC
+    // 3. Lesson có is_free_preview = true (cho phép xem trước miễn phí)
+    if (canAccessContent || isFreePreview) {
+      navigate(generateRoute.student.lesson(courseId, lessonId));
+    } else {
+      // Nếu chưa enrolled và không phải preview lesson, yêu cầu đăng ký
+      toast.error('Vui lòng đăng ký khóa học để xem nội dung bài học');
+    }
   };
 
   const handleEnrollClick = () => {
@@ -101,19 +529,109 @@ export function DetailPage() {
       return;
     }
 
+    // Nếu đã enrolled hoặc là instructor, navigate đến learning page ngay
+    if (canAccessContent) {
+      // Tìm lesson đầu tiên từ curriculumSections (public data, đã có sẵn)
+      // Hoặc từ courseContent nếu đã có
+      const sectionsToUse = (courseContent?.sections && courseContent.sections.length > 0)
+        ? courseContent.sections
+        : curriculumSections;
+      
+      const firstLesson = sectionsToUse
+        .flatMap(s => s.lessons || [])
+        .find(lesson => lesson);
+      
+      if (firstLesson) {
+        // Navigate đến trang chi tiết bài học đầu tiên
+        navigate(generateRoute.student.lesson(courseId, firstLesson.id));
+      } else {
+        // Nếu không có lesson, navigate đến learning page
+        navigate(learningPath);
+      }
+      return;
+    }
+
     // Enroll trực tiếp không cần modal
     enrollCourse(courseId, {
-      onSuccess: () => {
+      onSuccess: async () => {
         setIsUserEnrolled(true);
+        setMissingPrereqs([]);
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.detail(courseId) });
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.enrolled() });
-        // Navigate to learning page
-        navigate(learningPath);
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lessons.content(courseId) });
+        
+        // Refetch courseContent để có data mới nhất
+        await queryClient.refetchQueries({ queryKey: QUERY_KEYS.lessons.content(courseId) });
+        
+        // Đợi một chút để data được update
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Lấy data mới nhất từ cache
+        const updatedCourseContent = queryClient.getQueryData<{ data?: CourseContent }>(
+          QUERY_KEYS.lessons.content(courseId)
+        );
+        
+        // Tìm lesson đầu tiên từ nhiều nguồn (ưu tiên courseContent, sau đó course.sections)
+        const sectionsToUse = (updatedCourseContent?.data?.sections && updatedCourseContent.data.sections.length > 0)
+          ? updatedCourseContent.data.sections
+          : (course?.sections && course.sections.length > 0)
+          ? course.sections
+          : [];
+        
+        console.log('[DetailPage] Finding first lesson after enrollment:', {
+          hasUpdatedContent: !!updatedCourseContent?.data?.sections,
+          updatedContentSections: updatedCourseContent?.data?.sections?.length || 0,
+          courseSections: course?.sections?.length || 0,
+          sectionsToUse: sectionsToUse.length,
+          allLessons: sectionsToUse.flatMap(s => s.lessons || []).length
+        });
+        
+        const firstLesson = sectionsToUse
+          .flatMap(s => s.lessons || [])
+          .find(lesson => lesson);
+        
+        if (firstLesson) {
+          console.log('[DetailPage] Found first lesson, navigating to:', firstLesson.id);
+          // Navigate đến trang chi tiết bài học đầu tiên
+          navigate(generateRoute.student.lesson(courseId, firstLesson.id));
+        } else {
+          console.log('[DetailPage] No lesson found, navigating to learning page');
+          // Nếu không có lesson, navigate đến learning page
+          navigate(learningPath);
+        }
       },
-      onError: (error) => {
+      onError: (error: any) => {
         console.error('Enrollment failed:', error);
-        // Still navigate even if enrollment fails (for testing)
-        navigate(learningPath);
+        const errorMessage = error?.response?.data?.message || '';
+        const missing = error?.response?.data?.missingPrerequisites || error?.response?.data?.data?.missingPrerequisites;
+        
+        // Nếu lỗi là "already enrolled", xử lý như đã enrolled
+        if (errorMessage.toLowerCase().includes('already enrolled') || 
+            errorMessage.toLowerCase().includes('đã đăng ký')) {
+          setIsUserEnrolled(true);
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.detail(courseId) });
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.enrolled() });
+          
+          // Navigate đến learning page
+          const sectionsToUse = (courseContent?.sections && courseContent.sections.length > 0)
+            ? courseContent.sections
+            : curriculumSections;
+          
+          const firstLesson = sectionsToUse
+            .flatMap(s => s.lessons || [])
+            .find(lesson => lesson);
+          
+          if (firstLesson) {
+            navigate(generateRoute.student.lesson(courseId, firstLesson.id));
+          } else {
+            navigate(learningPath);
+          }
+        } else if (missing && Array.isArray(missing) && missing.length > 0) {
+          setMissingPrereqs(missing);
+          toast.error('Bạn cần hoàn thành các khóa học yêu cầu trước.');
+        } else {
+          toast.error(errorMessage || 'Không thể đăng ký khóa học. Vui lòng thử lại.');
+        }
       }
     });
   };
@@ -123,7 +641,7 @@ export function DetailPage() {
       return;
     }
 
-    if (isUserEnrolled) {
+    if (canAccessContent) {
       navigate(learningPath);
       return;
     }
@@ -149,27 +667,31 @@ export function DetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spinner size="xl" />
-      </div>
+      <MainLayout showSidebar>
+        <div className="min-h-screen flex items-center justify-center">
+          <Spinner size="xl" />
+        </div>
+      </MainLayout>
     );
   }
 
   if (error || !course) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Không tìm thấy khóa học
-          </h1>
-          <Link
-            to={ROUTES.COURSES}
-            className="text-blue-600 hover:text-blue-700"
-          >
-            Quay lại danh sách khóa học
-          </Link>
+      <MainLayout showSidebar>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Không tìm thấy khóa học
+            </h1>
+            <Link
+              to={ROUTES.COURSES}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              Quay lại danh sách khóa học
+            </Link>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -181,13 +703,43 @@ export function DetailPage() {
   };
 
   return (
-    <MainLayout showSidebar={false}> {/* Chọn showSidebar=true nếu bạn muốn thanh điều hướng bên */}
+    <MainLayout showSidebar>
       {/* Hero section */}
-      <div className="bg-gradient-to-r from-green-500 via-teal-600 to-sky-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="relative bg-gradient-to-b from-teal-400 via-teal-500 to-green-600 text-white overflow-hidden">
+        {/* Decorative background elements - làm mờ */}
+        <div className="absolute inset-0 opacity-10">
+          {/* Animated floating circles - làm mờ */}
+          <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-96 h-96 bg-blue-300 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-cyan-300 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-emerald-300 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+          
+          {/* Animated geometric shapes - làm mờ */}
+          <div className="absolute top-1/4 right-1/4 w-32 h-32 border-4 border-white/30 rounded-lg rotate-45 animate-spin" style={{ animationDuration: '20s' }}></div>
+          <div className="absolute bottom-1/4 left-1/4 w-24 h-24 border-4 border-white/30 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+          <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/20 rounded-lg rotate-12 animate-bounce" style={{ animationDuration: '3s' }}></div>
+          <div className="absolute bottom-10 left-1/2 w-20 h-20 border-2 border-white/40 rounded-full animate-ping" style={{ animationDuration: '2s' }}></div>
+          
+          {/* Additional animated circles - làm mờ */}
+          <div className="absolute top-20 right-1/4 w-40 h-40 border-3 border-white/25 rounded-full animate-pulse" style={{ animationDelay: '0.8s', animationDuration: '3s' }}></div>
+          <div className="absolute bottom-1/3 right-1/3 w-28 h-28 bg-white/15 rounded-full animate-pulse" style={{ animationDelay: '2.5s' }}></div>
+        </div>
+
+        {/* Pattern overlay - grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        ></div>
+
+        {/* Gradient mesh overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent"></div>
+
+        <div className="relative max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left: Course info */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 relative">
               {/* Breadcrumb */}
               <div className="flex items-center gap-2 text-sm text-blue-100 mb-4">
                 <Link to={ROUTES.LANDING_PAGE} className="hover:text-white">
@@ -201,116 +753,93 @@ export function DetailPage() {
                 <span className="text-white">{course.title}</span>
               </div>
 
-              <h1 className="text-3xl lg:text-4xl font-bold mb-4">
-                {course.title}
-              </h1>
-
-              <p className="text-lg text-blue-50 mb-6">
-                {course.description}
-              </p>
-
-              {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-4 mb-6">
+              {/* Difficulty Badge */}
+              <div className="mb-3">
                 <Badge variant={(course.difficulty || course.level) === 'beginner' ? 'success' : 'warning'}>
                   {difficultyLabels[course.difficulty || course.level || 'beginner'] || 'Cơ bản'}
                 </Badge>
-
-                {course._count && (
-                  <div className="flex items-center gap-2 text-blue-50">
-                    <Users className="w-5 h-5" />
-                    <span>{course._count.enrollments} học viên</span>
-                  </div>
-                )}
-
-                {course.duration_hours && (
-                  <div className="flex items-center gap-2 text-blue-50">
-                    <Clock className="w-5 h-5" />
-                    <span>{course.duration_hours} giờ</span>
-                  </div>
-                )}
-
-                {totalSections > 0 && (
-                  <div className="flex items-center gap-2 text-blue-50">
-                    <BookOpen className="w-5 h-5" />
-                    <span>{totalSections} chương • {totalLessons} bài học</span>
-                  </div>
-                )}
               </div>
 
-              {/* Instructor */}
-              {course.instructor && (
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-semibold">
-                    {course.instructor.full_name?.charAt(0).toUpperCase() || 'I'}
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-100">Giảng viên</p>
-                    <p className="font-semibold">{course.instructor.full_name}</p>
-                  </div>
+              {/* Title */}
+              <h1 className="text-4xl lg:text-5xl font-bold">
+                {course.title}
+              </h1>
+
+              {/* Last Updated - góc dưới bên trái */}
+              {course.updated_at && (
+                <div className="absolute bottom-0 left-0 flex items-center gap-2 text-sm text-blue-100">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    Cập nhật gần nhất: {format(new Date(course.updated_at), 'dd/MM/yyyy', { locale: vi })}
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* Right: Enroll card */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-8">
-                <CardContent className="p-6">
-                  {/* Thumbnail */}
-                  <div className="aspect-video bg-gray-200 rounded-lg mb-4 overflow-hidden">
-                    {course.thumbnail_url ? (
+            {/* Right: Thumbnail collage */}
+            <div className="lg:col-span-1 sticky top-8">
+              {(() => {
+                const thumbnailUrl = getCourseThumbnailUrl(course);
+                if (!thumbnailUrl) return null;
+                
+                return (
+                  <div className="relative w-full aspect-video">
+                    {/* 2 ảnh nhỏ phía sau - làm mờ */}
+                    <div className="absolute -top-8 -left-8 w-1/2 h-1/2 rounded-lg overflow-hidden opacity-70 blur-sm z-0">
                       <img
-                        src={course.thumbnail_url}
+                        src={thumbnailUrl}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute -bottom-8 -right-8 w-1/2 h-1/2 rounded-lg overflow-hidden opacity-70 blur-sm z-0">
+                      <img
+                        src={thumbnailUrl}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Ảnh chính ở giữa */}
+                    <div className="relative w-full h-full rounded-lg overflow-hidden shadow-xl z-10">
+                      <img
+                        src={thumbnailUrl}
                         alt={course.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
-                          target.nextElementSibling?.classList.remove('hidden');
                         }}
                       />
-                    ) : null}
-                    <div className={`w-full h-full flex items-center justify-center ${course.thumbnail_url ? 'hidden' : ''}`}>
-                      <BookOpen className="w-16 h-16 text-gray-400" />
+                      
+                      {/* Nút Join course nhỏ ở góc */}
+                      <button
+                        onClick={handlePrimaryAction}
+                        disabled={isEnrolling}
+                        className="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-20 flex items-center gap-1.5"
+                      >
+                        {isEnrolling ? (
+                          <>
+                            <span className="animate-spin">⏳</span>
+                            <span>Đang đăng ký...</span>
+                          </>
+                        ) : canAccessContent ? (
+                          'Vào học'
+                        ) : (
+                          'Tham gia'
+                        )}
+                      </button>
                     </div>
                   </div>
-
-                  {/* Price */}
-                  <div className="mb-6">
-                    {course.is_free ? (
-                      <p className="text-3xl font-bold text-green-600">Miễn phí</p>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-6 h-6 text-gray-600" />
-                        <p className="text-3xl font-bold text-gray-900">
-                          {course.price?.toLocaleString('vi-VN')} đ
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Enroll button */}
-                  <Button
-                    onClick={handlePrimaryAction}
-                    fullWidth
-                    size="lg"
-                    className="mb-4"
-                    isLoading={isEnrolling && !isUserEnrolled}
-                  >
-                    {isUserEnrolled ? 'Vào học ngay' : 'Đăng ký ngay'}
-                  </Button>
-
-                  <p className="text-sm text-gray-500 text-center">
-                    30 ngày đảm bảo hoàn tiền
-                  </p>
-                </CardContent>
-              </Card>
+                );
+              })()}
             </div>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8 border-b border-gray-200 flex gap-4">
           <button
             type="button"
@@ -332,6 +861,26 @@ export function DetailPage() {
           >
             Mục lục khóa học
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('reviews')}
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'reviews'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            Đánh giá {course?.total_ratings ? `(${course.total_ratings})` : ''}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('certificate')}
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'certificate'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            Chứng nhận
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -340,26 +889,41 @@ export function DetailPage() {
             {activeTab === 'overview' ? (
               <div className="space-y-8">
                 {/* What you'll learn */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Bạn sẽ học được gì</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {[
-                        'Nắm vững các kiến thức nền tảng',
-                        'Thực hành với các dự án thực tế',
-                        'Áp dụng vào công việc ngay lập tức',
-                        'Nhận được chứng chỉ hoàn thành',
-                      ].map((item, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span className="text-gray-700">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                {course.learning_objectives && course.learning_objectives.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Bạn sẽ học được gì</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {course.learning_objectives.map((objective: string, index: number) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <span className="text-gray-700">{objective}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Tags */}
+                {course.tags && Array.isArray(course.tags) && course.tags.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Tags</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {course.tags.map((tag: string, index: number) => (
+                          <Badge key={index} variant="info" className="px-3 py-1">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Course description */}
                 <Card>
@@ -374,6 +938,37 @@ export function DetailPage() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Prerequisites */}
+                {(prerequisitesData?.data && prerequisitesData.data.length > 0) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Yêu cầu trước (Prerequisites)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {prerequisitesData.data.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {p.prerequisite_course?.title || 'Khóa học yêu cầu'}
+                              </div>
+                              <div className="text-xs text-gray-500">ID: {p.prerequisite_course_id}</div>
+                            </div>
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${p.is_required ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {p.is_required ? 'Bắt buộc' : 'Khuyến nghị'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {missingPrereqs.length > 0 && (
+                        <div className="mt-3 text-sm text-red-600">
+                          Bạn còn thiếu: {missingPrereqs.map((m) => m.title || m.id).join(', ')}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Requirements */}
                 <Card>
@@ -394,14 +989,384 @@ export function DetailPage() {
                   </CardContent>
                 </Card>
               </div>
-            ) : (
+              ) : activeTab === 'certificate' ? (
+              // Certificate preview tab - design từ pdf.service.ts
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Chứng nhận hoàn thành khóa học</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-white p-8 md:p-12">
+                      {/* Certificate Preview - Design từ pdf.service.ts */}
+                      <div className="max-w-4xl mx-auto">
+                        <div 
+                          className="relative bg-white select-none" 
+                          style={{ 
+                            fontFamily: 'Garamond, Georgia, Times New Roman, serif',
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none',
+                            MozUserSelect: 'none',
+                            msUserSelect: 'none',
+                            WebkitTouchCallout: 'none',
+                            pointerEvents: 'auto'
+                          } as React.CSSProperties}
+                          onContextMenu={(e) => e.preventDefault()}
+                          onDragStart={(e) => e.preventDefault()}
+                        >
+                          {/* Main double border */}
+                          <div className="absolute inset-0 border-4 border-double border-gray-800 pointer-events-none" style={{ top: '12mm', left: '12mm', right: '12mm', bottom: '12mm' }}></div>
+                          <div className="absolute inset-0 border border-gray-700 pointer-events-none" style={{ top: '15mm', left: '15mm', right: '15mm', bottom: '15mm' }}></div>
+                          
+                          {/* Official seal watermark - circular */}
+                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-amber-200 rounded-full opacity-8 pointer-events-none"></div>
+                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 border border-amber-100 rounded-full opacity-5 pointer-events-none"></div>
+                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-gray-300 text-xs font-bold tracking-widest opacity-4 pointer-events-none whitespace-nowrap">
+                            OFFICIAL CERTIFICATE
+                          </div>
+
+                          {/* Certificate Content */}
+                          <div 
+                            className="relative z-10 p-8 md:p-12 select-none"
+                            style={{ 
+                              userSelect: 'none',
+                              WebkitUserSelect: 'none',
+                              MozUserSelect: 'none',
+                              msUserSelect: 'none',
+                              WebkitTouchCallout: 'none'
+                            } as React.CSSProperties}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onDragStart={(e) => e.preventDefault()}
+                            onCopy={(e) => e.preventDefault()}
+                            onCut={(e) => e.preventDefault()}
+                            onPaste={(e) => e.preventDefault()}
+                          >
+                            {/* Header */}
+                            <div className="text-center mb-12" style={{ paddingTop: '8mm' }}>
+                              <div className="text-lg font-bold text-gray-900 tracking-widest uppercase mb-2 select-none" style={{ letterSpacing: '3px', userSelect: 'none' }}>
+                                GekLearn
+                              </div>
+                              <div className="text-xs text-gray-600 italic mb-10 tracking-wide select-none" style={{ letterSpacing: '1px', userSelect: 'none' }}>
+                                PhucNguyen, NguyenChidi, KimHuong
+                              </div>
+                              
+                              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-widest uppercase mb-3 py-5 select-none" style={{ letterSpacing: '6px', fontSize: '38px', userSelect: 'none' }}>
+                                Certificate
+                              </h1>
+                              <p className="text-sm text-gray-700 tracking-wide uppercase select-none" style={{ letterSpacing: '2px', fontSize: '13px', userSelect: 'none' }}>
+                                of Completion
+                              </p>
+                            </div>
+
+                            {/* Body */}
+                            <div className="text-center px-8 md:px-12 mb-5 select-none">
+                              <p className="text-sm text-gray-700 mb-5 tracking-wide uppercase font-semibold select-none" style={{ letterSpacing: '2px', fontSize: '14px', userSelect: 'none' }}>
+                                This is presented to
+                              </p>
+                              
+                              <div className="text-4xl md:text-5xl font-bold text-gray-900 my-8 leading-tight pb-3 tracking-wide select-none" style={{ fontSize: '42px', letterSpacing: '2px', userSelect: 'none' }}>
+                                [Student Name]
+                              </div>
+                              
+                              <p className="text-sm text-gray-700 leading-relaxed my-6 max-w-2xl mx-auto font-normal select-none" style={{ fontSize: '13px', lineHeight: '1.6', userSelect: 'none' }}>
+                                In recognition of successful completion of the comprehensive course of study and 
+                                demonstrated proficiency in the subject matter as prescribed by the curriculum requirements
+                              </p>
+                              
+                              {/* Course Info */}
+                              <div className="my-7 py-7 px-8 select-none">
+                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 leading-tight tracking-wide select-none" style={{ fontSize: '26px', letterSpacing: '1px', userSelect: 'none' }}>
+                                  [Course Title]
+                                </h2>
+                                <div className="flex justify-center gap-12 md:gap-20 text-xs text-gray-600 mt-5 select-none" style={{ fontSize: '12px', userSelect: 'none' }}>
+                                  <div className="text-center">
+                                    <div className="font-bold text-gray-900 mb-2 text-xs uppercase tracking-widest select-none" style={{ fontSize: '10px', letterSpacing: '1.5px', userSelect: 'none' }}>
+                                      Instructed By
+                                    </div>
+                                    <div className="text-sm font-semibold text-gray-700 select-none" style={{ fontSize: '13px', userSelect: 'none' }}>
+                                      [Instructor Name]
+                                    </div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-bold text-gray-900 mb-2 text-xs uppercase tracking-widest select-none" style={{ fontSize: '10px', letterSpacing: '1.5px', userSelect: 'none' }}>
+                                      Course Level
+                                    </div>
+                                    <div className="text-sm font-semibold text-gray-700 select-none" style={{ fontSize: '13px', userSelect: 'none' }}>
+                                      [Level]
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Completion Info */}
+                              <div className="flex justify-center gap-12 md:gap-16 my-7 select-none">
+                                <div className="text-center py-6 px-8 bg-white min-w-32 select-none">
+                                  <div className="text-xs text-gray-600 mb-3 uppercase tracking-widest font-bold select-none" style={{ fontSize: '10px', letterSpacing: '1.5px', userSelect: 'none' }}>
+                                    Date of Completion
+                                  </div>
+                                  <div className="text-lg font-bold text-gray-900 select-none" style={{ fontSize: '18px', userSelect: 'none' }}>
+                                    [Date]
+                                  </div>
+                                </div>
+                                <div className="text-center py-6 px-8 bg-white min-w-32 select-none">
+                                  <div className="text-xs text-gray-600 mb-3 uppercase tracking-widest font-bold select-none" style={{ fontSize: '10px', letterSpacing: '1.5px', userSelect: 'none' }}>
+                                    Final Achievement
+                                  </div>
+                                  <div className="text-lg font-bold text-gray-900 select-none" style={{ fontSize: '18px', userSelect: 'none' }}>
+                                    [Grade]%
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Footer */}
+                            <div className="pt-8 mt-6 select-none">
+                              <div className="text-center select-none">
+                                <div className="text-xs text-gray-900 mb-3 uppercase tracking-wide font-bold select-none" style={{ letterSpacing: '2px', fontSize: '12px', userSelect: 'none' }}>
+                                  Certificate No. <span className="font-mono text-sm bg-gray-100 px-3 py-1 ml-2 inline-block select-none" style={{ fontSize: '14px', letterSpacing: '2px', fontFamily: 'Courier New, monospace', userSelect: 'none' }}>[CERT-XXXXXX]</span>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-3 leading-relaxed select-none" style={{ fontSize: '9px', lineHeight: '1.5', userSelect: 'none' }}>
+                                  <p className="select-none" style={{ userSelect: 'none' }}>Verification URL:</p>
+                                  <p className="text-gray-700 font-mono text-xs mt-1 break-all select-none" style={{ fontSize: '8px', fontWeight: '500', fontFamily: 'Courier New, monospace', userSelect: 'none' }}>
+                                    [Verification URL]
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info Text */}
+                      <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-600">
+                          Đây là mẫu chứng nhận. Chứng nhận thực tế sẽ được cấp sau khi bạn hoàn thành khóa học.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              ) : activeTab === 'reviews' ? (
+              // Reviews tab
+              <div className="space-y-6">
+                {/* Rating Display */}
+                {course && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Đánh giá khóa học</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="text-4xl font-bold text-gray-900">
+                          {course.rating?.toFixed(1) || '0.0'}
+                        </div>
+                        <div>
+                          <RatingDisplay
+                            rating={course.rating || 0}
+                            totalRatings={course.total_ratings || 0}
+                            size="lg"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Review Form - chỉ hiển thị nếu user đã enrolled và chưa có review */}
+                      {isUserEnrolled && isAuthenticated && !myReview && !showReviewForm && (
+                        <div className="border-t pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowReviewForm(true)}
+                          >
+                            Viết đánh giá
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Review Form */}
+                      {(showReviewForm || (myReview && isEditingReview)) && (
+                        <div className="border-t pt-4 mt-4">
+                          <RatingForm
+                            courseId={courseId}
+                            initialRating={myReview?.rating || 0}
+                            initialComment={myReview?.comment || ''}
+                            isEditing={!!myReview}
+                            onSubmit={async (rating, comment) => {
+                              if (myReview) {
+                                await updateReviewMutation.mutateAsync({
+                                  reviewId: myReview.id,
+                                  payload: { rating, comment },
+                                });
+                                setIsEditingReview(false);
+                                setShowReviewForm(false);
+                              } else {
+                                await createReviewMutation.mutateAsync({
+                                  course_id: courseId,
+                                  rating,
+                                  comment,
+                                });
+                                setShowReviewForm(false);
+                              }
+                            }}
+                            onCancel={() => {
+                              setShowReviewForm(false);
+                              setIsEditingReview(false);
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* My Review Display */}
+                      {myReview && !isEditingReview && !showReviewForm && (
+                        <div className="border-t pt-4 mt-4">
+                          <div className="bg-blue-50 rounded-lg p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <div className="font-medium text-gray-900 mb-1">
+                                  Đánh giá của bạn
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <RatingDisplay
+                                    rating={myReview.rating}
+                                    totalRatings={0}
+                                    showLabel={false}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setIsEditingReview(true)}
+                                >
+                                  Sửa
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (confirm('Bạn có chắc muốn xóa đánh giá này?')) {
+                                      await deleteReviewMutation.mutateAsync(myReview.id);
+                                    }
+                                  }}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  Xóa
+                                </Button>
+                              </div>
+                            </div>
+                            {myReview.comment && (
+                              <p className="text-gray-700 mt-2">{myReview.comment}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Reviews List */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tất cả đánh giá</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ReviewsList
+                      reviews={reviewsData?.reviews || []}
+                      stats={reviewStats}
+                      currentUserId={user?.id}
+                      isLoading={isLoadingReviews}
+                      hasMore={
+                        reviewsData?.pagination
+                          ? reviewPage < reviewsData.pagination.totalPages
+                          : false
+                      }
+                      onLoadMore={() => setReviewPage((p) => p + 1)}
+                      onEdit={(review) => {
+                        setIsEditingReview(true);
+                        setShowReviewForm(true);
+                      }}
+                      onDelete={async (reviewId) => {
+                        if (confirm('Bạn có chắc muốn xóa đánh giá này?')) {
+                          await deleteReviewMutation.mutateAsync(reviewId);
+                        }
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              ) : (
               // Curriculum tab - hiển thị nội dung hoặc thông báo
-              curriculumSections.length > 0 ? (
-                <CurriculumTree
-                  sections={curriculumSections}
-                  onLessonClick={handleLessonPreviewClick}
-                  isPreviewMode={true}
-                />
+              curriculumSections.length > 0 || (courseLevelQuizzes && courseLevelQuizzes.length > 0) || (courseLevelAssignments && courseLevelAssignments.length > 0) ? (
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-200">
+                  {/* Sections - hiển thị trước */}
+                  {curriculumSections.length > 0 && (
+                    <div className="[&>div]:border-0 [&>div]:rounded-none [&>div]:shadow-none">
+                      <CurriculumTree
+                        sections={curriculumSections}
+                        onLessonClick={handleLessonPreviewClick}
+                        isPreviewMode={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* Course-level Quizzes - hiển thị sau sections, cùng cấp */}
+                  {courseLevelQuizzes?.map((quiz) => {
+                    const isCompleted = !quiz.is_practice && completedQuizIds.has(quiz.id);
+                    return (
+                    <div
+                      key={`quiz-${quiz.id}`}
+                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => {
+                        if (canAccessContent) {
+                          navigate(generateRoute.student.quiz(courseId, quiz.id));
+                        } else {
+                          toast.error('Vui lòng đăng ký khóa học để làm bài kiểm tra');
+                        }
+                      }}
+                    >
+                      <ClipboardList className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-sm">Quiz: {quiz.title}</h3>
+                        {quiz.description && (
+                          <p className="text-xs text-gray-500 mt-1">{quiz.description}</p>
+                        )}
+                      </div>
+                        {isCompleted && (
+                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        )}
+                    </div>
+                    );
+                  })}
+
+                  {/* Course-level Assignments - hiển thị sau sections, cùng cấp */}
+                  {courseLevelAssignments?.map((asmt) => {
+                    const isCompleted = !asmt.is_practice && completedAssignmentIds.has(asmt.id);
+                    return (
+                    <div
+                      key={`assignment-${asmt.id}`}
+                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => {
+                        if (canAccessContent) {
+                          navigate(`/assignments/${asmt.id}`);
+                        } else {
+                          toast.error('Vui lòng đăng ký khóa học để làm bài tập');
+                        }
+                      }}
+                    >
+                      <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-sm">Assignment: {asmt.title}</h3>
+                        {asmt.description && (
+                          <p className="text-xs text-gray-500 mt-1">{asmt.description}</p>
+                        )}
+                      </div>
+                        {isCompleted && (
+                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        )}
+                    </div>
+                    );
+                  })}
+                </div>
               ) : isContentLoading ? (
                 <Card>
                   <CardContent className="py-12">
@@ -476,8 +1441,17 @@ export function DetailPage() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Users className="w-4 h-4" />
-                      <span>1000+ học viên</span>
+                      <span>{course.total_students || 0} học viên</span>
                     </div>
+                    {course.rating && course.rating > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <RatingDisplay
+                          rating={course.rating}
+                          totalRatings={course.total_ratings || 0}
+                          size="sm"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Nút nhắn tin với giảng viên - chỉ hiển thị khi đã enrolled */}
@@ -497,35 +1471,81 @@ export function DetailPage() {
             )}
 
             {/* Progress (only for enrolled students) */}
-            {isUserEnrolled && progressData && (
+            {isUserEnrolled && (
               <Card>
                 <CardHeader>
                   <CardTitle>Tiến độ học tập</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">
-                          {completedLessons} / {totalLessons} bài học
-                        </span>
-                        <span className="text-sm font-semibold text-blue-600">
-                          {progressPercentage.toFixed(0)}%
-                        </span>
+                  {isUserEnrolled ? (
+                    progressData ? (
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">
+                            {completedLessons} / {totalLessons} bài học
+                          </span>
+                          <span className="text-sm font-semibold text-blue-600">
+                              {Math.round(progressPercentage)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div
+                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(Math.max(progressPercentage, 0), 100)}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div
-                          className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                          style={{ width: `${progressPercentage}%` }}
-                        />
-                      </div>
+                      {progressData.last_accessed_at && (
+                        <p className="text-xs text-gray-500">
+                          Hoạt động gần nhất: {new Date(progressData.last_accessed_at).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      )}
+
+                      {/* Certificate Badge - hiển thị nếu user đã có certificate */}
+                      {courseCertificate && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <Link
+                            to={`/certificates/${courseCertificate.id}`}
+                            className="flex items-center gap-3 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg hover:from-yellow-100 hover:to-orange-100 transition-colors group"
+                          >
+                            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                              <Award className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                Chứng chỉ hoàn thành
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                Xem chứng chỉ của bạn
+                              </p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <svg className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </Link>
+                        </div>
+                      )}
                     </div>
-                    {progressData.last_activity_at && (
-                      <p className="text-xs text-gray-500">
-                        Hoạt động gần nhất: {new Date(progressData.last_activity_at).toLocaleDateString('vi-VN')}
+                  ) : (
+                    <div className="text-center py-4">
+                      <Spinner size="sm" />
+                      <p className="text-sm text-gray-500 mt-2">Đang tải tiến độ...</p>
+                      </div>
+                    )
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500">
+                        Đăng ký khóa học để theo dõi tiến độ học tập
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

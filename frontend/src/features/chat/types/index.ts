@@ -70,6 +70,8 @@ export interface ConversationListProps {
   onFilterChange?: (filter: 'all' | 'unread') => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  /** Map of conversation ID to real-time online status */
+  onlineStatusMap?: Record<string, boolean>;
 }
 
 export interface ConversationListItemProps {
@@ -91,6 +93,8 @@ export interface ConversationPanelProps {
   isParticipantOnline?: boolean;
   onLoadMore?: (oldestMessageDate: string) => void;
   isLoadingMore?: boolean;
+  /** Callback to mark conversation as read when user views messages */
+  onMarkAsRead?: () => void;
 }
 
 export interface MessageBubbleProps {

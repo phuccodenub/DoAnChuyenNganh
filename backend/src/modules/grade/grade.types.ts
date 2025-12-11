@@ -1,6 +1,7 @@
 export interface CreateGradeComponentDto {
   course_id: string;
   name: string;
+  component_type: 'quiz' | 'assignment' | 'participation' | 'attendance' | 'manual';
   description?: string;
   weight: number;
   max_score: number;

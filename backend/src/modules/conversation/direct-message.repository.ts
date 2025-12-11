@@ -155,7 +155,11 @@ export class DirectMessageRepository {
    */
   async markAsRead(conversationId: string, recipientId: string) {
     await DirectMessage.update(
-      { status: 'read' },
+      { 
+        status: 'read',
+        is_read: true,
+        read_at: new Date(),
+      },
       {
         where: {
           conversation_id: conversationId,

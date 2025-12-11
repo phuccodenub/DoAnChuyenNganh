@@ -11,6 +11,7 @@ import { socketService } from '@/services/socketService';
 import { conversationKeys } from '@/hooks/useConversations';
 import { DirectMessage, Conversation } from '@/services/api/conversation.api';
 import { ChatMessage } from '@/services/api/chat.api';
+import { useAuthStore } from '@/stores/authStore.enhanced';
 
 // ============ Types ============
 
@@ -47,6 +48,7 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
   const queryClient = useQueryClient();
   const [isConnected, setIsConnected] = useState(socketService.isConnected());
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   // Track connection state
   useEffect(() => {
@@ -154,10 +156,64 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
     };
 
     // Listen for read events (still need conversation filter)
-    const handleRead = (data: { conversationId: string; userId: string }) => {
-      if (data.conversationId === conversationId) {
-        onRead?.(data.conversationId, data.userId);
-        queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
+    const handleRead = (data: { conversationId?: string; readBy?: string; userId?: string; messageId?: string }) => {
+      // Support both formats: { conversationId, readBy } and { conversationId, userId }
+      const targetConversationId = data.conversationId || conversationId;
+      const readerId = data.readBy || data.userId;
+      
+      console.log('📖 [SOCKET] Received read event:', { targetConversationId, readerId, currentUserId, conversationId });
+      
+      if (targetConversationId === conversationId && currentUserId && readerId) {
+        // Only update if the OTHER user read the messages (not current user reading their own)
+        if (readerId !== currentUserId) {
+          console.log('✅ [SOCKET] Updating read status for messages sent by current user');
+          onRead?.(targetConversationId!, readerId);
+          
+          // Update messages cache directly to show read status immediately
+          // Mark all messages sent by current user as read when other user reads them
+          queryClient.setQueryData(
+            conversationKeys.messages(conversationId!),
+            (oldData: any) => {
+              if (!oldData?.data) return oldData;
+              return {
+                ...oldData,
+                data: oldData.data.map((msg: any) => {
+                  // If this message was sent by current user and is being read by other user
+                  // Update is_read to true and status to 'read'
+                  if (msg.sender_id === currentUserId && !msg.is_read) {
+                    return {
+                      ...msg,
+                      is_read: true,
+                      status: 'read',
+                    };
+                  }
+                  return msg;
+                }),
+              };
+            }
+          );
+          
+          // Also update infinite messages cache
+          queryClient.setQueryData(
+            [...conversationKeys.messages(conversationId!), 'infinite'],
+            (oldData: any) => {
+              if (!oldData?.data) return oldData;
+              return {
+                ...oldData,
+                data: oldData.data.map((msg: any) => {
+                  if (msg.sender_id === currentUserId && !msg.is_read) {
+                    return {
+                      ...msg,
+                      is_read: true,
+                      status: 'read',
+                    };
+                  }
+                  return msg;
+                }),
+              };
+            }
+          );
+        }
       }
     };
 
@@ -166,14 +222,16 @@ export function useDMSocket(options: UseDMSocketOptions = {}) {
     socket.on('dm:typing', handleTyping);
     socket.on('dm:stop_typing', handleStopTyping);
     socket.on('dm:read', handleRead);
+    socket.on('dm:message_read', handleRead); // Also listen to MESSAGE_READ event
 
     return () => {
       socket.off('dm:new_message', handleNewMessage);
       socket.off('dm:typing', handleTyping);
       socket.off('dm:stop_typing', handleStopTyping);
       socket.off('dm:read', handleRead);
+      socket.off('dm:message_read', handleRead);
     };
-  }, [isConnected, queryClient, conversationId, onNewMessage, onTyping, onStopTyping, onRead]);
+  }, [isConnected, queryClient, conversationId, onNewMessage, onTyping, onStopTyping, onRead, currentUserId]);
 
   // Send typing indicator
   const sendTyping = useCallback(() => {
@@ -302,13 +360,13 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
       // CRITICAL FIX: Invalidate ALL message queries for this course (all pages)
       // Because query key includes page number: ['chat', 'messages', courseId, page]
       queryClient.invalidateQueries({ 
-        queryKey: ['chat', 'messages', message.course_id],
+        queryKey: ['chat', 'messages', message.course_id!],
         exact: false, // Match all pages
         refetchType: 'active' // Only refetch active queries (current page)
       });
 
       // INSTANT REFETCH: Invalidate and refetch unread counts immediately
-      console.log('🔄 [SOCKET] Invalidating unread counts...');
+      console.log('✅ [SOCKET] Invalidating unread counts...');
       
       // Invalidate with active refetch only (not all) to reduce load
       queryClient.invalidateQueries({
@@ -330,7 +388,7 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
       });
 
       // Call callback only if message is for current course
-      if (message.course_id === courseId) {
+      if (message.course_id && message.course_id === courseId) {
         callbacksRef.current.onNewMessage?.(message);
       }
     };
@@ -399,14 +457,14 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    socket.emit('chat:typing', { courseId });
+    socket.emit('chat:typing', { courseId: courseId! });
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('chat:stop_typing', { courseId });
+      socket.emit('chat:stop_typing', { courseId: courseId! });
     }, 3000);
   }, [courseId, isConnected]);
 
@@ -417,7 +475,7 @@ export function useCourseChatSocket(options: UseCourseChatSocketOptions = {}) {
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    socket.emit('chat:stop_typing', { courseId });
+    socket.emit('chat:stop_typing', { courseId: courseId! });
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);

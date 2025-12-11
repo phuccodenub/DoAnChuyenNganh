@@ -94,6 +94,7 @@ export interface CourseInstance extends Model, CourseAttributes {}
 export interface QuizAttributes {
   id: string;
   course_id: string;
+  section_id?: string;
   title: string;
   description?: string;
   duration_minutes?: number;
@@ -104,6 +105,7 @@ export interface QuizAttributes {
   available_from?: Date | null;
   available_until?: Date | null;
   is_published: boolean;
+  is_practice: boolean; // true = Practice Quiz, false = Graded Quiz
   created_at: Date;
   updated_at: Date;
 }
@@ -113,7 +115,7 @@ export interface QuizCreationAttributes extends Optional<
   'id' | 'created_at' | 'updated_at' |
   'duration_minutes' | 'passing_score' | 'max_attempts' |
   'shuffle_questions' | 'show_correct_answers' |
-  'available_from' | 'available_until' | 'is_published'
+  'available_from' | 'available_until' | 'is_published' | 'section_id'
 > {}
 
 export interface QuizInstance extends Model, QuizAttributes {}
@@ -209,6 +211,7 @@ export interface QuizAnswerInstance extends Model, QuizAnswerAttributes {}
 export interface AssignmentAttributes {
   id: string;
   course_id: string;
+  section_id?: string;
   title: string;
   description?: string;
   max_score: number;
@@ -216,6 +219,7 @@ export interface AssignmentAttributes {
   allow_late_submission: boolean;
   submission_type: 'file' | 'text' | 'both';
   is_published: boolean;
+  is_practice: boolean; // true = Practice Assignment, false = Graded Assignment
   created_at: Date;
   updated_at: Date;
 }
@@ -275,6 +279,24 @@ export interface EnrollmentAttributes {
 export interface EnrollmentCreationAttributes extends Optional<EnrollmentAttributes, 'id' | 'created_at' | 'updated_at' | 'status' | 'enrollment_type' | 'progress_percentage' | 'completed_lessons' | 'total_lessons'> {}
 
 export interface EnrollmentInstance extends Model, EnrollmentAttributes {}
+
+// ===================================
+// COURSE PREREQUISITE MODEL INTERFACES
+// ===================================
+
+export interface CoursePrerequisiteAttributes {
+  id: string;
+  course_id: string;
+  prerequisite_course_id: string;
+  is_required: boolean;
+  order_index: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CoursePrerequisiteCreationAttributes extends Optional<CoursePrerequisiteAttributes, 'id' | 'created_at' | 'updated_at' | 'is_required' | 'order_index'> {}
+
+export interface CoursePrerequisiteInstance extends Model, CoursePrerequisiteAttributes {}
 
 // ===================================
 // CATEGORY MODEL INTERFACES
@@ -344,11 +366,12 @@ export interface LessonAttributes {
   order_index: number;
   is_published: boolean;
   is_free: boolean;
+  is_free_preview: boolean;
   created_at: Date;
   updated_at: Date;
 }
 
-export interface LessonCreationAttributes extends Optional<LessonAttributes, 'id' | 'created_at' | 'updated_at' | 'is_published' | 'is_free'> {}
+export interface LessonCreationAttributes extends Optional<LessonAttributes, 'id' | 'created_at' | 'updated_at' | 'is_published' | 'is_free' | 'is_free_preview'> {}
 
 export interface LessonInstance extends Model, LessonAttributes {}
 
@@ -678,6 +701,8 @@ export interface NotificationRecipientInstance extends Model, NotificationRecipi
 export interface GradeComponentAttributes {
   id: string;
   course_id: string;
+  component_type: 'quiz' | 'assignment' | 'attendance' | 'participation' | 'manual';
+  component_id?: string | null;
   name: string;
   weight: number;
   max_score: number;
@@ -841,3 +866,88 @@ export interface DirectMessageInstance extends Model, DirectMessageAttributes {
   conversation?: ConversationInstance;
 }
 
+// ===================================
+// CERTIFICATE MODEL INTERFACES
+// ===================================
+
+export type CertificateStatus = 'active' | 'revoked' | 'expired';
+
+export interface CertificateAttributes {
+  id: string;
+  user_id: string;
+  course_id: string;
+  enrollment_id?: string;
+  ipfs_hash: string;
+  certificate_hash: string;
+  metadata: {
+    student: {
+      id: string;
+      name: string;
+      email: string;
+    };
+    course: {
+      id: string;
+      title: string;
+      description?: string;
+      instructor: {
+        id: string;
+        name: string;
+      };
+      level: string;
+      duration?: number;
+    };
+    completion: {
+      date: string;
+      grade?: number;
+      progress: number;
+    };
+    certificate: {
+      id: string;
+      issuedAt: string;
+      hash: string;
+    };
+  };
+  certificate_number: string;
+  issued_at: Date;
+  status: CertificateStatus;
+  revoked_at?: Date;
+  revoked_reason?: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CertificateCreationAttributes extends Optional<
+  CertificateAttributes,
+  'id' | 'created_at' | 'updated_at' | 'status' | 'enrollment_id' | 'revoked_at' | 'revoked_reason'
+> {}
+
+export interface CertificateInstance extends Model, CertificateAttributes {
+  // Associations
+  user?: UserInstance;
+  course?: CourseInstance;
+  enrollment?: EnrollmentInstance;
+}
+
+// ===================================
+// COURSE CHAT READ STATUS MODEL INTERFACES
+// ===================================
+
+export interface CourseChatReadStatusAttributes {
+  id: string;
+  course_id: string;
+  user_id: string;
+  last_read_at: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CourseChatReadStatusCreationAttributes extends Optional<
+  CourseChatReadStatusAttributes,
+  'id' | 'created_at' | 'updated_at'
+> {}
+
+export interface CourseChatReadStatusInstance extends Model, CourseChatReadStatusAttributes {
+  // Associations
+  course?: CourseInstance;
+  user?: UserInstance;
+}

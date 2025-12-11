@@ -6,17 +6,20 @@ import { apiClient } from '../http/client';
 export interface Assignment {
   id: string;
   course_id: string;
+  lesson_id?: string;
   section_id?: string;
   title: string;
   description: string;
   instructions: string | null;
   max_points: number;
+  max_score?: number; // Alias for max_points (used in some components)
   due_date: string | null;
   allow_late_submission: boolean;
   late_penalty_percent: number;
   max_file_size_mb: number;
   allowed_file_types: string[];
   is_published: boolean;
+  is_practice: boolean; // true = Practice Assignment, false = Graded Assignment
   created_at: string;
   updated_at: string;
   _count?: {

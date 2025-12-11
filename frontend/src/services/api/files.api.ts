@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const api = axios.create({ baseURL: API_BASE });
+import { httpClient as api } from '../http/client';
 
 /**
  * File Management API Service
@@ -23,6 +21,7 @@ export interface FileUpload {
   status: 'uploading' | 'completed' | 'failed';
   createdAt: Date;
   updatedAt?: Date;
+  file?: File; // Original File object for upload tracking
   metadata?: {
     width?: number;
     height?: number;
@@ -65,10 +64,8 @@ export interface UploadProgress {
   timeRemaining: number; // seconds
 }
 
-export interface FileUploadResponse {
-  file: FileUpload;
-  message: string;
-}
+// Backend responses are wrapped in ApiResponse<{ ... }>
+// nhưng ở FE ta chỉ cần phần data chính (FileUpload)
 
 export interface FilesListResponse {
   files: FileUpload[];
@@ -87,8 +84,7 @@ export const filesApi = {
     courseId?: string,
     assignmentId?: string,
     onProgress?: (progress: UploadProgress) => void
-  ): Promise<FileUploadResponse> {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  ): Promise<FileUpload> {
     const formData = new FormData();
     formData.append('file', file);
     if (courseId) formData.append('courseId', courseId);
@@ -98,8 +94,8 @@ export const filesApi = {
     let lastLoadedTime = startTime;
     let lastLoaded = 0;
 
-    const { data } = await axios.post<FileUploadResponse>(
-      `${apiUrl}/files/upload`,
+    const { data } = await api.post(
+      '/files/upload',
       formData,
       {
         headers: {
@@ -136,7 +132,8 @@ export const filesApi = {
       }
     );
 
-    return data;
+    // Backend response: { success, message, data: UploadedFileInfo }
+    return (data as any).data as FileUpload;
   },
 
   /**
@@ -146,7 +143,7 @@ export const filesApi = {
     files: File[],
     courseId?: string,
     onProgress?: (fileName: string, progress: number) => void
-  ): Promise<FileUploadResponse[]> {
+  ): Promise<FileUpload[]> {
     const uploadPromises = files.map((file) =>
       this.uploadFile(file, courseId, undefined, (progress) => {
         onProgress?.(file.name, progress.progress);

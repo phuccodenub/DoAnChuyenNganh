@@ -16,13 +16,13 @@ export class QuizController {
    */
   async getAllQuizzes(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { page = 1, limit = 20, course_id, lesson_id, status } = req.query;
+      const { page = 1, limit = 20, course_id, section_id, status } = req.query;
       
       const result = await this.quizService.getAllQuizzes({
         page: Number(page),
         limit: Number(limit),
         course_id: course_id as string,
-        lesson_id: lesson_id as string,
+        section_id: section_id as string,
         status: status as string
       });
 
@@ -143,8 +143,9 @@ export class QuizController {
   async getQuizQuestions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      
-      const questions = await this.quizService.getQuizQuestions(id);
+      // Endpoint chung cho học viên làm bài → KHÔNG trả đáp án đúng
+      // includeAnswers = false để tránh lộ is_correct
+      const questions = await this.quizService.getQuizQuestions(id, undefined, false);
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
         success: true,
@@ -153,6 +154,28 @@ export class QuizController {
       });
     } catch (error) {
       logger.error('Error in getQuizQuestions controller:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get all questions for a quiz WITH correct answers (instructor-only)
+   * Dùng cho trang builder/quản lý quiz
+   */
+  async getQuizQuestionsWithAnswers(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+
+      const questions = await this.quizService.getQuizQuestions(id, userId, true);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz questions (with answers) retrieved successfully',
+        data: questions
+      });
+    } catch (error) {
+      logger.error('Error in getQuizQuestionsWithAnswers controller:', error);
       next(error);
     }
   }
@@ -188,8 +211,17 @@ export class QuizController {
     try {
       const { id } = req.params;
       const questionData = req.body;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
       
-      const question = await this.quizService.createQuizQuestion(id, questionData);
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized: User ID not found'
+        });
+        return;
+      }
+      
+      const question = await this.quizService.addQuestion(id, userId, questionData);
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.CREATED).json({
         success: true,
@@ -353,6 +385,90 @@ export class QuizController {
       });
     } catch (error) {
       logger.error('Error in getUserQuizAttempts controller:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get quiz attempts for a specific student (Instructor only)
+   */
+  async getStudentQuizAttempts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id: quizId, studentId } = req.params;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+      
+      if (!userId) {
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
+      }
+
+      if (!studentId) {
+        throw new ApiError('Student ID is required', RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST);
+      }
+
+      const attempts = await this.quizService.getStudentQuizAttempts(quizId, studentId, userId);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Student quiz attempts retrieved successfully',
+        data: attempts
+      });
+    } catch (error) {
+      logger.error('Error in getStudentQuizAttempts controller:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get current/active quiz attempt for a quiz by current user
+   */
+  async getCurrentAttempt(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+
+      if (!userId) {
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
+      }
+
+      const attempt = await this.quizService.getCurrentAttempt(id, userId);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Current quiz attempt retrieved successfully',
+        data: attempt
+      });
+    } catch (error) {
+      logger.error('Error in getCurrentAttempt controller:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Delete all quiz attempts for a specific student (Instructor/Admin only)
+   * Reset lượt làm bài cho học viên
+   */
+  async deleteStudentQuizAttempts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id: quizId, studentId } = req.params;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+      
+      if (!userId) {
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
+      }
+
+      if (!studentId) {
+        throw new ApiError('Student ID is required', RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST);
+      }
+
+      const result = await this.quizService.deleteStudentQuizAttempts(quizId, studentId, userId);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Student quiz attempts deleted successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error in deleteStudentQuizAttempts controller:', error);
       next(error);
     }
   }

@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import { CourseController } from './course.controller';
 import { EnrollmentController } from '../enrollment/enrollment.controller';
-import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
+import { PrerequisiteController } from './prerequisite.controller';
+import { authMiddleware, authorizeRoles, optionalAuthMiddleware } from '../../middlewares/auth.middleware';
 import { validateRequest } from '../../middlewares/validate.middleware';
 import { courseValidation } from '../../validates/course.validate';
 
 const router = Router();
 const courseController = new CourseController();
 const enrollmentController = new EnrollmentController();
+const prerequisiteController = new PrerequisiteController();
 
 // ===== PUBLIC ROUTES =====
 
@@ -187,8 +189,17 @@ router.get('/recommended',
  *         description: Course not found
  */
 router.get('/:id', 
+  optionalAuthMiddleware, // Optional auth to get userId if available
   validateRequest({ params: courseValidation.courseId }),
   courseController.getCourseById
+);
+
+// Management view - owner/admin only
+router.get('/:id/manage',
+  authMiddleware,
+  authorizeRoles(['instructor', 'admin', 'super_admin']),
+  validateRequest({ params: courseValidation.courseId }),
+  courseController.getCourseForManagement
 );
 
 // ===== PROTECTED ROUTES =====
@@ -700,6 +711,166 @@ router.get('/:courseId/stats',
   authMiddleware, 
   authorizeRoles(['instructor', 'admin', 'super_admin']),
   courseController.getCourseStats
+);
+
+// ===== PREREQUISITES ROUTES =====
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/prerequisites:
+ *   get:
+ *     summary: Get prerequisites for a course
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Prerequisites retrieved successfully
+ *       404:
+ *         description: Course not found
+ */
+router.get('/:courseId/prerequisites',
+  optionalAuthMiddleware,
+  prerequisiteController.getPrerequisites
+);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/prerequisites:
+ *   post:
+ *     summary: Create prerequisite for a course (instructor/admin only)
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - prerequisite_course_id
+ *             properties:
+ *               prerequisite_course_id:
+ *                 type: string
+ *               is_required:
+ *                 type: boolean
+ *                 default: true
+ *               order_index:
+ *                 type: integer
+ *                 default: 0
+ *     responses:
+ *       201:
+ *         description: Prerequisite created successfully
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Course not found
+ */
+router.post('/:courseId/prerequisites',
+  authMiddleware,
+  authorizeRoles(['instructor', 'admin', 'super_admin']),
+  prerequisiteController.createPrerequisite
+);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/prerequisites/bulk:
+ *   post:
+ *     summary: Bulk create prerequisites (instructor/admin only)
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - prerequisites
+ *             properties:
+ *               prerequisites:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - prerequisite_course_id
+ *                   properties:
+ *                     prerequisite_course_id:
+ *                       type: string
+ *                     is_required:
+ *                       type: boolean
+ *                     order_index:
+ *                       type: integer
+ *     responses:
+ *       201:
+ *         description: Prerequisites created successfully
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden
+ */
+router.post('/:courseId/prerequisites/bulk',
+  authMiddleware,
+  authorizeRoles(['instructor', 'admin', 'super_admin']),
+  prerequisiteController.bulkCreatePrerequisites
+);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/prerequisites/{prerequisiteId}:
+ *   delete:
+ *     summary: Delete prerequisite (instructor/admin only)
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *       - in: path
+ *         name: prerequisiteId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Prerequisite ID
+ *     responses:
+ *       200:
+ *         description: Prerequisite deleted successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Prerequisite not found
+ */
+router.delete('/:courseId/prerequisites/:prerequisiteId',
+  authMiddleware,
+  authorizeRoles(['instructor', 'admin', 'super_admin']),
+  prerequisiteController.deletePrerequisite
 );
 
 export { router as courseRoutes };

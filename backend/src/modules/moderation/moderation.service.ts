@@ -84,6 +84,16 @@ export class ModerationService {
   /**
    * Check if message contains blocked keywords
    */
+  /**
+   * Remove Vietnamese accents for better keyword matching
+   */
+  private removeAccents(text: string): string {
+    return text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
   private checkBlockedKeywords(
     message: string,
     blockedKeywords: string[]
@@ -93,10 +103,15 @@ export class ModerationService {
     }
 
     const lowerMessage = message.toLowerCase();
+    const normalizedMessage = this.removeAccents(message);
     const foundKeywords: string[] = [];
 
     for (const keyword of blockedKeywords) {
-      if (lowerMessage.includes(keyword.toLowerCase())) {
+      const lowerKeyword = keyword.toLowerCase();
+      const normalizedKeyword = this.removeAccents(keyword);
+      
+      // Check both original and normalized versions to catch variants with/without accents
+      if (lowerMessage.includes(lowerKeyword) || normalizedMessage.includes(normalizedKeyword)) {
         foundKeywords.push(keyword);
       }
     }
@@ -130,22 +145,43 @@ export class ModerationService {
 
 Nhiệm vụ của bạn là phân tích nội dung và đánh giá mức độ rủi ro (0.0 - 1.0) và phân loại các vấn đề.
 
+QUAN TRỌNG - PHÁT HIỆN TỪ NGỮ THÔ TỤC VÀ NỘI DUNG KHÔNG PHÙ HỢP:
+Bạn PHẢI phát hiện CẢ các biến thể, viết tắt, và cách né tránh của từ ngữ thô tục:
+- Viết tắt: "clmm", "cac", "lon", "dit", "deo", "cak" = các từ thô tục
+- Biến thể không dấu: "lon" = "lồn", "cac" = "cặc", "deo" = "đéo", "dit" = "địt", "dam" = "dâm"
+- Thay thế ký tự: "đéo" = "deo", "cặc" = "cac" hoặc "cak"
+- Kết hợp: "cac lon", "clmm", "dâm vậy", "damquaem", "dam qua em" = các từ thô tục kết hợp
+- Từ liên quan đến tình dục: "dâm", "dam", "damquaem", "dam qua em", "dâm dục", "sex", "xxx" = nội dung không phù hợp
+
 Các loại rủi ro cần phát hiện:
 - toxicity: Nội dung độc hại, xúc phạm, kỳ thị
 - spam: Spam, quảng cáo không mong muốn
-- profanity: Từ ngữ thô tục, không phù hợp
+- profanity: Từ ngữ thô tục, không phù hợp (bao gồm cả viết tắt và biến thể)
 - harassment: Quấy rối, đe dọa
 - illegal: Nội dung vi phạm pháp luật
-- inappropriate: Nội dung không phù hợp với môi trường giáo dục
+- inappropriate: Nội dung không phù hợp với môi trường giáo dục (QUAN TRỌNG: bao gồm nội dung tình dục, khiêu dâm)
 - self_harm: Nội dung tự hại
 - violence: Bạo lực
 
-Hãy trả lời theo định dạng JSON:
+QUY TẮC PHÁT HIỆN NGHIÊM NGẶT:
+- Nếu phát hiện bất kỳ từ ngữ thô tục, viết tắt, biến thể, hoặc nội dung tình dục → shouldBlock = true, approved = false
+- Risk score >= 0.8 nếu có từ ngữ thô tục rõ ràng hoặc nội dung tình dục
+- Risk score >= 0.6 nếu có nghi ngờ nhưng không chắc chắn
+- Risk score >= 0.4 nếu có dấu hiệu không phù hợp với môi trường giáo dục
+
+VÍ DỤ CẦN CHẶN:
+- "dâm vậy" → inappropriate, profanity, riskScore >= 0.8, shouldBlock = true
+- "damquaem" → inappropriate, profanity, riskScore >= 0.8, shouldBlock = true
+- "dam qua em" → inappropriate, profanity, riskScore >= 0.8, shouldBlock = true
+- "clmm" → profanity, riskScore >= 0.8, shouldBlock = true
+- "cac lon" → profanity, riskScore >= 0.9, shouldBlock = true
+
+Hãy trả lời CHỈ JSON, không có text khác:
 {
   "riskScore": 0.0-1.0,
   "riskCategories": ["category1", "category2"],
   "approved": true/false,
-  "reason": "Lý do",
+  "reason": "Lý do cụ thể",
   "shouldBlock": true/false,
   "shouldWarn": true/false
 }
@@ -154,16 +190,20 @@ Nội dung cần kiểm duyệt (${contentType}):`;
 
       // Use generateContent directly instead of chat to avoid systemInstruction issues
       // For moderation, we don't need conversation history
-      const fullPrompt = `${systemPrompt}\n\n"${content}"\n\nHãy phân tích và trả lời JSON:`;
+      const fullPrompt = `${systemPrompt}\n\n"${content}"\n\nHãy phân tích kỹ lưỡng và trả lời CHỈ JSON, không có text khác:`;
+      
+      logger.debug(`[ModerationService] Calling AI with prompt length: ${fullPrompt.length}`);
       
       // Call AI directly using generateContent (not chat)
       const response = await this.aiService.generateContent({
         prompt: fullPrompt,
         options: {
-          temperature: 0.1,
+          temperature: 0.1, // Low temperature for consistent moderation
           maxTokens: 500,
         },
       });
+
+      logger.debug(`[ModerationService] AI response received: ${response.response?.substring(0, 200)}...`);
 
       // Parse JSON response
       let moderationResult: ModerationResult;
@@ -178,15 +218,40 @@ Nội dung cần kiểm duyệt (${contentType}):`;
         }
 
         // Validate and normalize result
+        // Nếu riskScore cao (>0.6) hoặc có profanity/toxicity/inappropriate category → nên block
+        const riskScore = Math.max(0, Math.min(1, moderationResult.riskScore || 0));
+        const hasHighRisk = riskScore >= 0.6;
+        const hasProfanity = Array.isArray(moderationResult.riskCategories) && 
+          moderationResult.riskCategories.some(cat => {
+            const lowerCat = cat.toLowerCase();
+            return lowerCat.includes('profanity') || 
+                   lowerCat.includes('toxicity') ||
+                   lowerCat.includes('inappropriate') ||
+                   lowerCat.includes('harassment');
+          });
+        
+        // Log parsed result for debugging
+        logger.debug(`[ModerationService] AI parsed result:`, {
+          originalApproved: moderationResult.approved,
+          originalShouldBlock: moderationResult.shouldBlock,
+          riskScore,
+          riskCategories: moderationResult.riskCategories,
+          hasHighRisk,
+          hasProfanity,
+        });
+        
+        const baseShouldBlock = moderationResult.shouldBlock === true;
+        const finalShouldBlock = baseShouldBlock || hasHighRisk || hasProfanity;
+
         moderationResult = {
-          approved: moderationResult.approved !== false,
-          riskScore: Math.max(0, Math.min(1, moderationResult.riskScore || 0)),
+          approved: moderationResult.approved !== false && !finalShouldBlock,
+          riskScore,
           riskCategories: Array.isArray(moderationResult.riskCategories)
             ? moderationResult.riskCategories
             : [],
           reason: moderationResult.reason || undefined,
-          shouldBlock: moderationResult.shouldBlock === true,
-          shouldWarn: moderationResult.shouldWarn === true,
+          shouldBlock: finalShouldBlock,
+          shouldWarn: moderationResult.shouldWarn === true || riskScore >= 0.4,
         };
       } catch (parseError) {
         logger.error('[ModerationService] Failed to parse AI response:', parseError);
@@ -413,6 +478,137 @@ Nội dung cần kiểm duyệt (${contentType}):`;
       riskCategories: [],
       shouldBlock: false,
       shouldWarn: false,
+    };
+  }
+
+  /**
+   * Moderate course review content
+   * Similar to comment moderation but without session-specific policy
+   */
+  async moderateReview(
+    comment: string,
+    userId: string
+  ): Promise<ModerationResult> {
+    if (!comment || comment.trim().length === 0) {
+      return {
+        approved: true,
+        riskScore: 0,
+        riskCategories: [],
+        shouldBlock: false,
+        shouldWarn: false,
+      };
+    }
+
+    // Default blocked keywords for reviews (bao gồm cả biến thể không dấu)
+    const defaultBlockedKeywords = [
+      // Từ ngữ thô tục - có dấu và không dấu
+      'ngu', 'đồ ngu', 'mày ngu', 'con ngu',
+      'đồ chó', 'con chó', 'mẹ mày',
+      'địt', 'dit', 'djt', // Biến thể của "địt"
+      'đụ', 'dụ', // Biến thể của "đụ"
+      'đéo', 'déo', // Biến thể của "đéo"
+      'cặc', 'cac', 'cak', // Biến thể của "cặc"
+      'lồn', 'lon', // Biến thể của "lồn"
+      'clmm', 'clm', // Viết tắt của từ thô tục
+      'dâm', 'dam', // Từ liên quan đến tình dục
+      'damquaem', 'dam qua em', // Biến thể của từ thô tục
+      'scam', 'lừa đảo', 'fake', 'giả',
+      // Thêm các từ tiếng Anh phổ biến
+      'fuck', 'shit', 'damn', 'bitch',
+    ];
+
+    // Check message length (max 2000 characters for reviews)
+    const maxLength = 2000;
+    if (comment.length > maxLength) {
+      return {
+        approved: false,
+        riskScore: 0.3,
+        riskCategories: ['length_exceeded'],
+        shouldBlock: true,
+        shouldWarn: true,
+        reason: `Đánh giá quá dài (tối đa ${maxLength} ký tự)`,
+      };
+    }
+
+    // AI moderation (PRIORITY 1 - highest) - ưu tiên AI vì phát hiện tốt hơn
+    let aiResult: ModerationResult | null = null;
+    if (this.aiService.isAvailable()) {
+      try {
+        logger.info(`[ModerationService] Starting AI moderation for review comment: "${comment.substring(0, 50)}..."`);
+        aiResult = await this.moderateWithAI(comment, 'comment');
+        logger.info(`[ModerationService] AI moderation completed for review`, {
+          approved: aiResult.approved,
+          riskScore: aiResult.riskScore,
+          riskCategories: aiResult.riskCategories,
+          shouldBlock: aiResult.shouldBlock,
+          reason: aiResult.reason,
+        });
+      } catch (error) {
+        // If AI fails, fallback to keyword filtering
+        logger.error(`[ModerationService] AI moderation failed for review, falling back to keyword filtering:`, error);
+        aiResult = null;
+      }
+    } else {
+      logger.warn(`[ModerationService] AI service not available for review moderation - using keyword filtering only`);
+    }
+
+    // If AI detected issues and should block, use AI result (PRIORITY 1)
+    if (aiResult && (!aiResult.approved || aiResult.shouldBlock)) {
+      logger.warn(`[ModerationService] Review blocked by AI moderation`, {
+        riskScore: aiResult.riskScore,
+        riskCategories: aiResult.riskCategories,
+        reason: aiResult.reason,
+      });
+      return aiResult;
+    }
+
+    // Keyword check (PRIORITY 2 - fallback/bổ sung cho AI)
+    // Chỉ check keyword nếu AI không available hoặc AI approved nhưng có thể bổ sung
+    const keywordCheck = this.checkBlockedKeywords(comment, defaultBlockedKeywords);
+    
+    // Nếu AI không available, dùng keyword check
+    if (!aiResult && keywordCheck.found) {
+      logger.warn(`[ModerationService] Review blocked by keyword filter (AI not available): ${keywordCheck.keywords.join(', ')}`);
+      return {
+        approved: false,
+        riskScore: 0.8,
+        riskCategories: ['blocked_keywords'],
+        shouldBlock: true,
+        shouldWarn: true,
+        reason: `Đánh giá chứa từ khóa không phù hợp: ${keywordCheck.keywords.join(', ')}`,
+      };
+    }
+
+    // Nếu AI approved nhưng keyword check cũng tìm thấy vấn đề, kết hợp kết quả
+    if (aiResult && aiResult.approved && keywordCheck.found) {
+      // AI approved nhưng keyword check tìm thấy vấn đề - nâng risk score
+      logger.warn(`[ModerationService] Review approved by AI but contains blocked keywords: ${keywordCheck.keywords.join(', ')}`);
+      return {
+        approved: false, // Block vì keyword check tìm thấy vấn đề
+        riskScore: Math.max(aiResult.riskScore, 0.8), // Lấy risk score cao hơn
+        riskCategories: [...aiResult.riskCategories, 'blocked_keywords'],
+        shouldBlock: true,
+        shouldWarn: true,
+        reason: `Đánh giá chứa từ khóa không phù hợp: ${keywordCheck.keywords.join(', ')}`,
+      };
+    }
+
+    // If AI approved and no keyword issues, approve
+    // But still log if AI detected potential issues (shouldWarn)
+    if (aiResult && aiResult.shouldWarn) {
+      logger.info(`[ModerationService] Review approved with AI warning`, {
+        riskScore: aiResult.riskScore,
+        riskCategories: aiResult.riskCategories,
+      });
+    }
+
+    return {
+      approved: true,
+      riskScore: aiResult?.riskScore || 0,
+      riskCategories: aiResult?.riskCategories || [],
+      shouldBlock: false,
+      shouldWarn: aiResult?.shouldWarn || false,
+      reason: aiResult?.reason,
     };
   }
 

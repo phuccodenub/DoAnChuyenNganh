@@ -13,9 +13,16 @@ const Assignment = sequelize.define('Assignment', {
   },
   course_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
     references: { model: 'courses', key: 'id' },
     onDelete: 'CASCADE'
+  },
+  section_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'sections', key: 'id' },
+    onDelete: 'CASCADE',
+    comment: 'Nếu có → assignment gắn với section cụ thể; null → assignment cấp course'
   },
   title: {
     type: DataTypes.STRING(255),
@@ -38,6 +45,11 @@ const Assignment = sequelize.define('Assignment', {
   is_published: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  is_practice: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: 'true = Practice Assignment (không tính điểm), false = Graded Assignment (tính điểm)'
   }
 }, {
   tableName: 'assignments',
@@ -45,6 +57,7 @@ const Assignment = sequelize.define('Assignment', {
   underscored: true,
   indexes: [
     { fields: ['course_id'] },
+    { fields: ['section_id'] },
     { fields: ['due_date'] }
   ]
 });

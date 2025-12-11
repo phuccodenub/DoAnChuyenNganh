@@ -32,6 +32,8 @@ interface ChatLayoutProps {
     isLoadingMore?: boolean;
     // For mobile: pre-select a conversation (e.g., from course page)
     initialConversationId?: string;
+    /** Callback to mark conversation as read when user views messages */
+    onMarkAsRead?: () => void;
 }
 
 export function ChatLayout({
@@ -50,6 +52,7 @@ export function ChatLayout({
     isParticipantOnline,
     onLoadMore,
     isLoadingMore = false,
+    onMarkAsRead,
 }: ChatLayoutProps) {
     const [filter, setFilter] = useState<'all' | 'unread'>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -96,6 +99,9 @@ export function ChatLayout({
                     onFilterChange={setFilter}
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
+                    onlineStatusMap={selectedConversationId && isParticipantOnline !== undefined
+                        ? { [selectedConversationId]: isParticipantOnline }
+                        : undefined}
                 />
             </div>
 
@@ -133,6 +139,9 @@ export function ChatLayout({
                             onFilterChange={setFilter}
                             searchQuery={searchQuery}
                             onSearchChange={setSearchQuery}
+                            onlineStatusMap={selectedConversationId && isParticipantOnline !== undefined
+                                ? { [selectedConversationId]: isParticipantOnline }
+                                : undefined}
                         />
                     </div>
                 </div>
@@ -165,6 +174,7 @@ export function ChatLayout({
                         isParticipantOnline={isParticipantOnline}
                         onLoadMore={onLoadMore}
                         isLoadingMore={isLoadingMore}
+                        onMarkAsRead={onMarkAsRead}
                     />
                 </div>
             </div>

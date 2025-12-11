@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, PlayCircle, FileText, Monitor, BookOpen, HelpCircle, ClipboardList } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, PlayCircle, FileText, Monitor, BookOpen, HelpCircle, ClipboardList, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/Badge';
 import type { Section, Lesson } from '@/services/api/lesson.api';
 
 interface CurriculumTreeProps {
@@ -21,7 +22,7 @@ const getLessonIcon = (contentType: string) => {
     case 'text':
       return <FileText className="w-4 h-4 text-gray-500" />;
     case 'quiz':
-      return <HelpCircle className="w-4 h-4 text-gray-500" />;
+      return <ClipboardList className="w-4 h-4 text-gray-500" />; // Đổi từ HelpCircle sang ClipboardList để nhất quán
     case 'assignment':
       return <ClipboardList className="w-4 h-4 text-gray-500" />;
     default:
@@ -44,9 +45,39 @@ export function CurriculumTree({
   onLessonClick,
   isPreviewMode = true
 }: CurriculumTreeProps) {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(() =>
-    new Set(sections.length > 0 ? [sections[0].id] : []) // Mở section đầu tiên mặc định
-  );
+  // Tìm section chứa activeLessonId để mở rộng mặc định
+  const findSectionContainingLesson = (lessonId: string | null | undefined): string | null => {
+    if (!lessonId) return null;
+    for (const section of sections) {
+      if (section.lessons?.some(lesson => lesson.id === lessonId)) {
+        return section.id;
+      }
+    }
+    return null;
+  };
+
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
+    // Ưu tiên mở section chứa activeLessonId, nếu không có thì mở section đầu tiên
+    const activeSectionId = findSectionContainingLesson(activeLessonId);
+    if (activeSectionId) {
+      return new Set([activeSectionId]);
+    }
+    return new Set(sections.length > 0 ? [sections[0].id] : []);
+  });
+
+  // Tự động mở rộng section chứa activeLessonId khi activeLessonId thay đổi
+  useEffect(() => {
+    if (activeLessonId) {
+      const activeSectionId = findSectionContainingLesson(activeLessonId);
+      if (activeSectionId) {
+        setExpandedSections(prev => {
+          const next = new Set(prev);
+          next.add(activeSectionId); // Thêm section chứa active lesson vào expanded
+          return next;
+        });
+      }
+    }
+  }, [activeLessonId, sections]);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => {
@@ -73,7 +104,10 @@ export function CurriculumTree({
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-200">
       {sections.map((section) => {
         const isExpanded = expandedSections.has(section.id);
-        const sectionLessons = section.lessons || [];
+        // Sort lessons theo order_index để đảm bảo thứ tự đúng
+        const sectionLessons = (section.lessons || []).sort((a, b) => 
+          (a.order_index || 0) - (b.order_index || 0)
+        );
         const lessonCount = sectionLessons.length;
 
         return (
@@ -136,11 +170,28 @@ export function CurriculumTree({
                         {lesson.title}
                       </span>
 
+                      {/* Practice/Graded badge for quiz/assignment */}
+                      {(lesson.content_type === 'quiz' || lesson.content_type === 'assignment') && 
+                       lesson.is_practice !== undefined && (
+                        <Badge 
+                          variant={lesson.is_practice ? "warning" : "success"} 
+                          size="sm"
+                          className="mr-1"
+                        >
+                          {lesson.is_practice ? 'Luyện tập' : 'Tính điểm'}
+                        </Badge>
+                      )}
+
                       {/* Preview badge (optional) - use is_free_preview from backend */}
                       {lesson.is_free_preview && isPreviewMode && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
                           Xem trước
                         </span>
+                      )}
+
+                      {/* Completion checkmark - hiển thị tích xanh nếu đã hoàn thành */}
+                      {lesson.is_completed && (
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                       )}
                     </button>
                   );

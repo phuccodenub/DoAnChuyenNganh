@@ -167,6 +167,12 @@ export class ConversationController {
 
     await conversationService.markAsRead(conversationId, userId);
 
+    // Emit socket event to notify other participant that messages were read
+    const gateway = getConversationGateway();
+    if (gateway) {
+      gateway.emitConversationRead(conversationId, userId);
+    }
+
     res.json({
       success: true,
       message: 'Messages marked as read',

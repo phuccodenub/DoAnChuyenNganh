@@ -22,6 +22,9 @@ import LivestreamPolicy from './livestream-policy.model';
 import CommentModeration from './comment-moderation.model';
 import Conversation from './conversation.model';
 import DirectMessage from './direct-message.model';
+import Certificate from './certificate.model';
+import Review from './review.model';
+import CoursePrerequisite from './course-prerequisite.model';
 
 export const setupAssociations = () => {
   // ===================================
@@ -451,6 +454,96 @@ export const setupAssociations = () => {
   (DirectMessage as any).belongsTo(User, {
     foreignKey: 'sender_id',
     as: 'sender'
+  });
+
+  // ===================================
+  // 10. CERTIFICATE RELATIONSHIPS
+  // ===================================
+
+  // User 1 ---< Certificate
+  (User as any).hasMany(Certificate, {
+    foreignKey: 'user_id',
+    as: 'certificates',
+    onDelete: 'CASCADE'
+  });
+  (Certificate as any).belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user'
+  });
+
+  // Course 1 ---< Certificate
+  (Course as any).hasMany(Certificate, {
+    foreignKey: 'course_id',
+    as: 'certificates',
+    onDelete: 'CASCADE'
+  });
+  (Certificate as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course'
+  });
+
+  // Enrollment 1 ---< Certificate (optional)
+  (Enrollment as any).hasMany(Certificate, {
+    foreignKey: 'enrollment_id',
+    as: 'certificates',
+    onDelete: 'SET NULL'
+  });
+  (Certificate as any).belongsTo(Enrollment, {
+    foreignKey: 'enrollment_id',
+    as: 'enrollment'
+  });
+
+  // ===================================
+  // 11. REVIEW RELATIONSHIPS
+  // ===================================
+
+  // User 1 ---< Review
+  (User as any).hasMany(Review, {
+    foreignKey: 'user_id',
+    as: 'reviews',
+    onDelete: 'CASCADE'
+  });
+  (Review as any).belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user'
+  });
+
+  // Course 1 ---< Review
+  (Course as any).hasMany(Review, {
+    foreignKey: 'course_id',
+    as: 'reviews',
+    onDelete: 'CASCADE'
+  });
+  (Review as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course'
+  });
+
+  // ===================================
+  // COURSE PREREQUISITES RELATIONSHIPS
+  // ===================================
+
+  // Course 1 ---< CoursePrerequisite (prerequisites của course này)
+  // Dùng alias khác để tránh đụng name attribute "prerequisites" trên Course
+  (Course as any).hasMany(CoursePrerequisite, {
+    foreignKey: 'course_id',
+    as: 'prerequisiteLinks', // changed from 'prerequisites' to avoid collision with column
+    onDelete: 'CASCADE'
+  });
+  (CoursePrerequisite as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course'
+  });
+
+  // Course 1 ---< CoursePrerequisite (course này là prerequisite của course khác)
+  (Course as any).hasMany(CoursePrerequisite, {
+    foreignKey: 'prerequisite_course_id',
+    as: 'prerequisiteForCourses', // renamed from requiredByCourses for clarity
+    onDelete: 'CASCADE'
+  });
+  (CoursePrerequisite as any).belongsTo(Course, {
+    foreignKey: 'prerequisite_course_id',
+    as: 'prerequisiteCourse'
   });
 
   console.log('✅ Model associations setup completed');

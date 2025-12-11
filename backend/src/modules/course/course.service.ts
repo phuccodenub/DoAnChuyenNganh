@@ -19,7 +19,7 @@ export class CourseService {
    * Normalize course data for frontend compatibility
    * Maps backend field names to frontend expected names
    */
-  private normalizeCourseForFrontend(course: CourseInstance | any): any {
+  private async normalizeCourseForFrontend(course: CourseInstance | any, userId?: string): Promise<any> {
     if (!course) return null;
     
     const courseData = course.toJSON ? course.toJSON() : { ...course };
@@ -27,6 +27,70 @@ export class CourseService {
     // Map thumbnail to thumbnail_url for frontend compatibility
     if (courseData.thumbnail && !courseData.thumbnail_url) {
       courseData.thumbnail_url = courseData.thumbnail;
+    }
+    
+    // Normalize instructor full_name from first_name and last_name
+    if (courseData.instructor) {
+      if (!courseData.instructor.full_name && (courseData.instructor.first_name || courseData.instructor.last_name)) {
+        courseData.instructor.full_name = [
+          courseData.instructor.first_name,
+          courseData.instructor.last_name
+        ].filter(Boolean).join(' ');
+      }
+    }
+    
+    // Calculate total_students from enrollments
+    if (courseData.enrollments && Array.isArray(courseData.enrollments)) {
+      // Count only active enrollments (not cancelled or suspended)
+      courseData.total_students = courseData.enrollments.filter((enrollment: any) => 
+        enrollment.status !== 'cancelled' && enrollment.status !== 'suspended'
+      ).length;
+      // Remove enrollments array from response (we only need the count)
+      delete courseData.enrollments;
+    } else {
+      // Always refresh enrollment count to avoid stale cached total_students
+      try {
+        const { Op } = await import('sequelize');
+        const EnrollmentModel = Enrollment as unknown as any;
+        const count = await EnrollmentModel.count({
+          where: {
+            course_id: courseData.id,
+            status: { [Op.notIn]: ['cancelled', 'suspended'] }
+          }
+        });
+        courseData.total_students = count;
+      } catch (error) {
+        logger.error('Error counting enrollments:', error);
+        // keep existing value if any, otherwise fallback to 0
+        courseData.total_students = courseData.total_students ?? 0;
+      }
+    }
+    
+    // Check enrollment status if userId is provided
+    if (userId) {
+      try {
+        const enrollment = await this.courseRepository.findEnrollment(courseData.id, userId);
+        courseData.is_enrolled = !!enrollment && enrollment.status !== 'cancelled' && enrollment.status !== 'suspended';
+      } catch (error) {
+        logger.error('Error checking enrollment status:', error);
+        courseData.is_enrolled = false;
+      }
+    } else {
+      courseData.is_enrolled = false;
+    }
+    
+    // Normalize sections if they exist
+    if (courseData.sections && Array.isArray(courseData.sections)) {
+      courseData.sections = courseData.sections.map((section: any) => {
+        const sectionData = section.toJSON ? section.toJSON() : section;
+        // Ensure lessons array is properly formatted
+        if (sectionData.lessons && Array.isArray(sectionData.lessons)) {
+          sectionData.lessons = sectionData.lessons.map((lesson: any) => {
+            return lesson.toJSON ? lesson.toJSON() : lesson;
+          });
+        }
+        return sectionData;
+      });
     }
     
     return courseData;
@@ -97,23 +161,174 @@ export class CourseService {
 
   /**
    * Get course by ID
+   * @param id Course ID
+   * @param userId Optional user ID for access control
    */
-  async getCourseById(id: string): Promise<any> {
+  async getCourseById(id: string, userId?: string): Promise<any> {
     try {
-      logger.info('Getting course by ID', { courseId: id });
+      logger.info('Getting course by ID', { courseId: id, userId });
 
-      const course = await this.courseRepository.findById(id);
+      // Include sections and lessons for public view
+      const { Section, Lesson } = await import('../../models');
+      const course = await this.courseRepository.findById(id, {
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
+          },
+          {
+            model: Section,
+            as: 'sections',
+            attributes: ['id', 'title', 'description', 'order_index', 'is_published', 'course_id', 'created_at', 'updated_at'],
+            include: [
+              {
+                model: Lesson,
+                as: 'lessons',
+                attributes: ['id', 'title', 'description', 'order_index', 'section_id', 'content_type', 'duration_minutes', 'is_published', 'is_free_preview', 'created_at', 'updated_at'],
+                order: [['order_index', 'ASC']]
+              }
+            ],
+            order: [['order_index', 'ASC']]
+          }
+        ]
+      });
       
-      if (course) {
-        logger.info('Course retrieved successfully', { courseId: id });
-        // Normalize for frontend compatibility
-        return this.normalizeCourseForFrontend(course);
-      } else {
+      if (!course) {
         logger.warn('Course not found', { courseId: id });
         return null;
       }
+
+      // Check course status for access control
+      const courseStatus = (course as any).status;
+      logger.info('Course status check', { courseId: id, status: courseStatus, userId });
+
+      // If course is published, anyone can access
+      if (courseStatus === 'published') {
+        logger.info('Course is published, access granted', { courseId: id });
+        return await this.normalizeCourseForFrontend(course, userId);
+      }
+
+      // If course is draft, ONLY the instructor (owner) can access
+      // Draft courses should NOT be accessible via public route /courses/:id
+      // They should only be accessible via instructor management route
+      if (courseStatus === 'draft') {
+        // Check if user is the instructor (owner) of this course
+        const instructorId = (course as any).instructor_id;
+        
+        // Only the instructor can access draft courses
+        if (!userId || userId !== instructorId) {
+          // Return 404 instead of 403 to hide the existence of draft courses
+          // This prevents information disclosure - users shouldn't know draft courses exist
+          logger.warn('Draft course access denied - returning 404', { 
+            courseId: id, 
+            userId, 
+            status: courseStatus,
+            instructorId,
+            isInstructor: userId === instructorId
+          });
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Course not found');
+        }
+
+        // User is the instructor, grant access
+        logger.info('User is instructor (owner) of draft course, access granted', { courseId: id, userId });
+        return await this.normalizeCourseForFrontend(course, userId);
+      }
+
+      // If course is archived, check access (instructor, enrolled users, or admin)
+      if (courseStatus === 'archived') {
+        // If no userId provided, deny access
+        if (!userId) {
+          logger.warn('Course is archived and user is not authenticated', { 
+            courseId: id, 
+            status: courseStatus 
+          });
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'This course is not available to the public');
+        }
+
+        // Check if user is the instructor
+        const instructorId = (course as any).instructor_id;
+        if (userId === instructorId) {
+          logger.info('User is instructor, access granted', { courseId: id, userId });
+          return await this.normalizeCourseForFrontend(course, userId);
+        }
+
+        // Check if user is enrolled in the course (archived courses can be viewed by enrolled users)
+        const enrollment = await this.courseRepository.findEnrollment(id, userId);
+        if (enrollment && enrollment.status !== 'cancelled' && enrollment.status !== 'suspended') {
+          logger.info('User is enrolled, access granted', { courseId: id, userId, enrollmentStatus: enrollment.status });
+          return await this.normalizeCourseForFrontend(course, userId);
+        }
+
+        // Check if user is admin or super_admin
+        const user = await this.courseRepository.findUserById(userId);
+        if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+          logger.info('User is admin, access granted', { courseId: id, userId, role: user.role });
+          return await this.normalizeCourseForFrontend(course, userId);
+        }
+
+        // Deny access
+        logger.warn('Access denied to archived course', { 
+          courseId: id, 
+          userId, 
+          status: courseStatus,
+          isInstructor: userId === instructorId,
+          hasEnrollment: !!enrollment
+        });
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'This course is not available to the public');
+      }
+
+      // For other statuses (e.g., 'suspended'), deny access unless instructor/admin
+      if (courseStatus === 'suspended') {
+        if (!userId) {
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'This course is not available');
+        }
+        const instructorId = (course as any).instructor_id;
+        const user = await this.courseRepository.findUserById(userId);
+        if (userId !== instructorId && user?.role !== 'admin' && user?.role !== 'super_admin') {
+          throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'This course is not available');
+        }
+      }
+
+      logger.info('Course retrieved successfully', { courseId: id });
+      return await this.normalizeCourseForFrontend(course, userId);
     } catch (error: unknown) {
       logger.error('Error getting course by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get course detail for management (owner/admin only)
+   */
+  async getCourseForManagement(id: string, userId: string, userRole?: string): Promise<any> {
+    try {
+      logger.info('Getting course for management', { courseId: id, userId, userRole });
+
+      const course = await this.courseRepository.findById(id, {
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar']
+          },
+        ]
+      });
+
+      if (!course) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Course not found');
+      }
+
+      const isOwner = (course as any).instructor_id === userId;
+      const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+
+      if (!isOwner && !isAdmin) {
+        throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.FORBIDDEN, 'Not authorized to manage this course');
+      }
+
+      return await this.normalizeCourseForFrontend(course, userId);
+    } catch (error: unknown) {
+      logger.error('Error getting course for management:', error);
       throw error;
     }
   }
@@ -141,6 +356,21 @@ export class CourseService {
 
       // Map frontend field names to backend model field names
       const mappedData: Record<string, unknown> = { ...updateData };
+      
+      // Handle category_id - only accept valid UUID, otherwise set to null and store in metadata
+      if ('category_id' in mappedData && mappedData.category_id) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(mappedData.category_id as string)) {
+          // Store category name in metadata if provided as string
+          const existingCourseData = existingCourse.toJSON ? existingCourse.toJSON() : existingCourse;
+          const existingMetadata = (existingCourseData as any).metadata || {};
+          mappedData.metadata = {
+            ...existingMetadata,
+            category_name: mappedData.category_id
+          };
+          mappedData.category_id = null;
+        }
+      }
       
       // Map thumbnail_url to thumbnail (backend model uses 'thumbnail')
       if ('thumbnail_url' in mappedData) {
@@ -230,7 +460,7 @@ export class CourseService {
   /**
    * Enroll in course
    */
-  async enrollInCourse(courseId: string, userId: string): Promise<EnrollmentInstance> {
+  async enrollInCourse(courseId: string, userId: string, userRole?: string): Promise<EnrollmentInstance> {
     try {
       logger.info('Enrolling in course', { courseId, userId });
 
@@ -244,6 +474,26 @@ export class CourseService {
       const existingEnrollment = await this.courseRepository.findEnrollment(courseId, userId);
       if (existingEnrollment) {
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.CONFLICT, 'User is already enrolled in this course');
+      }
+
+      // Check prerequisites (skip for admin/super_admin and course instructor)
+      const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+      const isInstructor = (course as any).instructor_id === userId;
+      
+      if (!isAdmin && !isInstructor) {
+        const { PrerequisiteService } = await import('./prerequisite.service');
+        const prerequisiteService = new PrerequisiteService();
+        const prerequisitesCheck = await prerequisiteService.checkPrerequisitesForEnrollment(courseId, userId);
+        
+        if (!prerequisitesCheck.satisfied) {
+          const missingTitles = prerequisitesCheck.missingPrerequisites.map(p => p.title).join(', ');
+          const error = new ApiError(
+            RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST,
+            `Bạn cần hoàn thành các khóa học sau trước khi đăng ký: ${missingTitles}`
+          );
+          (error as any).missingPrerequisites = prerequisitesCheck.missingPrerequisites;
+          throw error;
+        }
       }
 
       // Create enrollment

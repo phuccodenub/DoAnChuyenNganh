@@ -19,7 +19,15 @@ export class ReviewController {
    */
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = (req as any).user?.userId as string;
+      if (!userId) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED).json({
+          success: false,
+          message: 'User ID not found in token',
+          data: null
+        });
+        return;
+      }
       const review = await this.reviewService.createReview(userId, req.body);
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.CREATED).json({
@@ -82,7 +90,15 @@ export class ReviewController {
    */
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = (req as any).user?.userId as string;
+      if (!userId) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED).json({
+          success: false,
+          message: 'User ID not found in token',
+          data: null
+        });
+        return;
+      }
       const { reviewId } = req.params;
       
       const review = await this.reviewService.updateReview(reviewId, userId, req.body);
@@ -103,7 +119,15 @@ export class ReviewController {
    */
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = (req as any).user?.userId as string;
+      if (!userId) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED).json({
+          success: false,
+          message: 'User ID not found in token',
+          data: null
+        });
+        return;
+      }
       const userRole = (req as any).user?.role as string;
       const { reviewId } = req.params;
       
@@ -126,7 +150,15 @@ export class ReviewController {
    */
   addReply = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const instructorId = (req as any).user?.id as string;
+      const instructorId = (req as any).user?.userId as string;
+      if (!instructorId) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED).json({
+          success: false,
+          message: 'User ID not found in token',
+          data: null
+        });
+        return;
+      }
       const { reviewId } = req.params;
       const { reply } = req.body;
       
@@ -148,7 +180,15 @@ export class ReviewController {
    */
   getMyReview = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = (req as any).user?.userId as string;
+      if (!userId) {
+        res.status(RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED).json({
+          success: false,
+          message: 'User ID not found in token',
+          data: null
+        });
+        return;
+      }
       const { courseId } = req.params;
       
       const review = await this.reviewService.getUserReview(courseId, userId);

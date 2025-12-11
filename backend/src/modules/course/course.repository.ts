@@ -390,10 +390,27 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
    */
   async findStudentsByCourse(courseId: string, options: CourseTypes.GetCourseStudentsOptions): Promise<CourseTypes.StudentsResponse> {
     try {
-      const { User, Enrollment } = await import('../../models');
+      const { User, Enrollment, Lesson, Section, LessonProgress } = await import('../../models');
       
       const { page, limit } = options;
       const offset = (page - 1) * limit;
+
+      // Get total lessons count from course (real data)
+      const SectionModel = Section as unknown as ModelStatic<any>;
+      const sections = await SectionModel.findAll({
+        where: { course_id: courseId },
+        include: [
+          {
+            model: Lesson,
+            as: 'lessons',
+            attributes: ['id'],
+            required: false
+          }
+        ]
+      });
+      const totalLessons = sections.reduce((sum: number, section: any) => {
+        return sum + (section.lessons?.length || 0);
+      }, 0);
 
       const UserModel = User as unknown as ModelStatic<UserInstance>;
       const { count, rows } = await (UserModel as any).findAndCountAll({
@@ -403,17 +420,81 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
             as: 'enrollments',
             where: { course_id: courseId },
             required: true,
-            attributes: ['id', 'created_at', 'status']
+            attributes: [
+              'id', 
+              'created_at', 
+              'status',
+              'last_accessed_at'
+            ]
           }
         ],
-        attributes: ['id', 'first_name', 'last_name', 'email', 'student_id', 'created_at'],
+        attributes: ['id', 'first_name', 'last_name', 'email', 'student_id', 'avatar', 'created_at'],
         limit,
         offset,
         order: [['created_at', 'DESC']]
       });
 
+      // Get all lesson IDs for this course
+      const lessonIds = sections.flatMap((section: any) => 
+        (section.lessons || []).map((lesson: any) => lesson.id)
+      );
+
+      // Normalize data for frontend with real progress data
+      const normalizedData = await Promise.all(rows.map(async (user: any) => {
+        const userData = user.toJSON ? user.toJSON() : user;
+        const enrollment = userData.enrollments?.[0];
+        const firstName = userData.first_name || '';
+        const lastName = userData.last_name || '';
+        const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Unknown';
+        
+        // Get real progress data from LessonProgress
+        let completedLessons = 0;
+        let progressPercent = 0;
+        let lastActivityAt = enrollment?.last_accessed_at || enrollment?.created_at;
+
+        if (lessonIds.length > 0) {
+          const LessonProgressModel = LessonProgress as unknown as ModelStatic<any>;
+          const progressRecords = await LessonProgressModel.findAll({
+            where: {
+              user_id: userData.id,
+              lesson_id: lessonIds
+            },
+            attributes: ['lesson_id', 'completed', 'last_accessed_at']
+          });
+
+          completedLessons = progressRecords.filter((p: any) => p.completed).length;
+          progressPercent = totalLessons > 0 
+            ? Math.round((completedLessons / totalLessons) * 100 * 100) / 100 // Round to 2 decimal places
+            : 0;
+
+          // Get most recent activity
+          const recentActivity = progressRecords
+            .filter((p: any) => p.last_accessed_at)
+            .sort((a: any, b: any) => 
+              new Date(b.last_accessed_at).getTime() - new Date(a.last_accessed_at).getTime()
+            )[0];
+          
+          if (recentActivity?.last_accessed_at) {
+            lastActivityAt = recentActivity.last_accessed_at;
+          }
+        }
+        
+        return {
+          id: userData.id,
+          name: fullName,
+          email: userData.email,
+          avatar_url: userData.avatar,
+          student_id: userData.student_id,
+          enrolled_at: enrollment?.created_at || userData.created_at,
+          progress_percent: progressPercent,
+          last_activity_at: lastActivityAt,
+          completed_lessons: completedLessons,
+          total_lessons: totalLessons,
+        };
+      }));
+
       return {
-        data: rows,
+        data: normalizedData,
         pagination: {
           page,
           limit,

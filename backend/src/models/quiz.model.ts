@@ -17,9 +17,16 @@ const Quiz = sequelize.define('Quiz', {
   },
   course_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
     references: { model: 'courses', key: 'id' },
     onDelete: 'CASCADE'
+  },
+  section_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'sections', key: 'id' },
+    onDelete: 'CASCADE',
+    comment: 'Nếu có → quiz gắn với section cụ thể; null → quiz cấp course'
   },
   title: {
     type: DataTypes.STRING(255),
@@ -45,6 +52,11 @@ const Quiz = sequelize.define('Quiz', {
   is_published: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  is_practice: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: 'true = Practice Quiz (không tính điểm), false = Graded Quiz (tính điểm)'
   }
 }, {
   tableName: 'quizzes',
@@ -52,6 +64,7 @@ const Quiz = sequelize.define('Quiz', {
   underscored: true,
   indexes: [
     { fields: ['course_id'] },
+    { fields: ['section_id'] },
     { fields: ['available_from'] },
     { fields: ['available_until'] }
   ]

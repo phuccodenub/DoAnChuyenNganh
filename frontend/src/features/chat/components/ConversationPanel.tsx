@@ -6,7 +6,7 @@
  * Supports infinite scroll for loading older messages
  */
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConversationPanelProps, Message } from '../types';
@@ -31,12 +31,45 @@ export function ConversationPanel({
     isParticipantOnline,
     onLoadMore,
     isLoadingMore = false,
+    onMarkAsRead,
 }: ConversationPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const prevMessagesLengthRef = useRef(messages.length);
     const prevConversationIdRef = useRef<string | null>(null);
     const [isNearBottom, setIsNearBottom] = useState(true);
+    const markAsReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastMarkAsReadTimeRef = useRef<number>(0);
+    const isMarkAsReadPendingRef = useRef<boolean>(false);
+    const [isDocumentVisible, setIsDocumentVisible] = useState(!document.hidden);
+    const MARK_AS_READ_DEBOUNCE_MS = 1000; // Minimum 1 second between mark as read calls (reduced for faster response)
+
+    // Track document visibility to only mark as read when user is viewing
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            setIsDocumentVisible(!document.hidden);
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    // Helper function to check if we should mark as read
+    const shouldMarkAsRead = useCallback(() => {
+        // Only mark as read if:
+        // 1. Document is visible (user is viewing the tab)
+        // 2. Not pending
+        // 3. Enough time has passed since last call
+        if (!isDocumentVisible || isMarkAsReadPendingRef.current) {
+            return false;
+        }
+        
+        const now = Date.now();
+        const timeSinceLastCall = now - lastMarkAsReadTimeRef.current;
+        return timeSinceLastCall >= MARK_AS_READ_DEBOUNCE_MS;
+    }, [isDocumentVisible]);
 
     // Scroll to bottom on initial load (when conversation changes)
     useEffect(() => {
@@ -44,11 +77,48 @@ export function ConversationPanel({
             // New conversation opened - scroll to bottom immediately
             setTimeout(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+                // Mark as read when opening conversation and messages are loaded
+                if (onMarkAsRead && messages.length > 0 && shouldMarkAsRead()) {
+                    // Small delay to ensure scroll completed
+                    setTimeout(() => {
+                        if (shouldMarkAsRead()) {
+                            isMarkAsReadPendingRef.current = true;
+                            lastMarkAsReadTimeRef.current = Date.now();
+                            onMarkAsRead();
+                            // Reset pending flag after a delay
+                            setTimeout(() => {
+                                isMarkAsReadPendingRef.current = false;
+                            }, 300); // Reduced from 500ms to 300ms for faster response // Reduced from 1000ms to 500ms for faster response
+                        }
+                    }, 300);
+                }
             }, 100);
             prevConversationIdRef.current = conversation.id;
             prevMessagesLengthRef.current = messages.length;
+            setIsNearBottom(true); // Reset to true when conversation changes
         }
-    }, [conversation?.id, messages.length]);
+    }, [conversation?.id, messages.length, onMarkAsRead]);
+
+    // Mark as read when messages are loaded and user is at bottom
+    useEffect(() => {
+        if (!isLoading && messages.length > 0 && isNearBottom && conversation?.id && onMarkAsRead && shouldMarkAsRead()) {
+            // Debounce to avoid too many calls
+            if (markAsReadTimeoutRef.current) {
+                clearTimeout(markAsReadTimeoutRef.current);
+            }
+            markAsReadTimeoutRef.current = setTimeout(() => {
+                if (shouldMarkAsRead()) {
+                    isMarkAsReadPendingRef.current = true;
+                    lastMarkAsReadTimeRef.current = Date.now();
+                    onMarkAsRead();
+                    // Reset pending flag after a delay
+                    setTimeout(() => {
+                        isMarkAsReadPendingRef.current = false;
+                    }, 1000);
+                }
+            }, 500);
+        }
+    }, [isLoading, messages.length, isNearBottom, conversation?.id, onMarkAsRead, shouldMarkAsRead]);
 
     // Auto scroll to bottom when new messages arrive (only if near bottom)
     useEffect(() => {
@@ -60,9 +130,28 @@ export function ConversationPanel({
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             }, 100);
             
+            // Mark as read when new messages arrive and user is viewing
+            if (onMarkAsRead && messages.length > 0 && shouldMarkAsRead()) {
+                // Debounce mark as read to avoid too many calls
+                if (markAsReadTimeoutRef.current) {
+                    clearTimeout(markAsReadTimeoutRef.current);
+                }
+                markAsReadTimeoutRef.current = setTimeout(() => {
+                    if (shouldMarkAsRead()) {
+                        isMarkAsReadPendingRef.current = true;
+                        lastMarkAsReadTimeRef.current = Date.now();
+                        onMarkAsRead();
+                        // Reset pending flag after a delay
+                        setTimeout(() => {
+                            isMarkAsReadPendingRef.current = false;
+                        }, 1000);
+                    }
+                }, 500);
+            }
+            
             prevMessagesLengthRef.current = messages.length;
         }
-    }, [messages, isNearBottom, conversation?.id]);
+    }, [messages, isNearBottom, conversation?.id, onMarkAsRead]);
 
     // Handle infinite scroll - load older messages when scrolled to top
     useEffect(() => {
@@ -74,7 +163,28 @@ export function ConversationPanel({
             
             // Check if near bottom (for auto-scroll behavior)
             const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-            setIsNearBottom(distanceFromBottom < 100);
+            const wasNearBottom = isNearBottom;
+            const nowNearBottom = distanceFromBottom < 100;
+            setIsNearBottom(nowNearBottom);
+            
+            // Mark as read when user scrolls to bottom
+            if (onMarkAsRead && nowNearBottom && !wasNearBottom && messages.length > 0 && shouldMarkAsRead()) {
+                // Debounce mark as read to avoid too many calls
+                if (markAsReadTimeoutRef.current) {
+                    clearTimeout(markAsReadTimeoutRef.current);
+                }
+                markAsReadTimeoutRef.current = setTimeout(() => {
+                    if (shouldMarkAsRead()) {
+                        isMarkAsReadPendingRef.current = true;
+                        lastMarkAsReadTimeRef.current = Date.now();
+                        onMarkAsRead();
+                        // Reset pending flag after a delay
+                        setTimeout(() => {
+                            isMarkAsReadPendingRef.current = false;
+                        }, 1000);
+                    }
+                }, 500);
+            }
             
             // Load more when scrolled to top
             if (scrollTop < 100 && !isLoadingMore && messages.length > 0) {
@@ -86,8 +196,13 @@ export function ConversationPanel({
         };
 
         container.addEventListener('scroll', handleScroll);
-        return () => container.removeEventListener('scroll', handleScroll);
-    }, [messages, isLoadingMore, onLoadMore]);
+        return () => {
+            container.removeEventListener('scroll', handleScroll);
+            if (markAsReadTimeoutRef.current) {
+                clearTimeout(markAsReadTimeoutRef.current);
+            }
+        };
+    }, [messages, isLoadingMore, onLoadMore, onMarkAsRead, isNearBottom]);
 
     // No conversation selected
     if (!conversation) {

@@ -54,6 +54,10 @@ export interface Lesson {
   completion_criteria?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   materials?: LessonMaterial[];
+  is_practice?: boolean; // true for practice quiz/assignment, false for graded
+  // Liên kết tới quiz/assignment tương ứng (nếu có)
+  quiz_id?: string;
+  assignment_id?: string;
   created_at: string;
   updated_at: string;
   // Progress fields (added when fetching with progress)
@@ -162,6 +166,27 @@ export interface CourseProgressSummary {
 }
 
 /**
+ * Lesson Progress Info
+ */
+export interface LessonProgressInfo {
+  lesson_id: string;
+  lesson_title: string;
+  completion_percentage: number;
+  is_completed: boolean;
+}
+
+export interface LessonBookmark {
+  lesson_id: string;
+  lesson_title: string;
+  lesson_order: number;
+  content_type: string;
+  section_id: string;
+  section_title: string;
+  section_order: number;
+  bookmarked_at?: string;
+}
+
+/**
  * Section Progress Info
  */
 export interface SectionProgressInfo {
@@ -170,6 +195,7 @@ export interface SectionProgressInfo {
   total_lessons: number;
   completed_lessons: number;
   completion_percentage: number;
+  lessons: LessonProgressInfo[];
 }
 
 /**
@@ -195,7 +221,8 @@ export const lessonApi = {
    */
   getLesson: async (lessonId: string): Promise<LessonDetail> => {
     const response = await apiClient.get<ApiResponse<LessonDetail>>(
-      `${COURSE_CONTENT_PREFIX}/lessons/${lessonId}`
+      // Thêm query param để tránh cache 304 trong quá trình phát triển
+      `${COURSE_CONTENT_PREFIX}/lessons/${lessonId}?ts=${Date.now()}`
     );
     return response.data.data;
   },
@@ -222,6 +249,16 @@ export const lessonApi = {
     const response = await apiClient.put<ApiResponse<LessonProgress>>(
       `${COURSE_CONTENT_PREFIX}/lessons/${lessonId}/progress`,
       data
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Get bookmarked lessons in a course (current user)
+   */
+  getCourseBookmarks: async (courseId: string): Promise<LessonBookmark[]> => {
+    const response = await apiClient.get<ApiResponse<LessonBookmark[]>>(
+      `${COURSE_CONTENT_PREFIX}/courses/${courseId}/bookmarks`
     );
     return response.data.data;
   },
@@ -260,12 +297,23 @@ export const lessonApi = {
   },
 
   /**
-   * Get course progress summary
+   * Get course progress summary (for current user)
    * GET /course-content/courses/:courseId/progress
    */
   getCourseProgress: async (courseId: string): Promise<CourseProgressSummary> => {
     const response = await apiClient.get<ApiResponse<CourseProgressSummary>>(
       `${COURSE_CONTENT_PREFIX}/courses/${courseId}/progress`
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Get student progress (for instructor)
+   * GET /course-content/courses/:courseId/students/:studentId/progress
+   */
+  getStudentProgress: async (courseId: string, studentId: string): Promise<CourseProgressSummary> => {
+    const response = await apiClient.get<ApiResponse<CourseProgressSummary>>(
+      `${COURSE_CONTENT_PREFIX}/courses/${courseId}/students/${studentId}/progress`
     );
     return response.data.data;
   },
@@ -278,6 +326,48 @@ export const lessonApi = {
     await apiClient.post(
       `${COURSE_CONTENT_PREFIX}/materials/${materialId}/download`
     );
+  },
+
+  /**
+   * Upload material file (PDF, DOCX, etc.) for a lesson
+   * POST /course-content/lessons/:lessonId/materials/upload
+   */
+  uploadMaterial: async (
+    lessonId: string,
+    file: File,
+    description?: string,
+    onProgress?: (progress: number) => void
+  ): Promise<LessonMaterial> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (description) {
+      formData.append('description', description);
+    }
+
+    const response = await apiClient.post<ApiResponse<LessonMaterial>>(
+      `${COURSE_CONTENT_PREFIX}/lessons/${lessonId}/materials/upload`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent: any) => {
+          if (onProgress && progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(progress);
+          }
+        },
+      }
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Delete material
+   * DELETE /course-content/materials/:materialId
+   */
+  deleteMaterial: async (materialId: string): Promise<void> => {
+    await apiClient.delete(`${COURSE_CONTENT_PREFIX}/materials/${materialId}`);
   },
 };
 

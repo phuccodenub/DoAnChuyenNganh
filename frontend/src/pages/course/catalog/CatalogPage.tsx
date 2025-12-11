@@ -86,7 +86,16 @@ export function CatalogPage() {
     ...filters,
   });
 
+  // Fetch tất cả courses cho phần "Các khóa học"
+  const { data: allCoursesData, isLoading: isLoadingAllCourses } = useCourses({
+    page: 1,
+    limit: 100, // Lấy nhiều courses hơn
+    search: debouncedSearch || undefined,
+    ...filters,
+  });
+
   const courses = data?.data?.courses || [];
+  const allCourses = allCoursesData?.data?.courses || [];
 
   const handleCourseClick = (courseId: string) => {
     navigate(generateRoute.courseDetail(courseId));
@@ -154,6 +163,32 @@ export function CatalogPage() {
         {/* 3. Recommended Section - 4 khóa học gợi ý */}
         {!isLoading && !error && courses.length > 4 && (
           <RecommendedSection courses={courses} onCourseClick={handleCourseClick} />
+        )}
+
+        {/* 4. Tất cả khóa học */}
+        {!isLoadingAllCourses && !error && allCourses.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Các khóa học</h2>
+                <p className="text-gray-600 mt-1">
+                  Tổng cộng {allCourses.length} khóa học có sẵn
+                </p>
+              </div>
+            </div>
+
+            {isLoadingAllCourses ? (
+              <div className="flex justify-center py-12">
+                <Spinner size="lg" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {allCourses.map((course) => (
+                  <CourseCard key={course.id} course={course} onCourseClick={handleCourseClick} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </MainLayout>

@@ -24,7 +24,7 @@ export const lessonSchemas = {
     section_id: z.string().min(1, 'Section ID is required'),
     order_index: z.number().int().min(0).optional(),
     duration_minutes: z.number().int().min(0).optional(),
-    is_published: z.boolean().default(false),
+    is_published: z.boolean().default(true), // Mặc định published để enrolled users có thể truy cập ngay
     is_free_preview: z.boolean().default(false),
     video_url: z.string().optional().nullable(),
     video_duration: z.number().int().min(0).optional(),

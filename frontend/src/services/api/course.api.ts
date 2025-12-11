@@ -1,4 +1,5 @@
 import { httpClient } from '../http/client';
+import type { Section } from './lesson.api';
 
 /**
  * Course API Service
@@ -14,21 +15,39 @@ export interface Course {
   title: string;
   description: string;
   short_description?: string;
+  category?: {
+    id: string;
+    name: string;
+  };
+  category_slug?: string;
+  subcategory?: string;
+  thumbnail?: string;
   thumbnail_url?: string;
+  video_intro?: string;
   status: 'draft' | 'published' | 'archived';
-  level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   difficulty?: 'beginner' | 'intermediate' | 'advanced'; // deprecated, use level
-  duration_hours?: number;
-  price?: number;
-  is_free: boolean;
+  level?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   language?: string;
-  prerequisites?: string[];
+  duration_hours?: number;
+  total_lessons?: number;
+  price?: number;
+  currency?: string;
+  discount_price?: number;
+  discount_percentage?: number;
+  discount_start?: string;
+  discount_end?: string;
+  is_featured?: boolean;
+  is_free: boolean;
   learning_objectives?: string[];
+  prerequisites?: string[];
   tags?: string[];
+  metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   rating?: number;
   total_ratings?: number;
+  is_enrolled?: boolean; // Student enrollment status
+  total_students?: number; // Total enrolled students
   instructor?: {
     id: string;
     full_name?: string;
@@ -36,14 +55,39 @@ export interface Course {
     last_name?: string;
     avatar_url?: string;
   };
-  category?: {
-    id: string;
-    name: string;
-  };
   _count?: {
     enrollments: number;
   };
+  sections?: Section[];
 }
+
+export interface CreateCoursePayload {
+  title: string;
+  description?: string;
+  short_description?: string;
+  category?: string;
+  subcategory?: string;
+  level?: 'beginner' | 'intermediate' | 'advanced';
+  language?: string;
+  price?: number;
+  currency?: string;
+  discount_price?: number;
+  discount_percentage?: number;
+  discount_start?: string;
+  discount_end?: string;
+  thumbnail?: string;
+  video_intro?: string;
+  duration_hours?: number;
+  total_lessons?: number;
+  is_featured?: boolean;
+  is_free?: boolean;
+  prerequisites?: string[];
+  learning_objectives?: string[];
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export type UpdateCoursePayload = Partial<CreateCoursePayload>;
 
 export interface CourseFilters {
   page?: number;
@@ -80,8 +124,13 @@ export interface CourseProgress {
   user_id: string;
   lessons_completed: number;
   total_lessons: number;
+  completed_lessons?: number; // Alias for lessons_completed
+  total_sections?: number;
+  completion_percentage?: number; // Alias for percent
   percent: number;
   last_activity_at?: string;
+  last_accessed_at?: string; // Alias for last_activity_at
+  sections?: any[]; // Section-level progress
 }
 
 export interface CourseProgressResponse {
@@ -180,14 +229,14 @@ export const courseApi = {
   /**
    * Tạo khóa học mới (instructor)
    */
-  create: (data: Partial<Course>) => {
+  create: (data: CreateCoursePayload) => {
     return httpClient.post<CourseDetailResponse>('/courses', data);
   },
 
   /**
    * Cập nhật khóa học (instructor)
    */
-  update: (id: string, data: Partial<Course>) => {
+  update: (id: string, data: UpdateCoursePayload) => {
     return httpClient.put<CourseDetailResponse>(`/courses/${id}`, data);
   },
 

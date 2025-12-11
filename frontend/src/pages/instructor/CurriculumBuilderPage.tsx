@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Save, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Save, ChevronDown, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { MainLayout } from '@/layouts/MainLayout';
+import toast from 'react-hot-toast';
 
 // Import components từ courseEditor
 import {
@@ -20,36 +22,32 @@ import { LessonModal } from './components/courseDetail/LessonModal';
 import { ContentType as LessonContentType } from './components/courseDetail/types';
 import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 
+// Import hooks và types
+import {
+  useCourseSections,
+  useCreateSection,
+  useUpdateSection,
+  useDeleteSection,
+  useCreateLesson,
+  useUpdateLesson,
+  useDeleteLesson,
+  type CourseSection,
+  type CourseLesson,
+} from '@/hooks/useInstructorCourse';
+
 /**
  * CurriculumBuilderPage
  *
- * Quản lý nội dung khóa học theo cấu trúc phân cấp 3 cấp:
- * Section (Chương) > Lesson (Bài học) > Content Items (Video/Document/Quiz/Assignment)
+ * Quản lý nội dung khóa học theo cấu trúc phân cấp 2 cấp:
+ * Section (Chương) > Lesson (Bài học - mỗi lesson là một content item)
  *
  * Sử dụng PageWrapper và PageHeader để có layout nhất quán.
- * Bao gồm tính năng drag & drop để sắp xếp lại thứ tự.
+ * Tích hợp hoàn toàn với API backend.
  */
 
-type ContentType = 'video' | 'document' | 'quiz' | 'assignment';
+type ContentType = 'video' | 'document' | 'quiz' | 'assignment' | 'text' | 'link';
 
-interface ContentItemData {
-  id: string;
-  type: ContentType;
-  title: string;
-  duration_minutes?: number;
-  is_preview?: boolean;
-}
-
-interface Lesson {
-  id: string;
-  title: string;
-  contentItems: ContentItemData[];
-}
-
-interface Section {
-  id: string;
-  title: string;
-  lessons: Lesson[];
+interface SectionWithExpanded extends CourseSection {
   isExpanded: boolean;
 }
 
@@ -58,64 +56,54 @@ export function CurriculumBuilderPage() {
   const navigate = useNavigate();
   const { routes, navigateTo, canPerform } = useRoleBasedNavigation();
 
-  // ================== STATE MANAGEMENT ==================
-  /**
-   * Quản lý danh sách sections (chương) của khóa học
-   * Mỗi section chứa nhiều lessons, mỗi lesson chứa nhiều content items
-   */
-  const [sections, setSections] = useState<Section[]>([
-    {
-      id: '1',
-      title: 'Introduction to React',
-      isExpanded: true,
-      lessons: [
-        {
-          id: '1',
-          title: 'Welcome to the Course',
-          contentItems: [
-            {
-              id: '1',
-              type: 'video',
-              title: 'Course Overview',
-              duration_minutes: 15,
-              is_preview: true,
-            },
-            {
-              id: '2',
-              type: 'document',
-              title: 'Course Syllabus',
-              duration_minutes: 10,
-            },
-          ],
-        },
-        {
-          id: '2',
-          title: 'Setting Up Development Environment',
-          contentItems: [
-            {
-              id: '3',
-              type: 'video',
-              title: 'Installing Node.js',
-              duration_minutes: 20,
-            },
-            {
-              id: '4',
-              type: 'quiz',
-              title: 'Environment Setup Quiz',
-              duration_minutes: 15,
-            },
-          ],
-        },
-      ],
-    },
-  ]);
+  if (!courseId) {
+    return (
+      <MainLayout showSidebar>
+        <PageWrapper>
+          <div className="text-center py-12">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-600">Course ID không hợp lệ</p>
+          </div>
+        </PageWrapper>
+      </MainLayout>
+    );
+  }
+
+  // ================== DATA FETCHING ==================
+  const { data: sectionsResponse, isLoading, error, refetch } = useCourseSections(courseId);
+  
+  // Transform API data to include isExpanded state
+  const [sections, setSections] = useState<SectionWithExpanded[]>([]);
+
+  useEffect(() => {
+    if (sectionsResponse?.data) {
+      const responseData = sectionsResponse.data as any;
+      const sectionsData = Array.isArray(responseData) 
+        ? responseData 
+        : (responseData?.data || []);
+      
+      setSections(
+        sectionsData.map((section: CourseSection) => ({
+          ...section,
+          isExpanded: true, // Default expanded
+        }))
+      );
+    }
+  }, [sectionsResponse]);
+
+  // ================== MUTATIONS ==================
+  const createSectionMutation = useCreateSection();
+  const updateSectionMutation = useUpdateSection(courseId);
+  const deleteSectionMutation = useDeleteSection(courseId);
+  const createLessonMutation = useCreateLesson(courseId);
+  const updateLessonMutation = useUpdateLesson(courseId);
+  const deleteLessonMutation = useDeleteLesson(courseId);
 
   // ================== LESSON MODAL STATE ==================
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
-  const [editingContentItem, setEditingContentItem] = useState<{
+  const [editingLesson, setEditingLesson] = useState<{
     sectionId: string;
-    lessonId: string;
-    contentItem: ContentItemData;
+    lesson: CourseLesson;
   } | null>(null);
 
   // Form state for LessonModal
@@ -150,45 +138,82 @@ export function CurriculumBuilderPage() {
   // ================== SECTION MANAGEMENT ==================
 
   /**
-   * Thêm một section mới vào cuối danh sách
-   * TODO: API call - POST /api/instructor/courses/:courseId/sections
+   * Thêm một section mới
    */
-  const handleAddSection = () => {
-    const newSection: Section = {
-      id: Date.now().toString(),
-      title: 'New Section',
-      lessons: [],
-      isExpanded: true,
-    };
-    setSections([...sections, newSection]);
+  const handleAddSection = async () => {
+    try {
+      const newSection = await createSectionMutation.mutateAsync({
+        course_id: courseId,
+        title: 'New Section',
+        order_index: sections.length,
+      });
+      
+      // Add to local state with expanded
+      setSections([
+        ...sections,
+        {
+          ...newSection.data,
+          isExpanded: true,
+        },
+      ]);
+      
+      toast.success('Đã tạo section mới');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Không thể tạo section';
+      toast.error(message);
+    }
   };
 
   /**
    * Cập nhật tiêu đề của section
-   * @param sectionId - ID của section cần cập nhật
-   * @param newTitle - Tiêu đề mới
-   * TODO: API call - PUT /api/instructor/sections/:sectionId
    */
-  const handleUpdateSectionTitle = (sectionId: string, newTitle: string) => {
-    setSections(sections.map(s =>
-      s.id === sectionId ? { ...s, title: newTitle } : s
-    ));
+  const handleUpdateSectionTitle = async (sectionId: string, newTitle: string) => {
+    if (!newTitle.trim()) {
+      toast.error('Tiêu đề không được để trống');
+      return;
+    }
+
+    try {
+      await updateSectionMutation.mutateAsync({
+        sectionId,
+        data: { title: newTitle },
+      });
+      
+      // Update local state
+      setSections(sections.map(s =>
+        s.id === sectionId ? { ...s, title: newTitle } : s
+      ));
+      
+      toast.success('Đã cập nhật section');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Không thể cập nhật section';
+      toast.error(message);
+    }
   };
 
   /**
-   * Xóa section và tất cả lessons/content bên trong
-   * @param sectionId - ID của section cần xóa
-   * TODO: API call - DELETE /api/instructor/sections/:sectionId
+   * Xóa section
    */
-  const handleDeleteSection = (sectionId: string) => {
-    if (confirm('Delete this section and all its content?')) {
+  const handleDeleteSection = async (sectionId: string) => {
+    if (!confirm('Xóa section này và tất cả nội dung bên trong?')) {
+      return;
+    }
+
+    try {
+      await deleteSectionMutation.mutateAsync(sectionId);
+      
+      // Remove from local state
       setSections(sections.filter(s => s.id !== sectionId));
+      
+      toast.success('Đã xóa section');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Không thể xóa section';
+      toast.error(message);
     }
   };
 
   /**
    * Toggle trạng thái expanded/collapsed của section
-   * @param sectionId - ID của section
    */
   const toggleSection = (sectionId: string) => {
     setSections(sections.map(s =>
@@ -200,102 +225,128 @@ export function CurriculumBuilderPage() {
 
   /**
    * Thêm lesson mới vào section
-   * @param sectionId - ID của section chứa lesson
-   * TODO: API call - POST /api/instructor/sections/:sectionId/lessons
    */
-  const handleAddLesson = (sectionId: string) => {
-    const newLesson: Lesson = {
-      id: Date.now().toString(),
-      title: 'New Lesson',
-      contentItems: [],
-    };
+  const handleAddLesson = async (sectionId: string) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
 
-    setSections(sections.map(s =>
-      s.id === sectionId
-        ? { ...s, lessons: [...s.lessons, newLesson] }
-        : s
-    ));
+    try {
+      const newLesson = await createLessonMutation.mutateAsync({
+        section_id: sectionId,
+        title: 'New Lesson',
+        content_type: 'video',
+        order_index: section.lessons.length,
+      });
+      
+      // Update local state
+      setSections(sections.map(s =>
+        s.id === sectionId
+          ? { ...s, lessons: [...s.lessons, newLesson.data] }
+          : s
+      ));
+      
+      toast.success('Đã tạo lesson mới');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Không thể tạo lesson';
+      toast.error(message);
+    }
   };
 
   /**
    * Cập nhật tiêu đề của lesson
-   * @param sectionId - ID của section chứa lesson
-   * @param lessonId - ID của lesson
-   * @param newTitle - Tiêu đề mới
-   * TODO: API call - PUT /api/instructor/lessons/:lessonId
    */
-  const handleUpdateLessonTitle = (sectionId: string, lessonId: string, newTitle: string) => {
-    setSections(sections.map(s =>
-      s.id === sectionId
-        ? {
-          ...s,
-          lessons: s.lessons.map(l =>
-            l.id === lessonId ? { ...l, title: newTitle } : l
-          )
-        }
-        : s
-    ));
+  const handleUpdateLessonTitle = async (sectionId: string, lessonId: string, newTitle: string) => {
+    if (!newTitle.trim()) {
+      toast.error('Tiêu đề không được để trống');
+      return;
+    }
+
+    try {
+      await updateLessonMutation.mutateAsync({
+        lessonId,
+        data: { title: newTitle },
+      });
+      
+      // Update local state
+      setSections(sections.map(s =>
+        s.id === sectionId
+          ? {
+              ...s,
+              lessons: s.lessons.map(l =>
+                l.id === lessonId ? { ...l, title: newTitle } : l
+              )
+            }
+          : s
+      ));
+      
+      toast.success('Đã cập nhật lesson');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Không thể cập nhật lesson';
+      toast.error(message);
+    }
   };
 
   /**
-   * Xóa lesson và tất cả content items bên trong
-   * @param sectionId - ID của section
-   * @param lessonId - ID của lesson cần xóa
-   * TODO: API call - DELETE /api/instructor/lessons/:lessonId
+   * Xóa lesson
    */
-  const handleDeleteLesson = (sectionId: string, lessonId: string) => {
-    if (confirm('Delete this lesson and all its content?')) {
+  const handleDeleteLesson = async (sectionId: string, lessonId: string) => {
+    if (!confirm('Xóa lesson này?')) {
+      return;
+    }
+
+    try {
+      await deleteLessonMutation.mutateAsync(lessonId);
+      
+      // Remove from local state
       setSections(sections.map(s =>
         s.id === sectionId
           ? { ...s, lessons: s.lessons.filter(l => l.id !== lessonId) }
           : s
       ));
+      
+      toast.success('Đã xóa lesson');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Không thể xóa lesson';
+      toast.error(message);
     }
   };
 
   // ================== CONTENT ITEM MANAGEMENT ==================
 
   /**
-   * Thêm content item mới vào lesson
-   * @param sectionId - ID của section
-   * @param lessonId - ID của lesson
-   * @param type - Loại content (video/document/quiz/assignment)
-   * TODO: API call - POST /api/instructor/lessons/:lessonId/content
+   * Thêm content item mới (tạo lesson mới với content_type)
    */
-  const handleAddContentItem = (sectionId: string, lessonId: string, type: ContentType) => {
-    const newContentItem: ContentItemData = {
-      id: Date.now().toString(),
-      type,
-      title: `New ${type}`,
-      duration_minutes: type === 'video' || type === 'document' ? 15 : undefined,
-      is_preview: false,
-    };
+  const handleAddContentItem = async (sectionId: string, type: ContentType) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
 
-    setSections(sections.map(s =>
-      s.id === sectionId
-        ? {
-          ...s,
-          lessons: s.lessons.map(l =>
-            l.id === lessonId
-              ? { ...l, contentItems: [...l.contentItems, newContentItem] }
-              : l
-          )
-        }
-        : s
-    ));
+    try {
+      const newLesson = await createLessonMutation.mutateAsync({
+        section_id: sectionId,
+        title: `New ${type}`,
+        content_type: type,
+        order_index: section.lessons.length,
+      });
+      
+      // Update local state
+      setSections(sections.map(s =>
+        s.id === sectionId
+          ? { ...s, lessons: [...s.lessons, newLesson.data] }
+          : s
+      ));
+      
+      toast.success(`Đã tạo ${type} mới`);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || `Không thể tạo ${type}`;
+      toast.error(message);
+    }
   };
 
   /**
-   * Xử lý khi click Edit trên content item
-   * - Nếu là quiz: điều hướng đến QuizBuilderPage
-   * - Nếu là video/document: mở LessonModal để chỉnh sửa
-   * - Assignment: TODO
-   * @param sectionId - ID của section chứa content item
-   * @param lessonId - ID của lesson chứa content item
-   * @param contentItem - Content item cần chỉnh sửa
+   * Xử lý khi click Edit trên lesson/content item
    */
-  const handleEditContentItem = (sectionId: string, lessonId: string, contentItem: ContentItemData) => {
-    if (contentItem.type === 'quiz' && courseId) {
+  const handleEditContentItem = (sectionId: string, lesson: any) => {
+    if (lesson.content_type === 'quiz' && courseId) {
       // Điều hướng đến QuizBuilderPage với quizId (nếu có) hoặc tạo mới
       // TODO: Khi tích hợp API, cần lấy quizId thực từ contentItem
       // Sử dụng role-based navigation
@@ -308,22 +359,9 @@ export function CurriculumBuilderPage() {
       return;
     }
 
-    if (contentItem.type === 'video' || contentItem.type === 'document') {
-      // Mở LessonModal để chỉnh sửa video/document
-      setEditingContentItem({ sectionId, lessonId, contentItem });
-      setLessonForm({
-        title: contentItem.title,
-        content_type: contentItem.type as LessonContentType,
-        duration_minutes: contentItem.duration_minutes || 0,
-        is_preview: contentItem.is_preview || false,
-        video_url: '', // TODO: Lấy từ contentItem khi có API
-      });
-      setIsLessonModalOpen(true);
-      return;
-    }
-
-    // TODO: Mở modal chỉnh sửa cho assignment
-    console.log('Edit content:', contentItem);
+    // TODO: Handle other content types (video, document, assignment)
+    // For now, just log
+    console.log('Edit content item:', lesson);
   };
 
   /**
@@ -331,7 +369,7 @@ export function CurriculumBuilderPage() {
    */
   const handleCloseLessonModal = () => {
     setIsLessonModalOpen(false);
-    setEditingContentItem(null);
+    setEditingLesson(null);
     setLessonForm({
       title: '',
       content_type: 'video',
@@ -344,262 +382,287 @@ export function CurriculumBuilderPage() {
   /**
    * Lưu thay đổi từ LessonModal
    */
-  const handleSaveLessonModal = () => {
-    if (!editingContentItem) return;
+  const handleSaveLessonModal = async () => {
+    if (!editingLesson) return;
 
-    const { sectionId, lessonId, contentItem } = editingContentItem;
+    const { sectionId, lesson } = editingLesson;
 
-    // Cập nhật content item với dữ liệu từ form
-    handleUpdateContentItem(sectionId, lessonId, contentItem.id, {
-      title: lessonForm.title,
-      type: lessonForm.content_type as ContentType,
-      duration_minutes: lessonForm.duration_minutes,
-      is_preview: lessonForm.is_preview,
-    });
-
-    handleCloseLessonModal();
-  };
-
-  /**
-   * Cập nhật content item
-   * @param sectionId - ID của section
-   * @param lessonId - ID của lesson
-   * @param contentId - ID của content item
-   * @param updates - Các trường cần cập nhật
-   * TODO: API call - PUT /api/instructor/content/:contentId
-   */
-  const handleUpdateContentItem = (
-    sectionId: string,
-    lessonId: string,
-    contentId: string,
-    updates: Partial<ContentItemData>
-  ) => {
-    setSections(sections.map(s =>
-      s.id === sectionId
-        ? {
-          ...s,
-          lessons: s.lessons.map(l =>
-            l.id === lessonId
-              ? {
-                ...l,
-                contentItems: l.contentItems.map(c =>
-                  c.id === contentId ? { ...c, ...updates } : c
-                )
-              }
-              : l
-          )
-        }
-        : s
-    ));
-  };
-
-  /**
-   * Xóa content item
-   * @param sectionId - ID của section
-   * @param lessonId - ID của lesson
-   * @param contentId - ID của content item cần xóa
-   * TODO: API call - DELETE /api/instructor/content/:contentId
-   */
-  const handleDeleteContentItem = (sectionId: string, lessonId: string, contentId: string) => {
-    if (confirm('Delete this content item?')) {
+    try {
+      await updateLessonMutation.mutateAsync({
+        lessonId: lesson.id,
+        data: {
+          title: lessonForm.title,
+          content_type: lessonForm.content_type,
+          duration_minutes: lessonForm.duration_minutes,
+          is_free_preview: lessonForm.is_preview,
+          video_url: lessonForm.video_url || undefined,
+        },
+      });
+      
+      // Update local state
       setSections(sections.map(s =>
         s.id === sectionId
           ? {
-            ...s,
-            lessons: s.lessons.map(l =>
-              l.id === lessonId
-                ? {
-                  ...l,
-                  contentItems: l.contentItems.filter(c => c.id !== contentId)
-                }
-                : l
-            )
-          }
+              ...s,
+              lessons: s.lessons.map(l =>
+                l.id === lesson.id
+                  ? {
+                      ...l,
+                      title: lessonForm.title,
+                      content_type: lessonForm.content_type,
+                      duration_minutes: lessonForm.duration_minutes,
+                      is_free_preview: lessonForm.is_preview,
+                      video_url: lessonForm.video_url || undefined,
+                    }
+                  : l
+              )
+            }
           : s
       ));
+      
+      toast.success('Đã cập nhật lesson');
+      handleCloseLessonModal();
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Không thể cập nhật lesson';
+      toast.error(message);
     }
+  };
+
+  /**
+   * Xóa content item (lesson)
+   */
+  const handleDeleteContentItem = async (sectionId: string, lessonId: string) => {
+    await handleDeleteLesson(sectionId, lessonId);
   };
 
   // ================== SAVE & NAVIGATION ==================
 
   /**
-   * Lưu toàn bộ curriculum
-   * TODO: API call - PUT /api/instructor/courses/:courseId/curriculum
+   * Lưu toàn bộ curriculum (refetch để đảm bảo data sync)
    */
-  const handleSave = () => {
-    console.log('Saving curriculum:', sections);
-    // TODO: Implement API call to save curriculum
-    // Sử dụng role-based navigation
-    navigateTo.myCourses();
+  const handleSave = async () => {
+    try {
+      await refetch();
+      toast.success('Đã lưu curriculum');
+      // Sử dụng role-based navigation
+      navigateTo.myCourses();
+    } catch (error) {
+      toast.error('Không thể lưu curriculum');
+    }
   };
+
+  // ================== LOADING & ERROR STATES ==================
+
+  if (isLoading) {
+    return (
+      <MainLayout showSidebar>
+        <PageWrapper>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <span className="ml-2 text-gray-600">Đang tải curriculum...</span>
+          </div>
+        </PageWrapper>
+      </MainLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainLayout showSidebar>
+        <PageWrapper>
+          <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Không thể tải curriculum</h3>
+            <p className="text-gray-600 mb-4">Đã có lỗi xảy ra khi tải nội dung khóa học.</p>
+            <Button onClick={() => refetch()}>Thử lại</Button>
+          </div>
+        </PageWrapper>
+      </MainLayout>
+    );
+  }
 
   // ================== RENDER ==================
 
   return (
-    <PageWrapper>
-      {/* Page Header với breadcrumb và nút Save */}
-      <PageHeader
-        title="Curriculum Builder"
-        breadcrumbs={['Courses', 'Curriculum']}
-      />
+    <MainLayout showSidebar>
+      <PageWrapper>
+        {/* Page Header với breadcrumb và nút Save */}
+        <PageHeader
+          title="Curriculum Builder"
+          breadcrumbs={['Courses', 'Curriculum']}
+        />
 
-      {/* Step Wizard */}
-      <StepWizard currentStep={2} steps={steps} />
+        {/* Step Wizard */}
+        <StepWizard currentStep={2} steps={steps} />
 
-      {/* Main Content */}
-      <div className="space-y-6">
-        {/* Header với nút Save */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Build Your Curriculum</h1>
-            <p className="text-gray-600 mt-1">
-              Organize your course content into sections, lessons, and learning materials
-            </p>
-          </div>
-          <Button onClick={handleSave} className="gap-2">
-            <Save className="w-4 h-4" />
-            Save Curriculum
-          </Button>
-        </div>
-
-        {/* Curriculum Content */}
-        <div className="space-y-4">
-          {sections.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-              <p className="text-gray-500">No sections yet. Add your first section to get started.</p>
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Header với nút Save */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Build Your Curriculum</h1>
+              <p className="text-gray-600 mt-1">
+                Organize your course content into sections and lessons
+              </p>
             </div>
-          ) : (
-            sections.map((section, sectionIndex) => (
-              <div key={section.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                {/* Section Header */}
-                <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-200">
-                  <DragHandle />
-                  <button
-                    onClick={() => toggleSection(section.id)}
-                    className="flex items-center gap-2 flex-1 text-left"
-                  >
-                    {section.isExpanded ? (
-                      <ChevronDown className="w-5 h-5 text-gray-500" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-gray-500" />
-                    )}
-                    <span className="font-semibold text-gray-900">
-                      Section {sectionIndex + 1}:
-                    </span>
-                    <InlineEditInput
-                      value={section.title}
-                      onSave={(newTitle) => handleUpdateSectionTitle(section.id, newTitle)}
-                      placeholder="Type section name..."
-                      className="text-lg"
+            <Button onClick={handleSave} className="gap-2" disabled={deleteSectionMutation.isPending || createSectionMutation.isPending}>
+              <Save className="w-4 h-4" />
+              Save Curriculum
+            </Button>
+          </div>
+
+          {/* Curriculum Content */}
+          <div className="space-y-4">
+            {sections.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                <p className="text-gray-500 mb-4">Chưa có section nào. Thêm section đầu tiên để bắt đầu.</p>
+                <Button onClick={handleAddSection} variant="outline" className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Section
+                </Button>
+              </div>
+            ) : (
+              sections.map((section, sectionIndex) => (
+                <div key={section.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {/* Section Header */}
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-200">
+                    <DragHandle />
+                    <button
+                      onClick={() => toggleSection(section.id)}
+                      className="flex items-center gap-2 flex-1 text-left"
+                    >
+                      {section.isExpanded ? (
+                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-500" />
+                      )}
+                      <span className="font-semibold text-gray-900">
+                        Section {sectionIndex + 1}:
+                      </span>
+                      <InlineEditInput
+                        value={section.title}
+                        onSave={(newTitle) => handleUpdateSectionTitle(section.id, newTitle)}
+                        placeholder="Type section name..."
+                        className="text-lg"
+                      />
+                    </button>
+                    <ActionGroup
+                      onEdit={() => {/* Inline edit handled by InlineEditInput */ }}
+                      onDelete={() => handleDeleteSection(section.id)}
                     />
-                  </button>
-                  <ActionGroup
-                    onEdit={() => {/* Inline edit handled by InlineEditInput */ }}
-                    onDelete={() => handleDeleteSection(section.id)}
-                  />
-                </div>
+                  </div>
 
-                {/* Section Content */}
-                {section.isExpanded && (
-                  <div className="p-4">
-                    {section.lessons.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        No lessons in this section yet.
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {section.lessons.map((lesson, lessonIndex) => (
-                          <TimelineConnector
-                            key={lesson.id}
-                            isLast={lessonIndex === section.lessons.length - 1}
-                          >
-                            {/* Lesson Header */}
-                            <div className="flex items-center gap-3 mb-3">
-                              <DragHandle className="text-gray-500" />
-                              <span className="font-medium text-gray-700">
-                                Lesson {lessonIndex + 1}:
-                              </span>
-                              <InlineEditInput
-                                value={lesson.title}
-                                onSave={(newTitle) => handleUpdateLessonTitle(section.id, lesson.id, newTitle)}
-                                placeholder="Type lesson name..."
-                              />
-                              <ActionGroup
-                                onDelete={() => handleDeleteLesson(section.id, lesson.id)}
-                              />
-                            </div>
-
-                            {/* Content Items */}
-                            <div className="space-y-2 ml-8">
-                              {lesson.contentItems.map((contentItem) => (
-                                <ContentItem
-                                  key={contentItem.id}
-                                  type={contentItem.type}
-                                  title={contentItem.title}
-                                  duration={contentItem.duration_minutes}
-                                  isPreview={contentItem.is_preview}
-                                  onEdit={() => handleEditContentItem(section.id, lesson.id, contentItem)}
-                                  onDelete={() => handleDeleteContentItem(section.id, lesson.id, contentItem.id)}
+                  {/* Section Content */}
+                  {section.isExpanded && (
+                    <div className="p-4">
+                      {section.lessons.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          Chưa có lesson nào trong section này.
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {section.lessons.map((lesson, lessonIndex) => (
+                            <TimelineConnector
+                              key={lesson.id}
+                              isLast={lessonIndex === section.lessons.length - 1}
+                            >
+                              {/* Lesson Header */}
+                              <div className="flex items-center gap-3 mb-3">
+                                <DragHandle className="text-gray-500" />
+                                <span className="font-medium text-gray-700">
+                                  Lesson {lessonIndex + 1}:
+                                </span>
+                                <InlineEditInput
+                                  value={lesson.title}
+                                  onSave={(newTitle) => handleUpdateLessonTitle(section.id, lesson.id, newTitle)}
+                                  placeholder="Type lesson name..."
                                 />
-                              ))}
-
-                              {/* Add Content Buttons */}
-                              <div className="mt-4">
-                                <ContentTypeSelector
-                                  onSelect={(type) => handleAddContentItem(section.id, lesson.id, type)}
+                                <ActionGroup
+                                  onEdit={() => handleEditContentItem(section.id, lesson)}
+                                  onDelete={() => handleDeleteLesson(section.id, lesson.id)}
                                 />
                               </div>
-                            </div>
-                          </TimelineConnector>
-                        ))}
-                      </div>
-                    )}
 
-                    {/* Add Lesson Button */}
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <Button
-                        onClick={() => handleAddLesson(section.id)}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Lesson
-                      </Button>
+                              {/* Content Item Display */}
+                              <div className="ml-8">
+                                {(lesson.content_type === 'video' || 
+                                  lesson.content_type === 'document' || 
+                                  lesson.content_type === 'quiz' || 
+                                  lesson.content_type === 'assignment') && (
+                                  <ContentItem
+                                    type={lesson.content_type as 'video' | 'document' | 'quiz' | 'assignment'}
+                                    title={lesson.title}
+                                    duration={lesson.duration_minutes}
+                                    isPreview={lesson.is_free_preview}
+                                    onEdit={() => handleEditContentItem(section.id, lesson)}
+                                    onDelete={() => handleDeleteContentItem(section.id, lesson.id)}
+                                  />
+                                )}
+                                {(lesson.content_type === 'text' || lesson.content_type === 'link') && (
+                                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <span className="text-sm font-medium text-gray-900">{lesson.title}</span>
+                                    <span className="ml-2 text-xs text-gray-500">({lesson.content_type})</span>
+                                  </div>
+                                )}
+                              </div>
+                            </TimelineConnector>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add Content Buttons */}
+                      <div className="mt-6 pt-4 border-t border-gray-200">
+                        <div className="mb-4">
+                          <ContentTypeSelector
+                            onSelect={(type) => handleAddContentItem(section.id, type)}
+                          />
+                        </div>
+                        <Button
+                          onClick={() => handleAddLesson(section.id)}
+                          variant="outline"
+                          className="gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Lesson
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Add Section Button */}
+          {sections.length > 0 && (
+            <div className="text-center">
+              <Button onClick={handleAddSection} variant="outline" className="gap-2" disabled={createSectionMutation.isPending}>
+                <Plus className="w-4 h-4" />
+                Add Section
+              </Button>
+            </div>
           )}
         </div>
 
-        {/* Add Section Button */}
-        <div className="text-center">
-          <Button onClick={handleAddSection} variant="outline" className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add Section
-          </Button>
-        </div>
-      </div>
-
-      {/* Lesson Modal for editing video/document content */}
-      <LessonModal
-        isOpen={isLessonModalOpen}
-        editingLesson={editingContentItem ? {
-          id: editingContentItem.contentItem.id,
-          title: editingContentItem.contentItem.title,
-          content_type: editingContentItem.contentItem.type as LessonContentType,
-          duration_minutes: editingContentItem.contentItem.duration_minutes || 0,
-          is_preview: editingContentItem.contentItem.is_preview || false,
-          order_index: 0,
-          video_url: '',
-        } : null}
-        lessonForm={lessonForm}
-        onFormChange={setLessonForm}
-        onSave={handleSaveLessonModal}
-        onClose={handleCloseLessonModal}
-      />
-    </PageWrapper>
+        {/* Lesson Modal for editing video/document content */}
+        <LessonModal
+          isOpen={isLessonModalOpen}
+          editingLesson={editingLesson ? {
+            id: editingLesson.lesson.id,
+            title: editingLesson.lesson.title,
+            content_type: editingLesson.lesson.content_type as LessonContentType,
+            duration_minutes: editingLesson.lesson.duration_minutes || 0,
+            is_preview: editingLesson.lesson.is_free_preview || false,
+            order_index: editingLesson.lesson.order_index,
+            video_url: editingLesson.lesson.video_url || '',
+          } : null}
+          lessonForm={lessonForm}
+          onFormChange={setLessonForm}
+          onSave={handleSaveLessonModal}
+          onClose={handleCloseLessonModal}
+        />
+      </PageWrapper>
+    </MainLayout>
   );
 }
 

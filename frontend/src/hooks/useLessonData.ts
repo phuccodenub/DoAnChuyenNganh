@@ -53,13 +53,15 @@ export function useCourseContent(courseId: string, options?: { enabled?: boolean
 
 /**
  * Hook to fetch lesson detail
+ * Refetch ngay khi lessonId thay đổi để đảm bảo hiển thị đúng nội dung
  */
 export function useLesson(lessonId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.lessons.detail(lessonId),
     queryFn: () => lessonApi.getLesson(lessonId),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 0, // Luôn refetch khi lessonId thay đổi
     enabled: !!lessonId,
+    refetchOnMount: 'always', // Luôn refetch khi component mount với lessonId mới
   });
 }
 
@@ -106,20 +108,50 @@ export function useMarkLessonComplete() {
 
   return useMutation({
     mutationFn: (lessonId: string) => lessonApi.markComplete(lessonId),
+    onMutate: async (lessonId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.lessons.detail(lessonId) });
+
+      // Snapshot the previous value
+      const previousLesson = queryClient.getQueryData<LessonDetail>(QUERY_KEYS.lessons.detail(lessonId));
+
+      // Optimistically update lesson to mark as completed
+      if (previousLesson) {
+        queryClient.setQueryData<LessonDetail>(QUERY_KEYS.lessons.detail(lessonId), {
+          ...previousLesson,
+          is_completed: true,
+        });
+      }
+
+      return { previousLesson };
+    },
+    onError: (err, lessonId, context) => {
+      // Rollback on error
+      if (context?.previousLesson) {
+        queryClient.setQueryData(QUERY_KEYS.lessons.detail(lessonId), context.previousLesson);
+      }
+    },
     onSuccess: (data, lessonId) => {
       // Invalidate lesson progress
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.lessons.progress(lessonId),
       });
 
-      // Invalidate lesson detail
+      // Invalidate lesson detail - force refetch to get latest data
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.lessons.detail(lessonId),
       });
 
-      // Invalidate course content
+      // Invalidate all course content queries (will refetch when accessed)
       queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.lessons.contentAll,
+        predicate: (query) => {
+          const key = query.queryKey;
+          // Match any course content query
+          return (
+            (Array.isArray(key) && key[0] === 'lessons' && key[1] === 'content') ||
+            (Array.isArray(key) && key[0] === 'course-content')
+          );
+        },
       });
 
       // Invalidate enrolled courses (to update progress)
@@ -142,6 +174,16 @@ export function useCourseSections(courseId: string) {
   });
 }
 
+// Bookmarked lessons in a course
+export function useCourseBookmarks(courseId: string) {
+  return useQuery({
+    queryKey: ['lessons', 'bookmarks', courseId],
+    queryFn: () => lessonApi.getCourseBookmarks(courseId),
+    enabled: !!courseId,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
 export default {
   useCourseContent,
   useLesson,
@@ -149,4 +191,5 @@ export default {
   useUpdateProgress,
   useMarkLessonComplete,
   useCourseSections,
+  useCourseBookmarks,
 };

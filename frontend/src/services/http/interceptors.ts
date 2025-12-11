@@ -3,6 +3,10 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore.enhanced';
 import { ROUTES } from '@/constants/routes';
 
+// Track recent error toasts to avoid spam
+const recentErrorToasts = new Map<string, number>();
+const TOAST_COOLDOWN_MS = 5000; // Don't show same error toast within 5 seconds
+
 /**
  * Axios Interceptors
  * 
@@ -188,9 +192,37 @@ export const setupInterceptors = () => {
         }
       }
 
+      // Handle 429 (Too Many Requests) - Rate limiting
+      // Skip toast for background operations to avoid spam
+      if (error.response?.status === 429) {
+        const url = originalRequest?.url || '';
+        const isBackgroundOperation = url.includes('/conversations/') && url.includes('/read') || 
+                                      url.includes('/conversations/') && url.includes('/online-status') ||
+                                      url.includes('/chat/unread-count');
+        
+        if (isBackgroundOperation) {
+          // Only log, don't show toast for background operations
+          console.warn('[HTTP Interceptor] Rate limit for background operation:', url);
+        } else {
+          const message = error.response?.data?.message || error.response?.data?.error || 'Quá nhiều yêu cầu. Vui lòng thử lại sau';
+          toast.error(message);
+        }
+      }
+
       // Handle 403 (Forbidden)
+      // Giảm spam toast: bỏ toast cho các endpoint quản lý khóa học (page đã hiển thị lỗi)
       if (error.response?.status === 403) {
-        toast.error('Bạn không có quyền truy cập tài nguyên này');
+        const url = originalRequest?.url || '';
+        const isPublicFetchRequest = url.includes('/quizzes') || url.includes('/assignments/course/');
+        const isCourseManagement =
+          url.includes('/courses/') && (url.includes('/manage') || url.includes('/stats') || url.includes('/students'));
+        
+        if (isPublicFetchRequest || isCourseManagement) {
+          console.warn('[HTTP Interceptor] Permission denied (no toast):', url, error.response?.data?.message);
+        } else {
+          const message = error.response?.data?.message || 'Bạn không có quyền truy cập tài nguyên này';
+          toast.error(message, { id: 'forbidden' });
+        }
       }
 
       // Handle 404 (Not Found)
@@ -199,13 +231,60 @@ export const setupInterceptors = () => {
       }
 
       // Handle 500 (Internal Server Error)
+      // Skip toast for background operations like mark as read to avoid spam
       if (error.response?.status === 500) {
-        toast.error('Lỗi máy chủ. Vui lòng thử lại sau');
+        const url = originalRequest?.url || '';
+        const isBackgroundOperation = 
+          (url.includes('/conversations/') && (url.includes('/read') || url.includes('/online-status'))) ||
+          url.includes('/chat/unread-count') ||
+          (url.includes('/conversations') && originalRequest?.method === 'GET');
+        
+        if (isBackgroundOperation) {
+          // Only log, don't show toast for background operations
+          console.warn('[HTTP Interceptor] Server error for background operation:', url);
+        } else {
+          // Check if we've shown this error recently
+          const errorKey = `500:${url}`;
+          const lastShown = recentErrorToasts.get(errorKey) || 0;
+          const now = Date.now();
+          
+          if (now - lastShown > TOAST_COOLDOWN_MS) {
+            recentErrorToasts.set(errorKey, now);
+            toast.error('Lỗi máy chủ. Vui lòng thử lại sau');
+          }
+        }
       }
 
       // Handle network errors
+      // Skip toast for background operations
       if (!error.response) {
-        toast.error('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet');
+        const url = originalRequest?.url || '';
+        const isBackgroundOperation = 
+          (url.includes('/conversations/') && (url.includes('/read') || url.includes('/online-status'))) ||
+          url.includes('/chat/unread-count') ||
+          (url.includes('/conversations') && originalRequest?.method === 'GET');
+        
+        if (!isBackgroundOperation) {
+          // Check if we've shown this error recently
+          const errorKey = `network:${url}`;
+          const lastShown = recentErrorToasts.get(errorKey) || 0;
+          const now = Date.now();
+          
+          if (now - lastShown > TOAST_COOLDOWN_MS) {
+            recentErrorToasts.set(errorKey, now);
+            toast.error('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet');
+          }
+        }
+      }
+      
+      // Cleanup old entries periodically
+      if (recentErrorToasts.size > 100) {
+        const now = Date.now();
+        for (const [key, timestamp] of recentErrorToasts.entries()) {
+          if (now - timestamp > TOAST_COOLDOWN_MS * 2) {
+            recentErrorToasts.delete(key);
+          }
+        }
       }
 
       return Promise.reject(error);

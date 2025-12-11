@@ -64,15 +64,37 @@ export class CourseController {
   };
 
   // Get course by ID
-  getCourseById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getCourseById = async (req: Request | AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
-      const course = await this.courseService.getCourseById(id);
+      // Get userId if available (from optional auth middleware)
+      const userId = (req as AuthenticatedRequest).user?.userId;
+      const course = await this.courseService.getCourseById(id, userId);
       
       if (!course) {
         throw new ApiError(RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND, 'Course not found');
       }
       
+      responseUtils.sendSuccess(res, 'Course retrieved successfully', course);
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  // Get course for management (owner/admin only)
+  getCourseForManagement = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
+
+      const course = await this.courseService.getCourseForManagement(id, userId, userRole);
+
       responseUtils.sendSuccess(res, 'Course retrieved successfully', course);
     } catch (error: unknown) {
       next(error);
@@ -216,12 +238,13 @@ export class CourseController {
     try {
       const { courseId } = req.params;
       const userId = req.user?.userId;
+      const userRole = req.user?.role;
       if (!userId) {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
         return;
       }
       
-      const enrollment = await this.courseService.enrollInCourse(courseId, userId!);
+      const enrollment = await this.courseService.enrollInCourse(courseId, userId!, userRole);
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.CREATED).json({
         success: true,

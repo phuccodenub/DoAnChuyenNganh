@@ -27,6 +27,7 @@ export const ROUTES = {
   // Course management (instructor)
   COURSE_MANAGEMENT: '/course-management',
   COURSE_MANAGEMENT_DETAIL: '/course-management/:courseId',
+  COURSE_CURRICULUM: '/course-management/:courseId/curriculum',
   LEARNING: '/student/courses/:courseId/learn',
   // Student routes
   STUDENT: {
@@ -115,15 +116,18 @@ export const generateRoute = {
   courseDetail: (id: string) => `/courses/${id}`,
   courseManagement: (courseId?: string) =>
     courseId ? `/course-management/${courseId}` : '/course-management',
+  courseCurriculum: (courseId: string) => `/course-management/${courseId}/curriculum`,
   
   student: {
     learning: (courseId: string) => `/student/courses/${courseId}/learn`,
     lesson: (courseId: string, lessonId: string) => 
       `/student/courses/${courseId}/lessons/${lessonId}`,
-    quiz: (quizId: string) => `/student/quizzes/${quizId}`,
-    quizAttempt: (quizId: string, attemptId: string) => 
-      `/student/quizzes/${quizId}/attempt/${attemptId}`,
-    assignment: (assignmentId: string) => `/student/assignments/${assignmentId}`,
+    quiz: (courseId: string, quizId: string) => 
+      `/student/courses/${courseId}/quizzes/${quizId}`,
+    quizAttempt: (courseId: string, quizId: string, attemptId: string) => 
+      `/student/courses/${courseId}/quizzes/${quizId}/attempt/${attemptId}`,
+    assignment: (courseId: string, assignmentId: string) => 
+      `/student/courses/${courseId}/assignments/${assignmentId}`,
     chat: (courseId?: string) => 
       courseId ? `/messages?courseId=${courseId}` : '/messages',
   },

@@ -24,6 +24,7 @@ const StudentDashboard = lazy(() => import('@/pages/student/DashboardPage'));
 const StudentMyCoursesPage = lazy(() => import('@/pages/student/MyCoursesPage'));
 const StudentAssignmentsPage = lazy(() => import('@/pages/student/StudentAssignmentsPage'));
 const LearningPage = lazy(() => import('@/pages/student/LearningPage'));
+const LessonDetailPage = lazy(() => import('@/pages/course/learning/LessonDetailPage'));
 const QuizPage = lazy(() => import('@/pages/student/QuizPage'));
 const QuizResultsPage = lazy(() => import('@/pages/student/QuizResultsPage'));
 const AssignmentPage = lazy(() => import('@/pages/student/AssignmentPage'));
@@ -37,6 +38,7 @@ const MyCoursesPage = lazy(() => import('@/pages/instructor/InstructorMyCoursesP
 const InstructorCourseDetailPage = lazy(() => import('@/pages/instructor/InstructorCourseDetailPage'));
 const CourseEditorPage = lazy(() => import('@/pages/instructor/CourseEditorPage'));
 const CurriculumBuilderPage = lazy(() => import('@/pages/instructor/CurriculumBuilderPage'));
+const CourseManagementDetailPage = lazy(() => import('@/pages/course/management/CourseManagementDetailPage'));
 const QuizBuilderPage = lazy(() => import('@/pages/instructor/QuizBuilderPage'));
 const AssignmentBuilderPage = lazy(() => import('@/pages/instructor/AssignmentBuilderPage'));
 const GradingPage = lazy(() => import('@/pages/instructor/GradingPage'));
@@ -67,6 +69,10 @@ const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'));
 const NotificationsPage = lazy(() => import('@/pages/student/NotificationsPage'));
 const InstructorNotificationsPage = lazy(() => import('@/pages/instructor/CourseNotificationPage'));
 
+// Certificate pages
+const CertificateDetailPage = lazy(() => import('@/pages/certificates/CertificateDetailPage'));
+const CertificateVerifyPage = lazy(() => import('@/pages/certificates/CertificateVerifyPage'));
+
 const InstructorLivestreamRedirect = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   if (!sessionId) {
@@ -92,6 +98,9 @@ function AppRoutes() {
         {/* NOTE: /home route removed - using / as single entry point for unauthenticated users */}
         <Route path={ROUTES.COURSES} element={<CourseCatalogPage />} />
         <Route path={ROUTES.COURSE_DETAIL} element={<CourseDetailPage />} />
+        
+        {/* Certificate routes (Public) */}
+        <Route path={ROUTES.CERTIFICATES_VERIFY} element={<CertificateVerifyPage />} />
 
         {/* Auth routes - Public (no authentication required) */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
@@ -100,9 +109,6 @@ function AppRoutes() {
         <Route path={ROUTES.TWO_FACTOR} element={<TwoFactorSetupPage />} />
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
-
-        {/* Temporary Public Learning Route - ONLY FOR TESTING UI */}
-        <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
 
         {/* Protected routes - Cần authentication */}
         <Route element={<ProtectedRoute />}>
@@ -118,12 +124,20 @@ function AppRoutes() {
           {/* Universal profile route for all authenticated users */}
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
           
+          {/* Certificate routes (Protected) */}
+          <Route path="/certificates/:id" element={<CertificateDetailPage />} />
+          
           {/* Universal settings route for all authenticated users */}
           <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
 
-          {/* Student routes */}
-          <Route element={<RoleGuard allowedRoles={['student']} />}>
+          {/* Learning routes - accessible to all authenticated users who can enroll (student, instructor, admin, super_admin) */}
+          <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>
             <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
+            <Route path={ROUTES.STUDENT.LESSON} element={<LessonDetailPage />} />
+          </Route>
+
+          {/* Student-only routes (dashboard, profile, etc.) */}
+          <Route element={<RoleGuard allowedRoles={['student']} />}>
             <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
             <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentMyCoursesPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENTS} element={<StudentAssignmentsPage />} />
@@ -137,15 +151,40 @@ function AppRoutes() {
             {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
           </Route>
 
+          {/* Quiz & Assignment routes: cho phép cả student + instructor xem giao diện làm bài */}
+          <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>
+            <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
+            <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
+            <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
+          </Route>
+
+          {/* Livestream create route & course management & course editor - outside instructor layout */}
+          <Route element={<RoleGuard allowedRoles={['instructor', 'admin', 'super_admin']} />}>
+            <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />
+            <Route path={ROUTES.COURSE_MANAGEMENT} element={<MyCoursesPage />} />
+            <Route path={ROUTES.COURSE_MANAGEMENT_DETAIL} element={<CourseManagementDetailPage />} />
+            <Route path={ROUTES.COURSE_CREATE} element={<CourseEditorPage />} />
+            <Route path={ROUTES.COURSE_CURRICULUM} element={<CurriculumBuilderPage />} />
+          </Route>
+
           {/* Instructor routes - CHỈ dành cho instructor */}
           <Route element={<RoleGuard allowedRoles={['instructor']} />}>
             <Route element={<InstructorDashboardLayout />}>
               <Route path={ROUTES.INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
               <Route path={ROUTES.INSTRUCTOR.MY_COURSES} element={<MyCoursesPage />} />
               <Route path={ROUTES.INSTRUCTOR.COURSE_DETAIL} element={<InstructorCourseDetailPage />} />
-              <Route path={ROUTES.INSTRUCTOR.COURSE_EDIT} element={<CourseEditorPage />} />
-              <Route path={ROUTES.INSTRUCTOR.COURSE_CREATE} element={<CourseEditorPage />} />
-              <Route path={ROUTES.INSTRUCTOR.CURRICULUM} element={<CurriculumBuilderPage />} />
+              <Route
+                path={ROUTES.INSTRUCTOR.COURSE_EDIT}
+                element={<Navigate to={ROUTES.COURSE_MANAGEMENT} replace />}
+              />
+              <Route
+                path={ROUTES.INSTRUCTOR.COURSE_CREATE}
+                element={<Navigate to={ROUTES.COURSE_CREATE} replace />}
+              />
+              <Route
+                path={ROUTES.INSTRUCTOR.CURRICULUM}
+                element={<Navigate to={ROUTES.COURSE_MANAGEMENT} replace />}
+              />
               <Route path={ROUTES.INSTRUCTOR.QUIZ_BUILDER} element={<QuizBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.QUIZ_EDIT} element={<QuizBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.ASSIGNMENT_CREATE} element={<AssignmentBuilderPage />} />
