@@ -327,8 +327,14 @@ export function useSendMessage(conversationId: string) {
           context.previousInfiniteMessages
         );
       }
-      toast.error(error.message || 'Failed to send message');
+      
+      // Don't show toast for rate limiting errors (429) - already handled by interceptor
+      // Only show toast for other errors
+      if (error instanceof Error && !error.message.includes('429') && !error.message.includes('Too many')) {
+        toast.error(error.message || 'Failed to send message');
+      }
     },
+    retry: false, // Don't retry on failure to avoid spam
     onSettled: () => {
       // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
@@ -382,10 +388,71 @@ export function useMarkAsRead() {
 
   return useMutation({
     mutationFn: (conversationId: string) => conversationApi.markAsRead(conversationId),
-    onSuccess: () => {
+    onMutate: async (conversationId) => {
+      // Optimistic update: immediately update messages cache to show read status
+      // This makes the UI feel instant instead of waiting for server response
+      const currentUserId = useAuthStore.getState().user?.id;
+      
+      if (currentUserId) {
+        // Update messages cache optimistically
+        queryClient.setQueryData(
+          conversationKeys.messages(conversationId),
+          (oldData: any) => {
+            if (!oldData?.data) return oldData;
+            return {
+              ...oldData,
+              data: oldData.data.map((msg: any) => {
+                // Mark all messages NOT sent by current user as read (messages received by current user)
+                if (msg.sender_id !== currentUserId && !msg.is_read) {
+                  return {
+                    ...msg,
+                    is_read: true,
+                    status: 'read',
+                  };
+                }
+                return msg;
+              }),
+            };
+          }
+        );
+        
+        // Also update infinite messages cache
+        queryClient.setQueryData(
+          [...conversationKeys.messages(conversationId), 'infinite'],
+          (oldData: any) => {
+            if (!oldData?.data) return oldData;
+            return {
+              ...oldData,
+              data: oldData.data.map((msg: any) => {
+                if (msg.sender_id !== currentUserId && !msg.is_read) {
+                  return {
+                    ...msg,
+                    is_read: true,
+                    status: 'read',
+                  };
+                }
+                return msg;
+              }),
+            };
+          }
+        );
+      }
+    },
+    onSuccess: (_, conversationId) => {
+      console.log('✅ [MARK_AS_READ] Success! Refetching messages for conversation:', conversationId);
+      // Invalidate all related queries to refresh UI
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
       queryClient.invalidateQueries({ queryKey: conversationKeys.unreadCount() });
+      // CRITICAL: Refetch messages to get updated read status from server
+      queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
+      queryClient.invalidateQueries({ queryKey: [...conversationKeys.messages(conversationId), 'infinite'] });
     },
+    onError: (error) => {
+      // Silently handle errors - don't show toast for mark as read failures
+      // This is a background operation and shouldn't interrupt user experience
+      console.warn('[useMarkAsRead] Failed to mark conversation as read:', error);
+    },
+    retry: false, // Don't retry on failure to avoid spam
   });
 }
 
@@ -427,8 +494,9 @@ export function useOnlineStatus(conversationId: string | undefined) {
     queryKey: conversationKeys.onlineStatus(conversationId || ''),
     queryFn: () => conversationApi.getOnlineStatus(conversationId!),
     enabled: !!conversationId,
-    refetchInterval: 10000, // Refresh every 10 seconds
-    staleTime: 5000, // Consider stale after 5 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds (reduced from 10s to avoid rate limiting)
+    staleTime: 20000, // Consider stale after 20 seconds
+    refetchOnWindowFocus: false, // Don't refetch on window focus to reduce requests
   });
 }
 

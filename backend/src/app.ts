@@ -14,6 +14,7 @@ import { specs, swaggerUi } from './config/swagger.config';
 // Import middlewares
 import { requestIdMiddleware, loggerMiddleware } from '@middlewares/logger.middleware';
 import { errorHandler, notFoundHandler } from '@middlewares/error.middleware';
+import logger from '@utils/logger.util';
 
 // Import error handling system
 import { ErrorHandler } from './errors/error.handler';
@@ -89,16 +90,49 @@ if (process.env.DISABLE_CACHE !== 'true') {
 // Rate limiting (allow disabling in tests via DISABLE_RATE_LIMIT=true)
 // Skip rate limiting for Socket.IO path (Socket.IO handles its own rate limiting)
 if (process.env.DISABLE_RATE_LIMIT !== 'true' && process.env.NODE_ENV !== 'test') {
+  // Increase rate limit for development environment
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const maxRequests = isDevelopment 
+    ? APP_CONSTANTS.SYSTEM.RATE_LIMIT_MAX_REQUESTS * 3 // 300 requests in dev
+    : APP_CONSTANTS.SYSTEM.RATE_LIMIT_MAX_REQUESTS; // 100 requests in production
+  
   const limiter = rateLimit({
     windowMs: APP_CONSTANTS.SYSTEM.RATE_LIMIT_WINDOW_MS,
-    max: APP_CONSTANTS.SYSTEM.RATE_LIMIT_MAX_REQUESTS,
+    max: maxRequests,
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
       // Skip rate limiting for Socket.IO
-      return req.path?.startsWith('/socket.io') || false;
-    }
+      if (req.path?.startsWith('/socket.io')) return true;
+      
+      // Skip rate limiting for read-only GET endpoints that are frequently polled
+      // These are safe to exclude as they don't modify data
+      const readOnlyPaths = [
+        '/conversations/online-status', // Online status polling
+        '/chat/unread-count', // Unread count polling
+      ];
+      
+      if (req.method === 'GET' && readOnlyPaths.some(path => req.path?.includes(path))) {
+        return true;
+      }
+      
+      return false;
+    },
+    // Better error handling
+    handler: (req, res) => {
+      logger.warn('Rate limit exceeded', {
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        userAgent: req.get('user-agent'),
+      });
+      res.status(429).json({
+        success: false,
+        error: 'Too many requests from this IP, please try again later.',
+        retryAfter: Math.ceil(APP_CONSTANTS.SYSTEM.RATE_LIMIT_WINDOW_MS / 1000),
+      });
+    },
   });
   app.use(limiter);
 }

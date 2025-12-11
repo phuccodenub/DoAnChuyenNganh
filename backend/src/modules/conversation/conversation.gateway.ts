@@ -463,6 +463,25 @@ export class ConversationGateway {
   public isUserOnline(userId: string): boolean {
     return this.userSockets.has(userId) && this.userSockets.get(userId)!.size > 0;
   }
+
+  /**
+   * Emit conversation read event (can be called from controller)
+   * Notifies the other participant that messages were read
+   */
+  public emitConversationRead(conversationId: string, readerId: string): void {
+    try {
+      // Emit to conversation room to notify other participant
+      this.io.to(`dm:${conversationId}`).emit(DMSocketEvents.MESSAGE_READ, {
+        conversationId,
+        readBy: readerId,
+        readAt: new Date(),
+      });
+
+      logger.info(`📤 [REST API] Emitted MESSAGE_READ for conversation ${conversationId.substring(0, 8)} by ${readerId.substring(0, 8)}`);
+    } catch (error) {
+      logger.error(`❌ [REST API] Failed to emit MESSAGE_READ:`, error);
+    }
+  }
 }
 
 // Singleton instance holder

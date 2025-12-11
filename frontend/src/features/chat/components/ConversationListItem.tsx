@@ -15,6 +15,8 @@ import { useAuth } from '@/hooks/useAuth';
 interface ExtendedConversationListItemProps extends ConversationListItemProps {
     /** Is the other user typing */
     isTyping?: boolean;
+    /** Real-time online status (overrides participant.online_status if provided) */
+    isOnline?: boolean;
 }
 
 export function ConversationListItem({
@@ -22,9 +24,15 @@ export function ConversationListItem({
     isSelected,
     onClick,
     isTyping = false,
+    isOnline,
 }: ExtendedConversationListItemProps) {
     const { participant, course_title, last_message, unread_count } = conversation;
     const { user } = useAuth();
+    
+    // Use real-time online status if provided, otherwise fallback to participant.online_status
+    const onlineStatus = isOnline !== undefined 
+        ? (isOnline ? 'online' : 'offline')
+        : participant.online_status;
 
     return (
         <button
@@ -52,7 +60,7 @@ export function ConversationListItem({
                     )}
                 </div>
                 <OnlineStatusDot
-                    status={participant.online_status}
+                    status={onlineStatus}
                     className="absolute bottom-0 right-0"
                 />
             </div>
@@ -92,9 +100,9 @@ export function ConversationListItem({
                             </p>
                         ) : (
                             <div className="flex items-center gap-1.5">
-                                <OnlineStatusDot status={participant.online_status} className="flex-shrink-0" />
+                                <OnlineStatusDot status={onlineStatus} className="flex-shrink-0" />
                                 <span className="text-xs text-gray-500">
-                                    {participant.online_status === 'online' ? 'Đang hoạt động' : 'Không hoạt động'}
+                                    {onlineStatus === 'online' ? 'Đang hoạt động' : 'Không hoạt động'}
                                 </span>
                             </div>
                         )}

@@ -15,7 +15,7 @@
  * @since 2024-12-03
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -110,6 +110,18 @@ function transformMessage(
     }
     
     // Simplified: không cần determine role từ conv.student_id nữa
+    // Determine status: prioritize is_read for "read" status, otherwise use status field
+    let messageStatus: MessageStatus = 'sent';
+    if (msg.is_read) {
+        messageStatus = 'read';
+    } else if (msg.status === 'read') {
+        messageStatus = 'read';
+    } else if (msg.status === 'delivered') {
+        messageStatus = 'delivered';
+    } else {
+        messageStatus = 'sent';
+    }
+    
     return {
         id: msg.id,
         conversation_id: msg.conversation_id,
@@ -117,7 +129,7 @@ function transformMessage(
         sender_role: 'student', // simplified for DM
         content: msg.content,
         created_at: msg.created_at || '', // Empty string if missing
-        status: msg.status === 'read' ? 'read' : msg.status === 'delivered' ? 'delivered' : 'sent',
+        status: messageStatus,
         attachment: msg.attachment_url ? {
             type: msg.attachment_type === 'image' ? 'image' : 'file',
             url: msg.attachment_url,
@@ -205,8 +217,8 @@ export function MessagesPage() {
             }
         },
         enabled: !!user,
-        staleTime: 1000 * 5, // 5 seconds - balance between freshness and load
-        refetchInterval: 1000 * 15, // 15 seconds backup (reduced frequency)
+        staleTime: 1000 * 20, // 20 seconds - balance between freshness and load
+        refetchInterval: 1000 * 30, // 30 seconds (reduced frequency to avoid rate limiting)
         refetchOnWindowFocus: false, // Disable to reduce requests
     });
 
@@ -278,13 +290,58 @@ export function MessagesPage() {
         }
     }, [routeConversationId, courseIdFromUrl, conversations, selectedConversationId]);
 
-    // Mark conversation as read when selected
+    // Mark conversation as read when selected (with debounce to avoid spam)
+    const markAsReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastMarkAsReadTimeRef = useRef<number>(0);
+    const [isDocumentVisible, setIsDocumentVisible] = useState(!document.hidden);
+    const MARK_AS_READ_DEBOUNCE_MS = 1000; // Minimum 1 second between calls (reduced for faster response)
+
+    // Track document visibility to only mark as read when user is viewing
     useEffect(() => {
-        if (selectedConversationId) {
-            markAsReadMutation.mutate(selectedConversationId);
+        const handleVisibilityChange = () => {
+            setIsDocumentVisible(!document.hidden);
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+    
+    useEffect(() => {
+        // Only mark as read if document is visible (user is viewing the tab)
+        if (selectedConversationId && !markAsReadMutation.isPending && isDocumentVisible) {
+            const now = Date.now();
+            const timeSinceLastCall = now - lastMarkAsReadTimeRef.current;
+            
+            // Clear any pending timeout
+            if (markAsReadTimeoutRef.current) {
+                clearTimeout(markAsReadTimeoutRef.current);
+            }
+            
+            // Only call if enough time has passed since last call
+            if (timeSinceLastCall >= MARK_AS_READ_DEBOUNCE_MS) {
+                markAsReadMutation.mutate(selectedConversationId);
+                lastMarkAsReadTimeRef.current = now;
+            } else {
+                // Schedule for later
+                const remainingTime = MARK_AS_READ_DEBOUNCE_MS - timeSinceLastCall;
+                markAsReadTimeoutRef.current = setTimeout(() => {
+                    if (!markAsReadMutation.isPending && isDocumentVisible) {
+                        markAsReadMutation.mutate(selectedConversationId);
+                        lastMarkAsReadTimeRef.current = Date.now();
+                    }
+                }, remainingTime);
+            }
         }
+        
+        return () => {
+            if (markAsReadTimeoutRef.current) {
+                clearTimeout(markAsReadTimeoutRef.current);
+            }
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedConversationId]);
+    }, [selectedConversationId, isDocumentVisible]);
 
     // Handle send message
     const handleSendMessage = useCallback((content: string) => {
@@ -375,6 +432,7 @@ export function MessagesPage() {
                             isParticipantOnline={onlineStatusData?.data?.isOnline}
                             onLoadMore={(oldestDate) => loadOlderMessagesMutation.mutate(oldestDate)}
                             isLoadingMore={loadOlderMessagesMutation.isPending}
+                            onMarkAsRead={selectedConversationId ? () => markAsReadMutation.mutate(selectedConversationId) : undefined}
                         />
                     )}
 
