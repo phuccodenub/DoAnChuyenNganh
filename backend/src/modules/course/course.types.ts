@@ -263,10 +263,15 @@ export namespace CourseTypes {
     status?: CourseStatus;
   }
 
+  // Enrollment progress status for filtering enrolled courses
+  export type EnrollmentProgressStatus = 'all' | 'in-progress' | 'completed' | 'not-started';
+
   export interface GetEnrolledCoursesOptions {
     page: number;
     limit: number;
-    status?: CourseStatus;
+    status?: EnrollmentProgressStatus;
+    search?: string;
+    sort?: 'last_accessed' | 'progress' | 'title' | 'created_at';
   }
 
   export interface CoursesResponse {
@@ -304,7 +309,9 @@ export interface GetCoursesByInstructorOptions {
 export interface GetEnrolledCoursesOptions {
   page: number;
   limit: number;
-  status?: CourseTypes.CourseStatus;
+  status?: CourseTypes.EnrollmentProgressStatus;
+  search?: string;
+  sort?: 'last_accessed' | 'progress' | 'title' | 'created_at';
 }
 
 export interface GetCourseStudentsOptions {

@@ -16,6 +16,7 @@ import {
   User,
   Search,
   Bell,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore.enhanced';
@@ -48,6 +49,11 @@ const navItems = [
     label: 'Quản lý danh mục',
   },
   {
+    path: ROUTES.SHARED.MESSAGES,
+    icon: MessageCircle,
+    label: 'Tin nhắn',
+  },
+  {
     path: ROUTES.ADMIN.NOTIFICATIONS,
     icon: Bell,
     label: 'Quản lý thông báo',
@@ -66,6 +72,11 @@ const navItems = [
     path: ROUTES.ADMIN.SYSTEM_SETTINGS,
     icon: Settings,
     label: 'Cài đặt hệ thống',
+  },
+  {
+    path: ROUTES.SETTINGS,
+    icon: User,
+    label: 'Cài đặt tài khoản',
   },
 ];
 
@@ -89,6 +100,7 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const autoCollapseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -121,6 +133,34 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [profileMenuOpen]);
+
+  // Auto-collapse sidebar after 15 seconds when expanded
+  useEffect(() => {
+    if (autoCollapseTimerRef.current) {
+      clearTimeout(autoCollapseTimerRef.current);
+      autoCollapseTimerRef.current = null;
+    }
+
+    if (!sidebarCollapsed) {
+      autoCollapseTimerRef.current = setTimeout(() => {
+        setSidebarCollapsed(true);
+      }, 15000);
+    }
+
+    return () => {
+      if (autoCollapseTimerRef.current) {
+        clearTimeout(autoCollapseTimerRef.current);
+      }
+    };
+  }, [sidebarCollapsed]);
+
+  // Expand sidebar when clicking on a nav item
+  const handleNavClick = () => {
+    setSidebarOpen(false);
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -210,7 +250,7 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
             <NavLink
               key={item.path}
               to={item.path}
-              onClick={() => setSidebarOpen(false)}
+              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 rounded-lg transition-all duration-200 group',

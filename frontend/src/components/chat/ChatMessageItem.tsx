@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Edit2, MessageCircle } from 'lucide-react';
+import { Trash2, Edit2, MessageCircle, File } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { ChatMessage } from '@/services/api/chat.api';
@@ -14,6 +14,17 @@ interface ChatMessageItemProps {
   onReply?: (message: ChatMessage) => void;
 }
 
+// Helper to get sender display info
+function getSenderInfo(message: ChatMessage) {
+  if (message.sender) {
+    return {
+      name: `${message.sender.first_name} ${message.sender.last_name}`.trim(),
+      avatar: message.sender.avatar,
+    };
+  }
+  return { name: 'Unknown', avatar: undefined };
+}
+
 /**
  * Chat Message Item Component
  * Displays a single chat message with actions
@@ -26,13 +37,15 @@ export function ChatMessageItem({
   onDelete,
   onReply,
 }: ChatMessageItemProps) {
+  const senderInfo = getSenderInfo(message);
+  
   return (
     <div className={`flex gap-2 mb-4 ${isOwn ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
-      {message.senderAvatar && (
+      {senderInfo.avatar && (
         <img
-          src={message.senderAvatar}
-          alt={message.senderName}
+          src={senderInfo.avatar}
+          alt={senderInfo.name}
           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
         />
       )}
@@ -47,12 +60,12 @@ export function ChatMessageItem({
         {!isOwn && (
           <div className="flex gap-2 items-center px-3 pt-1">
             <span className="text-sm font-semibold text-gray-900">
-              {message.senderName}
+              {senderInfo.name}
             </span>
             <span className="text-xs text-gray-500">
               {format(new Date(message.createdAt), 'HH:mm', { locale: vi })}
             </span>
-            {message.isEdited && (
+            {message.is_edited && (
               <span className="text-xs text-gray-400">(edited)</span>
             )}
           </div>
@@ -73,29 +86,29 @@ export function ChatMessageItem({
                 isOwn ? 'border-blue-400 text-blue-100' : 'border-gray-300 text-gray-700'
               }`}
             >
-              <div className="font-semibold">{message.replyToMessage.senderName}</div>
+              <div className="font-semibold">{getSenderInfo(message.replyToMessage).name}</div>
               <div className="truncate">{message.replyToMessage.content}</div>
             </div>
           )}
 
           {/* Content */}
-          {message.messageType === 'text' && (
+          {message.message_type === 'text' && (
             <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
               {message.content}
             </p>
           )}
 
           {/* File */}
-          {message.messageType === 'file' && message.fileUrl && (
+          {message.message_type === 'file' && message.attachment_url && (
             <div className="flex gap-2 items-center">
-              <Trash2 className="w-4 h-4" />
+              <File className="w-4 h-4" />
               <a
-                href={message.fileUrl}
+                href={message.attachment_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline text-sm hover:opacity-80"
               >
-                {message.fileName} ({Math.round((message.fileSize || 0) / 1024)} KB)
+                {message.attachment_name || 'File'} ({Math.round((message.attachment_size || 0) / 1024)} KB)
               </a>
             </div>
           )}
@@ -107,7 +120,7 @@ export function ChatMessageItem({
             <span className="text-xs text-gray-500">
               {format(new Date(message.createdAt), 'HH:mm', { locale: vi })}
             </span>
-            {message.isEdited && (
+            {message.is_edited && (
               <span className="text-xs text-gray-400">(edited)</span>
             )}
             <MessageStatus status={deliveryStatus} />

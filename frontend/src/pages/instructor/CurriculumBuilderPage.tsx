@@ -20,7 +20,7 @@ import {
 
 import { LessonModal } from './components/courseDetail/LessonModal';
 import { ContentType as LessonContentType } from './components/courseDetail/types';
-import { ROUTES, generateRoute } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 
 // Import hooks và types
 import {
@@ -54,6 +54,7 @@ interface SectionWithExpanded extends CourseSection {
 export function CurriculumBuilderPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const { routes, navigateTo, canPerform } = useRoleBasedNavigation();
 
   if (!courseId) {
     return (
@@ -114,13 +115,13 @@ export function CurriculumBuilderPage() {
     video_url: '',
   });
 
-  // Step wizard data
+  // Step wizard data - sử dụng role-based routes
   const steps = [
     {
       id: 'landing',
       title: 'Course Landing',
       description: 'Basic info & description',
-      route: courseId ? generateRoute.courseManagement(courseId) : ROUTES.COURSE_CREATE,
+      route: routes.courseEdit(courseId || 'new'),
     },
     {
       id: 'curriculum',
@@ -344,29 +345,23 @@ export function CurriculumBuilderPage() {
   /**
    * Xử lý khi click Edit trên lesson/content item
    */
-  const handleEditContentItem = (sectionId: string, lesson: CourseLesson) => {
-    if (lesson.content_type === 'quiz' && courseId) {
-      // Điều hướng đến QuizBuilderPage
-      navigate(generateRoute.instructor.quizCreate(courseId));
+  const handleEditContentItem = (sectionId: string, lessonId: string, contentItem: ContentItemData) => {
+    if (contentItem.type === 'quiz' && courseId) {
+      // Điều hướng đến QuizBuilderPage với quizId (nếu có) hoặc tạo mới
+      // TODO: Khi tích hợp API, cần lấy quizId thực từ contentItem
+      // Sử dụng role-based navigation
+      if (canPerform.createQuiz) {
+        navigateTo.quizCreate(courseId);
+      } else {
+        // Admin không có quyền tạo quiz, redirect về course detail
+        navigateTo.courseDetail(courseId);
+      }
       return;
     }
 
-    if (lesson.content_type === 'video' || lesson.content_type === 'document') {
-      // Mở LessonModal để chỉnh sửa
-      setEditingLesson({ sectionId, lesson });
-      setLessonForm({
-        title: lesson.title,
-        content_type: lesson.content_type as LessonContentType,
-        duration_minutes: lesson.duration_minutes || 0,
-        is_preview: lesson.is_free_preview || false,
-        video_url: lesson.video_url || '',
-      });
-      setIsLessonModalOpen(true);
-      return;
-    }
-
-    // TODO: Mở modal chỉnh sửa cho assignment
-    console.log('Edit lesson:', lesson);
+    // TODO: Handle other content types (video, document, assignment)
+    // For now, just log
+    console.log('Edit content item:', contentItem);
   };
 
   /**
@@ -449,7 +444,8 @@ export function CurriculumBuilderPage() {
     try {
       await refetch();
       toast.success('Đã lưu curriculum');
-      navigate(ROUTES.COURSE_MANAGEMENT);
+      // Sử dụng role-based navigation
+      navigateTo.myCourses();
     } catch (error) {
       toast.error('Không thể lưu curriculum');
     }

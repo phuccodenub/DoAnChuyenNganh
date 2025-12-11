@@ -65,7 +65,12 @@ export class ChatGateway {
       try {
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
 
+        logger.debug(`[ChatGateway] Socket ${socket.id} auth attempt`);
+        logger.debug(`[ChatGateway] Token present: ${!!token}, length: ${(token || '').length}`);
+
         if (!token) {
+          logger.warn(`[ChatGateway] ❌ Socket ${socket.id} - No token provided`);
+          socket.emit('auth_error', { message: 'Authentication token required' });
           return next(new Error('Authentication token required'));
         }
 
@@ -79,9 +84,11 @@ export class ChatGateway {
           role: decoded.role
         } as SocketUser;
 
+        logger.info(`[ChatGateway] ✅ Socket ${socket.id} authenticated - User: ${decoded.userId} (${decoded.email})`);
         next();
       } catch (error: unknown) {
-        logger.error('Socket authentication error:', error);
+        logger.error(`[ChatGateway] ❌ Socket auth error:`, error);
+        socket.emit('auth_error', { message: 'Authentication failed', error: (error as Error).message });
         next(new Error('Authentication failed'));
       }
     });
@@ -103,6 +110,14 @@ export class ChatGateway {
 
       // Track user connection
       this.trackUserConnection(user.userId, socket.id, user);
+      
+      // ✅ FIX: Auto-join global user room (like notification/DM gateway)
+      const userRoom = `user:${user.userId}`;
+      socket.join(userRoom);
+      logger.info(`✅ User ${user.userId} auto-joined global room: ${userRoom}`);
+
+      // Emit authenticated event for NotificationGateway to catch
+      socket.emit('notification:authenticated', user);
 
       // Setup event listeners
       this.handleJoinRoom(socket);
@@ -253,8 +268,8 @@ export class ChatGateway {
       try {
         const user = (socket as any).user as SocketUser;
 
-        // Validate message
-        if (!data.message || data.message.trim().length === 0) {
+        // Validate message content
+        if (!data.content || data.content.trim().length === 0) {
           socket.emit(ChatSocketEvents.ERROR, {
             code: ChatErrorCodes.INVALID_MESSAGE,
             message: 'Message cannot be empty'
@@ -265,7 +280,7 @@ export class ChatGateway {
         // Create message in database
         const message = await this.chatService.sendMessage({
           ...data,
-          sender_id: user.userId
+          user_id: user.userId
         });
 
         if (!message) {
@@ -279,12 +294,28 @@ export class ChatGateway {
         // Track message delivery status (initially 'sent')
         deliveryTracker.markDelivered(message.id, user.userId);
 
-        // Broadcast to room
-        this.io.to(`course:${data.course_id}`).emit(ChatSocketEvents.NEW_MESSAGE, message);
+        // ✅ Broadcast to course room (EXCLUDING sender via broadcast)
+        socket.broadcast.to(`course:${data.course_id}`).emit(ChatSocketEvents.NEW_MESSAGE, message);
+
+        // ✅ FIX: ALSO emit to OTHER course members' global rooms (excluding sender)
+        // This ensures instant delivery even if members haven't joined the chat room yet
+        const memberIds = await this.chatService.getCourseMemberIds(data.course_id);
+        logger.info(`✅ [Socket.IO Course Chat] Emitting to ${memberIds.length} members' global rooms (excluding sender)`, {
+          courseId: data.course_id.substring(0, 8),
+          messageId: message.id.substring(0, 8),
+          senderId: user.userId.substring(0, 8),
+        });
+        
+        // Emit to all members EXCEPT sender
+        memberIds.forEach(memberId => {
+          if (memberId !== user.userId) {
+            this.io.to(`user:${memberId}`).emit(ChatSocketEvents.NEW_MESSAGE, message);
+          }
+        });
 
         // Confirm to sender with delivery status
         socket.emit(ChatSocketEvents.MESSAGE_SENT, {
-          tempId: data.reply_to, // Can be used for optimistic updates
+          tempId: data.reply_to_message_id, // Can be used for optimistic updates
           message,
           deliveryStatus: 'sent'
         });
@@ -310,7 +341,7 @@ export class ChatGateway {
    * Handle edit message event
    */
   private handleEditMessage(socket: Socket): void {
-    socket.on(ChatSocketEvents.EDIT_MESSAGE, async (data: { messageId: string; message: string; courseId: string }) => {
+    socket.on(ChatSocketEvents.EDIT_MESSAGE, async (data: { messageId: string; content: string; courseId: string }) => {
       try {
         const user = (socket as any).user as SocketUser;
 
@@ -318,7 +349,7 @@ export class ChatGateway {
         const updatedMessage = await this.chatService.updateMessage(
           data.messageId,
           user.userId,
-          { message: data.message }
+          { content: data.content }
         );
 
         // Broadcast to room
@@ -506,4 +537,53 @@ export class ChatGateway {
   public getActiveRoomsCount(): number {
     return this.chatRooms.size;
   }
+
+  /**
+   * Notify course about new message (can be called from controller)
+   * Emits to global user rooms for real-time delivery
+   * EXCLUDES the sender to prevent duplicate messages on sender's UI
+   */
+  public async notifyNewMessage(courseId: string, message: any, senderId: string): Promise<void> {
+    // Serialize message to plain object
+    const serializedMessage = message?.toJSON ? message.toJSON() : message;
+    
+    logger.info(`📤 [REST API Course Chat] Emitting NEW_MESSAGE (excluding sender ${senderId.substring(0, 8)}):`, {
+      messageId: serializedMessage?.id?.substring(0, 8),
+      courseId: courseId.substring(0, 8),
+    });
+    
+    try {
+      // Get all course members
+      const memberIds = await this.chatService.getCourseMemberIds(courseId);
+      
+      logger.info(`📡 [REST API Course Chat] Emitting to ${memberIds.length} members' global rooms:`, {
+        courseId: courseId.substring(0, 8),
+        memberIds: memberIds.map(id => id.substring(0, 8)),
+        senderId: senderId.substring(0, 8),
+      });
+      
+      // Emit to all members' global rooms EXCEPT sender
+      memberIds.forEach(memberId => {
+        if (memberId !== senderId) {
+          this.io.to(`user:${memberId}`).emit(ChatSocketEvents.NEW_MESSAGE, serializedMessage);
+          logger.debug(`  → Emitted to user:${memberId.substring(0, 8)}`);
+        }
+      });
+      
+      logger.info(`✅ [REST API Course Chat] Emitted NEW_MESSAGE to ${memberIds.length - 1} recipients (sender excluded)`);
+    } catch (error) {
+      logger.error(`❌ [REST API Course Chat] Failed to emit to global rooms:`, error);
+    }
+  }
+}
+
+// Singleton instance holder
+let chatGateway: ChatGateway | null = null;
+
+export function setChatGateway(gateway: ChatGateway): void {
+  chatGateway = gateway;
+}
+
+export function getChatGateway(): ChatGateway | null {
+  return chatGateway;
 }

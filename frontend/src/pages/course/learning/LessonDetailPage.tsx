@@ -11,7 +11,9 @@ import {
   Monitor,
   ArrowLeft,
   AlertCircle,
-  ClipboardList
+  ClipboardList,
+  Bookmark,
+  BookmarkCheck
 } from 'lucide-react';
 import { MainLayout } from '@/layouts/MainLayout';
 import { PageWrapper } from '@/components/courseEditor';
@@ -21,7 +23,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { CurriculumTree } from '@/components/domain/lesson/CurriculumTree';
 import { DocumentViewer } from '@/components/domain/lesson/DocumentViewer';
-import { useLesson, useCourseContent, useMarkLessonComplete } from '@/hooks/useLessonData';
+import { useLesson, useCourseContent, useMarkLessonComplete, useLessonProgress, useUpdateProgress, useCourseBookmarks } from '@/hooks/useLessonData';
+import { AiAssistantCard } from '@/components/domain/lesson/AiAssistantCard';
 import { useCourse, useCourseProgress } from '@/hooks/useCoursesData';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES, generateRoute } from '@/constants/routes';
@@ -558,10 +561,12 @@ export function LessonDetailPage() {
   const queryClient = useQueryClient();
 
   const { data: lessonData, isLoading: isLessonLoading, error: lessonError } = useLesson(lessonId!);
+  const { data: lessonProgress } = useLessonProgress(lessonId!);
   const { data: courseContent, isLoading: isContentLoading } = useCourseContent(courseId!);
   const { data: courseData } = useCourse(courseId!);
   const { isAuthenticated } = useAuth();
   const [isUserEnrolled, setIsUserEnrolled] = useState(false);
+  const { data: bookmarks } = useCourseBookmarks(courseId!);
   
   // Fetch progress data để có thông tin completion status
   const { data: progressData } = useCourseProgress(courseId!, isUserEnrolled);
@@ -882,6 +887,25 @@ export function LessonDetailPage() {
     });
   };
 
+  const updateProgressMutation = useUpdateProgress();
+  const isBookmarked = lessonProgress?.bookmarked ?? false;
+
+  const handleToggleBookmark = () => {
+    if (!lessonId) return;
+    const nextState = !isBookmarked;
+    updateProgressMutation.mutate(
+      { lessonId, data: { bookmarked: nextState } },
+      {
+        onSuccess: () => {
+          toast.success(nextState ? 'Đã lưu bài học' : 'Đã bỏ lưu bài học');
+        },
+        onError: (error: any) => {
+          toast.error(error?.response?.data?.message || 'Không thể cập nhật bookmark');
+        }
+      }
+    );
+  };
+
   const handleNavigateToLesson = (targetLessonId: string) => {
     // Xử lý quiz/assignment items (có id dạng quiz-${id} hoặc assignment-${id})
     if (targetLessonId.startsWith('quiz-')) {
@@ -974,7 +998,7 @@ export function LessonDetailPage() {
               {/* Lesson Content */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <CardTitle className="text-2xl mb-2">{lesson.title}</CardTitle>
                       {/* Chỉ hiển thị description nếu nó khác với content và không phải HTML */}
@@ -985,6 +1009,22 @@ export function LessonDetailPage() {
                         <p className="text-gray-600 mt-2">{lesson.description}</p>
                       )}
                     </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Button
+                      variant={isBookmarked ? 'secondary' : 'outline'}
+                      size="sm"
+                      onClick={handleToggleBookmark}
+                      disabled={updateProgressMutation.isPending}
+                      className="flex items-center gap-2"
+                    >
+                      {isBookmarked ? (
+                        <BookmarkCheck className="w-4 h-4 text-blue-600" />
+                      ) : (
+                        <Bookmark className="w-4 h-4" />
+                      )}
+                      <span>{isBookmarked ? 'Đã lưu' : 'Lưu bài học'}</span>
+                    </Button>
+                  </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 pt-0">
@@ -1002,6 +1042,14 @@ export function LessonDetailPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* AI Assistant */}
+              <AiAssistantCard
+                courseTitle={course?.title}
+                courseDescription={course?.description}
+                lessonTitle={lesson.title}
+                lessonId={lesson.id}
+              />
 
               {/* Navigation */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -1085,6 +1133,32 @@ export function LessonDetailPage() {
                       </div>
                     );
                   })}
+
+                  {/* Bookmarked lessons */}
+                  {bookmarks && bookmarks.length > 0 && (
+                    <div className="px-5 py-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900">Bài học đã lưu</h3>
+                        <Bookmark className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        {bookmarks.map((item) => (
+                          <button
+                            key={item.lesson_id}
+                            onClick={() => handleNavigateToLesson(item.lesson_id)}
+                            className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-50 border border-gray-100 flex items-start gap-2"
+                          >
+                            <div className="text-xs text-gray-500 min-w-[36px]">
+                              {item.section_title}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900 line-clamp-1">{item.lesson_title}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

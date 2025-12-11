@@ -22,6 +22,7 @@ export function ConversationList({
     onFilterChange,
     searchQuery = '',
     onSearchChange,
+    onlineStatusMap,
 }: ConversationListProps) {
     const [localSearch, setLocalSearch] = useState(searchQuery);
 
@@ -128,6 +129,7 @@ export function ConversationList({
                                 conversation={conversation}
                                 isSelected={conversation.id === selectedId}
                                 onClick={() => onSelect(conversation.id)}
+                                isOnline={onlineStatusMap?.[conversation.id]}
                             />
                         ))}
                     </div>

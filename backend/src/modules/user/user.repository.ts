@@ -485,5 +485,147 @@ export class UserModuleRepository extends BaseUserRepository {
       throw error;
     }
   }
-}
 
+  /**
+   * Search users by name or email for chat/messaging
+   * Role-based filtering:
+   * - Admin: can search all users
+   * - Instructor: can only search students enrolled in their courses
+   * - Student: can only search classmates (students in same courses)
+   */
+  async searchUsers(searchTerm: string, options?: { 
+    limit?: number; 
+    excludeUserId?: string;
+    currentUserId?: string;
+    currentUserRole?: string;
+  }): Promise<UserInstance[]> {
+    try {
+      const { Op } = await import('sequelize');
+      const { Enrollment, Course } = await import('../../models');
+      const { limit = 20, excludeUserId, currentUserId, currentUserRole } = options || {};
+      
+      logger.debug('Searching users', { searchTerm, limit, excludeUserId, currentUserRole });
+      
+      if (!searchTerm || searchTerm.length < 2) {
+        return [];
+      }
+      
+      // Build base search condition
+      const searchCondition = {
+        [Op.or]: [
+          { first_name: { [Op.iLike]: `%${searchTerm}%` } },
+          { last_name: { [Op.iLike]: `%${searchTerm}%` } },
+          { email: { [Op.iLike]: `%${searchTerm}%` } },
+          { username: { [Op.iLike]: `%${searchTerm}%` } },
+        ],
+      };
+      
+      const baseWhere: any = {
+        ...searchCondition,
+        status: 'active', // Use 'status' instead of 'is_active'
+      };
+      
+      // Exclude current user if specified
+      if (excludeUserId) {
+        baseWhere.id = { [Op.ne]: excludeUserId };
+      }
+      
+      // Admin/Super Admin: can search all users
+      if (currentUserRole === 'admin' || currentUserRole === 'super_admin') {
+        const users = await (User as any).findAll({
+          where: baseWhere,
+          attributes: ['id', 'first_name', 'last_name', 'email', 'username', 'avatar', 'role'],
+          limit,
+          order: [['first_name', 'ASC'], ['last_name', 'ASC']],
+        });
+        logger.debug('Admin search - users found', { count: users.length });
+        return users;
+      }
+      
+      // Get the courses where the current user is involved
+      let allowedUserIds: string[] = [];
+      
+      if (currentUserRole === 'instructor' && currentUserId) {
+        // Instructor: find students enrolled in their courses
+        const instructorCourses = await (Course as any).findAll({
+          where: { instructor_id: currentUserId },
+          attributes: ['id'],
+        });
+        
+        const courseIds = instructorCourses.map((c: any) => c.id);
+        
+        if (courseIds.length > 0) {
+          // Find all students enrolled in instructor's courses
+          const enrollments = await (Enrollment as any).findAll({
+            where: { 
+              course_id: { [Op.in]: courseIds },
+              status: 'active',
+            },
+            attributes: ['user_id'],
+          });
+          allowedUserIds = [...new Set(enrollments.map((e: any) => e.user_id as string))] as string[];
+        }
+      } else if (currentUserRole === 'student' && currentUserId) {
+        // Student: find classmates (students in same courses)
+        // First, get courses the student is enrolled in
+        const studentEnrollments = await (Enrollment as any).findAll({
+          where: { 
+            user_id: currentUserId,
+            status: 'active',
+          },
+          attributes: ['course_id'],
+        });
+        
+        const courseIds = studentEnrollments.map((e: any) => e.course_id);
+        
+        if (courseIds.length > 0) {
+          // Find all users in those courses (including instructors)
+          const classmateEnrollments = await (Enrollment as any).findAll({
+            where: { 
+              course_id: { [Op.in]: courseIds },
+              status: 'active',
+            },
+            attributes: ['user_id'],
+          });
+          
+          // Also get course instructors
+          const courses = await (Course as any).findAll({
+            where: { id: { [Op.in]: courseIds } },
+            attributes: ['instructor_id'],
+          });
+          
+          const instructorIds = courses.map((c: any) => c.instructor_id as string);
+          const classmateIds = classmateEnrollments.map((e: any) => e.user_id as string);
+          
+          allowedUserIds = [...new Set([...classmateIds, ...instructorIds])] as string[];
+        }
+      }
+      
+      // If no allowed users found, return empty
+      if (allowedUserIds.length === 0 && currentUserRole !== 'admin' && currentUserRole !== 'super_admin') {
+        logger.debug('No allowed users found for role', { currentUserRole });
+        return [];
+      }
+      
+      // Add allowed user IDs filter for non-admin roles
+      if (currentUserRole !== 'admin' && currentUserRole !== 'super_admin') {
+        baseWhere.id = excludeUserId 
+          ? { [Op.and]: [{ [Op.ne]: excludeUserId }, { [Op.in]: allowedUserIds }] }
+          : { [Op.in]: allowedUserIds };
+      }
+      
+      const users = await (User as any).findAll({
+        where: baseWhere,
+        attributes: ['id', 'first_name', 'last_name', 'email', 'username', 'avatar', 'role'],
+        limit,
+        order: [['first_name', 'ASC'], ['last_name', 'ASC']],
+      });
+      
+      logger.debug('Users found', { count: users.length, role: currentUserRole });
+      return users;
+    } catch (error: unknown) {
+      logger.error('Error searching users:', error);
+      throw error;
+    }
+  }
+}

@@ -15,6 +15,7 @@ import {
   MessagesResponse,
 } from '../services/api/conversation.api';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/stores/authStore.enhanced';
 
 // ============ Query Keys ============
 
@@ -28,25 +29,94 @@ export const conversationKeys = {
   messages: (conversationId: string) =>
     [...conversationKeys.all, 'messages', conversationId] as const,
   unreadCount: () => [...conversationKeys.all, 'unread-count'] as const,
+  onlineStatus: (conversationId: string) =>
+    [...conversationKeys.all, 'online-status', conversationId] as const,
 };
 
 // ============ Query Hooks ============
 
 /**
+ * Transform conversation data from API to frontend format
+ */
+function transformConversation(conv: Conversation, currentUserId?: string): any {
+  // Determine which user is the "other" participant by checking IDs
+  // If current user is user1, then participant is user2 (and vice versa)
+  let otherUser;
+  
+  if (currentUserId === conv.user1?.id) {
+    otherUser = conv.user2;
+  } else if (currentUserId === conv.user2?.id) {
+    otherUser = conv.user1;
+  } else {
+    // Fallback: if currentUserId doesn't match either, show user2 as default
+    console.warn('⚠️ Current user ID does not match conversation participants:', conv.id);
+    otherUser = conv.user2;
+  }
+  
+  // Ensure name is constructed properly
+  const participantName = otherUser?.first_name && otherUser?.last_name
+    ? `${otherUser.first_name} ${otherUser.last_name}`.trim()
+    : otherUser?.first_name || otherUser?.last_name || 'Người dùng';
+  
+  // Map 'active' status to 'online' for proper display
+  // NOTE: Database 'status' field is account status (active/inactive), NOT online status
+  // Real-time online status should come from socket gateway via useOnlineStatus hook
+  const participantStatus = otherUser?.status === 'active' ? 'online' : (otherUser?.status || 'offline');
+  
+  return {
+    ...conv,
+    course_title: conv.course?.title || '',
+    participant: {
+      id: otherUser?.id,
+      name: participantName,
+      avatar_url: otherUser?.avatar,
+      online_status: participantStatus,
+    },
+  };
+}
+
+/**
  * Get all conversations for the current user
  */
 export function useConversations(
+  currentUserId?: string,
   params?: { includeArchived?: boolean; limit?: number; offset?: number },
   options?: Omit<UseQueryOptions<ConversationsResponse>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery({
     queryKey: conversationKeys.list(params ? { includeArchived: params.includeArchived } : undefined),
-    queryFn: () =>
-      conversationApi.getConversations({
+    queryFn: async () => {
+      const response = await conversationApi.getConversations({
         include_archived: params?.includeArchived,
         limit: params?.limit,
         offset: params?.offset,
-      }),
+      });
+      
+      // Use provided currentUserId or fallback to token decode
+      let userId = currentUserId || '';
+      
+      if (!userId) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userId = payload.userId;
+          } catch (e) {
+            console.error('Failed to decode token:', e);
+          }
+        }
+      }
+      
+      // Transform conversations
+      const transformedData = response.data.map(conv => {
+        return transformConversation(conv, userId);
+      });
+      
+      return {
+        ...response,
+        data: transformedData,
+      };
+    },
     staleTime: 30 * 1000, // 30 seconds
     ...options,
   });
@@ -76,6 +146,61 @@ export function useMessages(
     queryFn: () => conversationApi.getMessages(conversationId!, params),
     enabled: !!conversationId,
     staleTime: 10 * 1000, // 10 seconds - messages update frequently
+  });
+}
+
+/**
+ * Get messages with infinite scroll support
+ * Returns latest 50 messages, with ability to load older messages
+ */
+export function useInfiniteMessages(conversationId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: [...conversationKeys.messages(conversationId!), 'infinite'],
+    queryFn: async () => {
+      // Fetch latest 50 messages
+      const response = await conversationApi.getMessages(conversationId!, { limit: 50 });
+      return response;
+    },
+    enabled: !!conversationId,
+    staleTime: 10 * 1000,
+  });
+}
+
+/**
+ * Load older messages (for infinite scroll)
+ */
+export function useLoadOlderMessages(conversationId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (oldestMessageDate: string) => {
+      const response = await conversationApi.getMessages(conversationId!, {
+        limit: 50,
+        before: oldestMessageDate,
+      });
+      return response;
+    },
+    onSuccess: (newMessages) => {
+      if (!conversationId) return;
+
+      // Get current messages
+      const currentData = queryClient.getQueryData<MessagesResponse>(
+        [...conversationKeys.messages(conversationId), 'infinite']
+      );
+
+      if (currentData && newMessages.data.length > 0) {
+        // Prepend older messages to the beginning
+        queryClient.setQueryData<MessagesResponse>(
+          [...conversationKeys.messages(conversationId), 'infinite'],
+          {
+            ...currentData,
+            data: [...newMessages.data, ...currentData.data],
+          }
+        );
+      }
+    },
   });
 }
 
@@ -122,32 +247,51 @@ export function useSendMessage(conversationId: string) {
   return useMutation({
     mutationFn: (data: SendMessageInput) => conversationApi.sendMessage(conversationId, data),
     onMutate: async (newMessage) => {
-      // Cancel outgoing refetches
+      // Cancel outgoing refetches for both query keys
       await queryClient.cancelQueries({ queryKey: conversationKeys.messages(conversationId) });
+      await queryClient.cancelQueries({ queryKey: [...conversationKeys.messages(conversationId), 'infinite'] });
 
-      // Snapshot the previous value
+      // Snapshot the previous values
       const previousMessages = queryClient.getQueryData<MessagesResponse>(
         conversationKeys.messages(conversationId)
       );
+      const previousInfiniteMessages = queryClient.getQueryData<MessagesResponse>(
+        [...conversationKeys.messages(conversationId), 'infinite']
+      );
 
-      // Optimistically update
+      // Get current user ID from zustand auth store
+      let currentUserId = 'unknown';
+      try {
+        // Import and use the auth store directly
+        const authState = useAuthStore.getState();
+        if (authState.user?.id) {
+          currentUserId = authState.user.id;
+        } else {
+          console.error('❌ Optimistic update - No user in auth store');
+        }
+      } catch (e) {
+        console.error('❌ Optimistic update - Failed to get user from store:', e);
+      }
+
+      // Create optimistic message
+      const optimisticMessage: DirectMessage = {
+        id: `temp-${Date.now()}`,
+        conversation_id: conversationId,
+        sender_id: currentUserId, // Use actual current user ID
+        content: newMessage.content,
+        status: 'sent',
+        attachment_url: newMessage.attachment_url,
+        attachment_type: newMessage.attachment_type,
+        is_read: false,
+        is_edited: false,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sender: {} as any, // Will be replaced
+      };
+
+      // Optimistically update both queries
       if (previousMessages) {
-        const optimisticMessage: DirectMessage = {
-          id: `temp-${Date.now()}`,
-          conversation_id: conversationId,
-          sender_id: 'current-user', // Will be replaced by actual message
-          content: newMessage.content,
-          status: 'sent',
-          attachment_url: newMessage.attachment_url,
-          attachment_type: newMessage.attachment_type,
-          is_read: false,
-          is_edited: false,
-          is_deleted: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          sender: {} as any, // Will be replaced
-        };
-
         queryClient.setQueryData<MessagesResponse>(
           conversationKeys.messages(conversationId),
           {
@@ -157,18 +301,40 @@ export function useSendMessage(conversationId: string) {
         );
       }
 
-      return { previousMessages };
+      if (previousInfiniteMessages) {
+        queryClient.setQueryData<MessagesResponse>(
+          [...conversationKeys.messages(conversationId), 'infinite'],
+          {
+            ...previousInfiniteMessages,
+            data: [...previousInfiniteMessages.data, optimisticMessage],
+          }
+        );
+      }
+
+      return { previousMessages, previousInfiniteMessages };
     },
     onError: (error, _variables, context) => {
-      // Rollback on error
+      // Rollback on error for both queries
       if (context?.previousMessages) {
         queryClient.setQueryData(
           conversationKeys.messages(conversationId),
           context.previousMessages
         );
       }
-      toast.error(error.message || 'Failed to send message');
+      if (context?.previousInfiniteMessages) {
+        queryClient.setQueryData(
+          [...conversationKeys.messages(conversationId), 'infinite'],
+          context.previousInfiniteMessages
+        );
+      }
+      
+      // Don't show toast for rate limiting errors (429) - already handled by interceptor
+      // Only show toast for other errors
+      if (error instanceof Error && !error.message.includes('429') && !error.message.includes('Too many')) {
+        toast.error(error.message || 'Failed to send message');
+      }
     },
+    retry: false, // Don't retry on failure to avoid spam
     onSettled: () => {
       // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
@@ -222,10 +388,71 @@ export function useMarkAsRead() {
 
   return useMutation({
     mutationFn: (conversationId: string) => conversationApi.markAsRead(conversationId),
-    onSuccess: () => {
+    onMutate: async (conversationId) => {
+      // Optimistic update: immediately update messages cache to show read status
+      // This makes the UI feel instant instead of waiting for server response
+      const currentUserId = useAuthStore.getState().user?.id;
+      
+      if (currentUserId) {
+        // Update messages cache optimistically
+        queryClient.setQueryData(
+          conversationKeys.messages(conversationId),
+          (oldData: any) => {
+            if (!oldData?.data) return oldData;
+            return {
+              ...oldData,
+              data: oldData.data.map((msg: any) => {
+                // Mark all messages NOT sent by current user as read (messages received by current user)
+                if (msg.sender_id !== currentUserId && !msg.is_read) {
+                  return {
+                    ...msg,
+                    is_read: true,
+                    status: 'read',
+                  };
+                }
+                return msg;
+              }),
+            };
+          }
+        );
+        
+        // Also update infinite messages cache
+        queryClient.setQueryData(
+          [...conversationKeys.messages(conversationId), 'infinite'],
+          (oldData: any) => {
+            if (!oldData?.data) return oldData;
+            return {
+              ...oldData,
+              data: oldData.data.map((msg: any) => {
+                if (msg.sender_id !== currentUserId && !msg.is_read) {
+                  return {
+                    ...msg,
+                    is_read: true,
+                    status: 'read',
+                  };
+                }
+                return msg;
+              }),
+            };
+          }
+        );
+      }
+    },
+    onSuccess: (_, conversationId) => {
+      console.log('✅ [MARK_AS_READ] Success! Refetching messages for conversation:', conversationId);
+      // Invalidate all related queries to refresh UI
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
       queryClient.invalidateQueries({ queryKey: conversationKeys.unreadCount() });
+      // CRITICAL: Refetch messages to get updated read status from server
+      queryClient.invalidateQueries({ queryKey: conversationKeys.messages(conversationId) });
+      queryClient.invalidateQueries({ queryKey: [...conversationKeys.messages(conversationId), 'infinite'] });
     },
+    onError: (error) => {
+      // Silently handle errors - don't show toast for mark as read failures
+      // This is a background operation and shouldn't interrupt user experience
+      console.warn('[useMarkAsRead] Failed to mark conversation as read:', error);
+    },
+    retry: false, // Don't retry on failure to avoid spam
   });
 }
 
@@ -256,6 +483,20 @@ export function useSearchMessages(conversationId: string) {
 
   return useMutation({
     mutationFn: (query: string) => conversationApi.searchMessages(conversationId, query),
+  });
+}
+
+/**
+ * Get real-time online status of conversation participant
+ */
+export function useOnlineStatus(conversationId: string | undefined) {
+  return useQuery({
+    queryKey: conversationKeys.onlineStatus(conversationId || ''),
+    queryFn: () => conversationApi.getOnlineStatus(conversationId!),
+    enabled: !!conversationId,
+    refetchInterval: 30000, // Refresh every 30 seconds (reduced from 10s to avoid rate limiting)
+    staleTime: 20000, // Consider stale after 20 seconds
+    refetchOnWindowFocus: false, // Don't refetch on window focus to reduce requests
   });
 }
 

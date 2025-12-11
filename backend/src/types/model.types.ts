@@ -281,6 +281,24 @@ export interface EnrollmentCreationAttributes extends Optional<EnrollmentAttribu
 export interface EnrollmentInstance extends Model, EnrollmentAttributes {}
 
 // ===================================
+// COURSE PREREQUISITE MODEL INTERFACES
+// ===================================
+
+export interface CoursePrerequisiteAttributes {
+  id: string;
+  course_id: string;
+  prerequisite_course_id: string;
+  is_required: boolean;
+  order_index: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CoursePrerequisiteCreationAttributes extends Optional<CoursePrerequisiteAttributes, 'id' | 'created_at' | 'updated_at' | 'is_required' | 'order_index'> {}
+
+export interface CoursePrerequisiteInstance extends Model, CoursePrerequisiteAttributes {}
+
+// ===================================
 // CATEGORY MODEL INTERFACES
 // ===================================
 
@@ -511,28 +529,35 @@ export interface LiveSessionMessageCreationAttributes extends Optional<
 export interface LiveSessionMessageInstance extends Model, LiveSessionMessageAttributes {}
 
 // ===================================
-// CHAT MESSAGE MODEL INTERFACES
+// CHAT MESSAGE MODEL INTERFACES (Supabase Schema)
 // ===================================
 
 export interface ChatMessageAttributes {
   id: string;
   course_id: string;
-  sender_id: string;
-  message: string;
+  user_id: string;  // Supabase uses user_id
+  content: string;  // Supabase uses content
   message_type: 'text' | 'file' | 'image' | 'system' | 'announcement';
-  file_url?: string;
-  file_name?: string;
-  file_size?: number;
-  reply_to?: string;
+  attachment_url?: string;  // Supabase uses attachment_*
+  attachment_name?: string;
+  attachment_size?: number;
+  attachment_type?: string;
+  reply_to_message_id?: string;  // Supabase uses reply_to_message_id
   is_edited: boolean;
   edited_at?: Date;
   is_deleted: boolean;
   deleted_at?: Date;
+  deleted_by?: string;
+  is_pinned?: boolean;
+  pinned_at?: Date;
+  pinned_by?: string;
+  reactions?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
 }
 
-export interface ChatMessageCreationAttributes extends Optional<ChatMessageAttributes, 'id' | 'created_at' | 'updated_at' | 'message_type' | 'is_edited' | 'is_deleted'> {}
+export interface ChatMessageCreationAttributes extends Optional<ChatMessageAttributes, 'id' | 'created_at' | 'updated_at' | 'message_type' | 'is_edited' | 'is_deleted' | 'is_pinned'> {}
 
 export interface ChatMessageInstance extends Model, ChatMessageAttributes {}
 
@@ -779,27 +804,27 @@ export interface CourseStatisticsInstance extends Model, CourseStatisticsAttribu
 
 export interface ConversationAttributes {
   id: string;
-  course_id: string;
-  student_id: string;
-  instructor_id: string;
+  course_id: string | null; // Nullable for direct messages without course context
+  user1_id: string;
+  user2_id: string;
   last_message_at?: Date;
-  student_last_read_at?: Date;
-  instructor_last_read_at?: Date;
-  is_archived_by_student: boolean;
-  is_archived_by_instructor: boolean;
+  user1_last_read_at?: Date;
+  user2_last_read_at?: Date;
+  is_archived_by_user1: boolean;
+  is_archived_by_user2: boolean;
   created_at: Date;
   updated_at: Date;
 }
 
 export interface ConversationCreationAttributes extends Optional<
   ConversationAttributes,
-  'id' | 'created_at' | 'updated_at' | 'last_message_at' | 'student_last_read_at' | 'instructor_last_read_at' | 'is_archived_by_student' | 'is_archived_by_instructor'
+  'id' | 'created_at' | 'updated_at' | 'last_message_at' | 'user1_last_read_at' | 'user2_last_read_at' | 'is_archived_by_user1' | 'is_archived_by_user2' | 'course_id'
 > {}
 
 export interface ConversationInstance extends Model, ConversationAttributes {
   // Associations (virtual fields from includes)
-  student?: UserInstance;
-  instructor?: UserInstance;
+  user1?: UserInstance;
+  user2?: UserInstance;
   course?: CourseInstance;
   messages?: DirectMessageInstance[];
 }
@@ -902,3 +927,26 @@ export interface CertificateInstance extends Model, CertificateAttributes {
   enrollment?: EnrollmentInstance;
 }
 
+// ===================================
+// COURSE CHAT READ STATUS MODEL INTERFACES
+// ===================================
+
+export interface CourseChatReadStatusAttributes {
+  id: string;
+  course_id: string;
+  user_id: string;
+  last_read_at: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CourseChatReadStatusCreationAttributes extends Optional<
+  CourseChatReadStatusAttributes,
+  'id' | 'created_at' | 'updated_at'
+> {}
+
+export interface CourseChatReadStatusInstance extends Model, CourseChatReadStatusAttributes {
+  // Associations
+  course?: CourseInstance;
+  user?: UserInstance;
+}

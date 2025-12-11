@@ -300,8 +300,8 @@ export default function CourseManagementPage() {
           courseId={viewingCourseId}
           onEdit={(course) => {
             setViewingCourseId(null);
-            // Navigate to instructor course editor
-            navigate(generateRoute.instructor.courseEdit(course.id));
+            // Navigate to admin course editor
+            navigate(generateRoute.admin.courseEdit(course.id));
           }}
         />
       )}

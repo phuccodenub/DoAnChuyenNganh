@@ -3,9 +3,10 @@
  * 
  * Panel chính hiển thị cuộc trò chuyện
  * Bao gồm: header, message list, composer
+ * Supports infinite scroll for loading older messages
  */
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConversationPanelProps, Message } from '../types';
@@ -13,8 +14,9 @@ import { MessageBubble } from './MessageBubble';
 import { MessageComposer } from './MessageComposer';
 import { EmptyState } from './EmptyState';
 import { OnlineStatusDot } from './OnlineStatusDot';
+import { TypingIndicator } from './TypingIndicator';
 import { CHAT_COPY } from '../constants/copy';
-import { getDateGroupLabel, isSameDay } from '../utils/formatTime';
+import { getDateGroupLabel } from '../utils/formatTime';
 
 export function ConversationPanel({
     conversation,
@@ -26,13 +28,181 @@ export function ConversationPanel({
     onSendMessage,
     onRetry,
     error,
+    isParticipantOnline,
+    onLoadMore,
+    isLoadingMore = false,
+    onMarkAsRead,
 }: ConversationPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const prevMessagesLengthRef = useRef(messages.length);
+    const prevConversationIdRef = useRef<string | null>(null);
+    const [isNearBottom, setIsNearBottom] = useState(true);
+    const markAsReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastMarkAsReadTimeRef = useRef<number>(0);
+    const isMarkAsReadPendingRef = useRef<boolean>(false);
+    const [isDocumentVisible, setIsDocumentVisible] = useState(!document.hidden);
+    const MARK_AS_READ_DEBOUNCE_MS = 1000; // Minimum 1 second between mark as read calls (reduced for faster response)
 
-    // Auto scroll to bottom when new messages arrive
+    // Track document visibility to only mark as read when user is viewing
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        const handleVisibilityChange = () => {
+            setIsDocumentVisible(!document.hidden);
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    // Helper function to check if we should mark as read
+    const shouldMarkAsRead = useCallback(() => {
+        // Only mark as read if:
+        // 1. Document is visible (user is viewing the tab)
+        // 2. Not pending
+        // 3. Enough time has passed since last call
+        if (!isDocumentVisible || isMarkAsReadPendingRef.current) {
+            return false;
+        }
+        
+        const now = Date.now();
+        const timeSinceLastCall = now - lastMarkAsReadTimeRef.current;
+        return timeSinceLastCall >= MARK_AS_READ_DEBOUNCE_MS;
+    }, [isDocumentVisible]);
+
+    // Scroll to bottom on initial load (when conversation changes)
+    useEffect(() => {
+        if (conversation?.id && conversation.id !== prevConversationIdRef.current) {
+            // New conversation opened - scroll to bottom immediately
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+                // Mark as read when opening conversation and messages are loaded
+                if (onMarkAsRead && messages.length > 0 && shouldMarkAsRead()) {
+                    // Small delay to ensure scroll completed
+                    setTimeout(() => {
+                        if (shouldMarkAsRead()) {
+                            isMarkAsReadPendingRef.current = true;
+                            lastMarkAsReadTimeRef.current = Date.now();
+                            onMarkAsRead();
+                            // Reset pending flag after a delay
+                            setTimeout(() => {
+                                isMarkAsReadPendingRef.current = false;
+                            }, 300); // Reduced from 500ms to 300ms for faster response // Reduced from 1000ms to 500ms for faster response
+                        }
+                    }, 300);
+                }
+            }, 100);
+            prevConversationIdRef.current = conversation.id;
+            prevMessagesLengthRef.current = messages.length;
+            setIsNearBottom(true); // Reset to true when conversation changes
+        }
+    }, [conversation?.id, messages.length, onMarkAsRead]);
+
+    // Mark as read when messages are loaded and user is at bottom
+    useEffect(() => {
+        if (!isLoading && messages.length > 0 && isNearBottom && conversation?.id && onMarkAsRead && shouldMarkAsRead()) {
+            // Debounce to avoid too many calls
+            if (markAsReadTimeoutRef.current) {
+                clearTimeout(markAsReadTimeoutRef.current);
+            }
+            markAsReadTimeoutRef.current = setTimeout(() => {
+                if (shouldMarkAsRead()) {
+                    isMarkAsReadPendingRef.current = true;
+                    lastMarkAsReadTimeRef.current = Date.now();
+                    onMarkAsRead();
+                    // Reset pending flag after a delay
+                    setTimeout(() => {
+                        isMarkAsReadPendingRef.current = false;
+                    }, 1000);
+                }
+            }, 500);
+        }
+    }, [isLoading, messages.length, isNearBottom, conversation?.id, onMarkAsRead, shouldMarkAsRead]);
+
+    // Auto scroll to bottom when new messages arrive (only if near bottom)
+    useEffect(() => {
+        const messagesChanged = messages.length !== prevMessagesLengthRef.current;
+        
+        if (messagesChanged && isNearBottom && conversation?.id === prevConversationIdRef.current) {
+            // Only auto-scroll if user is near bottom and same conversation
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+            
+            // Mark as read when new messages arrive and user is viewing
+            if (onMarkAsRead && messages.length > 0 && shouldMarkAsRead()) {
+                // Debounce mark as read to avoid too many calls
+                if (markAsReadTimeoutRef.current) {
+                    clearTimeout(markAsReadTimeoutRef.current);
+                }
+                markAsReadTimeoutRef.current = setTimeout(() => {
+                    if (shouldMarkAsRead()) {
+                        isMarkAsReadPendingRef.current = true;
+                        lastMarkAsReadTimeRef.current = Date.now();
+                        onMarkAsRead();
+                        // Reset pending flag after a delay
+                        setTimeout(() => {
+                            isMarkAsReadPendingRef.current = false;
+                        }, 1000);
+                    }
+                }, 500);
+            }
+            
+            prevMessagesLengthRef.current = messages.length;
+        }
+    }, [messages, isNearBottom, conversation?.id, onMarkAsRead]);
+
+    // Handle infinite scroll - load older messages when scrolled to top
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container || !onLoadMore) return;
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            
+            // Check if near bottom (for auto-scroll behavior)
+            const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+            const wasNearBottom = isNearBottom;
+            const nowNearBottom = distanceFromBottom < 100;
+            setIsNearBottom(nowNearBottom);
+            
+            // Mark as read when user scrolls to bottom
+            if (onMarkAsRead && nowNearBottom && !wasNearBottom && messages.length > 0 && shouldMarkAsRead()) {
+                // Debounce mark as read to avoid too many calls
+                if (markAsReadTimeoutRef.current) {
+                    clearTimeout(markAsReadTimeoutRef.current);
+                }
+                markAsReadTimeoutRef.current = setTimeout(() => {
+                    if (shouldMarkAsRead()) {
+                        isMarkAsReadPendingRef.current = true;
+                        lastMarkAsReadTimeRef.current = Date.now();
+                        onMarkAsRead();
+                        // Reset pending flag after a delay
+                        setTimeout(() => {
+                            isMarkAsReadPendingRef.current = false;
+                        }, 1000);
+                    }
+                }, 500);
+            }
+            
+            // Load more when scrolled to top
+            if (scrollTop < 100 && !isLoadingMore && messages.length > 0) {
+                const oldestMessage = messages[0];
+                if (oldestMessage && oldestMessage.created_at) {
+                    onLoadMore(oldestMessage.created_at);
+                }
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => {
+            container.removeEventListener('scroll', handleScroll);
+            if (markAsReadTimeoutRef.current) {
+                clearTimeout(markAsReadTimeoutRef.current);
+            }
+        };
+    }, [messages, isLoadingMore, onLoadMore, onMarkAsRead, isNearBottom]);
 
     // No conversation selected
     if (!conversation) {
@@ -69,7 +239,7 @@ export function ConversationPanel({
                             )}
                         </div>
                         <OnlineStatusDot
-                            status={participant.online_status}
+                            status={isParticipantOnline ? 'online' : 'offline'}
                             className="absolute bottom-0 right-0"
                         />
                     </div>
@@ -77,7 +247,9 @@ export function ConversationPanel({
                     {/* Info */}
                     <div>
                         <h3 className="font-semibold text-gray-900">{participant.name}</h3>
-                        <p className="text-xs text-blue-600">{course_title}</p>
+                        <p className="text-xs text-gray-500">
+                            {isParticipantOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+                        </p>
                     </div>
                 </div>
 
@@ -88,7 +260,14 @@ export function ConversationPanel({
             </div>
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                {/* Loading more indicator */}
+                {isLoadingMore && (
+                    <div className="text-center py-2">
+                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    </div>
+                )}
+
                 {/* Loading state */}
                 {isLoading ? (
                     <div className="space-y-4">
@@ -136,11 +315,10 @@ export function ConversationPanel({
                                 {/* Messages */}
                                 <div className="space-y-3">
                                     {dayMessages.map((message, index) => {
-                                        const isOwn =
-                                            message.sender_role === currentUserRole;
+                                        const isOwn = message.sender_id === currentUserId;
                                         const showAvatar =
                                             index === 0 ||
-                                            dayMessages[index - 1].sender_role !== message.sender_role;
+                                            dayMessages[index - 1].sender_id !== message.sender_id;
 
                                         return (
                                             <MessageBubble
@@ -159,20 +337,10 @@ export function ConversationPanel({
 
                         {/* Typing indicator */}
                         {isTyping && (
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <div className="flex gap-1">
-                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                                    <span
-                                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                        style={{ animationDelay: '0.1s' }}
-                                    />
-                                    <span
-                                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                        style={{ animationDelay: '0.2s' }}
-                                    />
-                                </div>
-                                <span>{participant.name} {CHAT_COPY.status.typing}</span>
-                            </div>
+                            <TypingIndicator 
+                              userName={participant.name}
+                              variant="bubble"
+                            />
                         )}
 
                         {/* Scroll anchor */}

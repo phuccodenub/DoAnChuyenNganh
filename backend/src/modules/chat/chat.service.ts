@@ -27,7 +27,7 @@ export class ChatService {
     try {
       // Validate user has access to course chat
       const hasAccess = await this.repository.canUserAccessChat(
-        data.sender_id,
+        data.user_id,
         data.course_id
       );
 
@@ -38,13 +38,14 @@ export class ChatService {
       // Create message
       const message = await this.repository.createMessage({
         course_id: data.course_id,
-        sender_id: data.sender_id,
-        message: data.message,
+        user_id: data.user_id,
+        content: data.content,
         message_type: data.message_type || 'text',
-        file_url: data.file_url,
-        file_name: data.file_name,
-        file_size: data.file_size,
-        reply_to: data.reply_to
+        attachment_url: data.attachment_url,
+        attachment_name: data.attachment_name,
+        attachment_size: data.attachment_size,
+        attachment_type: data.attachment_type,
+        reply_to_message_id: data.reply_to_message_id
       });
 
       return message;
@@ -85,7 +86,7 @@ export class ChatService {
       const message = await this.repository.updateMessage(
         messageId,
         userId,
-        dto.message
+        dto.content
       );
 
       if (!message) {
@@ -154,6 +155,18 @@ export class ChatService {
   }
 
   /**
+   * Get all member IDs of a course
+   */
+  async getCourseMemberIds(courseId: string): Promise<string[]> {
+    try {
+      return await this.repository.getCourseMemberIds(courseId);
+    } catch (error: unknown) {
+      logger.error('Error getting course member IDs:', error);
+      return [];
+    }
+  }
+
+  /**
    * Check user access to chat
    */
   async checkUserAccess(userId: string, courseId: string): Promise<boolean> {
@@ -173,6 +186,56 @@ export class ChatService {
       return await this.repository.getMessagesByType(courseId, messageType);
     } catch (error: unknown) {
       logger.error('Error getting messages by type:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get unread message count for a user in a specific course
+   */
+  async getUnreadCountForCourse(courseId: string, userId: string): Promise<number> {
+    try {
+      return await this.repository.countUnreadForUser(courseId, userId);
+    } catch (error: unknown) {
+      logger.error('Error getting unread count for course:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get unread count for each enrolled course
+   * Returns array of { course_id, unread_count }
+   */
+  async getUnreadCountPerCourse(userId: string): Promise<Array<{ course_id: string; unread_count: number }>> {
+    try {
+      return await this.repository.getUnreadCountPerCourse(userId);
+    } catch (error: unknown) {
+      logger.error('Error getting unread count per course:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get total number of COURSES with unread messages (not total message count)
+   * This counts how many courses have at least 1 unread message
+   */
+  async getTotalUnreadCount(userId: string): Promise<number> {
+    try {
+      return await this.repository.getTotalUnreadCountForUser(userId);
+    } catch (error: unknown) {
+      logger.error('Error getting total unread course count:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark all messages in a course as read for a user
+   */
+  async markCourseAsRead(courseId: string, userId: string): Promise<void> {
+    try {
+      await this.repository.markAsRead(courseId, userId);
+    } catch (error: unknown) {
+      logger.error('Error marking course as read:', error);
       throw error;
     }
   }

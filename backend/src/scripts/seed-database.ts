@@ -10,6 +10,7 @@ import logger from '../utils/logger.util';
 import { seedSectionsAndLessons } from '../seeders/002a-seed-sections-lessons';
 import { seedAssignments } from '../seeders/002b-seed-assignments';
 import { seedNotifications } from '../seeders/005-seed-notifications';
+import { seedDirectMessages } from '../seeders/006-seed-direct-messages';
 
 const sequelize = getSequelize();
 
@@ -508,6 +509,10 @@ async function main() {
     // Seed notifications
     logger.info('Seeding notifications...');
     await seedNotifications(sequelize);
+    
+    // Seed direct messages
+    logger.info('Seeding direct messages...');
+    await seedDirectMessages(sequelize);
 
     const totalCreated = userStats.created + courseStats.created + enrollmentStats.created;
     const totalSkipped = userStats.skipped + courseStats.skipped + enrollmentStats.skipped;

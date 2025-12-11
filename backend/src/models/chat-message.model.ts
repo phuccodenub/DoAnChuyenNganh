@@ -19,15 +19,18 @@ const ChatMessage = sequelize.define('ChatMessage', {
       key: 'id'
     }
   },
-  sender_id: {
+  // Supabase uses 'user_id' instead of 'sender_id'
+  user_id: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
       model: 'users',
       key: 'id'
-    }
+    },
+    field: 'user_id'
   },
-  message: {
+  // Supabase uses 'content' instead of 'message'
+  content: {
     type: DataTypes.TEXT,
     allowNull: false,
   },
@@ -35,19 +38,25 @@ const ChatMessage = sequelize.define('ChatMessage', {
     type: DataTypes.ENUM('text', 'file', 'image', 'system', 'announcement'),
     defaultValue: 'text',
   },
-  file_url: {
-    type: DataTypes.TEXT,
+  // Supabase uses attachment_* prefix
+  attachment_url: {
+    type: DataTypes.STRING(500),
     allowNull: true,
   },
-  file_name: {
+  attachment_name: {
     type: DataTypes.STRING(255),
     allowNull: true,
   },
-  file_size: {
+  attachment_size: {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
-  reply_to: {
+  attachment_type: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
+  // Supabase uses 'reply_to_message_id'
+  reply_to_message_id: {
     type: DataTypes.UUID,
     allowNull: true,
     references: {
@@ -71,6 +80,38 @@ const ChatMessage = sequelize.define('ChatMessage', {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  deleted_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  is_pinned: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  pinned_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  pinned_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  reactions: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  metadata: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
 }, {
   tableName: 'chat_messages',
   timestamps: true,
@@ -85,7 +126,7 @@ addStaticMethods(ChatMessageModel, {
     return await this.findAll({
       where: {
         course_id: courseId,
-        message: {
+        content: {
           [Op.iLike]: `%${searchTerm}%`
         },
         is_deleted: false

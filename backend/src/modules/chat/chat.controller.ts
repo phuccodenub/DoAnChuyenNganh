@@ -8,6 +8,7 @@ import { ChatService } from './chat.service';
 import { GetMessagesOptions, SearchMessagesOptions } from './chat.types';
 import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
+import { getChatGateway } from './chat.gateway';
 
 export class ChatController {
   private chatService: ChatService;
@@ -59,18 +60,35 @@ export class ChatController {
     try {
       const { courseId } = req.params;
       const userId = req.user!.userId;
-      const { message, message_type, file_url, file_name, file_size, reply_to } = req.body;
+      const { 
+        content, 
+        message_type, 
+        attachment_url, 
+        attachment_name, 
+        attachment_size,
+        attachment_type,
+        reply_to_message_id 
+      } = req.body;
 
       const result = await this.chatService.sendMessage({
         course_id: courseId,
-        sender_id: userId,
-        message,
+        user_id: userId,
+        content,
         message_type,
-        file_url,
-        file_name,
-        file_size,
-        reply_to
+        attachment_url,
+        attachment_name,
+        attachment_size,
+        attachment_type,
+        reply_to_message_id
       });
+
+      // ✅ CRITICAL: Emit Socket.IO event for real-time delivery (excluding sender)
+      const gateway = getChatGateway();
+      if (gateway) {
+        await gateway.notifyNewMessage(courseId, result, userId);
+      } else {
+        logger.warn('[ChatController] ChatGateway not available for real-time notification');
+      }
 
       responseUtils.sendSuccess(res, 'Message sent successfully', result);
     } catch (error: unknown) {
@@ -87,13 +105,50 @@ export class ChatController {
     try {
       const { messageId } = req.params;
       const userId = req.user!.userId;
-      const { message } = req.body;
+      const { content } = req.body;
 
-      const result = await this.chatService.updateMessage(messageId, userId, { message });
+      const result = await this.chatService.updateMessage(messageId, userId, content);
 
       responseUtils.sendSuccess(res, 'Message updated successfully', result);
     } catch (error: unknown) {
       logger.error('Error in updateMessage:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Get unread message count for all enrolled courses
+   * GET /chat/unread-count
+   * Returns the number of COURSES that have unread messages (not total message count)
+   */
+  getUnreadCount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+
+      // Get total count of courses with unread messages
+      const unreadCount = await this.chatService.getTotalUnreadCount(userId);
+
+      responseUtils.sendSuccess(res, 'Unread count retrieved', { unread_count: unreadCount });
+    } catch (error: unknown) {
+      logger.error('Error in getUnreadCount:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Get unread count for each enrolled course
+   * GET /chat/unread-count-per-course
+   * Returns array of { course_id, unread_count }
+   */
+  getUnreadCountPerCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+
+      const unreadCounts = await this.chatService.getUnreadCountPerCourse(userId);
+
+      responseUtils.sendSuccess(res, 'Unread counts retrieved', unreadCounts);
+    } catch (error: unknown) {
+      logger.error('Error in getUnreadCountPerCourse:', error);
       next(error);
     }
   };
@@ -176,6 +231,24 @@ export class ChatController {
       responseUtils.sendSuccess(res, 'Messages retrieved successfully', result);
     } catch (error: unknown) {
       logger.error('Error in getMessagesByType:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Mark all messages in a course as read
+   * POST /chat/courses/:courseId/mark-read
+   */
+  markAsRead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseId } = req.params;
+      const userId = req.user!.userId;
+
+      await this.chatService.markCourseAsRead(courseId, userId);
+
+      responseUtils.sendSuccess(res, 'Messages marked as read', null);
+    } catch (error: unknown) {
+      logger.error('Error in markAsRead:', error);
       next(error);
     }
   };

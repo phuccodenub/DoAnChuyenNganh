@@ -14,6 +14,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { useCourse, useEnrollCourse, useCourseProgress } from '@/hooks/useCoursesData';
+import { usePrerequisites } from '@/hooks/usePrerequisites';
 import { useCourseContent } from '@/hooks/useLessonData';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/ui/Spinner';
@@ -59,10 +60,12 @@ export function DetailPage() {
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'reviews' | 'certificate'>('overview');
   const [isUserEnrolled, setIsUserEnrolled] = useState(false);
+  const [missingPrereqs, setMissingPrereqs] = useState<Array<{ id: string; title: string; is_required: boolean }>>([]);
 
   const courseId = id!;
   const { data: courseData, isLoading, error } = useCourse(courseId);
   const course = courseData as DetailedCourse | undefined;
+  const { data: prerequisitesData } = usePrerequisites(courseId);
 
   const { mutate: enrollCourse, isPending: isEnrolling } = useEnrollCourse();
   const { user } = useAuth();
@@ -552,6 +555,7 @@ export function DetailPage() {
     enrollCourse(courseId, {
       onSuccess: async () => {
         setIsUserEnrolled(true);
+        setMissingPrereqs([]);
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.detail(courseId) });
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.courses.enrolled() });
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lessons.content(courseId) });
@@ -599,6 +603,7 @@ export function DetailPage() {
       onError: (error: any) => {
         console.error('Enrollment failed:', error);
         const errorMessage = error?.response?.data?.message || '';
+        const missing = error?.response?.data?.missingPrerequisites || error?.response?.data?.data?.missingPrerequisites;
         
         // Nếu lỗi là "already enrolled", xử lý như đã enrolled
         if (errorMessage.toLowerCase().includes('already enrolled') || 
@@ -621,8 +626,11 @@ export function DetailPage() {
           } else {
             navigate(learningPath);
           }
+        } else if (missing && Array.isArray(missing) && missing.length > 0) {
+          setMissingPrereqs(missing);
+          toast.error('Bạn cần hoàn thành các khóa học yêu cầu trước.');
         } else {
-          toast.error('Không thể đăng ký khóa học. Vui lòng thử lại.');
+          toast.error(errorMessage || 'Không thể đăng ký khóa học. Vui lòng thử lại.');
         }
       }
     });
@@ -930,6 +938,37 @@ export function DetailPage() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Prerequisites */}
+                {(prerequisitesData?.data && prerequisitesData.data.length > 0) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Yêu cầu trước (Prerequisites)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {prerequisitesData.data.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {p.prerequisite_course?.title || 'Khóa học yêu cầu'}
+                              </div>
+                              <div className="text-xs text-gray-500">ID: {p.prerequisite_course_id}</div>
+                            </div>
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${p.is_required ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {p.is_required ? 'Bắt buộc' : 'Khuyến nghị'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {missingPrereqs.length > 0 && (
+                        <div className="mt-3 text-sm text-red-600">
+                          Bạn còn thiếu: {missingPrereqs.map((m) => m.title || m.id).join(', ')}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Requirements */}
                 <Card>

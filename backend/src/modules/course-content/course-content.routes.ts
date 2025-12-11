@@ -267,6 +267,13 @@ router.get(
   controller.getCourseProgress
 );
 
+// Get bookmarked lessons in a course (current user)
+router.get(
+  '/courses/:courseId/bookmarks',
+  validate(courseContentValidation.courseId),
+  controller.getBookmarkedLessons
+);
+
 // Get student progress (for instructor - view any student's progress)
 router.get(
   '/courses/:courseId/students/:studentId/progress',

@@ -81,6 +81,26 @@ export class CourseController {
     }
   };
 
+  // Get course for management (owner/admin only)
+  getCourseForManagement = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
+
+      const course = await this.courseService.getCourseForManagement(id, userId, userRole);
+
+      responseUtils.sendSuccess(res, 'Course retrieved successfully', course);
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
   // Update course
   updateCourse = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -188,19 +208,25 @@ export class CourseController {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
         return;
       }
-      const { page = 1, limit = 10, status } = req.query;
-      console.log('CONTROLLER: calling service with params:', { userId, page, limit, status });
+      const { page = 1, limit = 10, status, search, sort } = req.query;
+      console.log('CONTROLLER: calling service with params:', { userId, page, limit, status, search, sort });
       
       const courses = await this.courseService.getEnrolledCourses(userId!, {
         page: Number(page),
         limit: Number(limit),
-        status: status as CourseTypes.CourseStatus
+        status: status as CourseTypes.EnrollmentProgressStatus,
+        search: search as string,
+        sort: sort as 'last_accessed' | 'progress' | 'title' | 'created_at'
       });
       
+      // Transform response: rename 'data' to 'courses' for frontend compatibility
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.OK).json({
         success: true,
         message: 'Enrolled courses retrieved successfully',
-        data: courses
+        data: {
+          courses: courses.data,
+          pagination: courses.pagination
+        }
       });
     } catch (error: unknown) {
       next(error);
@@ -212,12 +238,13 @@ export class CourseController {
     try {
       const { courseId } = req.params;
       const userId = req.user?.userId;
+      const userRole = req.user?.role;
       if (!userId) {
         responseUtils.sendUnauthorized(res, 'Unauthorized');
         return;
       }
       
-      const enrollment = await this.courseService.enrollInCourse(courseId, userId!);
+      const enrollment = await this.courseService.enrollInCourse(courseId, userId!, userRole);
       
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.CREATED).json({
         success: true,
@@ -290,6 +317,25 @@ export class CourseController {
         message: 'Course statistics retrieved successfully',
         data: stats
       });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  // Get recommended courses for student
+  getRecommendedCourses = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+      
+      if (!userId) {
+        responseUtils.sendUnauthorized(res, 'Unauthorized');
+        return;
+      }
+
+      const limit = req.query.limit ? Number(req.query.limit) : 6;
+      const courses = await this.courseService.getRecommendedCourses(userId, limit);
+      
+      responseUtils.sendSuccess(res, 'Recommended courses retrieved successfully', courses);
     } catch (error: unknown) {
       next(error);
     }

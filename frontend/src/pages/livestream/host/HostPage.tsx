@@ -7,7 +7,7 @@ import { MeetStyleControls } from '@/pages/livestream/components/host/MeetStyleC
 import { useSession, useUpdateSession } from '@/hooks/useLivestream';
 import { useIceServers } from '@/hooks/useIceServers';
 import { useLivestreamSocket } from '@/hooks/useLivestreamSocket';
-import { ROUTES } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 import {
   StudioPanel,
   HostChatPanel,
@@ -18,6 +18,7 @@ import type { LiveSession } from '@/services/api/livestream.api';
 export function LiveStreamHostPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const { navigateTo } = useRoleBasedNavigation();
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [isAudioOn, setIsAudioOn] = useState(true);
@@ -103,7 +104,7 @@ export function LiveStreamHostPage() {
         } as any,
       });
       alert('Đã kết thúc livestream!');
-      navigate(ROUTES.INSTRUCTOR.LIVESTREAM);
+      navigateTo.livestream();
     } catch (error) {
       console.error('End session error:', error);
       alert('Có lỗi khi kết thúc livestream');
@@ -128,7 +129,7 @@ export function LiveStreamHostPage() {
         <div className="text-center">
           <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy phiên livestream</h3>
-          <Button onClick={() => navigate(ROUTES.INSTRUCTOR.LIVESTREAM)}>Quay lại danh sách</Button>
+          <Button onClick={() => navigateTo.livestream()}>Quay lại danh sách</Button>
         </div>
       </div>
     );

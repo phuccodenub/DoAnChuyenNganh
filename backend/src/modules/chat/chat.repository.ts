@@ -6,6 +6,7 @@
 import ChatMessage from '../../models/chat-message.model';
 import User from '../../models/user.model';
 import Course from '../../models/course.model';
+import CourseChatReadStatus from '../../models/course-chat-read-status.model';
 import { GetMessagesOptions, SearchMessagesOptions } from './chat.types';
 import logger from '../../utils/logger.util';
 import { Op } from 'sequelize';
@@ -34,13 +35,14 @@ export class ChatRepository {
    */
   async createMessage(data: {
     course_id: string;
-    sender_id: string;
-    message: string;
+    user_id: string;  // sender
+    content: string;  // message content
     message_type?: 'text' | 'file' | 'image' | 'system' | 'announcement';
-    file_url?: string;
-    file_name?: string;
-    file_size?: number;
-    reply_to?: string;
+    attachment_url?: string;
+    attachment_name?: string;
+    attachment_size?: number;
+    attachment_type?: string;
+    reply_to_message_id?: string;
   }): Promise<ChatMessageInstance | null> {
     try {
       const message = await ChatMessage.create(data) as ChatMessageInstance;
@@ -68,7 +70,7 @@ export class ChatRepository {
           {
             model: ChatMessage,
             as: 'replyToMessage',
-            attributes: ['id', 'message', 'sender_id', 'created_at'],
+            attributes: ['id', 'content', 'user_id', 'created_at'],
             include: [
               {
                 model: User,
@@ -114,12 +116,12 @@ export class ChatRepository {
 
       // Search in messages
       if (searchTerm) {
-        (where as any).message = {
+        (where as any).content = {
           [Op.iLike]: `%${searchTerm}%`
         };
       }
 
-      // Pagination with message ID
+      // Timestamp-based pagination for infinite scroll
       if (beforeMessageId) {
         const beforeMessage = await ChatMessage.findByPk(beforeMessageId) as ChatMessageInstance | null;
         if (beforeMessage) {
@@ -138,7 +140,8 @@ export class ChatRepository {
         }
       }
 
-      const offset = (page - 1) * limit;
+      // Don't use offset for infinite scroll - only for page-based pagination fallback
+      const offset = (!beforeMessageId && !afterMessageId) ? (page - 1) * limit : 0;
 
       const { rows: messages, count } = await (ChatMessage as any).findAndCountAll({
         where,
@@ -151,7 +154,7 @@ export class ChatRepository {
           {
             model: ChatMessage,
             as: 'replyToMessage',
-            attributes: ['id', 'message', 'sender_id'],
+            attributes: ['id', 'content', 'user_id'],
             include: [
               {
                 model: User,
@@ -161,10 +164,14 @@ export class ChatRepository {
             ]
           }
         ],
+        // Always fetch DESC (newest first), will reverse later for chronological display
         order: [['created_at', 'DESC']],
         limit,
         offset
       });
+
+      // Reverse messages to chronological order (oldest to newest)
+      messages.reverse();
 
       return {
         messages,
@@ -183,12 +190,12 @@ export class ChatRepository {
   /**
    * Update message
    */
-  async updateMessage(messageId: string, userId: string, newMessage: string) {
+  async updateMessage(messageId: string, userId: string, newContent: string) {
     try {
       const message = await ChatMessage.findOne({
         where: {
           id: messageId,
-          sender_id: userId,
+          user_id: userId,
           is_deleted: false
         }
       });
@@ -198,7 +205,7 @@ export class ChatRepository {
       }
 
       await (message as any).update({
-        message: newMessage,
+        content: newContent,
         is_edited: true,
         edited_at: new Date()
       });
@@ -218,7 +225,7 @@ export class ChatRepository {
       const message = await ChatMessage.findOne({
         where: {
           id: messageId,
-          sender_id: userId,
+          user_id: userId,
           is_deleted: false
         }
       });
@@ -309,6 +316,38 @@ export class ChatRepository {
   }
 
   /**
+   * Get all member IDs of a course (instructor + enrolled students)
+   */
+  async getCourseMemberIds(courseId: string): Promise<string[]> {
+    try {
+      const course = await Course.findByPk(courseId) as CourseInstance | null;
+      if (!course) {
+        return [];
+      }
+
+      const memberIds: string[] = [course.instructor_id];
+
+      // Get all enrolled students
+      const Enrollment = (await import('../../models/enrollment.model')).default;
+      const enrollments = await Enrollment.findAll({
+        where: {
+          course_id: courseId,
+          status: 'active'
+        },
+        attributes: ['user_id']
+      });
+
+      const studentIds = enrollments.map((e: any) => e.user_id);
+      memberIds.push(...studentIds);
+
+      return [...new Set(memberIds)]; // Remove duplicates
+    } catch (error: unknown) {
+      logger.error('Error getting course member IDs:', error);
+      return [];
+    }
+  }
+
+  /**
    * Check if user can access course chat
    */
   async canUserAccessChat(userId: string, courseId: string): Promise<boolean> {
@@ -317,6 +356,13 @@ export class ChatRepository {
       const course = await Course.findByPk(courseId) as CourseInstance | null;
       if (!course) {
         return false;
+      }
+
+      // Check if user is admin (admin can access all course chats)
+      const User = (await import('../../models/user.model')).default;
+      const user = await User.findByPk(userId);
+      if (user && (user as any).role === 'admin') {
+        return true;
       }
 
       // Check if user is instructor
@@ -382,6 +428,179 @@ export class ChatRepository {
       return stats;
     } catch (error: unknown) {
       logger.error('Error getting chat statistics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Count unread messages in a course for a user
+   * Messages after last_read_at are considered unread
+   */
+  async countUnreadForUser(courseId: string, userId: string): Promise<number> {
+    try {
+      // Get last read timestamp for this user in this course
+      const readStatus = await CourseChatReadStatus.findOne({
+        where: {
+          course_id: courseId,
+          user_id: userId,
+        },
+      });
+
+      const whereClause: Record<string, unknown> = {
+        course_id: courseId,
+        user_id: { [Op.ne]: userId }, // Exclude user's own messages
+        is_deleted: false,
+      };
+
+      // If user has read history, count messages after that timestamp
+      if (readStatus && readStatus.last_read_at) {
+        whereClause.created_at = { [Op.gt]: readStatus.last_read_at };
+      }
+      // Otherwise, all messages are unread
+
+      const count = await ChatMessage.count({ where: whereClause });
+      return count;
+    } catch (error: unknown) {
+      logger.error('Error counting unread messages:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark all messages as read in a course for a user
+   * Updates the last_read_at timestamp
+   */
+  async markAsRead(courseId: string, userId: string): Promise<void> {
+    try {
+      // Find existing record
+      const existing = await CourseChatReadStatus.findOne({
+        where: {
+          course_id: courseId,
+          user_id: userId,
+        },
+      });
+
+      if (existing) {
+        // Update existing record
+        existing.last_read_at = new Date();
+        await (existing as any).save();
+      } else {
+        // Create new record
+        await CourseChatReadStatus.create({
+          course_id: courseId,
+          user_id: userId,
+          last_read_at: new Date(),
+        } as any);
+      }
+    } catch (error: unknown) {
+      logger.error('Error marking messages as read:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get unread count for each enrolled course
+   * Returns array of { course_id, unread_count }
+   */
+  async getUnreadCountPerCourse(userId: string): Promise<Array<{ course_id: string; unread_count: number }>> {
+    try {
+      // Get all courses user is enrolled in (as student)
+      const enrolledAsStudent = await Course.findAll({
+        include: [
+          {
+            model: User,
+            as: 'enrolledStudents',
+            where: { id: userId },
+            attributes: [],
+            required: true,
+          },
+        ],
+        attributes: ['id'],
+        raw: true,
+      });
+
+      // Get all courses user is teaching (as instructor)
+      const teachingCourses = await Course.findAll({
+        where: { instructor_id: userId },
+        attributes: ['id'],
+        raw: true,
+      });
+
+      // Combine and deduplicate course IDs
+      const enrolledIds = enrolledAsStudent.map((c: any) => c.id);
+      const teachingIds = teachingCourses.map((c: any) => c.id);
+      const courseIds = [...new Set([...enrolledIds, ...teachingIds])];
+      
+      if (courseIds.length === 0) {
+        return [];
+      }
+
+      // Get unread count for each course
+      const result: Array<{ course_id: string; unread_count: number }> = [];
+      for (const courseId of courseIds) {
+        const unread = await this.countUnreadForUser(courseId, userId);
+        result.push({
+          course_id: courseId,
+          unread_count: unread,
+        });
+      }
+
+      return result;
+    } catch (error: unknown) {
+      logger.error('Error getting unread count per course:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get total number of COURSES with unread messages (not total messages)
+   * This counts how many courses have at least 1 unread message
+   */
+  async getTotalUnreadCountForUser(userId: string): Promise<number> {
+    try {
+      // Get all courses user is enrolled in (as student)
+      const enrolledAsStudent = await Course.findAll({
+        include: [
+          {
+            model: User,
+            as: 'enrolledStudents',
+            where: { id: userId },
+            attributes: [],
+            required: true,
+          },
+        ],
+        attributes: ['id'],
+        raw: true,
+      });
+
+      // Get all courses user is teaching (as instructor)
+      const teachingCourses = await Course.findAll({
+        where: { instructor_id: userId },
+        attributes: ['id'],
+        raw: true,
+      });
+
+      // Combine and deduplicate course IDs
+      const enrolledIds = enrolledAsStudent.map((c: any) => c.id);
+      const teachingIds = teachingCourses.map((c: any) => c.id);
+      const courseIds = [...new Set([...enrolledIds, ...teachingIds])];
+      
+      if (courseIds.length === 0) {
+        return 0;
+      }
+
+      // Count how many courses have unread messages
+      let coursesWithUnread = 0;
+      for (const courseId of courseIds) {
+        const unread = await this.countUnreadForUser(courseId, userId);
+        if (unread > 0) {
+          coursesWithUnread++;
+        }
+      }
+
+      return coursesWithUnread;
+    } catch (error: unknown) {
+      logger.error('Error getting total unread course count:', error);
       throw error;
     }
   }

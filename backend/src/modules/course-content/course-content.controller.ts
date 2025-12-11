@@ -433,6 +433,22 @@ export class CourseContentController {
   };
 
   /**
+   * GET /api/courses/:courseId/bookmarks
+   * Get bookmarked lessons for current user in a course
+   */
+  getBookmarkedLessons = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { courseId } = req.params;
+      const userId = req.user?.userId;
+
+      const bookmarks = await this.service.getBookmarkedLessons(userId!, courseId);
+      return responseUtils.success(res, bookmarks, 'Bookmarked lessons retrieved successfully');
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  /**
    * GET /api/courses/:courseId/progress
    * Get course progress
    */

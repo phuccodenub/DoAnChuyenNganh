@@ -16,6 +16,7 @@ import { seedAssignments } from './002b-seed-assignments';
 import { seedEnrollments } from './003-seed-enrollments';
 import { seedChatMessages } from './004-seed-chat-messages';
 import { seedNotifications } from './005-seed-notifications';
+import { seedDirectMessages } from './006-seed-direct-messages';
 
 // Seeder interface
 export interface Seeder {
@@ -92,6 +93,28 @@ export const seeders: Seeder[] = [
     down: async (sequelize: Sequelize) => {
       await sequelize.query('DELETE FROM notification_recipients WHERE notification_id LIKE \'00000000-0000-0000-0005-%\'');
       await sequelize.query('DELETE FROM notifications WHERE id LIKE \'00000000-0000-0000-0005-%\'');
+    }
+  },
+  {
+    version: '006',
+    description: 'Seed direct messages between users',
+    up: seedDirectMessages,
+    down: async (sequelize: Sequelize) => {
+      // Delete messages with new UUID patterns
+      await sequelize.query(`DELETE FROM direct_messages WHERE conversation_id IN (
+        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',
+        'c3d4e5f6-a7b8-4c9d-ae1f-2a3b4c5d6e7f'
+      )`);
+      // Delete conversations with new UUID patterns
+      await sequelize.query(`DELETE FROM conversations WHERE id IN (
+        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',
+        'c3d4e5f6-a7b8-4c9d-ae1f-2a3b4c5d6e7f'
+      )`);
+      // Also clean up old invalid UUID patterns if any
+      await sequelize.query('DELETE FROM direct_messages WHERE id LIKE \'00000000-0000-0000-0000-0000000006%\'');
+      await sequelize.query('DELETE FROM conversations WHERE id LIKE \'00000000-0000-0000-0000-0000000005%\'');
     }
   }
 ];

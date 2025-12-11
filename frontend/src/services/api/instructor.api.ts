@@ -181,7 +181,8 @@ export const instructorApi = {
    * Lấy chi tiết khóa học
    */
   getCourseById: async (courseId: string) => {
-    const response = await httpClient.get<ApiResponse<InstructorCourse>>(`/courses/${courseId}`);
+    // Use management endpoint to enforce owner/admin access on BE
+    const response = await httpClient.get<ApiResponse<InstructorCourse>>(`/courses/${courseId}/manage`);
     return response.data;
   },
 

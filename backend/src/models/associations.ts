@@ -24,6 +24,7 @@ import Conversation from './conversation.model';
 import DirectMessage from './direct-message.model';
 import Certificate from './certificate.model';
 import Review from './review.model';
+import CoursePrerequisite from './course-prerequisite.model';
 
 export const setupAssociations = () => {
   // ===================================
@@ -178,16 +179,16 @@ export const setupAssociations = () => {
   });
 
   // ===================================
-  // 3. CHAT RELATIONSHIPS (Current Simple Version)
+  // 3. CHAT RELATIONSHIPS (Supabase Schema)
   // ===================================
   
-  // User 1 ---< ChatMessage
+  // User 1 ---< ChatMessage (Supabase uses user_id)
   (User as any).hasMany(ChatMessage, {
-    foreignKey: 'sender_id',
+    foreignKey: 'user_id',
     as: 'sentMessages'
   });
   (ChatMessage as any).belongsTo(User, {
-    foreignKey: 'sender_id',
+    foreignKey: 'user_id',
     as: 'sender'
   });
 
@@ -201,13 +202,13 @@ export const setupAssociations = () => {
     as: 'course'
   });
 
-  // ChatMessage (self-referencing) - Reply functionality
+  // ChatMessage (self-referencing) - Reply functionality (Supabase uses reply_to_message_id)
   (ChatMessage as any).hasMany(ChatMessage, {
-    foreignKey: 'reply_to',
+    foreignKey: 'reply_to_message_id',
     as: 'replies'
   });
   (ChatMessage as any).belongsTo(ChatMessage, {
-    foreignKey: 'reply_to',
+    foreignKey: 'reply_to_message_id',
     as: 'replyToMessage'
   });
 
@@ -411,26 +412,26 @@ export const setupAssociations = () => {
     as: 'course'
   });
 
-  // User (Student) 1 ---< Conversation
+  // User (user1) 1 ---< Conversation
   (User as any).hasMany(Conversation, {
-    foreignKey: 'student_id',
-    as: 'studentConversations',
+    foreignKey: 'user1_id',
+    as: 'conversationsAsUser1',
     onDelete: 'CASCADE'
   });
   (Conversation as any).belongsTo(User, {
-    foreignKey: 'student_id',
-    as: 'student'
+    foreignKey: 'user1_id',
+    as: 'user1'
   });
 
-  // User (Instructor) 1 ---< Conversation
+  // User (user2) 1 ---< Conversation
   (User as any).hasMany(Conversation, {
-    foreignKey: 'instructor_id',
-    as: 'instructorConversations',
+    foreignKey: 'user2_id',
+    as: 'conversationsAsUser2',
     onDelete: 'CASCADE'
   });
   (Conversation as any).belongsTo(User, {
-    foreignKey: 'instructor_id',
-    as: 'instructor'
+    foreignKey: 'user2_id',
+    as: 'user2'
   });
 
   // Conversation 1 ---< DirectMessage
@@ -516,6 +517,33 @@ export const setupAssociations = () => {
   (Review as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
+  });
+
+  // ===================================
+  // COURSE PREREQUISITES RELATIONSHIPS
+  // ===================================
+
+  // Course 1 ---< CoursePrerequisite (prerequisites của course này)
+  // Dùng alias khác để tránh đụng name attribute "prerequisites" trên Course
+  (Course as any).hasMany(CoursePrerequisite, {
+    foreignKey: 'course_id',
+    as: 'prerequisiteLinks', // changed from 'prerequisites' to avoid collision with column
+    onDelete: 'CASCADE'
+  });
+  (CoursePrerequisite as any).belongsTo(Course, {
+    foreignKey: 'course_id',
+    as: 'course'
+  });
+
+  // Course 1 ---< CoursePrerequisite (course này là prerequisite của course khác)
+  (Course as any).hasMany(CoursePrerequisite, {
+    foreignKey: 'prerequisite_course_id',
+    as: 'prerequisiteForCourses', // renamed from requiredByCourses for clarity
+    onDelete: 'CASCADE'
+  });
+  (CoursePrerequisite as any).belongsTo(Course, {
+    foreignKey: 'prerequisite_course_id',
+    as: 'prerequisiteCourse'
   });
 
   console.log('✅ Model associations setup completed');

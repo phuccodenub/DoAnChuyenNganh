@@ -79,7 +79,7 @@ export function ChatMessagesList({
           <ChatMessageItem
             key={message.id}
             message={message}
-            isOwn={String(message.senderId) === String(user?.id)}
+            isOwn={String(message.user_id) === String(user?.id)}
             deliveryStatus={deliveryStatus}
             onEdit={(msg) => {
               // Open edit modal or inline edit

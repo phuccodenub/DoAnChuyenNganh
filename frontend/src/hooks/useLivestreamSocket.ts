@@ -6,9 +6,15 @@
  * - Real-time chat messages
  * - Viewer count tracking
  * - Reactions
+ * 
+ * ⚠️ PERFORMANCE OPTIMIZATION:
+ * - Chỉ subscribe vào các fields cần thiết từ user (id, first_name, last_name, email, avatar_url)
+ * - Sử dụng useRef để giữ callbacks stable
+ * - Tránh re-render và reconnect không cần thiết
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { Socket } from 'socket.io-client';
 import { socketService } from '@/services/socketService';
 import { useAuthStore } from '@/stores/authStore.enhanced';
 
@@ -109,28 +115,72 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
   const handlersRef = useRef<Map<string, (...args: any[]) => void>>(new Map());
   const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const pendingMessagesRef = useRef<Map<string, ChatMessage>>(new Map()); // tempId -> optimistic message
-  const user = useAuthStore((state) => state.user);
+  
+  // ✅ CHỈ subscribe vào các fields cần thiết từ user
+  // Điều này ngăn re-render khi các fields khác thay đổi
+  const userId = useAuthStore((state) => state.user?.id);
+  const userFirstName = useAuthStore((state) => state.user?.first_name);
+  const userLastName = useAuthStore((state) => state.user?.last_name);
+  const userEmail = useAuthStore((state) => state.user?.email);
+  const userAvatarUrl = useAuthStore((state) => state.user?.avatar_url);
+  
+  // Memoize user info để tránh tạo object mới mỗi render
+  const userInfo = useMemo(() => {
+    if (!userId) return null;
+    return {
+      id: userId,
+      first_name: userFirstName,
+      last_name: userLastName,
+      email: userEmail,
+      avatar_url: userAvatarUrl,
+    };
+  }, [userId, userFirstName, userLastName, userEmail, userAvatarUrl]);
+  
+  // Sử dụng ref để giữ callbacks stable và tránh re-register handlers
+  const callbacksRef = useRef({
+    onViewerCountUpdate,
+    onNewMessage,
+    onReaction,
+    onSessionEnded,
+    onError,
+    onCommentBlocked,
+  });
+  
+  // Update refs khi callbacks thay đổi (không trigger re-render)
+  useEffect(() => {
+    callbacksRef.current = {
+      onViewerCountUpdate,
+      onNewMessage,
+      onReaction,
+      onSessionEnded,
+      onError,
+      onCommentBlocked,
+    };
+  });
 
-  // Setup event handlers
+  // Setup event handlers - CHỈ phụ thuộc vào enabled và sessionId
+  // NON-BLOCKING: Không đợi socket connect
   useEffect(() => {
     if (!enabled || !sessionId) return;
 
-    const setupHandlers = async () => {
-      const socket = await socketService.connect();
-      if (!socket) {
-        console.warn('[useLivestreamSocket] Socket not connected');
-        return;
-      }
-
+    let isMounted = true;
+    let cleanupFn: (() => void) | undefined;
+    
+    const setupHandlers = (socket: Socket) => {
+      if (!isMounted) return;
+      
       setIsConnected(socket.connected);
+      console.log('[useLivestreamSocket] Setting up handlers on socket:', socket.id);
 
       // Connection handlers
       const onConnect = () => {
+        if (!isMounted) return;
         setIsConnected(true);
         console.log('[useLivestreamSocket] Connected');
       };
 
       const onDisconnect = () => {
+        if (!isMounted) return;
         setIsConnected(false);
         setIsJoined(false);
         console.log('[useLivestreamSocket] Disconnected');
@@ -158,21 +208,21 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
         console.log('[useLivestreamSocket] Left session');
       };
 
-      // Viewer count handlers
+      // Viewer count handlers - sử dụng ref để gọi callback
       const onViewerCountUpdated = (data: ViewerCountData) => {
         setViewerCount(data.count);
         setViewers(data.viewers);
-        onViewerCountUpdate?.(data);
+        callbacksRef.current.onViewerCountUpdate?.(data);
       };
 
       const onViewerJoined = (data: { sessionId: string; viewer: ViewerInfo; viewerCount: number }) => {
         setViewerCount(data.viewerCount);
-        onViewerCountUpdate?.({ sessionId: data.sessionId, count: data.viewerCount, viewers: [] });
+        callbacksRef.current.onViewerCountUpdate?.({ sessionId: data.sessionId, count: data.viewerCount, viewers: [] });
       };
 
       const onViewerLeft = (data: { sessionId: string; viewer: ViewerInfo; viewerCount: number }) => {
         setViewerCount(data.viewerCount);
-        onViewerCountUpdate?.({ sessionId: data.sessionId, count: data.viewerCount, viewers: [] });
+        callbacksRef.current.onViewerCountUpdate?.({ sessionId: data.sessionId, count: data.viewerCount, viewers: [] });
       };
 
       // Chat handlers
@@ -213,7 +263,7 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
           // If no optimistic message match found, add as new message
           return [...prev, message];
         });
-        onNewMessage?.(message);
+        callbacksRef.current.onNewMessage?.(message);
       };
 
       const onMessageSent = (data: { messageId: string }) => {
@@ -234,19 +284,19 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
 
       // Reaction handlers
       const onReactionReceived = (data: { emoji: string; userId: string; userName: string }) => {
-        onReaction?.(data);
+        callbacksRef.current.onReaction?.(data);
       };
 
       // Session ended handler
       const onSessionEndedHandler = (data: { sessionId: string }) => {
         console.log('[useLivestreamSocket] Session ended:', data);
-        onSessionEnded?.(data);
+        callbacksRef.current.onSessionEnded?.(data);
       };
 
       // Error handler
       const onErrorHandler = (error: { code: string; message: string }) => {
         console.error('[useLivestreamSocket] Error:', error);
-        onError?.(error);
+        callbacksRef.current.onError?.(error);
       };
 
       // Register handlers
@@ -265,14 +315,12 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
       socket.on(LiveStreamSocketEvents.ERROR, onErrorHandler);
       
       // Comment blocked handler (only for host)
-      if (onCommentBlocked) {
-        const onCommentBlockedHandler = (data: CommentBlockedData) => {
-          console.log('[useLivestreamSocket] Comment blocked:', data);
-          onCommentBlocked(data);
-        };
-        socket.on(LiveStreamSocketEvents.COMMENT_BLOCKED, onCommentBlockedHandler);
-        handlersRef.current.set(LiveStreamSocketEvents.COMMENT_BLOCKED, onCommentBlockedHandler);
-      }
+      const onCommentBlockedHandler = (data: CommentBlockedData) => {
+        console.log('[useLivestreamSocket] Comment blocked:', data);
+        callbacksRef.current.onCommentBlocked?.(data);
+      };
+      socket.on(LiveStreamSocketEvents.COMMENT_BLOCKED, onCommentBlockedHandler);
+      handlersRef.current.set(LiveStreamSocketEvents.COMMENT_BLOCKED, onCommentBlockedHandler);
 
       // Store handlers for cleanup
       handlersRef.current.set('connect', onConnect);
@@ -288,25 +336,55 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
       handlersRef.current.set(LiveStreamSocketEvents.REACTION_RECEIVED, onReactionReceived);
       handlersRef.current.set(LiveStreamSocketEvents.SESSION_ENDED, onSessionEndedHandler);
       handlersRef.current.set(LiveStreamSocketEvents.ERROR, onErrorHandler);
-    };
-
-    setupHandlers();
-
-    // Cleanup
-    return () => {
-      const socket = socketService.getSocket();
-      if (socket) {
+      
+      // Return cleanup function
+      return () => {
         handlersRef.current.forEach((handler, event) => {
           socket.off(event, handler);
         });
         handlersRef.current.clear();
+      };
+    };
+
+    // ============================================
+    // PASSIVE: Try existing socket first
+    // ============================================
+    const existingSocket = socketService.getSocketIfConnected();
+    if (existingSocket) {
+      console.log('[useLivestreamSocket] Using existing connected socket');
+      cleanupFn = setupHandlers(existingSocket);
+    }
+    
+    // ============================================
+    // PASSIVE: Subscribe to future connections
+    // AppProviders manages connection lifecycle
+    // ============================================
+    const onSocketConnect = () => {
+      const socket = socketService.getSocket();
+      if (socket && isMounted && !cleanupFn) {
+        cleanupFn = setupHandlers(socket);
       }
     };
-  }, [enabled, sessionId, onViewerCountUpdate, onNewMessage, onReaction, onSessionEnded, onError]);
+    
+    socketService.onConnect(onSocketConnect);
+    
+    // ⚠️ REMOVED: socketService.connectNonBlocking();
+    // Connection is managed by AppProviders ONLY
+    // Livestream pages will get socket when AppProviders connects it
 
-  // Auto join session with retry logic
+    // Cleanup
+    return () => {
+      isMounted = false;
+      socketService.offConnect(onSocketConnect);
+      if (cleanupFn) {
+        cleanupFn();
+      }
+    };
+  }, [enabled, sessionId]); // ✅ Chỉ phụ thuộc vào enabled và sessionId
+
+  // Auto join session with retry logic - CHỈ phụ thuộc vào userId thay vì toàn bộ user
   useEffect(() => {
-    if (!enabled || !sessionId || !isConnected || isJoined || !user) return;
+    if (!enabled || !sessionId || !isConnected || isJoined || !userId) return;
 
     // Chỉ join nếu session status là "live" hoặc "scheduled" (backend requirement)
     if (sessionStatus && sessionStatus !== 'live' && sessionStatus !== 'scheduled') {
@@ -317,17 +395,24 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
     let retryCount = 0;
     const maxRetries = 5;
     const retryDelay = 2000; // 2 seconds
+    let isCancelled = false;
 
-    const joinSession = async () => {
-      const socket = await socketService.connect();
-      if (!socket) return;
+    const joinSession = () => {
+      if (isCancelled) return;
+      
+      // Use getSocketIfConnected since we're in the isConnected=true branch
+      const socket = socketService.getSocketIfConnected();
+      if (!socket || isCancelled) {
+        console.warn('[useLivestreamSocket] Socket not connected when trying to join');
+        return;
+      }
 
       try {
         console.log(`[useLivestreamSocket] Attempting to join session ${sessionId} (attempt ${retryCount + 1}/${maxRetries})...`);
-      socketService.emit(LiveStreamSocketEvents.JOIN_SESSION, {
-        sessionId,
-        userId: user.id,
-      });
+        socketService.emit(LiveStreamSocketEvents.JOIN_SESSION, {
+          sessionId,
+          userId: userId,
+        });
       } catch (error) {
         console.error('[useLivestreamSocket] Error emitting join:', error);
       }
@@ -338,36 +423,51 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
 
     // Retry logic: Nếu sau retryDelay chưa join được, retry
     const retryInterval = setInterval(() => {
+      if (isCancelled) {
+        clearInterval(retryInterval);
+        return;
+      }
       if (!isJoined && retryCount < maxRetries - 1) {
         retryCount++;
         console.log(`[useLivestreamSocket] Retrying join (attempt ${retryCount + 1}/${maxRetries})...`);
-    joinSession();
+        joinSession();
       } else {
         clearInterval(retryInterval);
       }
     }, retryDelay);
 
     return () => {
+      isCancelled = true;
       clearInterval(retryInterval);
     };
-  }, [enabled, sessionId, isConnected, isJoined, user, sessionStatus]);
+  }, [enabled, sessionId, isConnected, isJoined, userId, sessionStatus]); // ✅ Sử dụng userId thay vì user
 
-  // Auto leave on unmount
+  // Auto leave on unmount - sử dụng ref để lấy giá trị mới nhất
+  const sessionIdRef = useRef(sessionId);
+  const isJoinedRef = useRef(isJoined);
+  const userIdRef = useRef(userId);
+  
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+    isJoinedRef.current = isJoined;
+    userIdRef.current = userId;
+  });
+  
   useEffect(() => {
     return () => {
-      if (sessionId && isJoined && user) {
+      if (sessionIdRef.current && isJoinedRef.current && userIdRef.current) {
         socketService.emit(LiveStreamSocketEvents.LEAVE_SESSION, {
-          sessionId,
-          userId: user.id,
+          sessionId: sessionIdRef.current,
+          userId: userIdRef.current,
         });
       }
     };
-  }, [sessionId, isJoined, user]);
+  }, []); // ✅ Empty deps - chỉ chạy khi unmount
 
-  // Send message
+  // Send message - sử dụng userInfo memoized
   const sendMessage = useCallback(
     (message: string, messageType: 'text' | 'emoji' | 'system' = 'text', replyTo?: string) => {
-      if (!sessionId || !user || !message.trim()) return;
+      if (!sessionId || !userInfo || !message.trim()) return;
 
       const trimmedMessage = message.trim();
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -377,11 +477,11 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
       const optimisticMessage: ChatMessage = {
         id: tempId,
         session_id: sessionId,
-        sender_id: user.id,
-        sender_name: user.first_name && user.last_name 
-          ? `${user.first_name} ${user.last_name}`.trim()
-          : user.email || 'Bạn',
-        sender_avatar: user.avatar_url,
+        sender_id: userInfo.id,
+        sender_name: userInfo.first_name && userInfo.last_name 
+          ? `${userInfo.first_name} ${userInfo.last_name}`.trim()
+          : userInfo.email || 'Bạn',
+        sender_avatar: userInfo.avatar_url,
         message: trimmedMessage,
         message_type: messageType,
         reply_to: replyTo || null,
@@ -399,11 +499,11 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
       pendingMessagesRef.current.set(tempId, optimisticMessage);
 
       // Trigger onNewMessage callback for optimistic message
-      onNewMessage?.(optimisticMessage);
+      callbacksRef.current.onNewMessage?.(optimisticMessage);
 
       console.log('[useLivestreamSocket] Sending message (optimistic):', {
         sessionId,
-        senderId: user.id,
+        senderId: userInfo.id,
         type: messageType,
         replyTo,
         message: trimmedMessage,
@@ -422,11 +522,11 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
       socket.emit(
         LiveStreamSocketEvents.SEND_MESSAGE,
         {
-        session_id: sessionId,
-        sender_id: user.id,
+          session_id: sessionId,
+          sender_id: userInfo.id,
           message: trimmedMessage,
-        message_type: messageType,
-        reply_to: replyTo,
+          message_type: messageType,
+          reply_to: replyTo,
         },
         (ack?: { success: boolean; error?: string; messageId?: string }) => {
           if (!ack) {
@@ -448,13 +548,13 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
         }
       );
     },
-    [sessionId, user, onNewMessage]
+    [sessionId, userInfo]
   );
 
   // Send reaction
   const sendReaction = useCallback(
     (emoji: string) => {
-      if (!sessionId || !user || !isJoined) {
+      if (!sessionId || !userId || !isJoined) {
         console.warn('[useLivestreamSocket] Cannot send reaction: not joined');
         return;
       }
@@ -462,11 +562,11 @@ export function useLivestreamSocket(options: UseLivestreamSocketOptions) {
       console.log('[useLivestreamSocket] Sending reaction:', emoji);
       socketService.emit(LiveStreamSocketEvents.SEND_REACTION, {
         sessionId,
-        userId: user.id,
+        userId: userId,
         emoji,
       });
     },
-    [sessionId, user, isJoined]
+    [sessionId, userId, isJoined]
   );
 
   // Typing indicator

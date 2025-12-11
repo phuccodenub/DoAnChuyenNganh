@@ -14,6 +14,7 @@ import {
   GetMessagesQuery,
   GetConversationsQuery,
 } from './conversation.validate';
+import { getConversationGateway } from './conversation.gateway';
 
 export class ConversationController {
   /**
@@ -21,7 +22,7 @@ export class ConversationController {
    * Get all conversations for the current user
    */
   getConversations = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const query = req.query as unknown as GetConversationsQuery;
 
     const result = await conversationService.getConversations(userId, {
@@ -46,7 +47,7 @@ export class ConversationController {
    * Get a single conversation
    */
   getConversation = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
 
     const conversation = await conversationService.getConversation(conversationId, userId);
@@ -62,7 +63,7 @@ export class ConversationController {
    * Create a new conversation or get existing one
    */
   createConversation = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const body = req.body as CreateConversationInput;
 
     const { conversation, created } = await conversationService.createConversation(userId, body);
@@ -79,7 +80,7 @@ export class ConversationController {
    * Get messages for a conversation
    */
   getMessages = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
     const query = req.query as unknown as GetMessagesQuery;
 
@@ -100,7 +101,7 @@ export class ConversationController {
    * Send a message in a conversation
    */
   sendMessage = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
     const body = req.body as SendMessageInput;
 
@@ -108,6 +109,14 @@ export class ConversationController {
       conversation_id: conversationId,
       ...body,
     });
+
+    // ✅ CRITICAL: Emit Socket.IO event for real-time delivery (excluding sender)
+    const gateway = getConversationGateway();
+    if (gateway) {
+      await gateway.notifyNewMessage(conversationId, message, userId);
+    } else {
+      console.warn('[Controller] ConversationGateway not available for real-time notification');
+    }
 
     res.status(201).json({
       success: true,
@@ -120,7 +129,7 @@ export class ConversationController {
    * Edit a message
    */
   editMessage = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { messageId } = req.params;
     const { content } = req.body as EditMessageInput;
 
@@ -137,7 +146,7 @@ export class ConversationController {
    * Delete a message (soft delete)
    */
   deleteMessage = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { messageId } = req.params;
 
     await conversationService.deleteMessage(messageId, userId);
@@ -153,10 +162,16 @@ export class ConversationController {
    * Mark all messages in conversation as read
    */
   markAsRead = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
 
     await conversationService.markAsRead(conversationId, userId);
+
+    // Emit socket event to notify other participant that messages were read
+    const gateway = getConversationGateway();
+    if (gateway) {
+      gateway.emitConversationRead(conversationId, userId);
+    }
 
     res.json({
       success: true,
@@ -169,7 +184,7 @@ export class ConversationController {
    * Archive or unarchive a conversation
    */
   archiveConversation = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
     const { archive = true } = req.body;
 
@@ -186,7 +201,7 @@ export class ConversationController {
    * Search messages in a conversation
    */
   searchMessages = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
     const { conversationId } = req.params;
     const { q } = req.query as { q: string };
 
@@ -203,13 +218,45 @@ export class ConversationController {
    * Get total unread message count
    */
   getUnreadCount = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user.userId;
 
     const count = await conversationService.getTotalUnreadCount(userId);
 
     res.json({
       success: true,
       data: { unread_count: count },
+    });
+  });
+
+  /**
+   * GET /api/v1/conversations/:conversationId/online-status
+   * Get real-time online status of conversation participant
+   */
+  getOnlineStatus = asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).user.userId;
+    const { conversationId } = req.params;
+
+    // Verify participation
+    const conversation = await conversationService.getConversation(conversationId, userId);
+    const gateway = getConversationGateway();
+    
+    if (!gateway) {
+      return res.json({
+        success: true,
+        data: { isOnline: false },
+      });
+    }
+
+    // Determine other user
+    const otherUserId = (conversation as any).user1_id === userId 
+      ? (conversation as any).user2_id 
+      : (conversation as any).user1_id;
+
+    const isOnline = gateway.isUserOnline(otherUserId);
+
+    res.json({
+      success: true,
+      data: { isOnline },
     });
   });
 }

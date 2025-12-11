@@ -2,20 +2,31 @@ import { apiClient } from '../http/client';
 
 export interface ChatMessage {
   id: string;
-  courseId: string;
-  senderId: string;
-  senderName: string;
-  senderAvatar?: string;
+  course_id: string;
+  user_id: string;
   content: string;
-  messageType: 'text' | 'file' | 'notification' | 'system';
-  fileUrl?: string;
-  fileName?: string;
-  fileSize?: number;
-  replyTo?: string;
-  replyToMessage?: ChatMessage;
+  message_type: 'text' | 'file' | 'image' | 'system' | 'announcement';
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_size?: number | null;
+  attachment_type?: string | null;
+  reply_to_message_id?: string | null;
+  is_edited: boolean;
+  edited_at?: string | null;
+  is_deleted: boolean;
+  is_pinned?: boolean;
+  // Backend returns camelCase for these
   createdAt: string;
   updatedAt: string;
-  isEdited: boolean;
+  sender?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    avatar?: string;
+    role: string;
+  };
+  replyToMessage?: ChatMessage | null;
 }
 
 export interface ChatMessagesResponse {
@@ -24,7 +35,8 @@ export interface ChatMessagesResponse {
     page: number;
     limit: number;
     total: number;
-    pages: number;
+    totalPages: number;
+    hasMore: boolean;
   };
 }
 
@@ -51,33 +63,75 @@ export const chatApi = {
    * Get chat messages for a course
    */
   getMessages: async (courseId: string, page: number = 1, limit: number = 50): Promise<ChatMessagesResponse> => {
-    const response = await apiClient.get<ChatMessagesResponse>(
+    // Safety check - return empty result if no courseId
+    if (!courseId) {
+      return { data: [], pagination: { page: 1, limit: 50, total: 0, totalPages: 0, hasMore: false } };
+    }
+    const response = await apiClient.get(
       `/chat/courses/${courseId}/messages`,
       { params: { page, limit } }
     );
-    return response.data;
+    // API returns { success, data: { data: [], pagination } }
+    const respData = response.data?.data || response.data;
+    return {
+      data: respData?.data || [],
+      pagination: respData?.pagination || { page: 1, limit: 50, total: 0, totalPages: 0, hasMore: false }
+    };
+  },
+
+  /**
+   * Get chat messages with infinite scroll support (timestamp-based)
+   */
+  getMessagesInfinite: async (
+    courseId: string, 
+    options?: { limit?: number; beforeMessageId?: string; afterMessageId?: string }
+  ): Promise<ChatMessagesResponse> => {
+    if (!courseId) {
+      return { data: [], pagination: { page: 1, limit: 50, total: 0, totalPages: 0, hasMore: false } };
+    }
+    const params: Record<string, any> = { 
+      limit: options?.limit || 50,
+      page: 1 // Page 1 for timestamp-based queries
+    };
+    if (options?.beforeMessageId) params.beforeMessageId = options.beforeMessageId;
+    if (options?.afterMessageId) params.afterMessageId = options.afterMessageId;
+
+    const response = await apiClient.get(
+      `/chat/courses/${courseId}/messages`,
+      { params }
+    );
+    const respData = response.data?.data || response.data;
+    return {
+      data: respData?.data || [],
+      pagination: respData?.pagination || { page: 1, limit: 50, total: 0, totalPages: 0, hasMore: false }
+    };
   },
 
   /**
    * Send a chat message
    */
-  sendMessage: async (courseId: string, content: string, replyToId?: string): Promise<ChatMessage> => {
-    const response = await apiClient.post<ChatMessage>(
+  sendMessage: async (courseId: string, content: string, replyToMessageId?: string): Promise<ChatMessage> => {
+    // Safety check - cannot send without courseId
+    if (!courseId) {
+      throw new Error('courseId is required to send a message');
+    }
+    const response = await apiClient.post(
       `/chat/courses/${courseId}/messages`,
       {
-        message: content,
+        content,  // Backend uses 'content' not 'message'
         message_type: 'text',
-        reply_to: replyToId,
+        reply_to_message_id: replyToMessageId,
       }
     );
-    return response.data;
+    // API returns { success, data: Message }
+    return response.data?.data || response.data;
   },
 
   /**
    * Update a chat message
    */
   updateMessage: async (messageId: string, content: string): Promise<ChatMessage> => {
-    const response = await apiClient.put<ChatMessage>(
+    const response = await apiClient.put(
       `/chat/messages/${messageId}`,
       { message: content }
     );
@@ -120,5 +174,29 @@ export const chatApi = {
       `/chat/courses/${courseId}/statistics`
     );
     return response.data.data;
+  },
+
+  /**
+   * Get total count of courses with unread messages (not total message count)
+   */
+  getUnreadCount: async (): Promise<number> => {
+    const response = await apiClient.get<{ data: { unread_count: number } }>('/chat/unread-count');
+    return response.data.data.unread_count;
+  },
+
+  /**
+   * Get unread count for each enrolled course
+   * Returns array of { course_id, unread_count }
+   */
+  getUnreadCountPerCourse: async (): Promise<Array<{ course_id: string; unread_count: number }>> => {
+    const response = await apiClient.get<{ data: Array<{ course_id: string; unread_count: number }> }>('/chat/unread-count-per-course');
+    return response.data.data;
+  },
+
+  /**
+   * Mark all messages in a course as read
+   */
+  markAsRead: async (courseId: string): Promise<void> => {
+    await apiClient.post(`/chat/courses/${courseId}/mark-read`);
   },
 };

@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import logger from '../../utils/logger.util';
+import logger from '../utils/logger.util';
 
 // Configuration
 const MAX_MESSAGES_PER_WINDOW = 10;

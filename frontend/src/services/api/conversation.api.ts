@@ -26,17 +26,17 @@ export interface CourseInfo {
 export interface Conversation {
   id: string;
   course_id: string;
-  student_id: string;
-  instructor_id: string;
+  user1_id: string;
+  user2_id: string;
   last_message_at: string | null;
-  student_last_read_at: string | null;
-  instructor_last_read_at: string | null;
-  is_archived_by_student: boolean;
-  is_archived_by_instructor: boolean;
+  user1_last_read_at: string | null;
+  user2_last_read_at: string | null;
+  is_archived_by_user1: boolean;
+  is_archived_by_user2: boolean;
   created_at: string;
   updated_at: string;
-  student: Participant;
-  instructor: Participant;
+  user1: Participant;
+  user2: Participant;
   course: CourseInfo;
   unread_count?: number;
   last_message?: DirectMessage;
@@ -59,6 +59,7 @@ export interface DirectMessage {
   created_at: string;
   updated_at: string;
   sender: Participant;
+  sender_role?: string; // Role of the sender (from backend)
 }
 
 export interface ConversationsResponse {
@@ -77,7 +78,8 @@ export interface MessagesResponse {
 }
 
 export interface CreateConversationInput {
-  course_id: string;
+  recipient_id: string;  // User ID to start conversation with
+  course_id?: string;    // Optional: for context
   instructor_id?: string;
   student_id?: string;
 }
@@ -211,6 +213,14 @@ export const getUnreadCount = async (): Promise<{ success: boolean; data: { unre
   return response.data;
 };
 
+/**
+ * Get real-time online status of conversation participant
+ */
+export const getOnlineStatus = async (conversationId: string): Promise<{ success: boolean; data: { isOnline: boolean } }> => {
+  const response = await apiClient.get(`/conversations/${conversationId}/online-status`);
+  return response.data;
+};
+
 // Export as object for convenience
 export const conversationApi = {
   getConversations,
@@ -224,4 +234,5 @@ export const conversationApi = {
   archiveConversation,
   searchMessages,
   getUnreadCount,
+  getOnlineStatus,
 };

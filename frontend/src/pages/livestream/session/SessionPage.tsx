@@ -7,6 +7,7 @@ import { useSession, useUpdateSession } from '@/hooks/useLivestream';
 import { useLivestreamSocket } from '@/hooks/useLivestreamSocket';
 import { useIceServers } from '@/hooks/useIceServers';
 import { ROUTES } from '@/constants/routes';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 import { MainLayout } from '@/layouts/MainLayout';
 import { SessionHeader, ViewerSection, ChatPanel, ConnectionNotice, SessionHostInfo } from './components';
 import { LiveStreamChatState } from '../components/shared/LiveStreamChat';
@@ -22,6 +23,7 @@ type Reaction = { emoji: string; userName: string; userId?: string };
 export function LiveStreamSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const { navigateTo } = useRoleBasedNavigation();
   const { data: session, isLoading } = useSession(sessionId);
   const updateSession = useUpdateSession();
 
@@ -341,7 +343,7 @@ export function LiveStreamSessionPage() {
         } as any,
       });
       alert('Đã kết thúc livestream!');
-      navigate(ROUTES.INSTRUCTOR.LIVESTREAM);
+      navigateTo.livestream();
     } catch (error) {
       console.error('End session error:', error);
       alert('Có lỗi khi kết thúc livestream');
@@ -363,7 +365,7 @@ export function LiveStreamSessionPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <p className="text-gray-600">Không tìm thấy phiên livestream.</p>
-        <Button onClick={() => navigate(isHost ? ROUTES.INSTRUCTOR.LIVESTREAM : ROUTES.LIVESTREAM.HUB)}>
+        <Button onClick={() => isHost ? navigateTo.livestream() : navigate(ROUTES.LIVESTREAM.HUB)}>
           Quay lại danh sách
         </Button>
       </div>

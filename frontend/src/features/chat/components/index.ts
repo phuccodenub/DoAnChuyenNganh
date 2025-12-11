@@ -18,3 +18,14 @@ export { MessageComposer } from './MessageComposer';
 export { EmptyState } from './EmptyState';
 export { OnlineStatusDot } from './OnlineStatusDot';
 export { ChatFloatingButton } from './ChatFloatingButton';
+export { TypingIndicator, TypingStatus } from './TypingIndicator';
+
+// Navigation
+export { ChatTabs, useChatTabs } from './ChatTabs';
+export type { ChatTabType } from './ChatTabs';
+
+// Modals
+export { NewChatModal } from './NewChatModal';
+
+// Course Chat
+export { CourseChatPanel } from './CourseChatPanel';

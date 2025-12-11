@@ -174,6 +174,16 @@ export function useCourseSections(courseId: string) {
   });
 }
 
+// Bookmarked lessons in a course
+export function useCourseBookmarks(courseId: string) {
+  return useQuery({
+    queryKey: ['lessons', 'bookmarks', courseId],
+    queryFn: () => lessonApi.getCourseBookmarks(courseId),
+    enabled: !!courseId,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
 export default {
   useCourseContent,
   useLesson,
@@ -181,4 +191,5 @@ export default {
   useUpdateProgress,
   useMarkLessonComplete,
   useCourseSections,
+  useCourseBookmarks,
 };

@@ -27,6 +27,9 @@ router.get('/status', controller.getStatus);
  */
 router.post('/chat', controller.chat);
 
+router.post('/lesson-chat', controller.lessonChat);
+router.post('/lesson-summary', controller.lessonSummary);
+
 /**
  * @route   POST /ai/generate-quiz
  * @desc    Generate quiz questions from course content

@@ -429,5 +429,39 @@ export class UserModuleService {
     }
   }
 
+  /**
+   * Search users for chat/messaging
+   * Role-based filtering applied
+   */
+  async searchUsers(searchTerm: string, options?: { 
+    limit?: number; 
+    excludeUserId?: string;
+    currentUserId?: string;
+    currentUserRole?: string;
+  }): Promise<UserTypes.UserProfile[]> {
+    try {
+      logger.info('Searching users', { searchTerm, options });
+      
+      const { limit = 20, excludeUserId, currentUserId, currentUserRole } = options || {};
+      
+      const users = await this.userRepository.searchUsers(searchTerm, { 
+        limit,
+        excludeUserId,
+        currentUserId,
+        currentUserRole,
+      });
+      
+      // Transform to public profiles
+      const profiles = users.map(user => 
+        userUtils.getPublicProfile(user as any) as UserTypes.UserProfile
+      );
+      
+      logger.info('Users search completed', { count: profiles.length });
+      return profiles;
+    } catch (error: unknown) {
+      logger.error('Error searching users:', error);
+      throw error;
+    }
+  }
 
 }

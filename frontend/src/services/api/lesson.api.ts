@@ -175,6 +175,17 @@ export interface LessonProgressInfo {
   is_completed: boolean;
 }
 
+export interface LessonBookmark {
+  lesson_id: string;
+  lesson_title: string;
+  lesson_order: number;
+  content_type: string;
+  section_id: string;
+  section_title: string;
+  section_order: number;
+  bookmarked_at?: string;
+}
+
 /**
  * Section Progress Info
  */
@@ -238,6 +249,16 @@ export const lessonApi = {
     const response = await apiClient.put<ApiResponse<LessonProgress>>(
       `${COURSE_CONTENT_PREFIX}/lessons/${lessonId}/progress`,
       data
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Get bookmarked lessons in a course (current user)
+   */
+  getCourseBookmarks: async (courseId: string): Promise<LessonBookmark[]> => {
+    const response = await apiClient.get<ApiResponse<LessonBookmark[]>>(
+      `${COURSE_CONTENT_PREFIX}/courses/${courseId}/bookmarks`
     );
     return response.data.data;
   },

@@ -4,21 +4,31 @@
  * Description: Allows message_id to be null for comments blocked before saving
  */
 
-import { QueryInterface, DataTypes } from 'sequelize';
+import { QueryInterface, DataTypes, QueryTypes } from 'sequelize';
 import logger from '../utils/logger.util';
 
 export const version = '021';
 export const description = 'Allow null message_id in comment_moderations table';
 
 export async function up(queryInterface: QueryInterface): Promise<void> {
+  // Check if column is already nullable
+  const [result] = await queryInterface.sequelize.query(
+    `SELECT is_nullable FROM information_schema.columns 
+     WHERE table_name = 'comment_moderations' AND column_name = 'message_id'`,
+    { type: QueryTypes.SELECT }
+  ) as [{ is_nullable: string }[], unknown];
+  
+  if (result && (result as any).is_nullable === 'YES') {
+    logger.info('[Migration 021] message_id column is already nullable, skipping...');
+    return;
+  }
+
   // First, drop the NOT NULL constraint
   await queryInterface.sequelize.query(`
     ALTER TABLE comment_moderations 
     ALTER COLUMN message_id DROP NOT NULL;
   `);
   
-  // Then update the foreign key constraint if needed
-  // The foreign key should already allow null, but we ensure it
   logger.info('[Migration 021] Updated message_id column to allow NULL');
 }
 

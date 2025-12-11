@@ -9,17 +9,18 @@ import { ChatMessageInstance, UserInstance } from '../../types/model.types';
 
 export interface SendMessageDto {
   course_id: string;
-  sender_id: string;
-  message: string;
+  user_id: string;  // Supabase uses user_id
+  content: string;  // Supabase uses content
   message_type?: 'text' | 'file' | 'image' | 'system' | 'announcement';
-  file_url?: string;
-  file_name?: string;
-  file_size?: number;
-  reply_to?: string;
+  attachment_url?: string;  // Supabase uses attachment_*
+  attachment_name?: string;
+  attachment_size?: number;
+  attachment_type?: string;
+  reply_to_message_id?: string;  // Supabase uses reply_to_message_id
 }
 
 export interface UpdateMessageDto {
-  message: string;
+  content: string;  // Supabase uses content
 }
 
 export interface DeleteMessageDto {

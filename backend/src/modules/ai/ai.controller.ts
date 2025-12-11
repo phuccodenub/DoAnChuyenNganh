@@ -13,12 +13,15 @@ import {
 } from './ai.types';
 import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
+import { CourseContentService } from '../course-content/course-content.service';
 
 export class AIController {
   private aiService: AIService;
+  private courseContentService: CourseContentService;
 
   constructor() {
     this.aiService = new AIService();
+    this.courseContentService = new CourseContentService();
   }
 
   /**
@@ -48,6 +51,59 @@ export class AIController {
       return responseUtils.success(res, response, 'AI response generated successfully');
     } catch (error) {
       logger.error('[AIController] Chat error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Lesson-aware chat (RAG-lite): fetch lesson content then ask
+   * POST /ai/lesson-chat
+   */
+  lessonChat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+      const { lessonId, message, conversationHistory, options } = req.body;
+
+      if (!lessonId || !message) {
+        return responseUtils.sendValidationError(res, 'lessonId and message are required');
+      }
+
+      // Fetch lesson with access control
+      const lesson = await this.courseContentService.getLesson(lessonId, userId);
+
+      const response = await this.aiService.chatWithLessonContext({
+        lesson,
+        message,
+        conversationHistory,
+        options,
+      });
+
+      return responseUtils.success(res, response, 'AI response generated with lesson context');
+    } catch (error) {
+      logger.error('[AIController] Lesson chat error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Summarize a lesson
+   * POST /ai/lesson-summary
+   */
+  lessonSummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+      const { lessonId } = req.body;
+
+      if (!lessonId) {
+        return responseUtils.sendValidationError(res, 'lessonId is required');
+      }
+
+      const lesson = await this.courseContentService.getLesson(lessonId, userId);
+      const response = await this.aiService.summarizeLesson(lesson);
+
+      return responseUtils.success(res, response, 'Lesson summarized successfully');
+    } catch (error) {
+      logger.error('[AIController] Lesson summary error:', error);
       next(error);
     }
   };

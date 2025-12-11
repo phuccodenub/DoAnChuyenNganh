@@ -94,27 +94,67 @@ export class NotificationGateway {
     this.io.on('connection', (socket: Socket) => {
       const user = (socket as any).user as SocketUser | undefined;
       
+      logger.debug(`[NotificationGateway] New socket connection: ${socket.id}`);
+      logger.debug(`[NotificationGateway] Socket handshake auth:`, {
+        hasToken: !!(socket.handshake.auth as any)?.token,
+        tokenLength: ((socket.handshake.auth as any)?.token || '').length
+      });
+      
       if (!user) {
         // Auth đã được handle bởi middleware trong chat gateway
+        // Nếu không có user, sử dụng event-driven approach thay vì setTimeout
+        logger.debug(`[NotificationGateway] Socket ${socket.id} waiting for auth...`);
+        
+        // Listen for custom 'authenticated' event from auth middleware
+        const authHandler = (authUser: SocketUser) => {
+          logger.info(`[NotificationGateway] User authenticated via event: ${authUser.userId}`);
+          this.handleUserConnection(socket, authUser);
+        };
+        
+        socket.once('notification:authenticated', authHandler);
+        
+        // Cleanup listener if socket disconnects before auth
+        socket.once('disconnect', () => {
+          socket.off('notification:authenticated', authHandler);
+        });
+        
+        // Fallback: Check if user was attached synchronously after middleware chain
+        process.nextTick(() => {
+          const attachedUser = (socket as any).user as SocketUser | undefined;
+          if (attachedUser && !this.socketUsers.has(socket.id)) {
+            logger.info(`[NotificationGateway] User found on nextTick: ${attachedUser.userId}`);
+            socket.off('notification:authenticated', authHandler);
+            this.handleUserConnection(socket, attachedUser);
+          }
+        });
         return;
       }
 
-      // Track user socket
-      this.addUserSocket(user.userId, socket.id, user);
+      this.handleUserConnection(socket, user);
+    });
+  }
 
-      // Subscribe to personal notification room
-      const userRoom = this.getUserRoom(user.userId);
-      socket.join(userRoom);
-      logger.debug(`User ${user.userId} joined notification room: ${userRoom}`);
+  /**
+   * Handle authenticated user connection
+   */
+  private handleUserConnection(socket: Socket, user: SocketUser): void {
+    logger.info(`[NotificationGateway] ✅ User connected: ${user.userId} (${user.email})`);
+    
+    // Track user socket
+    this.addUserSocket(user.userId, socket.id, user);
 
-      // Handle notification-specific events
-      this.handleNotificationEvents(socket, user);
+    // Subscribe to personal notification room
+    const userRoom = this.getUserRoom(user.userId);
+    socket.join(userRoom);
+    logger.debug(`[NotificationGateway] User ${user.userId} joined notification room: ${userRoom}`);
 
-      // Handle disconnect
-      socket.on('disconnect', () => {
-        this.removeUserSocket(user.userId, socket.id);
-        logger.debug(`User ${user.userId} disconnected from notifications`);
-      });
+    // Handle notification-specific events
+    this.handleNotificationEvents(socket, user);
+
+    // Handle disconnect
+    socket.on('disconnect', (reason) => {
+      this.removeUserSocket(user.userId, socket.id);
+      logger.info(`[NotificationGateway] ❌ User ${user.userId} disconnected (reason: ${reason})`);
     });
   }
 

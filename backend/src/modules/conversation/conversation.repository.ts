@@ -17,12 +17,12 @@ export class ConversationRepository {
       include: [
         {
           model: User,
-          as: 'student',
+          as: 'user1',
           attributes: ['id', 'first_name', 'last_name', 'avatar', 'status', 'role'],
         },
         {
           model: User,
-          as: 'instructor',
+          as: 'user2',
           attributes: ['id', 'first_name', 'last_name', 'avatar', 'status', 'role'],
         },
         {
@@ -35,24 +35,27 @@ export class ConversationRepository {
   }
 
   /**
-   * Find conversation by course, student and instructor
+   * Find conversation between two users for a course
    */
-  async findByParticipants(courseId: string, studentId: string, instructorId: string) {
+  async findByParticipants(courseId: string | null, user1Id: string, user2Id: string) {
+    // Try both directions: (user1, user2) and (user2, user1)
     return await Conversation.findOne({
       where: {
         course_id: courseId,
-        student_id: studentId,
-        instructor_id: instructorId,
+        [Op.or]: [
+          { user1_id: user1Id, user2_id: user2Id },
+          { user1_id: user2Id, user2_id: user1Id },
+        ],
       },
       include: [
         {
           model: User,
-          as: 'student',
+          as: 'user1',
           attributes: ['id', 'first_name', 'last_name', 'avatar', 'status', 'role'],
         },
         {
           model: User,
-          as: 'instructor',
+          as: 'user2',
           attributes: ['id', 'first_name', 'last_name', 'avatar', 'status', 'role'],
         },
         {
@@ -69,21 +72,27 @@ export class ConversationRepository {
    */
   async findByUserId(
     userId: string,
-    role: 'student' | 'instructor',
+    role: 'student' | 'instructor' | 'admin',
     options: { includeArchived?: boolean; limit?: number; offset?: number } = {}
   ) {
     const { includeArchived = false, limit = 50, offset = 0 } = options;
 
-    const whereClause: Record<string, unknown> = role === 'student'
-      ? { student_id: userId }
-      : { instructor_id: userId };
+    // Find conversations where user is either user1 or user2
+    const whereClause: Record<string, unknown> = {
+      [Op.or]: [
+        { user1_id: userId },
+        { user2_id: userId },
+      ],
+    };
 
+    // Filter archived conversations
     if (!includeArchived) {
-      if (role === 'student') {
-        whereClause.is_archived_by_student = false;
-      } else {
-        whereClause.is_archived_by_instructor = false;
-      }
+      whereClause[Op.and] = {
+        [Op.or]: [
+          { user1_id: userId, is_archived_by_user1: false },
+          { user2_id: userId, is_archived_by_user2: false },
+        ],
+      };
     }
 
     return await Conversation.findAndCountAll({
@@ -91,12 +100,12 @@ export class ConversationRepository {
       include: [
         {
           model: User,
-          as: 'student',
+          as: 'user1',
           attributes: ['id', 'first_name', 'last_name', 'avatar', 'status', 'role'],
         },
         {
           model: User,
-          as: 'instructor',
+          as: 'user2',
           attributes: ['id', 'first_name', 'last_name', 'avatar', 'status', 'role'],
         },
         {
@@ -122,19 +131,42 @@ export class ConversationRepository {
   /**
    * Find or create conversation
    */
-  async findOrCreate(courseId: string, studentId: string, instructorId: string) {
-    const existing = await this.findByParticipants(courseId, studentId, instructorId);
+  async findOrCreate(courseId: string | null, user1Id: string, user2Id: string) {
+    const existing = await this.findByParticipants(courseId, user1Id, user2Id);
     if (existing) {
       return { conversation: existing, created: false };
     }
 
     const conversation = await this.create({
       course_id: courseId,
-      student_id: studentId,
-      instructor_id: instructorId,
+      user1_id: user1Id,
+      user2_id: user2Id,
     });
 
     return { conversation, created: true };
+  }
+
+  /**
+   * Find or create direct conversation (no course)
+   */
+  async findOrCreateDirect(user1Id: string, user2Id: string) {
+    // Use findByParticipants which handles both directions
+    const existing = await this.findByParticipants(null, user1Id, user2Id);
+
+    if (existing) {
+      return { conversation: existing, created: false };
+    }
+
+    // Create new direct conversation
+    const conversation = await Conversation.create({
+      user1_id: user1Id,
+      user2_id: user2Id,
+      course_id: null,
+    } as any);
+
+    // Fetch with associations
+    const fullConversation = await this.findById(conversation.id);
+    return { conversation: fullConversation, created: true };
   }
 
   /**
@@ -159,7 +191,11 @@ export class ConversationRepository {
    * Mark conversation as read for a user
    */
   async markAsRead(id: string, userId: string, role: 'student' | 'instructor') {
-    const field = role === 'student' ? 'student_last_read_at' : 'instructor_last_read_at';
+    // Determine which user column this userId belongs to
+    const conversation = await Conversation.findByPk(id);
+    if (!conversation) return;
+
+    const field = (conversation as any).user1_id === userId ? 'user1_last_read_at' : 'user2_last_read_at';
     await Conversation.update(
       { [field]: new Date() },
       { where: { id } }
@@ -185,8 +221,8 @@ export class ConversationRepository {
       where: {
         id: conversationId,
         [Op.or]: [
-          { student_id: userId },
-          { instructor_id: userId },
+          { user1_id: userId },
+          { user2_id: userId },
         ],
       },
     });
@@ -200,8 +236,8 @@ export class ConversationRepository {
     const conversation = await Conversation.findByPk(conversationId);
     if (!conversation) return null;
     
-    if ((conversation as any).student_id === userId) return 'student';
-    if ((conversation as any).instructor_id === userId) return 'instructor';
+    if ((conversation as any).user1_id === userId) return 'student';
+    if ((conversation as any).user2_id === userId) return 'instructor';
     return null;
   }
 }
