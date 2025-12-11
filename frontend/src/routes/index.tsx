@@ -198,8 +198,7 @@ function AppRoutes() {
               <Route path={ROUTES.INSTRUCTOR.CHAT} element={<Navigate to={ROUTES.SHARED.MESSAGES} replace />} />
               <Route path={ROUTES.INSTRUCTOR.NOTIFICATIONS} element={<InstructorNotificationsPage />} />
             </Route>
-            {/* Livestream create page sử dụng layout riêng giống Facebook */}
-            <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />
+            {/* Livestream create page already defined above in shared route */}
           </Route>
 
           {/* Admin routes */}

@@ -102,8 +102,8 @@ export interface CreateQuizData {
   title: string;
   description?: string;
   course_id?: string;
-  lesson_id?: string;
   section_id?: string;
+  lesson_id?: string;
   duration_minutes?: number;
   max_attempts?: number;
   passing_score?: number;

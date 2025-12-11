@@ -22,7 +22,7 @@ export class CertificateRepository {
     user_id: string;
     course_id: string;
     enrollment_id?: string;
-    ipfs_hash: string;
+    ipfs_hash: string | null;
     certificate_hash: string;
     metadata: any;
     certificate_number: string;
@@ -240,6 +240,16 @@ export class CertificateRepository {
       }
     );
 
+    return affectedRows > 0;
+  }
+
+  /**
+   * Update certificate
+   */
+  async update(id: string, data: Partial<{ metadata: any; status: string }>): Promise<boolean> {
+    const [affectedRows] = await Certificate.update(data, {
+      where: { id },
+    });
     return affectedRows > 0;
   }
 

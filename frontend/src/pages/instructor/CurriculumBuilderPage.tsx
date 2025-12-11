@@ -344,6 +344,8 @@ export function CurriculumBuilderPage() {
 
   /**
    * Xử lý khi click Edit trên lesson/content item
+   * @param sectionId - ID của section chứa lesson
+   * @param lesson - Lesson object cần edit
    */
   const handleEditContentItem = (sectionId: string, lesson: any) => {
     if (lesson.content_type === 'quiz' && courseId) {

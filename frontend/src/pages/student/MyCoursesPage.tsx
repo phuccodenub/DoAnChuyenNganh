@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Search, 
-  Filter, 
-  ArrowUpDown, 
-  Bot, 
+import {
+  Search,
+  Filter,
+  ArrowUpDown,
+  Bot,
   ArrowRight,
   BookOpen,
   FileText
@@ -38,6 +38,20 @@ export function MyCoursesPage() {
   const allCourses = coursesData?.courses || [];
   const inProgressCourses = inProgressData?.courses || [];
 
+  // Helper function to get lesson route
+  const getLessonRoute = (course: any) => {
+    // Priority 1: next_lesson_id if available
+    if (course.next_lesson_id) {
+      return generateRoute.student.lesson(course.id, course.next_lesson_id);
+    }
+    // Priority 2: first_lesson_id if available
+    if (course.first_lesson_id) {
+      return generateRoute.student.lesson(course.id, course.first_lesson_id);
+    }
+    // Fallback: course detail page
+    return generateRoute.courseDetail(course.id);
+  };
+
   // Filter logic
   const filteredCourses = useMemo(() => {
     return allCourses.filter((course: any) => {
@@ -49,7 +63,7 @@ export function MyCoursesPage() {
         else if (activeStatus === 'in-progress') matchesStatus = progress > 0 && progress < 100;
         else if (activeStatus === 'completed') matchesStatus = progress === 100;
       }
-      
+
       // Search filter
       const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesStatus && matchesSearch;
@@ -60,7 +74,7 @@ export function MyCoursesPage() {
     <StudentDashboardLayout>
       <div className="min-h-screen bg-gray-50 p-6 md:p-8">
         <div className="max-w-7xl mx-auto space-y-10">
-          
+
           {/* --- SECTION 1: TIẾP TỤC HỌC --- */}
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Tiếp tục học</h2>
@@ -110,13 +124,13 @@ export function MyCoursesPage() {
                               <span>Tiến độ: {progress}%</span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
-                              <div 
+                              <div
                                 className="bg-green-500 h-2 rounded-full transition-all duration-500"
                                 style={{ width: `${progress}%` }}
                               />
                             </div>
                             <div className="flex justify-end">
-                              <Link to={generateRoute.student.learning(course.id)}>
+                              <Link to={getLessonRoute(course)}>
                                 <Button variant="outline" size="sm" className="rounded-lg">
                                   Tiếp tục
                                 </Button>
@@ -209,7 +223,7 @@ export function MyCoursesPage() {
                     const progress = course.enrollment?.progress_percentage || 0;
                     const isStarted = progress > 0;
                     const isCompleted = progress === 100;
-                    
+
                     return (
                       <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
                         <div className="h-32 bg-gray-200 relative overflow-hidden">
@@ -230,7 +244,7 @@ export function MyCoursesPage() {
                             <span className="text-xs font-medium text-blue-600">Khóa học</span>
                           </div>
                           <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-3 flex-1">{course.title}</h3>
-                          
+
                           {/* Progress bar */}
                           <div className="mb-3">
                             <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
@@ -238,17 +252,17 @@ export function MyCoursesPage() {
                               <span className={isCompleted ? 'text-green-600 font-medium' : ''}>{progress}%</span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-1.5">
-                              <div 
+                              <div
                                 className={`h-1.5 rounded-full transition-all ${isCompleted ? 'bg-green-500' : 'bg-blue-500'}`}
                                 style={{ width: `${progress}%` }}
                               />
                             </div>
                           </div>
-                          
-                          <Link to={generateRoute.student.learning(course.id)} className="mt-auto">
-                            <Button 
-                              variant={isCompleted ? "outline" : "primary"} 
-                              size="sm" 
+
+                          <Link to={getLessonRoute(course)} className="mt-auto">
+                            <Button
+                              variant={isCompleted ? "outline" : "primary"}
+                              size="sm"
                               className="w-full"
                             >
                               {isCompleted ? 'Xem lại' : isStarted ? 'Tiếp tục' : 'Bắt đầu'}

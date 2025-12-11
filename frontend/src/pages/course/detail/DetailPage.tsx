@@ -33,6 +33,7 @@ import { useQuery } from '@tanstack/react-query';
 import { quizApi, type Quiz } from '@/services/api/quiz.api';
 import { assignmentApi, type Assignment } from '@/services/api/assignment.api';
 import { getCourseThumbnailUrl } from '@/utils/course.utils';
+import { ReviewsTab } from './components/ReviewsTab';
 import { RatingDisplay } from '@/components/domain/course/RatingDisplay';
 import { RatingForm } from '@/components/domain/course/RatingForm';
 import { ReviewsList } from '@/components/domain/course/ReviewsList';

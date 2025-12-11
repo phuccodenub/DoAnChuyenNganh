@@ -136,7 +136,7 @@ export function LessonModal({
         if (isOpen) {
             setTempTitle(lessonForm.title);
             // Load content và description từ lessonForm hoặc editingLesson
-            const contentToLoad = lessonForm.content || editingLesson?.content || '';
+            const contentToLoad = lessonForm.content || (editingLesson as any)?.content || '';
             setContent(contentToLoad);
             
             // Reset PDF file state khi mở lesson khác (khi editingLesson.id thay đổi)
@@ -150,7 +150,7 @@ export function LessonModal({
             // Debug log
             console.log('[LessonModal] Loading content:', {
                 lessonFormContent: lessonForm.content,
-                editingLessonContent: editingLesson?.content,
+                editingLessonContent: (editingLesson as any)?.content,
                 contentToLoad,
                 content_type: lessonForm.content_type,
                 editingLessonId: editingLesson?.id,

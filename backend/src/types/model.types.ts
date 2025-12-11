@@ -220,11 +220,12 @@ export interface AssignmentAttributes {
   submission_type: 'file' | 'text' | 'both';
   is_published: boolean;
   is_practice: boolean; // true = Practice Assignment, false = Graded Assignment
+  instructions?: string;
   created_at: Date;
   updated_at: Date;
 }
 
-export interface AssignmentCreationAttributes extends Optional<AssignmentAttributes, 'id' | 'created_at' | 'updated_at' | 'max_score' | 'allow_late_submission' | 'is_published'> {}
+export interface AssignmentCreationAttributes extends Optional<AssignmentAttributes, 'id' | 'created_at' | 'updated_at' | 'max_score' | 'allow_late_submission' | 'is_published' | 'is_practice' | 'instructions' | 'description'> {}
 
 export interface AssignmentInstance extends Model, AssignmentAttributes {}
 
@@ -713,7 +714,7 @@ export interface GradeComponentAttributes {
   updated_at: Date;
 }
 
-export interface GradeComponentCreationAttributes extends Optional<GradeComponentAttributes, 'id' | 'created_at' | 'updated_at' | 'is_active'> {}
+export interface GradeComponentCreationAttributes extends Optional<GradeComponentAttributes, 'id' | 'created_at' | 'updated_at' | 'is_active' | 'component_type' | 'component_id' | 'description' | 'is_required'> {}
 
 export interface GradeComponentInstance extends Model, GradeComponentAttributes {}
 

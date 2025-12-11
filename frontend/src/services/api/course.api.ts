@@ -38,6 +38,7 @@ export interface Course {
   discount_end?: string;
   is_featured?: boolean;
   is_free: boolean;
+  is_enrolled?: boolean; // Student enrollment status
   learning_objectives?: string[];
   prerequisites?: string[];
   tags?: string[];
@@ -46,7 +47,6 @@ export interface Course {
   updated_at: string;
   rating?: number;
   total_ratings?: number;
-  is_enrolled?: boolean; // Student enrollment status
   total_students?: number; // Total enrolled students
   instructor?: {
     id: string;
@@ -124,13 +124,14 @@ export interface CourseProgress {
   user_id: string;
   lessons_completed: number;
   total_lessons: number;
-  completed_lessons?: number; // Alias for lessons_completed
   total_sections?: number;
-  completion_percentage?: number; // Alias for percent
   percent: number;
   last_activity_at?: string;
-  last_accessed_at?: string; // Alias for last_activity_at
   sections?: any[]; // Section-level progress
+  // Aliases for compatibility
+  completed_lessons?: number; // Alias for lessons_completed
+  completion_percentage?: number; // Alias for percent
+  last_accessed_at?: string; // Alias for last_activity_at
 }
 
 export interface CourseProgressResponse {

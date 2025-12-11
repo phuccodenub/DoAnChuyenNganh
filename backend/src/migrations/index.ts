@@ -29,7 +29,6 @@ import { up as allowNullMessageIdInCommentModerations, down as requireMessageIdI
 import { up as forceAllowNullMessageId, down as requireMessageIdAgain } from './022-force-allow-null-message-id';
 import { up as createConversationsTable, down as dropConversationsTable } from './023-create-conversations-table';
 import { up as createDirectMessagesTable, down as dropDirectMessagesTable } from './024-create-direct-messages-table';
-import { up as allowNullCourseIdConversations, down as revertNullCourseIdConversations } from './025-allow-null-course-id-conversations';
 import { up as addIsPracticeToQuizzesAssignments, down as removeIsPracticeFromQuizzesAssignments } from './025-add-is-practice-to-quizzes-assignments';
 import { up as addLessonIdToQuizzesAssignments, down as removeLessonIdFromQuizzesAssignments } from './026-add-lesson-id-to-quizzes-assignments';
 import { up as allowNullableCourseForQuizAssignment, down as revertNullableCourseForQuizAssignment } from './027-allow-nullable-course-for-quiz-assignment';
@@ -37,9 +36,11 @@ import { up as replaceLessonIdWithSectionIdInQuizzes, down as revertReplaceLesso
 import { up as addSectionIdToAssignments, down as removeSectionIdFromAssignments } from './029-add-section-id-to-assignments';
 import { up as createCertificatesTable, down as dropCertificatesTable } from './030-create-certificates-table';
 import { up as makeIpfsHashNullable, down as revertIpfsHashNullable } from './031-make-ipfs-hash-nullable';
-import { up as redesignConversationsForAdmin, down as revertConversationsDesign } from './032-redesign-conversations-for-admin';
-import { up as createCoursePrerequisitesTable, down as dropCoursePrerequisitesTable } from './033-create-course-prerequisites-table';
-import { up as renameMaxPointsToMaxScore, down as revertMaxPointsRename } from './034-rename-max-points-to-max-score';
+import { up as allowNullCourseIdConversations, down as revertNullCourseIdConversations } from './033-allow-null-course-id-conversations';
+import { up as redesignConversationsForAdmin, down as revertConversationsDesign } from './034-redesign-conversations-for-admin';
+import { up as createCoursePrerequisitesTable, down as dropCoursePrerequisitesTable } from './035-create-course-prerequisites-table';
+import { up as createCourseChatReadStatus, down as dropCourseChatReadStatus } from './036-create-course-chat-read-status';
+import { up as renameMaxPointsToMaxScore, down as revertMaxPointsRename } from './037-rename-max-points-to-max-score';
 
 // Migration interface
 export interface Migration {
@@ -263,19 +264,31 @@ export const migrations: Migration[] = [
     down: revertIpfsHashNullable
   },
   {
-    version: '032',
+    version: '033',
+    description: 'Allow null course_id in conversations for direct messages',
+    up: allowNullCourseIdConversations,
+    down: revertNullCourseIdConversations
+  },
+  {
+    version: '034',
     description: 'Redesign conversations table for admin support (user1_id/user2_id)',
     up: redesignConversationsForAdmin,
     down: revertConversationsDesign
   },
   {
-    version: '033',
+    version: '035',
     description: 'Create course_prerequisites table',
     up: createCoursePrerequisitesTable,
     down: dropCoursePrerequisitesTable
   },
   {
-    version: '034',
+    version: '036',
+    description: 'Create course_chat_read_status table',
+    up: createCourseChatReadStatus,
+    down: dropCourseChatReadStatus
+  },
+  {
+    version: '037',
     description: 'Rename max_points to max_score in assignments table',
     up: renameMaxPointsToMaxScore,
     down: revertMaxPointsRename
