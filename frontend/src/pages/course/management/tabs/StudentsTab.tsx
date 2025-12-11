@@ -19,10 +19,9 @@ export function StudentsTab({ courseId }: StudentsTabProps) {
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // API response structure từ backend (đã normalize):
-  // { data: { data: CourseStudent[], pagination: {...} } }
-  const responseData = studentsData?.data || studentsData;
-  const students = (responseData as any)?.students || (responseData as any)?.data || [];
+  // API response structure từ backend:
+  // ApiResponse<{ students: CourseStudent[], pagination: {...} }>
+  const students = studentsData?.data?.students || [];
 
   // Fetch progress detail cho tất cả học viên để có completion_percentage chính xác
   const { data: studentsProgress } = useQuery({

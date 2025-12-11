@@ -443,7 +443,7 @@ export function SubmissionsTab({
                                             {submission.status === 'graded' ? (
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-medium text-gray-900">
-                                                        {submission.score}/{submission.max_points}
+                                                        {submission.score}/{submission.max_score}
                                                     </span>
                                                 </div>
                                             ) : submission.status === 'pending' ? (
@@ -451,7 +451,7 @@ export function SubmissionsTab({
                                                     <input
                                                         type="number"
                                                         min={0}
-                                                        max={submission.max_points}
+                                                        max={submission.max_score}
                                                         placeholder="..."
                                                         className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                                                         onBlur={(e) => {
@@ -461,7 +461,7 @@ export function SubmissionsTab({
                                                             }
                                                         }}
                                                     />
-                                                    <span className="text-sm text-gray-500">/{submission.max_points}</span>
+                                                    <span className="text-sm text-gray-500">/{submission.max_score}</span>
                                                 </div>
                                             ) : (
                                                 <span className="text-sm text-gray-400">-</span>

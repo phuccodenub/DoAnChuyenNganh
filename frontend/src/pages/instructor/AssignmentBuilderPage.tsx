@@ -23,7 +23,7 @@ type SubmissionType = 'text' | 'file' | 'both';
 interface RubricCriteria {
   id: string;
   criteria: string;
-  max_points: number;
+  max_score: number;
   description: string;
 }
 
@@ -40,7 +40,7 @@ export function AssignmentBuilderPage() {
     instructions: '',
     due_date: '',
     submission_type: 'both' as SubmissionType,
-    max_points: 100,
+    max_score: 100,
     allow_late_submission: true,
     late_penalty_per_day: 10,
   });
@@ -53,17 +53,17 @@ export function AssignmentBuilderPage() {
 
   // Grading rubric
   const [rubric, setRubric] = useState<RubricCriteria[]>([
-    { id: '1', criteria: 'Hoàn thành đúng yêu cầu', max_points: 40, description: 'Bài làm đáp ứng đầy đủ các yêu cầu đề ra' },
-    { id: '2', criteria: 'Chất lượng nội dung', max_points: 30, description: 'Nội dung chính xác, logic, có tham khảo nguồn' },
-    { id: '3', criteria: 'Trình bày và format', max_points: 20, description: 'Bài làm được trình bày rõ ràng, dễ đọc' },
-    { id: '4', criteria: 'Nộp đúng hạn', max_points: 10, description: 'Nộp bài đúng hoặc trước thời hạn' },
+    { id: '1', criteria: 'Hoàn thành đúng yêu cầu', max_score: 40, description: 'Bài làm đáp ứng đầy đủ các yêu cầu đề ra' },
+    { id: '2', criteria: 'Chất lượng nội dung', max_score: 30, description: 'Nội dung chính xác, logic, có tham khảo nguồn' },
+    { id: '3', criteria: 'Trình bày và format', max_score: 20, description: 'Bài làm được trình bày rõ ràng, dễ đọc' },
+    { id: '4', criteria: 'Nộp đúng hạn', max_score: 10, description: 'Nộp bài đúng hoặc trước thời hạn' },
   ]);
 
   const [showRubricModal, setShowRubricModal] = useState(false);
   const [rubricForm, setRubricForm] = useState<RubricCriteria>({
     id: '0',
     criteria: '',
-    max_points: 0,
+    max_score: 0,
     description: '',
   });
   const [editingRubric, setEditingRubric] = useState<RubricCriteria | null>(null);
@@ -99,7 +99,7 @@ export function AssignmentBuilderPage() {
   };
 
   const handleAddRubric = () => {
-    setRubricForm({ id: Date.now().toString(), criteria: '', max_points: 0, description: '' });
+    setRubricForm({ id: Date.now().toString(), criteria: '', max_score: 0, description: '' });
     setEditingRubric(null);
     setShowRubricModal(true);
   };
@@ -132,7 +132,7 @@ export function AssignmentBuilderPage() {
     navigateTo.myCourses();
   };
 
-  const totalRubricPoints = rubric.reduce((sum, r) => sum + r.max_points, 0);
+  const totalRubricPoints = rubric.reduce((sum, r) => sum + r.max_score, 0);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -208,8 +208,8 @@ export function AssignmentBuilderPage() {
             <Input
               type="number"
               label="Tổng điểm *"
-              value={assignmentForm.max_points}
-              onChange={(e) => setAssignmentForm({ ...assignmentForm, max_points: Number(e.target.value) })}
+              value={assignmentForm.max_score}
+              onChange={(e) => setAssignmentForm({ ...assignmentForm, max_score: Number(e.target.value) })}
               min={1}
               required
             />
@@ -312,9 +312,9 @@ export function AssignmentBuilderPage() {
             <CardTitle>Tiêu chí chấm điểm</CardTitle>
             <p className="text-sm text-gray-600 mt-1">
               Tổng: {totalRubricPoints} điểm
-              {totalRubricPoints !== assignmentForm.max_points && (
+              {totalRubricPoints !== assignmentForm.max_score && (
                 <span className="text-orange-600 ml-2">
-                  ⚠ Khác với tổng điểm bài tập ({assignmentForm.max_points})
+                  ⚠ Khác với tổng điểm bài tập ({assignmentForm.max_score})
                 </span>
               )}
             </p>
@@ -339,7 +339,7 @@ export function AssignmentBuilderPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-gray-900">{item.criteria}</span>
                       <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
-                        {item.max_points} điểm
+                        {item.max_score} điểm
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">{item.description}</p>
@@ -385,8 +385,8 @@ export function AssignmentBuilderPage() {
               <Input
                 type="number"
                 label="Điểm tối đa *"
-                value={rubricForm.max_points}
-                onChange={(e) => setRubricForm({ ...rubricForm, max_points: Number(e.target.value) })}
+                value={rubricForm.max_score}
+                onChange={(e) => setRubricForm({ ...rubricForm, max_score: Number(e.target.value) })}
                 min={1}
                 required
               />

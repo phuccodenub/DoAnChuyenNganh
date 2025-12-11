@@ -39,6 +39,7 @@ import { up as createCertificatesTable, down as dropCertificatesTable } from './
 import { up as makeIpfsHashNullable, down as revertIpfsHashNullable } from './031-make-ipfs-hash-nullable';
 import { up as redesignConversationsForAdmin, down as revertConversationsDesign } from './032-redesign-conversations-for-admin';
 import { up as createCoursePrerequisitesTable, down as dropCoursePrerequisitesTable } from './033-create-course-prerequisites-table';
+import { up as renameMaxPointsToMaxScore, down as revertMaxPointsRename } from './034-rename-max-points-to-max-score';
 
 // Migration interface
 export interface Migration {
@@ -272,6 +273,12 @@ export const migrations: Migration[] = [
     description: 'Create course_prerequisites table',
     up: createCoursePrerequisitesTable,
     down: dropCoursePrerequisitesTable
+  },
+  {
+    version: '034',
+    description: 'Rename max_points to max_score in assignments table',
+    up: renameMaxPointsToMaxScore,
+    down: revertMaxPointsRename
   }
 ];
 

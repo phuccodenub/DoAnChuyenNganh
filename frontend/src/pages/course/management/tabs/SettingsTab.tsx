@@ -112,7 +112,7 @@ export function SettingsTab({ courseId, course }: SettingsTabProps) {
   const [prereqSearch, setPrereqSearch] = useState('');
   const { data: searchResults } = useCourseSearch(prereqSearch, 6);
 
-  const selectedOption = Array.isArray(searchResults) ? searchResults.find((c: any) => c.id === prereqCourseId) : undefined;
+  const selectedOption = searchResults?.find((c: any) => c.id === prereqCourseId);
   const existingIds = new Set(prerequisitesData?.data?.map((p) => p.prerequisite_course_id));
 
   const handleAddPrerequisite = async () => {
@@ -485,7 +485,7 @@ export function SettingsTab({ courseId, course }: SettingsTabProps) {
               {/* Dropdown results */}
               {prereqSearch.length > 1 && (
                 <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-                  {Array.isArray(searchResults) && searchResults.length > 0 ? (
+                  {searchResults && searchResults.length > 0 ? (
                     searchResults.map((item: any) => (
                       <button
                         key={item.id}

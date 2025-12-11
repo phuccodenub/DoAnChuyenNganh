@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { courseApi } from '@/services/api/course.api';
+import { courseApi, type Course } from '@/services/api/course.api';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { useDebounce } from './useDebounce';
 
@@ -10,7 +10,7 @@ import { useDebounce } from './useDebounce';
 export function useCourseSearch(term: string, limit: number = 5) {
   const debouncedTerm = useDebounce(term, 400);
 
-  return useQuery({
+  return useQuery<Course[]>({
     queryKey: ['course-search', debouncedTerm, limit],
     enabled: debouncedTerm.length > 1,
     queryFn: async () => {
@@ -20,7 +20,7 @@ export function useCourseSearch(term: string, limit: number = 5) {
         page: 1,
         status: 'published',
       });
-      return response.data.data || [];
+      return response.data.data?.courses || [];
     },
     staleTime: 2 * 60 * 1000,
   });

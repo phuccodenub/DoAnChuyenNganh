@@ -193,7 +193,7 @@ export function AssignmentPage() {
               )}
             </div>
             <span className="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-700 rounded">
-              {assignment.max_points} điểm
+              {assignment.max_score} điểm
             </span>
           </div>
         </CardHeader>
@@ -256,7 +256,7 @@ export function AssignmentPage() {
                 </p>
                 {submission.score !== null && (
                   <p className="text-sm text-gray-600">
-                    Điểm: {submission.score}/{assignment.max_points}
+                    Điểm: {submission.score}/{assignment.max_score}
                   </p>
                 )}
               </div>

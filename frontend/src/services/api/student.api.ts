@@ -79,7 +79,7 @@ export interface StudentAssignment {
   course_thumbnail?: string;
   due_date: string | null;
   status: 'pending' | 'submitted' | 'graded' | 'overdue' | 'late';
-  max_points: number;
+  max_score: number;
   score?: number | null;
   submitted_at?: string | null;
   graded_at?: string | null;

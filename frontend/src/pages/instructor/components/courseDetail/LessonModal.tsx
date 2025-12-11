@@ -50,7 +50,7 @@ interface LessonFormData {
 
 interface LessonModalProps {
     isOpen: boolean;
-    editingLesson: (Lesson & { materials?: import('@/services/api/lesson.api').LessonMaterial[] }) | null;
+    editingLesson: (Lesson & { materials?: import('@/services/api/lesson.api').LessonMaterial[]; content?: string; section_id?: string }) | null;
     lessonForm: LessonFormData;
     onFormChange: (form: LessonFormData) => void;
     onSave: (form?: LessonFormData) => void; // Cho phép truyền form trực tiếp
@@ -136,7 +136,7 @@ export function LessonModal({
         if (isOpen) {
             setTempTitle(lessonForm.title);
             // Load content và description từ lessonForm hoặc editingLesson
-            const contentToLoad = lessonForm.content || (editingLesson as any)?.content || '';
+            const contentToLoad = lessonForm.content || editingLesson?.content || '';
             setContent(contentToLoad);
             
             // Reset PDF file state khi mở lesson khác (khi editingLesson.id thay đổi)
@@ -150,7 +150,7 @@ export function LessonModal({
             // Debug log
             console.log('[LessonModal] Loading content:', {
                 lessonFormContent: lessonForm.content,
-                editingLessonContent: (editingLesson as any)?.content,
+                editingLessonContent: editingLesson?.content,
                 contentToLoad,
                 content_type: lessonForm.content_type,
                 editingLessonId: editingLesson?.id,
@@ -354,8 +354,8 @@ export function LessonModal({
             toast.success('Đã xóa tài liệu');
             
             // Invalidate queries to refetch lesson data
-            if (editingLesson?.id && (editingLesson as any).section_id) {
-                queryClient.invalidateQueries({ queryKey: ['course-sections', (editingLesson as any).section_id] });
+            if (editingLesson?.id && editingLesson.section_id) {
+                queryClient.invalidateQueries({ queryKey: ['course-sections', editingLesson.section_id] });
                 queryClient.invalidateQueries({ queryKey: ['lesson', editingLesson.id] });
             }
             

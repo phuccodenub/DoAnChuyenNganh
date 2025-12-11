@@ -32,7 +32,7 @@ interface Submission {
   is_late: boolean;
   status: 'pending' | 'graded';
   score?: number;
-  max_points: number;
+  max_score: number;
   submission_text?: string;
   file_urls?: string[];
 }
@@ -64,7 +64,7 @@ export function GradingPage() {
       submitted_at: '2024-01-15T10:30:00',
       is_late: false,
       status: 'pending',
-      max_points: 100,
+      max_score: 100,
       submission_text: 'Đây là bài làm của em...',
       file_urls: ['file1.pdf', 'file2.zip'],
     },
@@ -77,7 +77,7 @@ export function GradingPage() {
       is_late: true,
       status: 'graded',
       score: 85,
-      max_points: 100,
+      max_score: 100,
     },
   ];
 
@@ -287,14 +287,14 @@ export function GradingPage() {
                         {submission.status === 'graded' ? (
                           <div className="text-right">
                             <p className="text-2xl font-bold text-green-600">
-                              {submission.score}/{submission.max_points}
+                              {submission.score}/{submission.max_score}
                             </p>
                             <p className="text-xs text-gray-500">Đã chấm</p>
                           </div>
                         ) : (
                           <div className="text-right">
                             <p className="text-sm text-gray-600 mb-1">
-                              Tối đa: {submission.max_points} điểm
+                              Tối đa: {submission.max_score} điểm
                             </p>
                             <Button
                               size="sm"
@@ -357,11 +357,11 @@ export function GradingPage() {
               <div className="space-y-4 pt-4 border-t">
                 <Input
                   type="number"
-                  label={`Điểm (0 - ${currentSubmission.max_points}) *`}
+                  label={`Điểm (0 - ${currentSubmission.max_score}) *`}
                   value={gradingForm.score}
                   onChange={(e) => setGradingForm({ ...gradingForm, score: Number(e.target.value) })}
                   min={0}
-                  max={currentSubmission.max_points}
+                  max={currentSubmission.max_score}
                   required
                 />
 

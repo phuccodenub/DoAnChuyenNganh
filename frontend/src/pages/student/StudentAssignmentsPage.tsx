@@ -152,7 +152,7 @@ export default function StudentAssignmentsPage() {
             </div>
           ) : (
             assignments.map((assignment: any) => {
-              const config = getStatusConfig(assignment.status, assignment.score, assignment.max_points);
+              const config = getStatusConfig(assignment.status, assignment.score, assignment.max_score);
               const Icon = config.icon;
 
               return (
@@ -182,7 +182,7 @@ export default function StudentAssignmentsPage() {
                             </span>
                           </div>
                           <span className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-xs">
-                            <Award className="w-3 h-3" /> {assignment.max_points} điểm tối đa
+                            <Award className="w-3 h-3" /> {assignment.max_score} điểm tối đa
                           </span>
                         </div>
                       </div>

@@ -11,8 +11,7 @@ export interface Assignment {
   title: string;
   description: string;
   instructions: string | null;
-  max_points: number;
-  max_score?: number; // Alias for max_points (used in some components)
+  max_score: number; // Backend uses max_score (DECIMAL 5,2)
   due_date: string | null;
   allow_late_submission: boolean;
   late_penalty_percent: number;

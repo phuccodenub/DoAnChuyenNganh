@@ -212,7 +212,7 @@ export function AssignmentsListTab({
                                                             </span>
                                                             <span className="flex items-center gap-1">
                                                                 <Users className="w-4 h-4" />
-                                                                {assignment.max_points} điểm
+                                                                {assignment.max_score} điểm
                                                             </span>
                                                         </div>
 

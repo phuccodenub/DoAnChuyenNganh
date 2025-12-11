@@ -65,7 +65,7 @@ export interface Submission {
   late_duration?: string; // e.g., "2 ngày 3 giờ"
   status: 'pending' | 'graded' | 'missing';
   score?: number;
-  max_points: number;
+  max_score: number;
   submission_text?: string;
   file_urls?: string[];
   feedback?: string;
@@ -81,7 +81,7 @@ export interface Assignment {
   description?: string;
   type: 'assignment' | 'quiz';
   due_date: string; // ISO date string
-  max_points: number;
+  max_score: number;
   is_active: boolean;
   created_at: string;
   lesson_id?: string; // Associated lesson if any
