@@ -8,12 +8,55 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/user.api';
+import { enrollmentApi, type EnrollmentStats } from '@/services/api/enrollment.api';
 
-// --- MOCK DATA ---
+// --- PROFESSIONAL MOCK DATA ---
+// Activity types với icons và màu sắc chuyên nghiệp
+const ACTIVITY_TYPES = {
+  course_complete: { icon: BookOpen, color: 'text-blue-600 bg-blue-100', label: 'Hoàn thành khóa học' },
+  lesson_complete: { icon: BookOpen, color: 'text-green-600 bg-green-100', label: 'Hoàn thành bài học' },
+  quiz_passed: { icon: Award, color: 'text-yellow-600 bg-yellow-100', label: 'Vượt qua bài kiểm tra' },
+  discussion: { icon: Activity, color: 'text-purple-600 bg-purple-100', label: 'Tham gia thảo luận' },
+  assignment: { icon: Activity, color: 'text-indigo-600 bg-indigo-100', label: 'Nộp bài tập' },
+};
+
+// Mock recent activities - sẽ được thay thế bằng API sau
 const RECENT_ACTIVITIES = [
-  { id: 1, type: 'course', title: 'Hoàn thành bài học "React Hooks"', course: 'ReactJS Masterclass', time: '2 giờ trước', icon: BookOpen, color: 'text-blue-600 bg-blue-100' },
-  { id: 2, type: 'quiz', title: 'Đạt 90/100 điểm bài kiểm tra', course: 'UI/UX Design Fundamental', time: '1 ngày trước', icon: Award, color: 'text-yellow-600 bg-yellow-100' },
-  { id: 3, type: 'comment', title: 'Đã thảo luận trong chủ đề', course: 'Q&A: State Management', time: '3 ngày trước', icon: Activity, color: 'text-green-600 bg-green-100' },
+  { 
+    id: 1, 
+    type: 'lesson_complete',
+    title: 'Hoàn thành bài học "React Hooks"', 
+    course: 'ReactJS Masterclass', 
+    time: '2 giờ trước',
+  },
+  { 
+    id: 2, 
+    type: 'quiz_passed',
+    title: 'Đạt 90/100 điểm bài kiểm tra', 
+    course: 'UI/UX Design Fundamental', 
+    time: '1 ngày trước',
+  },
+  { 
+    id: 3, 
+    type: 'discussion',
+    title: 'Đã thảo luận trong chủ đề', 
+    course: 'Q&A: State Management', 
+    time: '3 ngày trước',
+  },
+  { 
+    id: 4, 
+    type: 'assignment',
+    title: 'Nộp bài tập "Building Todo App"', 
+    course: 'JavaScript Advanced', 
+    time: '4 ngày trước',
+  },
+  { 
+    id: 5, 
+    type: 'course_complete',
+    title: 'Hoàn thành khóa học "HTML & CSS Basics"', 
+    course: 'Web Development 101', 
+    time: '1 tuần trước',
+  },
 ];
 
 export default function ProfilePageContent() {
@@ -27,9 +70,14 @@ export default function ProfilePageContent() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Form State - only fields supported by backend user model
+  // Real stats from API
+  const [enrollmentStats, setEnrollmentStats] = useState<EnrollmentStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  // Form State - aligned with backend user model (first_name, last_name)
   const [formData, setFormData] = useState({
-    full_name: user?.full_name || '',
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
     bio: (user as any)?.bio || '',
   });
 
@@ -37,12 +85,35 @@ export default function ProfilePageContent() {
   useEffect(() => {
     if (user) {
       setFormData({
-        full_name: user.full_name || '',
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
         bio: (user as any)?.bio || '',
       });
       setAvatarUrl((user as any)?.avatar_url || (user as any)?.avatar || '');
     }
   }, [user]);
+
+  // Fetch enrollment stats
+  useEffect(() => {
+    const fetchEnrollmentStats = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsLoadingStats(true);
+        const response = await enrollmentApi.getUserStats(user.id);
+        if (response.data?.success && response.data?.data) {
+          setEnrollmentStats(response.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch enrollment stats:', err);
+        // Không hiển thị lỗi cho user, chỉ log ra console
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchEnrollmentStats();
+  }, [user?.id]);
 
   // Handle avatar file selection
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,15 +175,16 @@ export default function ProfilePageContent() {
       setSuccessMessage(null);
 
       // Validate required fields
-      if (!formData.full_name.trim()) {
-        setError('Vui lòng nhập họ và tên');
+      if (!formData.first_name.trim() || !formData.last_name.trim()) {
+        setError('Vui lòng nhập đầy đủ họ và tên');
         setIsSaving(false);
         return;
       }
 
-      // Call updateProfile from useAuth - only send supported fields
+      // Call updateProfile from useAuth - send first_name and last_name
       await updateProfile({
-        full_name: formData.full_name.trim(),
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
         ...(formData.bio && { bio: formData.bio.trim() }),
         ...(avatarUrl && { avatar_url: avatarUrl }),
       } as any);
@@ -157,22 +229,28 @@ export default function ProfilePageContent() {
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><BookOpen size={24} /></div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{(user as any)?._count?.enrollments || 12}</p>
-            <p className="text-sm text-gray-500">Khóa học</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {isLoadingStats ? '...' : (enrollmentStats?.active_enrollments || 0)}
+            </p>
+            <p className="text-sm text-gray-500">Khóa học đang học</p>
           </div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-green-50 text-green-600 rounded-lg"><Award size={24} /></div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{(user as any)?._count?.completed || 5}</p>
-            <p className="text-sm text-gray-500">Chứng chỉ</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {isLoadingStats ? '...' : (enrollmentStats?.completed_enrollments || 0)}
+            </p>
+            <p className="text-sm text-gray-500">Khóa học hoàn thành</p>
           </div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-lg"><Clock size={24} /></div>
+          <div className="p-3 bg-purple-50 text-purple-600 rounded-lg"><Activity size={24} /></div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">0</p>
-            <p className="text-sm text-gray-500">Giờ học</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {isLoadingStats ? '...' : (enrollmentStats?.total_enrollments || 0)}
+            </p>
+            <p className="text-sm text-gray-500">Tổng khóa học</p>
           </div>
         </div>
       </div>
@@ -184,27 +262,39 @@ export default function ProfilePageContent() {
     <Card>
       <CardHeader><CardTitle>Hoạt động gần đây</CardTitle></CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          {RECENT_ACTIVITIES.map((item, index) => (
-            <div key={item.id} className="flex gap-4 relative">
-               {/* Timeline Line */}
-              {index !== RECENT_ACTIVITIES.length - 1 && (
-                <div className="absolute left-5 top-10 bottom-[-24px] w-0.5 bg-gray-200"></div>
-              )}
+        {RECENT_ACTIVITIES.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <Activity className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>Chưa có hoạt động nào</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {RECENT_ACTIVITIES.map((item, index) => {
+              const activityType = ACTIVITY_TYPES[item.type as keyof typeof ACTIVITY_TYPES] || ACTIVITY_TYPES.discussion;
+              const Icon = activityType.icon;
               
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${item.color}`}>
-                <item.icon size={20} />
-              </div>
-              <div className="flex-1 pb-1">
-                <p className="font-medium text-gray-900">{item.title}</p>
-                <p className="text-sm text-gray-500 mb-1">{item.course}</p>
-                <span className="text-xs text-gray-400 flex items-center gap-1">
-                  <Clock size={12} /> {item.time}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+              return (
+                <div key={item.id} className="flex gap-4 relative">
+                  {/* Timeline Line */}
+                  {index !== RECENT_ACTIVITIES.length - 1 && (
+                    <div className="absolute left-5 top-10 bottom-[-24px] w-0.5 bg-gray-200"></div>
+                  )}
+                  
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${activityType.color}`}>
+                    <Icon size={20} />
+                  </div>
+                  <div className="flex-1 pb-1">
+                    <p className="font-medium text-gray-900">{item.title}</p>
+                    <p className="text-sm text-gray-500 mb-1">{item.course}</p>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <Clock size={12} /> {item.time}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -237,11 +327,22 @@ export default function ProfilePageContent() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input 
-            label="Họ và tên" 
-            value={formData.full_name} 
-            onChange={e => setFormData({...formData, full_name: e.target.value})} 
+            label="Họ" 
+            value={formData.first_name} 
+            onChange={e => setFormData({...formData, first_name: e.target.value})} 
             required
+            placeholder="Nguyễn"
           />
+          <Input 
+            label="Tên" 
+            value={formData.last_name} 
+            onChange={e => setFormData({...formData, last_name: e.target.value})} 
+            required
+            placeholder="Văn A"
+          />
+        </div>
+        
+        <div>
           <Input 
             label="Email" 
             value={user?.email || ''} 

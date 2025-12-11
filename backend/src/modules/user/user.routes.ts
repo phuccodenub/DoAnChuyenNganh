@@ -53,6 +53,12 @@ router.get(
   (req: Request, res: Response, next: NextFunction) => userModuleController.getProfile(req, res, next)
 );
 
+// Get current user's enrollments (authenticated users only)
+router.get(
+  '/profile/enrollments',
+  (req: Request, res: Response, next: NextFunction) => enrollmentController.getUserEnrollments(req, res, next)
+);
+
 // Update user profile (authenticated users only)
 router.put(
   '/profile',

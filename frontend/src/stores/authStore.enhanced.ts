@@ -11,16 +11,41 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  full_name?: string; // Optional for backward compatibility
+  full_name?: string; // Computed field from backend
   role: 'student' | 'instructor' | 'admin' | 'super_admin';
   avatar_url?: string;
+  avatar?: string; // Backend field (alias for avatar_url)
   bio?: string;
+  phone?: string;
+  username?: string;
   is_active: boolean;
+  status?: 'active' | 'inactive' | 'suspended' | 'pending'; // Backend status field
   email_verified: boolean;
-  two_factor_enabled?: boolean; // Make optional for backward compatibility
+  two_factor_enabled?: boolean;
   preferences?: Record<string, unknown>;
   created_at: string;
-  updated_at?: string; // Make optional for backward compatibility
+  updated_at?: string;
+  
+  // Role-specific fields
+  student_id?: string;
+  class?: string;
+  major?: string;
+  year?: number;
+  gpa?: number;
+  
+  instructor_id?: string;
+  department?: string;
+  specialization?: string;
+  experience_years?: number;
+  education_level?: 'bachelor' | 'master' | 'phd' | 'professor';
+  research_interests?: string;
+  
+  // Additional fields
+  date_of_birth?: string;
+  gender?: 'male' | 'female' | 'other';
+  address?: string;
+  emergency_contact?: string;
+  emergency_phone?: string;
 }
 
 export interface Tokens {

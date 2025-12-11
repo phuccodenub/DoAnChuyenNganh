@@ -841,26 +841,3 @@ export interface DirectMessageInstance extends Model, DirectMessageAttributes {
   conversation?: ConversationInstance;
 }
 
-// ===================================
-// COURSE CHAT READ STATUS MODEL INTERFACES
-// ===================================
-
-export interface CourseChatReadStatusAttributes {
-  id: string;
-  course_id: string;
-  user_id: string;
-  last_read_at: Date;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface CourseChatReadStatusCreationAttributes extends Optional<
-  CourseChatReadStatusAttributes,
-  'id' | 'created_at' | 'updated_at'
-> {}
-
-export interface CourseChatReadStatusInstance extends Model, CourseChatReadStatusAttributes {
-  // Associations
-  course?: CourseInstance;
-  user?: UserInstance;
-}

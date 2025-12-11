@@ -26,10 +26,14 @@ export interface Enrollment {
 }
 
 export interface EnrollmentStats {
-  total: number;
-  active: number;
-  completed: number;
-  dropped: number;
+  user_id?: string;
+  username?: string;
+  total_enrollments: number;
+  active_enrollments: number;
+  completed_enrollments: number;
+  average_progress: number;
+  average_grade: number;
+  completion_rate: number;
 }
 
 export const enrollmentApi = {
@@ -52,6 +56,20 @@ export const enrollmentApi = {
    */
   getByUser: (userId: string) => {
     return httpClient.get(`/enrollments/user/${userId}`);
+  },
+
+  /**
+   * Lấy enrollment stats của user
+   */
+  getUserStats: (userId: string) => {
+    return httpClient.get(`/enrollments/stats/user/${userId}`);
+  },
+
+  /**
+   * Lấy enrollments của current user (từ user profile)
+   */
+  getMyEnrollments: () => {
+    return httpClient.get('/users/profile/enrollments');
   },
 
   /**

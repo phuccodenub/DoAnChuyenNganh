@@ -11,12 +11,34 @@ interface BackendApiResponse<T = unknown> {
 }
 
 /**
- * Profile update payload
+ * Profile update payload - aligned with backend user model
  */
 export interface UpdateProfilePayload {
-  full_name?: string;
+  first_name?: string;
+  last_name?: string;
   bio?: string;
-  avatar_url?: string;
+  phone?: string;
+  avatar?: string; // URL to avatar (backend field name)
+  avatar_url?: string; // Alias for avatar
+  
+  // Role-specific fields
+  class?: string;
+  major?: string;
+  year?: number;
+  gpa?: number;
+  
+  department?: string;
+  specialization?: string;
+  experience_years?: number;
+  education_level?: 'bachelor' | 'master' | 'phd' | 'professor';
+  research_interests?: string;
+  
+  // Additional fields
+  date_of_birth?: string;
+  gender?: 'male' | 'female' | 'other';
+  address?: string;
+  emergency_contact?: string;
+  emergency_phone?: string;
 }
 
 /**
