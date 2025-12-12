@@ -141,11 +141,16 @@ export function CurriculumBuilderPage() {
    * Thêm một section mới
    */
   const handleAddSection = async () => {
+    // Đảm bảo order_index không trùng (unique course_id + order_index)
+    const nextOrderIndex =
+      sections.length > 0
+        ? Math.max(...sections.map(s => s.order_index ?? 0)) + 1
+        : 0;
     try {
       const newSection = await createSectionMutation.mutateAsync({
         course_id: courseId,
         title: 'New Section',
-        order_index: sections.length,
+        order_index: nextOrderIndex,
       });
       
       // Add to local state with expanded

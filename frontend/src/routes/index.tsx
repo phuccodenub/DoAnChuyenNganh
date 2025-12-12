@@ -4,6 +4,7 @@ import { PageLoader } from '@/components/ui/Spinner';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { ROUTES, generateRoute } from '@/constants/routes';
+import { MainLayout } from '@/layouts/MainLayout';
 
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
@@ -158,13 +159,30 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
           </Route>
 
-          {/* Livestream create route & course management & course editor - outside instructor layout */}
+          {/* Livestream create route & course management & course editor */}
+          {/* Cho phép instructor, admin, super_admin để admin vẫn quản lý khóa học */}
           <Route element={<RoleGuard allowedRoles={['instructor', 'admin', 'super_admin']} />}>
+            <Route
+              path={ROUTES.COURSE_MANAGEMENT}
+              element={
+                <MainLayout>
+                  <MyCoursesPage />
+                </MainLayout>
+              }
+            />
+            <Route
+              path={ROUTES.COURSE_MANAGEMENT_DETAIL}
+              element={<CourseManagementDetailPage />}
+            />
+            <Route
+              path={ROUTES.COURSE_CREATE}
+              element={<CourseEditorPage />}
+            />
+            <Route
+              path={ROUTES.COURSE_CURRICULUM}
+              element={<CurriculumBuilderPage />}
+            />
             <Route path={ROUTES.INSTRUCTOR.LIVESTREAM_CREATE} element={<CreateLiveStreamPage />} />
-            <Route path={ROUTES.COURSE_MANAGEMENT} element={<MyCoursesPage />} />
-            <Route path={ROUTES.COURSE_MANAGEMENT_DETAIL} element={<CourseManagementDetailPage />} />
-            <Route path={ROUTES.COURSE_CREATE} element={<CourseEditorPage />} />
-            <Route path={ROUTES.COURSE_CURRICULUM} element={<CurriculumBuilderPage />} />
           </Route>
 
           {/* Instructor routes - CHỈ dành cho instructor */}

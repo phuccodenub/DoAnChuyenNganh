@@ -176,46 +176,34 @@ export function CourseEditorPage() {
     }
   };
 
-  // Handle step navigation
+  // Handle navigation: tạo xong chuyển thẳng sang trang quản lý nội dung
+  const navigateToManagement = (courseIdTarget?: string | null) => {
+    const targetId = courseIdTarget || createdCourseId || courseId;
+    if (!targetId) return;
+    // Dùng trang quản trị chung (/course-management/:id) đã bọc MainLayout
+    navigate(generateRoute.courseManagement(targetId));
+  };
+
+  // Handle step navigation (rút gọn: save xong chuyển thẳng)
   const handleNext = async () => {
-    if (currentStep === 1) {
-      // Save course first, then go to step 2
-      const savedId = await saveCourse();
-      if (savedId) {
-        toast.success(isEditMode || createdCourseId ? 'Đã lưu thông tin!' : 'Đã tạo khóa học!');
-        setCurrentStep(2);
-      }
-    } else if (currentStep === 2) {
-      // Go to curriculum page - navigate based on role
-      const targetId = createdCourseId || courseId;
-      if (targetId) {
-        if (isAdmin) {
-          navigate(generateRoute.admin.courseDetail(targetId));
-        } else {
-          navigate(generateRoute.instructor.courseDetail(targetId));
-        }
-      }
-    } else if (currentStep === 3) {
-      // Publish course
-      await saveCourse();
-      toast.success('Đã lưu cài đặt!');
-      // Navigate based on role
-      navigate(isAdmin ? ROUTES.ADMIN.COURSES : ROUTES.INSTRUCTOR.MY_COURSES);
+    // Save course rồi chuyển thẳng đến trang quản lý nội dung
+    const savedId = await saveCourse();
+    if (savedId) {
+      toast.success(isEditMode || createdCourseId ? 'Đã lưu khóa học!' : 'Đã tạo khóa học!');
+      navigateToManagement(savedId);
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+    // Không còn step; quay lại danh sách
+    handleCancel();
   };
 
   const handleSaveDraft = async () => {
     const savedId = await saveCourse();
     if (savedId) {
       toast.success('Đã lưu bản nháp!');
-      // Navigate based on role
-      navigate(isAdmin ? ROUTES.ADMIN.COURSES : ROUTES.INSTRUCTOR.MY_COURSES);
+      navigateToManagement(savedId);
     }
   };
 
@@ -278,59 +266,7 @@ export function CourseEditorPage() {
         </div>
       </div>
 
-      {/* Step Progress */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              const isActive = currentStep === step.id;
-              const isCompleted = currentStep > step.id;
-              
-              return (
-                <div key={step.id} className="flex items-center flex-1">
-                  <div className="flex items-center">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-                        isCompleted
-                          ? 'bg-green-500 text-white'
-                          : isActive
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                          : 'bg-gray-100 text-gray-400'
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <Check className="w-6 h-6" />
-                      ) : (
-                        <Icon className="w-6 h-6" />
-                      )}
-                    </div>
-                    <div className="ml-4">
-                      <p className={`text-sm font-medium ${
-                        isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
-                      }`}>
-                        Bước {step.id}
-                      </p>
-                      <p className={`text-sm ${
-                        isActive ? 'text-gray-900 font-medium' : 'text-gray-500'
-                      }`}>
-                        {step.title}
-                      </p>
-                    </div>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className="flex-1 mx-6">
-                      <div className={`h-1 rounded-full transition-all duration-300 ${
-                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                      }`} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      {/* Step Progress - ẩn vì flow chuyển thẳng sang trang quản lý sau khi tạo */}
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
@@ -654,8 +590,8 @@ export function CourseEditorPage() {
         )}
       </div>
 
-      {/* Footer Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 px-6">
+      {/* Footer Actions (trong flow nội dung, không cố định) */}
+      <div className="bg-white border-t border-gray-200 py-4 px-6 mt-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <button
             onClick={handleCancel}

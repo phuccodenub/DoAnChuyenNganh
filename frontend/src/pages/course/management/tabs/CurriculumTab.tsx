@@ -230,11 +230,16 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
   const deleteLessonMutation = useDeleteLesson(courseId);
 
   const handleAddSection = async () => {
+    // Tính order_index kế tiếp dựa trên giá trị hiện có để tránh trùng unique (course_id, order_index)
+    const nextOrderIndex =
+      sections.length > 0
+        ? Math.max(...sections.map(s => s.order_index ?? 0)) + 1
+        : 0;
     try {
       const newSection = await createSectionMutation.mutateAsync({
         course_id: courseId,
         title: 'New Section',
-        order_index: sections.length,
+        order_index: nextOrderIndex,
       });
       setSections([...sections, { ...newSection.data, isExpanded: true }]);
       toast.success('Đã tạo section mới');
@@ -684,64 +689,105 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                     const hasContent = hasLessons || hasQuizzes || hasAssignments;
                     
                     if (!hasContent) {
-                      return <div className="text-center py-8 text-gray-500">Chưa có lesson nào.</div>;
+                      return (
+                        <>
+                          <div className="text-center py-8 text-gray-500">
+                            Chưa có nội dung nào. Thêm bài học hoặc quiz để bắt đầu.
+                          </div>
+                          <div className="mt-6 pt-4 border-t border-gray-200">
+                            <ContentTypeSelector
+                              onSelect={async (type) => {
+                                const currentSection = sections.find(s => s.id === section.id);
+                                if (currentSection) {
+                                  // Nếu là quiz, mở modal tạo quiz
+                                  if (type === 'quiz') {
+                                    setSelectedSectionId(section.id);
+                                    setIsQuizModalOpen(true);
+                                    return;
+                                  }
+                                  
+                                  // Các loại khác tạo lesson trực tiếp
+                                  try {
+                                    const newLesson = await createLessonMutation.mutateAsync({
+                                      section_id: section.id,
+                                      title: `New ${type}`,
+                                      content_type: type,
+                                      order_index: currentSection.lessons?.length || 0,
+                                    });
+                                    setSections(sections.map(s =>
+                                      s.id === section.id ? { ...s, lessons: [...(s.lessons || []), newLesson.data] } : s
+                                    ));
+                                    toast.success(`Đã tạo ${type} mới`);
+                                  } catch (error: any) {
+                                    toast.error(error?.response?.data?.message || `Không thể tạo ${type}`);
+                                  }
+                                }
+                              }}
+                            />
+                            <Button onClick={() => handleAddLesson(section.id)} variant="outline" className="gap-2 mt-4">
+                              <Plus className="w-4 h-4" />
+                              Add Lesson
+                            </Button>
+                          </div>
+                        </>
+                      );
                     }
                     
                     return (
                       <>
                         {hasLessons && (
-                    <div className="space-y-6">
-                      {section.lessons.map((lesson, lessonIndex) => (
-                        <TimelineConnector key={lesson.id} isLast={lessonIndex === (section.lessons?.length || 0) - 1}>
-                          <div className="flex items-center gap-3 mb-3">
-                            <DragHandle className="text-gray-500" />
-                            <span className="font-medium text-gray-700">Lesson {lessonIndex + 1}:</span>
-                            <InlineEditInput
-                              value={lesson.title}
-                              onSave={(newTitle) => handleUpdateLessonTitle(section.id, lesson.id, newTitle)}
-                              placeholder="Type lesson name..."
-                            />
-                            <ActionGroup
-                              onEdit={() => handleEditContentItem(section.id, lesson)}
-                              onDelete={() => handleDeleteLesson(section.id, lesson.id)}
-                            />
+                          <div className="space-y-6">
+                            {section.lessons.map((lesson, lessonIndex) => (
+                              <TimelineConnector key={lesson.id} isLast={lessonIndex === (section.lessons?.length || 0) - 1}>
+                                <div className="flex items-center gap-3 mb-3">
+                                  <DragHandle className="text-gray-500" />
+                                  <span className="font-medium text-gray-700">Lesson {lessonIndex + 1}:</span>
+                                  <InlineEditInput
+                                    value={lesson.title}
+                                    onSave={(newTitle) => handleUpdateLessonTitle(section.id, lesson.id, newTitle)}
+                                    placeholder="Type lesson name..."
+                                  />
+                                  <ActionGroup
+                                    onEdit={() => handleEditContentItem(section.id, lesson)}
+                                    onDelete={() => handleDeleteLesson(section.id, lesson.id)}
+                                  />
+                                </div>
+                                <div className="ml-8">
+                                  {/* Hiển thị lesson content dựa trên content_type */}
+                                  {(lesson.content_type === 'video' || lesson.content_type === 'document' || 
+                                    lesson.content_type === 'quiz' || lesson.content_type === 'assignment') && (() => {
+                                    // Tìm quiz/assignment tương ứng để lấy is_practice
+                                    let isPractice: boolean | undefined = undefined;
+                                    if (lesson.content_type === 'quiz') {
+                                      const matchingQuiz = quizzes.find((q: any) => {
+                                        const quizTitle = (q.title || '').trim();
+                                        const lessonTitle = (lesson.title || '').trim();
+                                        return quizTitle.toLowerCase() === lessonTitle.toLowerCase();
+                                      });
+                                      isPractice = matchingQuiz?.is_practice;
+                                    }
+                                    // TODO: Tương tự cho assignment khi có assignment list
+                                    
+                                    return (
+                                      <ContentItem
+                                        type={lesson.content_type as 'video' | 'document' | 'quiz' | 'assignment'}
+                                        title={lesson.title}
+                                        duration={lesson.duration_minutes}
+                                        isPreview={lesson.is_free_preview}
+                                        isPractice={isPractice}
+                                        onEdit={() => handleEditContentItem(section.id, lesson)}
+                                        onDelete={() => handleDeleteLesson(section.id, lesson.id)}
+                                      />
+                                    );
+                                  })()}
+                                </div>
+                              </TimelineConnector>
+                            ))}
                           </div>
-                          <div className="ml-8">
-                            {/* Hiển thị lesson content dựa trên content_type */}
-                            {(lesson.content_type === 'video' || lesson.content_type === 'document' || 
-                              lesson.content_type === 'quiz' || lesson.content_type === 'assignment') && (() => {
-                              // Tìm quiz/assignment tương ứng để lấy is_practice
-                              let isPractice: boolean | undefined = undefined;
-                              if (lesson.content_type === 'quiz') {
-                                const matchingQuiz = quizzes.find((q: any) => {
-                                  const quizTitle = (q.title || '').trim();
-                                  const lessonTitle = (lesson.title || '').trim();
-                                  return quizTitle.toLowerCase() === lessonTitle.toLowerCase();
-                                });
-                                isPractice = matchingQuiz?.is_practice;
-                              }
-                              // TODO: Tương tự cho assignment khi có assignment list
-                              
-                              return (
-                                <ContentItem
-                                  type={lesson.content_type as 'video' | 'document' | 'quiz' | 'assignment'}
-                                  title={lesson.title}
-                                  duration={lesson.duration_minutes}
-                                  isPreview={lesson.is_free_preview}
-                                  isPractice={isPractice}
-                                  onEdit={() => handleEditContentItem(section.id, lesson)}
-                                  onDelete={() => handleDeleteLesson(section.id, lesson.id)}
-                                />
-                              );
-                            })()}
-                          </div>
-                        </TimelineConnector>
-                        ))}
-                      </div>
                         )}
                             
                         {/* Hiển thị quiz/assignment gắn với section (section-level) - Render cả khi không có lessons */}
-                            {quizzes
+                        {quizzes
                           .filter((q: any) => {
                             const quizSectionId = q.section_id ? String(q.section_id).trim() : null;
                             const currentSectionId = section.id ? String(section.id).trim() : null;
@@ -765,80 +811,78 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                             
                             return matches;
                           })
-                              .map((quiz: any) => (
-                    <div key={`section-quiz-${quiz.id}`} className="mt-4">
-                                <ContentItem
-                                  type="quiz"
-                                  title={quiz.title}
-                                  duration={quiz.duration_minutes}
-                                  isPreview={false}
-                                  isPractice={quiz.is_practice}
-                                  onEdit={() => {
-                                    setSelectedQuizId(quiz.id);
-                                    setSelectedQuizTitle(quiz.title);
-                                    setIsManageQuizModalOpen(true);
-                                  }}
-                                  onDelete={() => {
-                          toast('Tính năng xóa quiz đang được phát triển', { icon: 'ℹ️' });
-                                  }}
-                                />
-                          </div>
-                  ))}
+                          .map((quiz: any) => (
+                            <div key={`section-quiz-${quiz.id}`} className="mt-4">
+                              <ContentItem
+                                type="quiz"
+                                title={quiz.title}
+                                duration={quiz.duration_minutes}
+                                isPreview={false}
+                                isPractice={quiz.is_practice}
+                                onEdit={() => {
+                                  setSelectedQuizId(quiz.id);
+                                  setSelectedQuizTitle(quiz.title);
+                                  setIsManageQuizModalOpen(true);
+                                }}
+                                  onDelete={() => handleDeleteCourseQuiz(quiz.id)}
+                              />
+                            </div>
+                          ))}
                   
-                  {assignments
-                    .filter((a: any) => a.section_id === section.id)
-                    .map((assignment: any) => (
-                      <div key={`section-assignment-${assignment.id}`} className="mt-4">
-                        <ContentItem
-                          type="assignment"
-                          title={assignment.title}
-                          duration={assignment.duration_minutes}
-                          isPreview={false}
-                          isPractice={assignment.is_practice}
-                          onEdit={() => {
-                            toast('Tính năng chỉnh sửa assignment đang được phát triển', { icon: 'ℹ️' });
-                          }}
-                          onDelete={() => {
-                            toast('Tính năng xóa assignment đang được phát triển', { icon: 'ℹ️' });
-                          }}
-                        />
-                    </div>
-                    ))}
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <ContentTypeSelector
-                      onSelect={async (type) => {
-                        const currentSection = sections.find(s => s.id === section.id);
-                        if (currentSection) {
-                          // Nếu là quiz, mở modal tạo quiz
-                          if (type === 'quiz') {
-                            setSelectedSectionId(section.id);
-                            setIsQuizModalOpen(true);
-                            return;
-                          }
-                          
-                          // Các loại khác tạo lesson trực tiếp
-                          try {
-                            const newLesson = await createLessonMutation.mutateAsync({
-                              section_id: section.id,
-                              title: `New ${type}`,
-                              content_type: type,
-                              order_index: currentSection.lessons?.length || 0,
-                            });
-                            setSections(sections.map(s =>
-                              s.id === section.id ? { ...s, lessons: [...(s.lessons || []), newLesson.data] } : s
-                            ));
-                            toast.success(`Đã tạo ${type} mới`);
-                          } catch (error: any) {
-                            toast.error(error?.response?.data?.message || `Không thể tạo ${type}`);
-                          }
-                        }
-                      }}
-                    />
-                    <Button onClick={() => handleAddLesson(section.id)} variant="outline" className="gap-2 mt-4">
-                      <Plus className="w-4 h-4" />
-                      Add Lesson
-                    </Button>
-                  </div>
+                        {assignments
+                          .filter((a: any) => a.section_id === section.id)
+                          .map((assignment: any) => (
+                            <div key={`section-assignment-${assignment.id}`} className="mt-4">
+                              <ContentItem
+                                type="assignment"
+                                title={assignment.title}
+                                duration={assignment.duration_minutes}
+                                isPreview={false}
+                                isPractice={assignment.is_practice}
+                                onEdit={() => {
+                                  toast('Tính năng chỉnh sửa assignment đang được phát triển', { icon: 'ℹ️' });
+                                }}
+                                onDelete={() => {
+                                  toast('Tính năng xóa assignment đang được phát triển', { icon: 'ℹ️' });
+                                }}
+                              />
+                            </div>
+                          ))}
+                        <div className="mt-6 pt-4 border-t border-gray-200">
+                          <ContentTypeSelector
+                            onSelect={async (type) => {
+                              const currentSection = sections.find(s => s.id === section.id);
+                              if (currentSection) {
+                                // Nếu là quiz, mở modal tạo quiz
+                                if (type === 'quiz') {
+                                  setSelectedSectionId(section.id);
+                                  setIsQuizModalOpen(true);
+                                  return;
+                                }
+                                
+                                // Các loại khác tạo lesson trực tiếp
+                                try {
+                                  const newLesson = await createLessonMutation.mutateAsync({
+                                    section_id: section.id,
+                                    title: `New ${type}`,
+                                    content_type: type,
+                                    order_index: currentSection.lessons?.length || 0,
+                                  });
+                                  setSections(sections.map(s =>
+                                    s.id === section.id ? { ...s, lessons: [...(s.lessons || []), newLesson.data] } : s
+                                  ));
+                                  toast.success(`Đã tạo ${type} mới`);
+                                } catch (error: any) {
+                                  toast.error(error?.response?.data?.message || `Không thể tạo ${type}`);
+                                }
+                              }
+                            }}
+                          />
+                          <Button onClick={() => handleAddLesson(section.id)} variant="outline" className="gap-2 mt-4">
+                            <Plus className="w-4 h-4" />
+                            Add Lesson
+                          </Button>
+                        </div>
                       </>
                     );
                   })()}
@@ -863,29 +907,29 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                       <span className="text-sm text-gray-500 ml-2">- {item.description}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-                      {item.is_published ? 'Published' : 'Draft'}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedQuizId(item.id);
-                        setSelectedQuizTitle(item.title);
-                        setIsManageQuizModalOpen(true);
-                      }}
-                    >
-                      Quản lý
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => handleDeleteCourseQuiz(item.id)}
-                    >
-                      Xóa
-                    </Button>
-                  </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                            {item.is_published ? 'Published' : 'Draft'}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedQuizId(item.id);
+                              setSelectedQuizTitle(item.title);
+                              setIsManageQuizModalOpen(true);
+                            }}
+                          >
+                            Quản lý
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteCourseQuiz(item.id)}
+                          >
+                            Xóa
+                          </Button>
+                        </div>
                 </div>
               </div>
             );

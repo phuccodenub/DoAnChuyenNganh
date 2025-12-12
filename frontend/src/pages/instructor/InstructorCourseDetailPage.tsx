@@ -338,10 +338,14 @@ export function InstructorDetailPage() {
                     data: { title: sectionTitle }
                 });
             } else {
+                const nextOrderIndex =
+                    sections.length > 0
+                        ? Math.max(...sections.map(s => s.order_index ?? 0)) + 1
+                        : 0;
                 await createSectionMutation.mutateAsync({
                     course_id: courseId,
                     title: sectionTitle,
-                    order_index: sections.length + 1
+                    order_index: nextOrderIndex
                 });
             }
             setShowSectionModal(false);

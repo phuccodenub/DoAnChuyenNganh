@@ -172,14 +172,9 @@ export function CreateQuizModal({
   };
 
   const handleFinishAddingQuestions = () => {
+    // Khi đóng modal câu hỏi, chỉ đóng modal, KHÔNG tự redirect
     setIsQuestionModalOpen(false);
     onClose();
-    // Redirect to QuizBuilderPage để quản lý quiz
-    if (currentQuizId) {
-      navigate(generateRoute.instructor.quizCreate(courseId), {
-        state: { quizId: currentQuizId, sectionId },
-      });
-    }
   };
 
   // Nếu đã có quizId và chỉ cần thêm câu hỏi

@@ -40,7 +40,9 @@ export function CreateQuestionModal({
   totalPoints = 100, // Mặc định 100 điểm
 }: CreateQuestionModalProps) {
   const queryClient = useQueryClient();
-  const { data: existingQuestionsData, isLoading: isLoadingQuestions } = useInstructorQuizQuestions(quizId);
+  // Chỉ fetch questions khi modal đang mở để tránh call 401/redirect khi đóng
+  const effectiveQuizId = isOpen ? quizId : '';
+  const { data: existingQuestionsData, isLoading: isLoadingQuestions } = useInstructorQuizQuestions(effectiveQuizId);
   const updateQuestionMutation = useUpdateQuestion();
   const addQuestionMutation = useAddQuestion();
   const [isCreating, setIsCreating] = useState(false);

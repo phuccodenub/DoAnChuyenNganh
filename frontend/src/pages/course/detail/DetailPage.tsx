@@ -780,36 +780,54 @@ export function DetailPage() {
             {/* Right: Thumbnail collage */}
             <div className="lg:col-span-1 sticky top-8">
               {(() => {
-                const thumbnailUrl = getCourseThumbnailUrl(course);
-                if (!thumbnailUrl) return null;
+                // Dùng logo mặc định nếu course không có thumbnail để tránh vỡ hero và mất nút CTA
+                const realThumbnail = getCourseThumbnailUrl(course);
+                const isFallback = !realThumbnail;
+                const thumbnailUrl = realThumbnail || '/GekLearn.png';
                 
                 return (
                   <div className="relative w-full aspect-video">
-                    {/* 2 ảnh nhỏ phía sau - làm mờ */}
-                    <div className="absolute -top-8 -left-8 w-1/2 h-1/2 rounded-lg overflow-hidden opacity-70 blur-sm z-0">
+                    {/* 2 ảnh nhỏ phía sau - làm mờ (luôn hiển thị, fallback cũng dùng logo) */}
+                    <div className="absolute -top-8 -left-8 w-1/2 h-1/2 rounded-lg overflow-hidden opacity-60 blur-sm z-0 bg-white">
                       <img
                         src={thumbnailUrl}
                         alt={course.title}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full ${isFallback ? 'object-contain p-3' : 'object-cover'}`}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/GekLearn.png';
+                          target.classList.remove('object-cover');
+                          target.classList.add('object-contain', 'p-3');
+                        }}
                       />
                     </div>
-                    <div className="absolute -bottom-8 -right-8 w-1/2 h-1/2 rounded-lg overflow-hidden opacity-70 blur-sm z-0">
+                    <div className="absolute -bottom-8 -right-8 w-1/2 h-1/2 rounded-lg overflow-hidden opacity-60 blur-sm z-0 bg-white">
                       <img
                         src={thumbnailUrl}
                         alt={course.title}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full ${isFallback ? 'object-contain p-3' : 'object-cover'}`}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/GekLearn.png';
+                          target.classList.remove('object-cover');
+                          target.classList.add('object-contain', 'p-3');
+                        }}
                       />
                     </div>
                     
                     {/* Ảnh chính ở giữa */}
-                    <div className="relative w-full h-full rounded-lg overflow-hidden shadow-xl z-10">
+                    <div
+                      className={`relative w-full h-full rounded-lg overflow-hidden shadow-xl z-10 ${isFallback ? 'bg-white flex items-center justify-center' : ''}`}
+                    >
                       <img
                         src={thumbnailUrl}
                         alt={course.title}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full ${isFallback ? 'object-contain p-6' : 'object-cover'}`}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
+                          target.src = '/GekLearn.png';
+                          target.classList.remove('object-cover');
+                          target.classList.add('object-contain', 'p-6');
                         }}
                       />
                       

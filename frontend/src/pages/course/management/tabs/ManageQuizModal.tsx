@@ -30,13 +30,15 @@ export function ManageQuizModal({
   totalPoints = 100, // Mặc định 100 điểm
 }: ManageQuizModalProps) {
   const queryClient = useQueryClient();
+  // Chỉ fetch khi modal mở để tránh refetch gây side-effects (vd: redirect unauthorized)
+  const effectiveQuizId = isOpen ? quizId : '';
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isEditQuizOpen, setIsEditQuizOpen] = useState(false);
   const [isDeletingQuiz, setIsDeletingQuiz] = useState(false);
   
-  const { data: questionsData, isLoading } = useInstructorQuizQuestions(quizId);
-  const { data: quizData, refetch: refetchQuiz, isLoading: isLoadingQuiz } = useInstructorQuiz(quizId);
+  const { data: questionsData, isLoading } = useInstructorQuizQuestions(effectiveQuizId);
+  const { data: quizData, refetch: refetchQuiz, isLoading: isLoadingQuiz } = useInstructorQuiz(effectiveQuizId);
   const deleteQuestionMutation = useDeleteQuestion();
   const updateQuizMutation = useUpdateQuiz();
   const deleteQuizMutation = useDeleteQuiz();
