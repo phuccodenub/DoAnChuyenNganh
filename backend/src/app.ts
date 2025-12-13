@@ -13,7 +13,7 @@ import { specs, swaggerUi } from './config/swagger.config';
 
 // Import middlewares
 import { requestIdMiddleware, loggerMiddleware } from '@middlewares/logger.middleware';
-import { auditLogMiddleware } from '@middlewares/audit-log.middleware';
+import { auditLogMiddleware } from './middlewares/audit-log.middleware';
 import { errorHandler, notFoundHandler } from '@middlewares/error.middleware';
 import logger from '@utils/logger.util';
 

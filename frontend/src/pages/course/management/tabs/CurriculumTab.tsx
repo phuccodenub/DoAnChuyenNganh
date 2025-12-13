@@ -1430,7 +1430,10 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" onClick={() => setIsAssignmentModalOpen(false)}>
+          <Button variant="outline" onClick={() => {
+            setIsAssignmentModalOpen(false);
+            setIsSectionAssignmentModalOpen(false);
+          }}>
             Hủy
           </Button>
           <Button 

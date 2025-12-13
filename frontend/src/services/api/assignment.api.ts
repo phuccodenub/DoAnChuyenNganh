@@ -359,9 +359,11 @@ export interface SubmissionWithStudent extends Submission {
 }
 
 export interface CreateAssignmentPayload {
-  course_id: string;
+  course_id?: string;
+  section_id?: string;
   title: string;
   description?: string;
+  instructions?: string;
   max_score: number;
   due_date?: string;
   allow_late_submission?: boolean;
