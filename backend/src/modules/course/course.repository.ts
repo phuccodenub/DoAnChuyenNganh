@@ -1,6 +1,9 @@
 import Course from '../../models/course.model';
 import User from '../../models/user.model';
 import Enrollment from '../../models/enrollment.model';
+import Category from '../../models/category.model';
+import Section from '../../models/section.model';
+import Lesson from '../../models/lesson.model';
 import { CourseInstance, CourseAttributes } from '../../types/model.types';
 import { UserInstance } from '../../types/model.types';
 import { EnrollmentInstance } from '../../types/model.types';
@@ -643,6 +646,110 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       };
     } catch (error: unknown) {
       logger.error('Error finding courses for admin view:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a single course with admin-level detail (real counts/metrics)
+   * Used by GET /admin/courses/:id
+   */
+  async getAdminCourseDetail(courseId: string): Promise<any | null> {
+    try {
+      const { Sequelize, Op } = await import('sequelize');
+
+      const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
+      const EnrollmentModel = Enrollment as unknown as ModelStatic<EnrollmentInstance>;
+      const SectionModel = Section as unknown as ModelStatic<any>;
+      const LessonModel = Lesson as unknown as ModelStatic<any>;
+
+      const course = await (CourseModel as any).findByPk(courseId, {
+        include: [
+          {
+            model: User,
+            as: 'instructor',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar'],
+          },
+          {
+            model: Category,
+            as: 'courseCategory',
+            attributes: ['id', 'name'],
+          },
+        ],
+      });
+
+      if (!course) return null;
+
+      const courseData = course.toJSON ? course.toJSON() : course;
+
+      const [
+        totalStudents,
+        sectionsCount,
+        lessonsCount,
+        completionCount,
+        ratingAgg,
+      ] = await Promise.all([
+        (EnrollmentModel as any).count({ where: { course_id: courseId } }),
+        (SectionModel as any).count({ where: { course_id: courseId } }),
+        // Count lessons via join on sections (Lesson belongsTo Section as 'section')
+        (LessonModel as any).count({
+          include: [
+            {
+              model: Section,
+              as: 'section',
+              attributes: [],
+              where: { course_id: courseId },
+            },
+          ],
+          distinct: true,
+          col: 'Lesson.id',
+        }),
+        (EnrollmentModel as any).count({
+          where: {
+            course_id: courseId,
+            [Op.or]: [
+              { status: 'completed' },
+              { progress_percentage: { [Op.gte]: 100 } },
+            ],
+          },
+        }),
+        (EnrollmentModel as any).findOne({
+          attributes: [
+            [Sequelize.fn('AVG', Sequelize.col('rating')), 'avg_rating'],
+            [Sequelize.fn('COUNT', Sequelize.col('rating')), 'rating_count'],
+          ],
+          where: {
+            course_id: courseId,
+            rating: { [Op.not]: null },
+          },
+          raw: true,
+        }),
+      ]);
+
+      const completionRate = totalStudents > 0 ? Math.round((completionCount / totalStudents) * 100) : 0;
+
+      const avgRatingRaw = (ratingAgg as any)?.avg_rating;
+      const avgRating = avgRatingRaw === null || avgRatingRaw === undefined ? null : Number(avgRatingRaw);
+      const ratingCount = Number((ratingAgg as any)?.rating_count ?? 0);
+
+      const price = Number(courseData.price ?? 0);
+      const isFree = Boolean(courseData.is_free);
+      const totalRevenue = isFree ? 0 : price * Number(totalStudents ?? 0);
+
+      return {
+        ...courseData,
+        // Provide both legacy + FE-friendly keys
+        student_count: totalStudents,
+        total_students: totalStudents,
+        sections_count: sectionsCount,
+        lessons_count: lessonsCount,
+        completion_rate: completionRate,
+        average_rating: avgRating === null ? undefined : avgRating,
+        total_ratings: ratingCount,
+        total_revenue: totalRevenue,
+      };
+    } catch (error: unknown) {
+      logger.error('Error getting admin course detail:', error);
       throw error;
     }
   }

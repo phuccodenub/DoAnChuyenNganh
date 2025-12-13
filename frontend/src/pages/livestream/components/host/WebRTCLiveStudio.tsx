@@ -406,8 +406,8 @@ export const WebRTCLiveStudio = forwardRef<WebRTCLiveStudioHandle, WebRTCLiveStu
           const canvasY = offsetY + (currentPos.y * scaleY);
           
           // Tính kích thước camera trên canvas (giữ tỷ lệ widget)
-          let canvasCameraWidth = cameraWidgetWidth * scaleX;
-          let canvasCameraHeight = cameraWidgetHeight * scaleY;
+          const canvasCameraWidth = cameraWidgetWidth * scaleX;
+          const canvasCameraHeight = cameraWidgetHeight * scaleY;
           
           // Điều chỉnh để giữ aspect ratio của camera video (object-fit: cover)
           let finalWidth = canvasCameraWidth;

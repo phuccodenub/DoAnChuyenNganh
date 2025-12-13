@@ -56,7 +56,7 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
         {/* Email From */}
         <div className="md:col-span-2">
           <label htmlFor="email_from" className="block text-sm font-medium text-gray-700">
-            {t('email_from')}
+            {t('admin.system_settings.fields.email_from')}
           </label>
           <Input
             id="email_from"
@@ -73,7 +73,7 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
         {/* Email Provider */}
         <div>
           <label htmlFor="email_provider" className="block text-sm font-medium text-gray-700">
-            {t('email_provider')}
+            {t('admin.system_settings.fields.email_provider')}
           </label>
           <select
             id="email_provider"
@@ -91,7 +91,7 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
             {/* Email Host */}
             <div className="md:col-span-2">
               <label htmlFor="email_host" className="block text-sm font-medium text-gray-700">
-                {t('email_host')}
+                {t('admin.system_settings.fields.email_host')}
               </label>
               <Input
                 id="email_host"
@@ -107,7 +107,7 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
             {/* Email Port */}
             <div>
               <label htmlFor="email_port" className="block text-sm font-medium text-gray-700">
-                {t('email_port')}
+                {t('admin.system_settings.fields.email_port')}
               </label>
               <Input
                 id="email_port"
@@ -124,7 +124,7 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
             {/* Email Username */}
             <div className="md:col-span-2">
               <label htmlFor="email_username" className="block text-sm font-medium text-gray-700">
-                {t('email_username')}
+                {t('admin.system_settings.fields.email_username')}
               </label>
               <Input
                 id="email_username"
@@ -140,7 +140,7 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
             {/* SMTP Encryption */}
             <div>
               <label htmlFor="smtp_encryption" className="block text-sm font-medium text-gray-700">
-                {t('smtp_encryption')}
+                {t('admin.system_settings.fields.smtp_encryption')}
               </label>
               <select
                 id="smtp_encryption"
@@ -161,7 +161,7 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
                   {...register('email_use_tls')}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                 />
-                <span className="text-sm font-medium text-gray-700">{t('use_tls')}</span>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.use_tls')}</span>
               </label>
             </div>
           </>
@@ -177,11 +177,11 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
           className="gap-2"
         >
           {isTesting && <Spinner className="w-4 h-4" />}
-          {isTesting ? t('testing') : t('test_connection')}
+          {isTesting ? t('admin.system_settings.actions.testing') : t('admin.system_settings.actions.test_connection')}
         </Button>
         <Button type="submit" disabled={isPending} className="gap-2">
           {isPending && <Spinner className="w-4 h-4" />}
-          {isPending ? t('saving') : t('save_changes')}
+          {isPending ? t('admin.system_settings.actions.saving') : t('admin.system_settings.actions.save_changes')}
         </Button>
       </div>
     </form>

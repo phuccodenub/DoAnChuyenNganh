@@ -21,10 +21,10 @@ export const useUpdateSystemSettings = () => {
     mutationFn: (settings: Partial<SystemSettings>) => systemSettingsApi.updateSettings(settings),
     onSuccess: (data) => {
       queryClient.setQueryData(QUERY_KEYS.systemSettings.all, data);
-      toast.success(t('settings_updated_successfully'));
+      toast.success(t('admin.system_settings.toast.settings_updated_successfully'));
     },
     onError: () => {
-      toast.error(t('error_updating_settings'));
+      toast.error(t('admin.system_settings.toast.error_updating_settings'));
     },
   });
 };
@@ -45,10 +45,10 @@ export const useUpdateGeneralSettings = () => {
     }) => systemSettingsApi.updateGeneralSettings(data),
     onSuccess: (data) => {
       queryClient.setQueryData(QUERY_KEYS.systemSettings.all, data);
-      toast.success(t('general_settings_updated'));
+      toast.success(t('admin.system_settings.toast.general_settings_updated'));
     },
     onError: () => {
-      toast.error(t('error_updating_general_settings'));
+      toast.error(t('admin.system_settings.toast.error_updating_general_settings'));
     },
   });
 };
@@ -69,10 +69,10 @@ export const useUpdateEmailSettings = () => {
     }) => systemSettingsApi.updateEmailSettings(data),
     onSuccess: (data) => {
       queryClient.setQueryData(QUERY_KEYS.systemSettings.all, data);
-      toast.success(t('email_settings_updated'));
+      toast.success(t('admin.system_settings.toast.email_settings_updated'));
     },
     onError: () => {
-      toast.error(t('error_updating_email_settings'));
+      toast.error(t('admin.system_settings.toast.error_updating_email_settings'));
     },
   });
 };
@@ -92,10 +92,10 @@ export const useUpdateSecuritySettings = () => {
     }) => systemSettingsApi.updateSecuritySettings(data),
     onSuccess: (data) => {
       queryClient.setQueryData(QUERY_KEYS.systemSettings.all, data);
-      toast.success(t('security_settings_updated'));
+      toast.success(t('admin.system_settings.toast.security_settings_updated'));
     },
     onError: () => {
-      toast.error(t('error_updating_security_settings'));
+      toast.error(t('admin.system_settings.toast.error_updating_security_settings'));
     },
   });
 };
@@ -118,10 +118,10 @@ export const useUpdateFeatureFlags = () => {
     }) => systemSettingsApi.updateFeatureFlags(data),
     onSuccess: (data) => {
       queryClient.setQueryData(QUERY_KEYS.systemSettings.all, data);
-      toast.success(t('feature_flags_updated'));
+      toast.success(t('admin.system_settings.toast.feature_flags_updated'));
     },
     onError: () => {
-      toast.error(t('error_updating_feature_flags'));
+      toast.error(t('admin.system_settings.toast.error_updating_feature_flags'));
     },
   });
 };
@@ -138,10 +138,10 @@ export const useTestEmailConnection = () => {
       smtp_encryption: 'none' | 'ssl' | 'tls';
     }) => systemSettingsApi.testEmailConnection(data),
     onSuccess: () => {
-      toast.success(t('email_connection_successful'));
+      toast.success(t('admin.system_settings.toast.email_connection_successful'));
     },
     onError: () => {
-      toast.error(t('email_connection_failed'));
+      toast.error(t('admin.system_settings.toast.email_connection_failed'));
     },
   });
 };

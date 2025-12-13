@@ -20,6 +20,8 @@ let failedQueue: Array<{
   reject: (reason?: unknown) => void;
 }> = [];
 
+let interceptorsInitialized = false;
+
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
@@ -86,6 +88,9 @@ const isPublicEndpoint = (url?: string, method?: string): boolean => {
  * - Tránh race condition và đảm bảo consistency
  */
 export const setupInterceptors = () => {
+  if (interceptorsInitialized) return;
+  interceptorsInitialized = true;
+
   // Request interceptor - Attach token to headers
   httpClient.interceptors.request.use(
     (config) => {

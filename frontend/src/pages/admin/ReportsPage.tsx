@@ -20,6 +20,23 @@ export const ReportsPage: React.FC = () => {
 
   const isLoading = statsLoading || growthLoading || coursesLoading || activityLoading;
 
+  const handleExportCsv = async () => {
+    try {
+      const { reportsApi } = await import('@/services/api/reports.api');
+      const blob = await reportsApi.exportReport('admin_reports', 'csv');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `admin-reports-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      // Keep UX minimal: no extra toast here
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -230,7 +247,7 @@ export const ReportsPage: React.FC = () => {
           <Printer className="w-4 h-4" />
           {t('admin.reports.print_report')}
         </Button>
-        <Button className="flex items-center gap-2">
+        <Button className="flex items-center gap-2" onClick={handleExportCsv}>
           <Download className="w-4 h-4" />
           {t('admin.reports.export_as_csv')}
         </Button>

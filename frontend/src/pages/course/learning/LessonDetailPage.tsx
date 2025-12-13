@@ -113,16 +113,15 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
     useEffect(() => {
       if (!contentToRender || hasAutoCompletedRef.current || lesson.is_completed) return;
 
-      let timer: NodeJS.Timeout;
-      let scrollTimer: NodeJS.Timeout;
-
       // Timer: tự động mark sau 30 giây nếu có content
-      timer = setTimeout(() => {
+      const timer = setTimeout(() => {
         if (!hasAutoCompletedRef.current && !lesson.is_completed && onAutoComplete) {
           hasAutoCompletedRef.current = true;
           onAutoComplete();
         }
       }, 30000); // 30 giây
+
+      let scrollTimer: NodeJS.Timeout;
 
       // Scroll detection: mark khi scroll đến cuối
       const handleScroll = () => {
@@ -287,16 +286,15 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
     useEffect(() => {
       if (hasAutoCompletedRef.current || lesson.is_completed) return;
 
-      let timer: NodeJS.Timeout;
-      let scrollTimer: NodeJS.Timeout;
-
       // Timer: tự động mark sau 30 giây
-      timer = setTimeout(() => {
+      const timer = setTimeout(() => {
         if (!hasAutoCompletedRef.current && !lesson.is_completed && onAutoComplete) {
           hasAutoCompletedRef.current = true;
           onAutoComplete();
         }
       }, 30000); // 30 giây
+
+      let scrollTimer: NodeJS.Timeout;
 
       // Scroll detection: mark khi scroll đến cuối
       const handleScroll = () => {

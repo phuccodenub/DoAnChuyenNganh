@@ -32,7 +32,7 @@ export const ActivityLogsPage: React.FC = () => {
   };
 
   const handleClearOldLogs = () => {
-    if (window.confirm(t('admin.activityLogs.confirm_clear_old_logs'))) {
+    if (window.confirm(t('admin.activity_logs.confirm_clear_old_logs'))) {
       clearLogs(90); // Clear logs older than 90 days
     }
   };
@@ -48,19 +48,19 @@ export const ActivityLogsPage: React.FC = () => {
   const columns: Column<ActivityLog>[] = [
     {
       key: 'created_at',
-      header: t('admin.activityLogs.timestamp'),
+      header: t('admin.activity_logs.timestamp'),
       render: (row) => format(new Date(row.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: vi }),
       sortable: true,
     },
     {
       key: 'user_name',
-      header: t('admin.activityLogs.user'),
+      header: t('admin.activity_logs.user'),
       render: (row) => row.user_name,
       sortable: true,
     },
     {
       key: 'action',
-      header: t('admin.activityLogs.action'),
+      header: t('admin.activity_logs.action'),
       render: (row) => (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
           {row.action}
@@ -70,7 +70,7 @@ export const ActivityLogsPage: React.FC = () => {
     },
     {
       key: 'resource_type',
-      header: t('admin.activityLogs.resource_type'),
+      header: t('admin.activity_logs.resource_type'),
       render: (row) => (
         <span className="text-gray-600">{row.resource_type}</span>
       ),
@@ -78,7 +78,7 @@ export const ActivityLogsPage: React.FC = () => {
     },
     {
       key: 'status',
-      header: t('admin.activityLogs.status'),
+      header: t('admin.activity_logs.status'),
       render: (row) => (
         <span
           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
@@ -87,13 +87,13 @@ export const ActivityLogsPage: React.FC = () => {
               : 'bg-red-100 text-red-800'
           }`}
         >
-          {row.status === 'success' ? '✓ ' : '✗ '}{t(`admin.activityLogs.${row.status}`)}
+          {row.status === 'success' ? '✓ ' : '✗ '}{t(`admin.activity_logs.${row.status}`)}
         </span>
       ),
     },
     {
       key: 'ip_address',
-      header: t('admin.activityLogs.ip_address'),
+      header: t('admin.activity_logs.ip_address'),
       render: (row) => <span className="text-gray-600 font-mono text-xs">{row.ip_address}</span>,
     },
   ];
@@ -107,11 +107,11 @@ export const ActivityLogsPage: React.FC = () => {
         </div>
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            {t('admin.activityLogs.activity_logs')}
+            {t('admin.activity_logs.activity_logs')}
           </h1>
           <p className="mt-1 text-gray-600 flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            {t('admin.activityLogs.system_activity_tracking')}
+            {t('admin.activity_logs.system_activity_tracking')}
           </p>
         </div>
       </div>
@@ -120,20 +120,20 @@ export const ActivityLogsPage: React.FC = () => {
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-5 h-5 text-gray-600" />
-          <h2 className="text-lg font-semibold text-gray-900">{t('admin.activityLogs.filters')}</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('admin.activity_logs.filters')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Tag className="w-4 h-4" />
-              {t('admin.activityLogs.action')}
+              {t('admin.activity_logs.action')}
             </label>
             <select
               value={filters.action || ''}
               onChange={(e) => setFilters({ ...filters, action: e.target.value || undefined })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
-              <option value="">{t('admin.activityLogs.all_actions')}</option>
+              <option value="">{t('admin.activity_logs.all_actions')}</option>
               <option value="create">CREATE</option>
               <option value="update">UPDATE</option>
               <option value="delete">DELETE</option>
@@ -145,14 +145,14 @@ export const ActivityLogsPage: React.FC = () => {
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Server className="w-4 h-4" />
-              {t('admin.activityLogs.resource_type')}
+              {t('admin.activity_logs.resource_type')}
             </label>
             <select
               value={filters.resource_type || ''}
               onChange={(e) => setFilters({ ...filters, resource_type: e.target.value || undefined })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
-              <option value="">{t('admin.activityLogs.all_types')}</option>
+              <option value="">{t('admin.activity_logs.all_types')}</option>
               <option value="user">Người dùng</option>
               <option value="course">Khóa học</option>
               <option value="lesson">Bài học</option>
@@ -164,7 +164,7 @@ export const ActivityLogsPage: React.FC = () => {
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <CheckCircle2 className="w-4 h-4" />
-              {t('admin.activityLogs.status')}
+              {t('admin.activity_logs.status')}
             </label>
             <select
               value={filters.status || ''}
@@ -174,9 +174,9 @@ export const ActivityLogsPage: React.FC = () => {
               })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
-              <option value="">{t('admin.activityLogs.all_statuses')}</option>
-              <option value="success">{t('admin.activityLogs.success')}</option>
-              <option value="failed">{t('admin.activityLogs.failed')}</option>
+              <option value="">{t('admin.activity_logs.all_statuses')}</option>
+              <option value="success">{t('admin.activity_logs.success')}</option>
+              <option value="failed">{t('admin.activity_logs.failed')}</option>
             </select>
           </div>
         </div>
@@ -192,7 +192,7 @@ export const ActivityLogsPage: React.FC = () => {
             className="flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
           >
             {isExporting ? <Spinner className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-            {t('admin.activityLogs.export_csv')}
+            {t('admin.activity_logs.export_csv')}
           </Button>
           <Button
             variant="secondary"
@@ -201,7 +201,7 @@ export const ActivityLogsPage: React.FC = () => {
             className="flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
           >
             {isExporting ? <Spinner className="w-4 h-4" /> : <FileJson className="w-4 h-4" />}
-            {t('admin.activityLogs.export_json')}
+            {t('admin.activity_logs.export_json')}
           </Button>
         </div>
         <Button
@@ -211,7 +211,7 @@ export const ActivityLogsPage: React.FC = () => {
           className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 shadow-md hover:shadow-lg transition-all"
         >
           {isClearing ? <Spinner className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
-          {t('admin.activityLogs.clear_old_logs')}
+          {t('admin.activity_logs.clear_old_logs')}
         </Button>
       </div>
 
@@ -220,14 +220,14 @@ export const ActivityLogsPage: React.FC = () => {
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Activity className="w-5 h-5 text-gray-600" />
-            {t('admin.activityLogs.activity_history')}
+            {t('admin.activity_logs.activity_history')}
           </h2>
         </div>
         <DataTable
           columns={columns as any}
           data={data?.data || []}
           keyExtractor={(row) => row.id}
-          emptyMessage={t('admin.activityLogs.no_activity_logs')}
+          emptyMessage={t('admin.activity_logs.no_activity_logs')}
         />
       </div>
     </div>

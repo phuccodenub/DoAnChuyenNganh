@@ -30,16 +30,21 @@ interface BackendCourse {
     avatar_url?: string;
     avatar?: string;
   };
-  category?: {
-    id: string;
-    name: string;
-  };
+  // Backend association uses alias 'courseCategory'
+  category?: { id: string; name: string };
+  courseCategory?: { id: string; name: string };
   status: 'draft' | 'published' | 'archived' | 'suspended';
   level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   price?: number;
   is_free?: boolean;
   total_students?: number;
+  student_count?: number;
   duration_hours?: number;
+  sections_count?: number;
+  lessons_count?: number;
+  completion_rate?: number;
+  average_rating?: number;
+  total_revenue?: number;
   created_at?: string | Date;
   updated_at?: string | Date;
 }
@@ -88,13 +93,18 @@ function mapBackendCourseToAdminCourse(raw: BackendCourse): AdminCourse {
           id: raw.category.id,
           name: raw.category.name,
         }
+      : raw.courseCategory
+      ? {
+          id: raw.courseCategory.id,
+          name: raw.courseCategory.name,
+        }
       : undefined,
     status: (raw.status === 'suspended' ? 'archived' : raw.status) as AdminCourse['status'],
     difficulty:
       (raw.level === 'expert' ? 'advanced' : raw.level) as AdminCourse['difficulty'],
     price: raw.price,
     is_free: Boolean(raw.is_free),
-    student_count: raw.total_students ?? 0,
+    student_count: raw.student_count ?? raw.total_students ?? 0,
     duration_hours: raw.duration_hours,
     created_at: createdAt,
     updated_at: updatedAt,
@@ -200,13 +210,13 @@ export const courseAdminApi = {
     const base = mapBackendCourseToAdminCourse(response.data.data);
     const detail: AdminCourseDetail = {
       ...base,
-      sections_count: 0,
-      lessons_count: 0,
+      sections_count: response.data.data.sections_count ?? 0,
+      lessons_count: response.data.data.lessons_count ?? 0,
       total_duration_minutes: (base.duration_hours ?? 0) * 60,
-      enrolled_students_count: base.student_count,
-      completion_rate: 0,
-      average_rating: undefined,
-      total_revenue: 0,
+      enrolled_students_count: response.data.data.student_count ?? base.student_count,
+      completion_rate: response.data.data.completion_rate ?? 0,
+      average_rating: response.data.data.average_rating,
+      total_revenue: response.data.data.total_revenue ?? 0,
       sections: [],
       recent_enrollments: [],
     };
@@ -370,14 +380,28 @@ export const courseAdminApi = {
     average_progress: number;
     total_revenue: number;
   }> => {
-    void courseId;
+    // Use real enrollment stats + course detail revenue
+    const [enrollmentStatsRes, courseDetailRes] = await Promise.all([
+      apiClient.get<BackendApiResponse<any>>(`/enrollments/stats/course/${courseId}`),
+      apiClient.get<BackendApiResponse<BackendCourse>>(`/admin/courses/${courseId}`),
+    ]);
+
+    const enrollmentStats = enrollmentStatsRes.data?.data ?? {};
+    const courseDetail = courseDetailRes.data?.data;
+
+    const totalEnrollments = Number(enrollmentStats.total_enrollments ?? 0);
+    const totalRevenue =
+      Number((courseDetail as any)?.total_revenue ?? 0) ||
+      (Number((courseDetail as any)?.price ?? 0) || 0) * totalEnrollments;
+
     return {
-      total_enrollments: 0,
-      active_students: 0,
-      completed_students: 0,
-      completion_rate: 0,
-      average_progress: 0,
-      total_revenue: 0,
+      total_enrollments: totalEnrollments,
+      active_students: Number(enrollmentStats.active_enrollments ?? 0),
+      completed_students: Number(enrollmentStats.completed_enrollments ?? 0),
+      // Backend enrollment stats returns percentage (0-100)
+      completion_rate: Number(enrollmentStats.completion_rate ?? 0),
+      average_progress: Number(enrollmentStats.average_progress ?? 0),
+      total_revenue: totalRevenue,
     };
   },
 
@@ -389,8 +413,67 @@ export const courseAdminApi = {
    * Export courses to CSV
    */
   exportCoursesToCSV: async (filters: CourseAdminFilters = {}): Promise<Blob> => {
-    void filters;
-    return new Blob([], { type: 'text/csv' });
+    const csvEscape = (value: unknown): string => {
+      const s = String(value ?? '');
+      if (/[\n\r,"]/g.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    const perPage = Math.min(Math.max(filters.per_page ?? 1000, 1), 5000);
+    let page = 1;
+    const allCourses: AdminCourse[] = [];
+
+    // Fetch all pages (bounded for safety)
+    for (let i = 0; i < 50; i++) {
+      const result = await courseAdminApi.getAllCourses({
+        ...filters,
+        page,
+        per_page: perPage,
+      });
+      allCourses.push(...(result.courses ?? []));
+      if (!result.pagination || result.pagination.page >= result.pagination.total_pages) break;
+      page += 1;
+    }
+
+    const lines: string[] = [];
+    lines.push(`Generated At,${csvEscape(new Date().toISOString())}`);
+    lines.push('');
+    lines.push(
+      [
+        'ID',
+        'Title',
+        'Instructor',
+        'Instructor Email',
+        'Category',
+        'Status',
+        'Difficulty',
+        'Students',
+        'Price',
+        'Is Free',
+        'Created At',
+      ].join(','),
+    );
+
+    for (const course of allCourses) {
+      lines.push(
+        [
+          csvEscape(course.id),
+          csvEscape(course.title),
+          csvEscape(course.instructor?.full_name ?? ''),
+          csvEscape(course.instructor?.email ?? ''),
+          csvEscape(course.category?.name ?? ''),
+          csvEscape(course.status),
+          csvEscape(course.difficulty),
+          csvEscape(course.student_count ?? 0),
+          csvEscape(course.price ?? 0),
+          csvEscape(course.is_free ? 'yes' : 'no'),
+          csvEscape(course.created_at),
+        ].join(','),
+      );
+    }
+
+    const csv = lines.join('\n');
+    return new Blob([csv], { type: 'text/csv;charset=utf-8' });
   },
 };
 

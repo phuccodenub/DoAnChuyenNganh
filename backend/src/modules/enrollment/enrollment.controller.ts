@@ -279,6 +279,27 @@ export class EnrollmentController {
   }
 
   /**
+   * Get current user's enrollments
+   */
+  async getMyEnrollments(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = (req as any).user.userId;
+      const queryData = (req as any).validatedQuery || req.query;
+      
+      const options = {
+        status: queryData.status as string,
+        limit: queryData.limit ? parseInt(queryData.limit as string) : undefined
+      };
+      
+      const enrollments = await this.enrollmentService.getEnrollmentsByUserId(userId, options);
+      responseUtils.sendSuccess(res, 'My enrollments retrieved successfully', enrollments);
+    } catch (error) {
+      logger.error('Error getting my enrollments:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Get enrollments for a specific user (for users/:id/enrollments route)
    * This is used to see enrollment history for a user
    */

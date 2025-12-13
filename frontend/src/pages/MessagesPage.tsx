@@ -341,7 +341,6 @@ export function MessagesPage() {
                 clearTimeout(markAsReadTimeoutRef.current);
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedConversationId, isDocumentVisible]);
 
     // Handle send message

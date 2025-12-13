@@ -12,7 +12,6 @@ function App() {
     if (!isInitialized) {
       initializeAuth();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array để chỉ chạy 1 lần
 
   if (!isInitialized) {

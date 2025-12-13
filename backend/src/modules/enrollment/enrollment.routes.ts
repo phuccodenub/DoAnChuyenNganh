@@ -78,6 +78,15 @@ router.put(
   (req: Request, res: Response, next: NextFunction) => enrollmentController.completeEnrollment(req, res, next)
 );
 
+// ===== ENROLLMENT STATISTICS ROUTES =====
+
+// Get user enrollment stats (All authenticated users)
+router.get(
+  '/stats/user/:userId',
+  validateParams(enrollmentSchemas.userId),
+  (req: Request, res: Response, next: NextFunction) => enrollmentController.getUserEnrollmentStats(req, res, next)
+);
+
 // ===== ENROLLMENT QUERY ROUTES =====
 
 // Get enrollments by user ID (All authenticated users)

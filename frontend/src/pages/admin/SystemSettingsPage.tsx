@@ -24,7 +24,7 @@ export const SystemSettingsPage: React.FC = () => {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-        {t('admin.systemSettings.error_loading_settings')}
+        {t('admin.system_settings.error_loading_settings')}
       </div>
     );
   }
@@ -32,25 +32,25 @@ export const SystemSettingsPage: React.FC = () => {
   const tabs = [
     { 
       id: 'general', 
-      label: t('admin.systemSettings.general_settings'),
+      label: t('admin.system_settings.general_settings'),
       icon: Globe,
       description: 'Cấu hình chung của hệ thống'
     },
     { 
       id: 'email', 
-      label: t('admin.systemSettings.email_settings'),
+      label: t('admin.system_settings.email_settings'),
       icon: Mail,
       description: 'Cài đặt email và thông báo'
     },
     { 
       id: 'security', 
-      label: t('admin.systemSettings.security_settings'),
+      label: t('admin.system_settings.security_settings'),
       icon: Shield,
       description: 'Bảo mật và xác thực'
     },
     { 
       id: 'features', 
-      label: t('admin.systemSettings.feature_flags'),
+      label: t('admin.system_settings.feature_flags'),
       icon: Zap,
       description: 'Quản lý tính năng'
     },
@@ -65,11 +65,11 @@ export const SystemSettingsPage: React.FC = () => {
         </div>
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            {t('admin.systemSettings.system_settings')}
+            {t('admin.system_settings.system_settings')}
           </h1>
           <p className="mt-1 text-gray-600 flex items-center gap-2">
             <Globe className="w-4 h-4" />
-            {t('admin.systemSettings.system_settings_desc')}
+            {t('admin.system_settings.system_settings_desc')}
           </p>
         </div>
       </div>

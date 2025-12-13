@@ -1,6 +1,25 @@
 #!/bin/sh
 set -e
 
+# Avoid tsconfig-paths walking the entire /app tree (can OOM in Docker).
+# Explicitly pin the tsconfig used by ts-node/ts-node-dev.
+export TS_NODE_PROJECT=/app/tsconfig.json
+
+# Ensure expected working directory
+cd /app
+
+# If DATABASE_URL points to an external DB (e.g., Supabase), do not run local-postgres
+# bootstrap logic. Instead, ensure migrations are applied and start the server.
+if [ -n "${DATABASE_URL:-}" ]; then
+  if echo "$DATABASE_URL" | grep -qi "supabase"; then
+    echo "🧭 External DATABASE_URL detected (Supabase)."
+    echo "🔁 Running migrations against DATABASE_URL..."
+    npm run migrate migrate || true
+    echo "🎯 Starting API server with hot reload..."
+    exec npm run dev
+  fi
+fi
+
 echo "🚀 Starting Backend API Development..."
 echo "Waiting for services to be ready..."
 sleep 10

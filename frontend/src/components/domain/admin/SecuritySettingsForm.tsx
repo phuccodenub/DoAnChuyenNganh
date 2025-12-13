@@ -41,7 +41,7 @@ export const SecuritySettingsForm: React.FC<SecuritySettingsFormProps> = ({ init
         {/* Password Min Length */}
         <div>
           <label htmlFor="password_min_length" className="block text-sm font-medium text-gray-700">
-            {t('password_min_length')}
+            {t('admin.system_settings.fields.password_min_length')}
           </label>
           <Input
             id="password_min_length"
@@ -59,7 +59,7 @@ export const SecuritySettingsForm: React.FC<SecuritySettingsFormProps> = ({ init
         {/* Session Timeout */}
         <div>
           <label htmlFor="session_timeout_minutes" className="block text-sm font-medium text-gray-700">
-            {t('session_timeout_minutes')}
+            {t('admin.system_settings.fields.session_timeout_minutes')}
           </label>
           <Input
             id="session_timeout_minutes"
@@ -78,7 +78,7 @@ export const SecuritySettingsForm: React.FC<SecuritySettingsFormProps> = ({ init
         {/* API Rate Limit */}
         <div>
           <label htmlFor="api_rate_limit" className="block text-sm font-medium text-gray-700">
-            {t('api_rate_limit')} (requests)
+            {t('admin.system_settings.fields.api_rate_limit')} (requests)
           </label>
           <Input
             id="api_rate_limit"
@@ -95,7 +95,7 @@ export const SecuritySettingsForm: React.FC<SecuritySettingsFormProps> = ({ init
         {/* API Rate Limit Window */}
         <div>
           <label htmlFor="api_rate_limit_window" className="block text-sm font-medium text-gray-700">
-            {t('api_rate_limit_window')} (giây)
+            {t('admin.system_settings.fields.api_rate_limit_window')} (giây)
           </label>
           <Input
             id="api_rate_limit_window"
@@ -118,7 +118,7 @@ export const SecuritySettingsForm: React.FC<SecuritySettingsFormProps> = ({ init
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
             />
             <span className="text-sm font-medium text-gray-700">
-              {t('require_email_verification')}
+              {t('admin.system_settings.fields.require_email_verification')}
             </span>
           </label>
 
@@ -129,7 +129,7 @@ export const SecuritySettingsForm: React.FC<SecuritySettingsFormProps> = ({ init
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
             />
             <span className="text-sm font-medium text-gray-700">
-              {t('feature_two_factor')}
+              {t('admin.system_settings.fields.feature_two_factor')}
             </span>
           </label>
         </div>
@@ -138,7 +138,7 @@ export const SecuritySettingsForm: React.FC<SecuritySettingsFormProps> = ({ init
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending} className="gap-2">
           {isPending && <Spinner className="w-4 h-4" />}
-          {isPending ? t('saving') : t('save_changes')}
+          {isPending ? t('admin.system_settings.actions.saving') : t('admin.system_settings.actions.save_changes')}
         </Button>
       </div>
     </form>

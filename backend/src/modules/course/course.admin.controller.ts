@@ -66,7 +66,7 @@ export class CourseAdminController {
   async getCourseById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const course = await this.courseRepository.findById(id);
+      const course = await this.courseRepository.getAdminCourseDetail(id);
 
       if (!course) {
         return responseUtils.sendNotFound(res, 'Course not found');

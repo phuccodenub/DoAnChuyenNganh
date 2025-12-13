@@ -42,7 +42,7 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
       <div className="space-y-4">
         {/* System Features */}
         <div className="border-b pb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('system_features')}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.system_settings.sections.system_features')}</h3>
           <div className="space-y-3">
             <label className="flex items-center gap-3">
               <input
@@ -51,8 +51,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('maintenance_mode')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('maintenance_mode_desc')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.maintenance_mode')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.maintenance_mode_desc')}</p>
               </div>
             </label>
 
@@ -63,8 +63,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('allow_registration')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('allow_new_user_registrations')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.allow_registration')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.allow_new_user_registrations')}</p>
               </div>
             </label>
           </div>
@@ -72,7 +72,7 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
 
         {/* Learning Features */}
         <div className="border-b pb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('learning_features')}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.system_settings.sections.learning_features')}</h3>
           <div className="space-y-3">
             <label className="flex items-center gap-3">
               <input
@@ -81,8 +81,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('live_streaming')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('enable_live_courses')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.live_streaming')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.enable_live_courses')}</p>
               </div>
             </label>
 
@@ -93,8 +93,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('chat_system')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('enable_course_chat')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.chat_system')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.enable_course_chat')}</p>
               </div>
             </label>
 
@@ -105,8 +105,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('discussion_forums')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('enable_course_forums')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.discussion_forums')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.enable_course_forums')}</p>
               </div>
             </label>
 
@@ -117,8 +117,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('course_reviews')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('allow_course_ratings')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.course_reviews')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.allow_course_ratings')}</p>
               </div>
             </label>
           </div>
@@ -126,7 +126,7 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
 
         {/* User Features */}
         <div className="border-b pb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('user_features')}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.system_settings.sections.user_features')}</h3>
           <div className="space-y-3">
             <label className="flex items-center gap-3">
               <input
@@ -135,8 +135,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('two_factor_auth')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('enable_2fa_for_users')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.two_factor_auth')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.enable_2fa_for_users')}</p>
               </div>
             </label>
 
@@ -147,8 +147,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('social_login')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('enable_social_auth')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.social_login')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.enable_social_auth')}</p>
               </div>
             </label>
 
@@ -159,8 +159,8 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
               <div>
-                <span className="text-sm font-medium text-gray-700">{t('user_profiles')}</span>
-                <p className="text-xs text-gray-500 mt-1">{t('allow_public_user_profiles')}</p>
+                <span className="text-sm font-medium text-gray-700">{t('admin.system_settings.fields.user_profiles')}</span>
+                <p className="text-xs text-gray-500 mt-1">{t('admin.system_settings.fields.allow_public_user_profiles')}</p>
               </div>
             </label>
           </div>
@@ -170,7 +170,7 @@ export const FeatureFlagsForm: React.FC<FeatureFlagsFormProps> = ({ initialData 
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending} className="gap-2">
           {isPending && <Spinner className="w-4 h-4" />}
-          {isPending ? t('saving') : t('save_changes')}
+          {isPending ? t('admin.system_settings.actions.saving') : t('admin.system_settings.actions.save_changes')}
         </Button>
       </div>
     </form>

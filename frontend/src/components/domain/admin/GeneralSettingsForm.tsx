@@ -51,7 +51,7 @@ export const GeneralSettingsForm: React.FC<GeneralSettingsFormProps> = ({ initia
         {/* Site Name */}
         <div>
           <label htmlFor="site_name" className="block text-sm font-medium text-gray-700">
-            {t('site_name')}
+            {t('admin.system_settings.fields.site_name')}
           </label>
           <Input
             id="site_name"
@@ -67,7 +67,7 @@ export const GeneralSettingsForm: React.FC<GeneralSettingsFormProps> = ({ initia
         {/* Timezone */}
         <div>
           <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">
-            {t('timezone')}
+            {t('admin.system_settings.fields.timezone')}
           </label>
           <select
             id="timezone"
@@ -87,7 +87,7 @@ export const GeneralSettingsForm: React.FC<GeneralSettingsFormProps> = ({ initia
         {/* Logo URL */}
         <div className="md:col-span-2">
           <label htmlFor="site_logo_url" className="block text-sm font-medium text-gray-700">
-            {t('logo_url')}
+            {t('admin.system_settings.fields.logo_url')}
           </label>
           <Input
             id="site_logo_url"
@@ -103,7 +103,7 @@ export const GeneralSettingsForm: React.FC<GeneralSettingsFormProps> = ({ initia
         {/* Favicon URL */}
         <div className="md:col-span-2">
           <label htmlFor="site_favicon_url" className="block text-sm font-medium text-gray-700">
-            {t('favicon_url')}
+            {t('admin.system_settings.fields.favicon_url')}
           </label>
           <Input
             id="site_favicon_url"
@@ -119,7 +119,7 @@ export const GeneralSettingsForm: React.FC<GeneralSettingsFormProps> = ({ initia
         {/* Language */}
         <div>
           <label htmlFor="language" className="block text-sm font-medium text-gray-700">
-            {t('language')}
+            {t('admin.system_settings.fields.language')}
           </label>
           <select
             id="language"
@@ -134,7 +134,7 @@ export const GeneralSettingsForm: React.FC<GeneralSettingsFormProps> = ({ initia
         {/* Currency */}
         <div>
           <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
-            {t('currency')}
+            {t('admin.system_settings.fields.currency')}
           </label>
           <select
             id="currency"
@@ -150,7 +150,7 @@ export const GeneralSettingsForm: React.FC<GeneralSettingsFormProps> = ({ initia
         {/* Max Upload Size */}
         <div>
           <label htmlFor="max_upload_size" className="block text-sm font-medium text-gray-700">
-            {t('max_upload_size')} (bytes)
+            {t('admin.system_settings.fields.max_upload_size')} (bytes)
           </label>
           <Input
             id="max_upload_size"
@@ -171,7 +171,7 @@ export const GeneralSettingsForm: React.FC<GeneralSettingsFormProps> = ({ initia
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending} className="gap-2">
           {isPending && <Spinner className="w-4 h-4" />}
-          {isPending ? t('saving') : t('save_changes')}
+          {isPending ? t('admin.system_settings.actions.saving') : t('admin.system_settings.actions.save_changes')}
         </Button>
       </div>
     </form>

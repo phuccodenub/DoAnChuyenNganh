@@ -1,8 +1,12 @@
 import * as userRepository from '../../repositories/user.repository';
 import { CacheService } from './cache.service';
 import logger from '../../utils/logger.util';
+import { QueryTypes } from 'sequelize';
 // Use lightweight user types for hard-fail users build
 import type { UserInstance, UserCreationAttributes, UserAttributes } from '../../types/model.types';
+import { getModelSequelize } from '../../utils/model-extension.util';
+
+const sequelize = getModelSequelize();
 
 // DTOs for user operations
 export interface UserUpdateDTO {
@@ -431,19 +435,44 @@ export class GlobalUserService {
    */
   async getUserGrowth(days: number = 30): Promise<any[]> {
     try {
-      // Return mock growth data - in production, this would aggregate from database
-      const data = [];
-      const now = new Date();
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        data.push({
-          date: date.toISOString().split('T')[0],
-          new_users: Math.floor(Math.random() * 20) + 5,
-          total_users: 100 + (days - i) * 2
-        });
+      const safeDays = Math.max(1, Math.min(365, Number.isFinite(days) ? days : 30));
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - (safeDays - 1));
+      startDate.setHours(0, 0, 0, 0);
+
+      const rows = (await sequelize.query(
+        `
+        SELECT
+          DATE_TRUNC('day', created_at)::date AS date,
+          COUNT(*)::integer AS count
+        FROM users
+        WHERE created_at BETWEEN :startDate AND :endDate
+        GROUP BY DATE_TRUNC('day', created_at)
+        ORDER BY date ASC
+        `,
+        {
+          type: QueryTypes.SELECT,
+          replacements: { startDate, endDate },
+        },
+      )) as any[];
+
+      const map = new Map<string, number>();
+      for (const r of rows) {
+        const d = r?.date ? new Date(r.date) : null;
+        const key = d && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : String(r?.date ?? '');
+        map.set(key, Number(r?.count ?? 0));
       }
-      return data;
+
+      const out: Array<{ date: string; count: number }> = [];
+      for (let i = 0; i < safeDays; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        const key = d.toISOString().slice(0, 10);
+        out.push({ date: key, count: map.get(key) ?? 0 });
+      }
+
+      return out;
     } catch (error: unknown) {
       logger.error('Error getting user growth:', error);
       return [];
@@ -455,19 +484,44 @@ export class GlobalUserService {
    */
   async getEnrollmentTrend(days: number = 30): Promise<any[]> {
     try {
-      // Return mock enrollment trend data
-      const data = [];
-      const now = new Date();
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        data.push({
-          date: date.toISOString().split('T')[0],
-          enrollments: Math.floor(Math.random() * 50) + 10,
-          completions: Math.floor(Math.random() * 20) + 3
-        });
+      const safeDays = Math.max(1, Math.min(365, Number.isFinite(days) ? days : 30));
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - (safeDays - 1));
+      startDate.setHours(0, 0, 0, 0);
+
+      const rows = (await sequelize.query(
+        `
+        SELECT
+          DATE_TRUNC('day', created_at)::date AS date,
+          COUNT(*)::integer AS enrollments
+        FROM enrollments
+        WHERE created_at BETWEEN :startDate AND :endDate
+        GROUP BY DATE_TRUNC('day', created_at)
+        ORDER BY date ASC
+        `,
+        {
+          type: QueryTypes.SELECT,
+          replacements: { startDate, endDate },
+        },
+      )) as any[];
+
+      const map = new Map<string, number>();
+      for (const r of rows) {
+        const d = r?.date ? new Date(r.date) : null;
+        const key = d && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : String(r?.date ?? '');
+        map.set(key, Number(r?.enrollments ?? 0));
       }
-      return data;
+
+      const out: Array<{ date: string; enrollments: number }> = [];
+      for (let i = 0; i < safeDays; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        const key = d.toISOString().slice(0, 10);
+        out.push({ date: key, enrollments: map.get(key) ?? 0 });
+      }
+
+      return out;
     } catch (error: unknown) {
       logger.error('Error getting enrollment trend:', error);
       return [];

@@ -89,7 +89,7 @@ export function MyCoursesPage() {
   ];
 
   const filteredCourses = useMemo(() => {
-    let result = courses.filter((course) => {
+    const result = courses.filter((course) => {
       const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesFilter = filter === 'all' || course.status === filter;
       return matchesSearch && matchesFilter;

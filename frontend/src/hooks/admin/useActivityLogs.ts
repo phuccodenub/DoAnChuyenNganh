@@ -38,10 +38,10 @@ export const useClearOldLogs = () => {
     mutationFn: (days: number) => activityLogsApi.clearOldLogs(days),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.activityLogs.all });
-      toast.success(t('old_logs_cleared_successfully'));
+      toast.success(t('admin.activity_logs.toast.old_logs_cleared_successfully'));
     },
     onError: () => {
-      toast.error(t('error_clearing_old_logs'));
+      toast.error(t('admin.activity_logs.toast.error_clearing_old_logs'));
     },
   });
 };
@@ -68,10 +68,10 @@ export const useExportActivityLogs = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success(t('logs_exported_successfully'));
+      toast.success(t('admin.activity_logs.toast.logs_exported_successfully'));
     },
     onError: () => {
-      toast.error(t('error_exporting_logs'));
+      toast.error(t('admin.activity_logs.toast.error_exporting_logs'));
     },
   });
 };

@@ -357,7 +357,6 @@ export function CreateLiveStreamPage() {
     return () => {
       stopPreviewStream();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoSource, cameraDevice, microphoneDevice]);
 
   useEffect(() => {
