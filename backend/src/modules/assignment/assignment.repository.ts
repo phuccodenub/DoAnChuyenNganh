@@ -45,18 +45,14 @@ export class AssignmentRepository {
 
   async getCourseAssignments(courseId: string, includeUnpublished: boolean = false): Promise<AssignmentInstance[]> {
     const { default: Section } = await import('../../models/section.model');
-    const { default: Lesson } = await import('../../models/lesson.model');
     const sections = await (Section as any).findAll({ where: { course_id: courseId }, attributes: ['id'] });
     const sectionIds = sections.map((s: any) => s.id);
-    const lessons = sectionIds.length
-      ? await (Lesson as any).findAll({ where: { section_id: sectionIds }, attributes: ['id'] })
-      : [];
-    const lessonIds = lessons.map((l: any) => l.id);
 
+    // Tìm assignments: course-level (course_id = courseId) hoặc section-level (section_id trong danh sách sectionIds)
     const whereClause: WhereOptions<AssignmentAttributes> = {
       [Op.or]: [
         { course_id: courseId },
-        ...(lessonIds.length ? [{ lesson_id: lessonIds }] : [])
+        ...(sectionIds.length ? [{ section_id: sectionIds }] : [])
       ]
     };
     
@@ -64,9 +60,11 @@ export class AssignmentRepository {
       (whereClause as any).is_published = true;
     }
 
-    return this.AssignmentModel.findAll({
+    const assignments = await this.AssignmentModel.findAll({
       where: whereClause,
       order: [['due_date', 'ASC'], ['created_at', 'DESC']],
+      // Không cần specify attributes - lấy tất cả fields để đảm bảo section_id có trong response
+      // Sequelize sẽ tự động serialize sang JSON khi response
       include: [
         {
           model: Course,
@@ -75,6 +73,18 @@ export class AssignmentRepository {
         }
       ]
     });
+    
+    // Convert Sequelize instances to plain objects để đảm bảo section_id có trong response
+    // Giống như quiz - Sequelize tự serialize nhưng convert explicit để chắc chắn
+    return assignments.map((a: any) => {
+      const plain = a.toJSON ? a.toJSON() : a;
+      // Đảm bảo section_id có trong response (kể cả khi null)
+      return {
+        ...plain,
+        section_id: plain.section_id || null,
+        course_id: plain.course_id || null
+      };
+    }) as any;
   }
 
   // ===================================
@@ -114,6 +124,12 @@ export class AssignmentRepository {
           model: Assignment,
           as: 'assignment',
           attributes: ['id', 'title', 'max_score', 'due_date']
+        },
+        {
+          model: User,
+          as: 'grader',
+          attributes: ['id', 'first_name', 'last_name', 'email'],
+          required: false
         }
       ]
     });
@@ -188,6 +204,9 @@ export class AssignmentRepository {
     late_submissions: number;
     grading_progress: number;
   }> {
+    const { getSequelize } = await import('../../config/db');
+    const sequelize = getSequelize();
+
     const totalSubmissions = await this.AssignmentSubmissionModel.count({
       where: { assignment_id: assignmentId } as WhereOptions<AssignmentSubmissionAttributes>
     });
@@ -205,17 +224,31 @@ export class AssignmentRepository {
         status: 'graded'
       } as WhereOptions<AssignmentSubmissionAttributes>,
       attributes: [
-        [(Assignment as any).sequelize!.fn('AVG', (Assignment as any).sequelize!.col('score')), 'average_score']
+        [sequelize.fn('AVG', sequelize.col('score')), 'average_score']
       ],
       raw: true
     }) as { average_score: string | null } | null;
 
-    const lateSubmissions = await this.AssignmentSubmissionModel.count({
-      where: { 
-        assignment_id: assignmentId,
-        is_late: true
-      } as WhereOptions<AssignmentSubmissionAttributes>
+    // Calculate late submissions: need to get assignment due_date and compare with submitted_at
+    const assignment = await this.AssignmentModel.findByPk(assignmentId, {
+      attributes: ['id', 'due_date']
     });
+
+    let lateSubmissions = 0;
+    if (assignment && (assignment as any).due_date) {
+      const dueDate = new Date((assignment as any).due_date);
+      const { Op } = await import('sequelize');
+      
+      // Count submissions where submitted_at > due_date
+      lateSubmissions = await this.AssignmentSubmissionModel.count({
+        where: { 
+          assignment_id: assignmentId,
+          submitted_at: {
+            [Op.gt]: dueDate
+          }
+        } as WhereOptions<AssignmentSubmissionAttributes>
+      });
+    }
 
     return {
       total_submissions: totalSubmissions,

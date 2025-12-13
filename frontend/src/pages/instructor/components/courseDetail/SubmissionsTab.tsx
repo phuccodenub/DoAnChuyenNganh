@@ -14,13 +14,16 @@ import {
     Home,
     BookOpen,
     Calendar,
+    X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal';
 import { Submission, AssignmentStats } from './types';
 import { ROUTES } from '@/constants/routes';
+import { useGradeSubmission } from '@/hooks/useAssignments';
 
 /**
  * SubmissionsTab Component
@@ -135,14 +138,53 @@ export function SubmissionsTab({
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'graded' | 'missing'>('all');
     const [groupFilter, setGroupFilter] = useState('all');
 
+    // State cho modal chấm bài
+    const [showGradingModal, setShowGradingModal] = useState(false);
+    const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+    const [gradingScore, setGradingScore] = useState<number>(0);
+    const [gradingFeedback, setGradingFeedback] = useState<string>('');
+
+    // Hook để chấm bài
+    const gradeSubmissionMutation = useGradeSubmission();
+
     /**
-     * handleGradeSubmission - Hàm xử lý chấm bài, điều hướng đến GradingPage
+     * handleGradeSubmission - Hàm xử lý chấm bài, mở modal chấm bài chi tiết
      * @param submissionId - ID của submission
      */
     const handleGradeSubmission = (submissionId: string) => {
-        // TODO: Navigate to grading page with submission context
-        // navigate(`/instructor/courses/${courseId}/assignments/${assignmentId}/submissions/${submissionId}/grade`);
-        navigate(ROUTES.INSTRUCTOR.GRADES); // Temporary navigation to general grading page
+        const submission = submissions.find(s => s.id === submissionId);
+        if (!submission) return;
+
+        setSelectedSubmission(submission);
+        setGradingScore(submission.score || 0);
+        setGradingFeedback(submission.feedback || '');
+        setShowGradingModal(true);
+    };
+
+    /**
+     * handleSaveGrade - Hàm lưu điểm và feedback
+     */
+    const handleSaveGrade = async () => {
+        if (!selectedSubmission) return;
+
+        if (gradingScore < 0 || gradingScore > selectedSubmission.max_score) {
+            alert(`Điểm phải từ 0 đến ${selectedSubmission.max_score}`);
+            return;
+        }
+
+        try {
+            await gradeSubmissionMutation.mutateAsync({
+                submissionId: selectedSubmission.id,
+                data: {
+                    score: gradingScore,
+                    feedback: gradingFeedback || undefined,
+                },
+            });
+            setShowGradingModal(false);
+            setSelectedSubmission(null);
+        } catch (error) {
+            // Error đã được xử lý trong hook
+        }
     };
 
     /**
@@ -187,18 +229,29 @@ export function SubmissionsTab({
     };
 
     /**
-     * handleQuickGrade - Hàm chấm điểm nhanh inline
+     * handleQuickGrade - Hàm chấm điểm nhanh inline (chỉ điểm, không có feedback)
      * @param submissionId - ID submission
      * @param score - Điểm số
      */
     const handleQuickGrade = async (submissionId: string, score: number) => {
+        const submission = submissions.find(s => s.id === submissionId);
+        if (!submission) return;
+
+        if (score < 0 || score > submission.max_score) {
+            alert(`Điểm phải từ 0 đến ${submission.max_score}`);
+            return;
+        }
+
         try {
-            // TODO: API call - POST /api/instructor/submissions/:submissionId/quick-grade
-            console.log('Quick grade:', submissionId, score);
-            alert(`Đã cập nhật điểm ${score} cho bài nộp`);
+            await gradeSubmissionMutation.mutateAsync({
+                submissionId,
+                data: {
+                    score,
+                    feedback: submission.feedback || undefined,
+                },
+            });
         } catch (error) {
-            console.error('Quick grade failed:', error);
-            alert('Cập nhật điểm thất bại. Vui lòng thử lại.');
+            // Error đã được xử lý trong hook
         }
     };
 
@@ -503,6 +556,134 @@ export function SubmissionsTab({
                     )}
                 </CardContent>
             </Card>
+
+            {/* Modal chấm bài chi tiết */}
+            {showGradingModal && selectedSubmission && (
+                <Modal isOpen={showGradingModal} onClose={() => setShowGradingModal(false)}>
+                    <ModalHeader>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900">Chấm bài: {selectedSubmission.student_name}</h3>
+                            <button
+                                onClick={() => setShowGradingModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody>
+                        <div className="space-y-4">
+                            {/* Thông tin bài nộp */}
+                            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-600">Bài tập:</span>
+                                    <span className="text-sm font-medium">{selectedSubmission.assignment_title}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-600">Ngày nộp:</span>
+                                    <span className="text-sm">{formatDateTime(selectedSubmission.submitted_at)}</span>
+                                </div>
+                                {selectedSubmission.is_late && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-600">Trạng thái:</span>
+                                        <Badge variant="warning" className="bg-orange-100 text-orange-700">
+                                            Nộp muộn
+                                        </Badge>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Nội dung bài nộp */}
+                            {selectedSubmission.submission_text && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Nội dung bài nộp:
+                                    </label>
+                                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
+                                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                            {selectedSubmission.submission_text}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* File đính kèm */}
+                            {selectedSubmission.file_urls && selectedSubmission.file_urls.length > 0 && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        File đính kèm:
+                                    </label>
+                                    <div className="space-y-2">
+                                        {selectedSubmission.file_urls.map((url, index) => (
+                                            <a
+                                                key={index}
+                                                href={url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+                                            >
+                                                <FileText className="w-4 h-4" />
+                                                File {index + 1}
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Form chấm điểm */}
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Điểm số <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            max={selectedSubmission.max_score}
+                                            step="0.1"
+                                            value={gradingScore}
+                                            onChange={(e) => setGradingScore(parseFloat(e.target.value) || 0)}
+                                            className="w-32"
+                                        />
+                                        <span className="text-sm text-gray-600">/ {selectedSubmission.max_score}</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Nhận xét / Feedback
+                                    </label>
+                                    <textarea
+                                        value={gradingFeedback}
+                                        onChange={(e) => setGradingFeedback(e.target.value)}
+                                        placeholder="Nhập nhận xét cho học viên..."
+                                        rows={4}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter>
+                        <div className="flex items-center justify-end gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowGradingModal(false)}
+                                disabled={gradeSubmissionMutation.isPending}
+                            >
+                                Hủy
+                            </Button>
+                            <Button
+                                onClick={handleSaveGrade}
+                                disabled={gradeSubmissionMutation.isPending || gradingScore < 0 || gradingScore > selectedSubmission.max_score}
+                            >
+                                {gradeSubmissionMutation.isPending ? 'Đang lưu...' : 'Lưu điểm'}
+                            </Button>
+                        </div>
+                    </ModalFooter>
+                </Modal>
+            )}
         </div>
     );
 }

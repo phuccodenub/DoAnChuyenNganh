@@ -747,18 +747,142 @@ data: LessonProgressInput
       // Enrich lessons with is_practice
       const enrichedSections = await this.enrichLessonsWithPracticeFlag(sections, courseId);
 
-      const totalSections = enrichedSections.length;
-      const totalLessons = enrichedSections.reduce(
+      // Fetch quiz và assignment độc lập (không phải lesson)
+      const { Quiz, Assignment } = await import('../../models');
+      const { Op } = await import('sequelize');
+      
+      // Lấy tất cả section IDs - normalize để đảm bảo lấy đúng từ Sequelize instances
+      const sectionIds = enrichedSections.map((s: any) => {
+        // Nếu là Sequelize instance, convert sang plain object trước
+        const sectionPlain = s.toJSON ? s.toJSON() : s;
+        return sectionPlain.id || s.id;
+      }).filter(Boolean); // Loại bỏ null/undefined
+      
+      logger.info(`[getCourseContentOverview] Course ${courseId}: Found ${enrichedSections.length} sections, ${sectionIds.length} section IDs:`, sectionIds);
+      
+      // Fetch quiz: tất cả quiz của course (course-level và section-level)
+      // Nếu có sections, chỉ lấy quiz của các sections đó
+      // Nếu không có sections, vẫn lấy tất cả quiz của course để có thể hiển thị course-level quizzes
+      const quizWhere: any = {
+        course_id: courseId
+      };
+      if (sectionIds.length > 0) {
+        // Có sections: lấy course-level (section_id null) hoặc section-level (trong danh sách sections)
+        quizWhere[Op.or] = [
+          { section_id: null },
+          { section_id: sectionIds }
+        ];
+      } else {
+        // Không có sections: chỉ lấy course-level (section_id null)
+        quizWhere.section_id = null;
+      }
+      if (!includeUnpublished) {
+        quizWhere.is_published = true;
+      }
+      
+      const allQuizzes = await (Quiz as any).findAll({
+        where: quizWhere,
+        attributes: ['id', 'title', 'description', 'duration_minutes', 'is_published', 'is_practice', 'section_id', 'course_id', 'created_at'],
+        order: [['created_at', 'ASC']]
+      });
+
+      // Fetch assignment: LUÔN fetch tất cả assignments của course (course-level và section-level)
+      // Không phụ thuộc vào sections được fetch hay không
+      // Điều này đảm bảo assignments trong sections sẽ được fetch và gán vào sections sau này
+      const assignmentWhere: any = {
+        course_id: courseId
+      };
+      // Không thêm điều kiện section_id - fetch tất cả assignments của course
+      // Sau đó sẽ filter và gán vào sections tương ứng dựa trên section_id
+      if (!includeUnpublished) {
+        assignmentWhere.is_published = true;
+      }
+      
+      const allAssignments = await (Assignment as any).findAll({
+        where: assignmentWhere,
+        attributes: ['id', 'title', 'description', 'instructions', 'max_score', 'due_date', 'is_published', 'is_practice', 'section_id', 'course_id', 'submission_type', 'created_at'],
+        order: [['created_at', 'ASC']]
+      });
+      
+      logger.info(`[getCourseContentOverview] Course ${courseId}: Found ${allQuizzes.length} quizzes, ${allAssignments.length} assignments`);
+      if (allAssignments.length > 0) {
+        const assignmentsBySection = allAssignments.reduce((acc: any, a: any) => {
+          const sectionId = a.section_id || 'course-level';
+          if (!acc[sectionId]) acc[sectionId] = [];
+          acc[sectionId].push(a.title);
+          return acc;
+        }, {});
+        logger.info(`[getCourseContentOverview] Assignments breakdown:`, assignmentsBySection);
+      }
+
+      // Convert Sequelize instances to plain objects
+      const quizzesPlain = allQuizzes.map((q: any) => q.toJSON ? q.toJSON() : q);
+      const assignmentsPlain = allAssignments.map((a: any) => a.toJSON ? a.toJSON() : a);
+
+      // Phân loại quiz/assignment: course-level và section-level
+      const courseLevelQuizzes = quizzesPlain.filter((q: any) => !q.section_id && q.course_id === courseId);
+      const courseLevelAssignments = assignmentsPlain.filter((a: any) => !a.section_id && a.course_id === courseId);
+
+      // Thêm quiz/assignment vào sections tương ứng
+      const sectionsWithContent = enrichedSections.map((section: any) => {
+        // Convert section to plain object if it's a Sequelize instance
+        const sectionPlain = section.toJSON ? section.toJSON() : section;
+        const sectionId = sectionPlain.id || section.id;
+        
+        if (!sectionId) {
+          logger.warn(`[getCourseContentOverview] Section missing ID:`, sectionPlain);
+        }
+        
+        // Filter quizzes and assignments by section_id (convert to string for comparison)
+        const sectionQuizzes = quizzesPlain.filter((q: any) => {
+          const qSectionId = q.section_id ? String(q.section_id).trim() : null;
+          const currentSectionId = sectionId ? String(sectionId).trim() : null;
+          return qSectionId && currentSectionId && qSectionId === currentSectionId;
+        });
+        const sectionAssignments = assignmentsPlain.filter((a: any) => {
+          const aSectionId = a.section_id ? String(a.section_id).trim() : null;
+          const currentSectionId = sectionId ? String(sectionId).trim() : null;
+          const match = aSectionId && currentSectionId && aSectionId === currentSectionId;
+          if (match) {
+            logger.debug(`[getCourseContentOverview] Assignment "${a.title}" matched section "${sectionPlain.title}" (${sectionId})`);
+          }
+          return match;
+        });
+        
+        if (sectionAssignments.length > 0) {
+          logger.info(`[getCourseContentOverview] Section "${sectionPlain.title}" (${sectionId}): Found ${sectionAssignments.length} assignments:`, 
+            sectionAssignments.map((a: any) => a.title));
+        } else {
+          // Log để debug nếu không tìm thấy assignments
+          const assignmentsForThisSection = assignmentsPlain.filter((a: any) => {
+            const aSectionId = a.section_id ? String(a.section_id).trim() : null;
+            return aSectionId && aSectionId === String(sectionId).trim();
+          });
+          if (assignmentsForThisSection.length > 0) {
+            logger.warn(`[getCourseContentOverview] Section "${sectionPlain.title}" (${sectionId}): Found ${assignmentsForThisSection.length} assignments but filter failed. Section ID type: ${typeof sectionId}, Assignment section_id types:`, 
+              assignmentsForThisSection.map((a: any) => typeof a.section_id));
+          }
+        }
+        
+        return {
+          ...sectionPlain,
+          quizzes: sectionQuizzes.length > 0 ? sectionQuizzes : [],
+          assignments: sectionAssignments.length > 0 ? sectionAssignments : []
+        };
+      });
+
+      const totalSections = sectionsWithContent.length;
+      const totalLessons = sectionsWithContent.reduce(
         (sum: number, section: any) => sum + (section.lessons?.length || 0),
         0
       );
-      const totalDuration = enrichedSections.reduce((sum: number, section: any) => {
+      const totalDuration = sectionsWithContent.reduce((sum: number, section: any) => {
         return sum + (section.lessons?.reduce(
           (lessonSum: number, lesson: any) => lessonSum + (lesson.duration_minutes || 0),
           0
         ) || 0);
       }, 0);
-      const totalMaterials = enrichedSections.reduce((sum: number, section: any) => {
+      const totalMaterials = sectionsWithContent.reduce((sum: number, section: any) => {
         return sum + (section.lessons?.reduce(
           (materialSum: number, lesson: any) => materialSum + (lesson.materials?.length || 0),
           0
@@ -771,7 +895,9 @@ data: LessonProgressInput
         total_lessons: totalLessons,
         total_duration_minutes: totalDuration,
         total_materials: totalMaterials,
-        sections: enrichedSections as any
+        sections: sectionsWithContent as any,
+        course_level_quizzes: courseLevelQuizzes.length > 0 ? courseLevelQuizzes : [],
+        course_level_assignments: courseLevelAssignments.length > 0 ? courseLevelAssignments : []
       };
     } catch (error: unknown) {
       logger.error(`Error getting course content overview: ${error}`);

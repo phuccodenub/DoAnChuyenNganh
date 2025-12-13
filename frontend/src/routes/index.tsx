@@ -142,9 +142,6 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
             <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentMyCoursesPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENTS} element={<StudentAssignmentsPage />} />
-            <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
-            <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
-            <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
             {/* Settings moved to universal route */}
             <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
             {/* Redirect old chat route to shared messages page */}

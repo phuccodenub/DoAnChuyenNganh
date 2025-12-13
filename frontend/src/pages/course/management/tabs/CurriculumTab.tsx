@@ -63,6 +63,10 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [selectedQuizTitle, setSelectedQuizTitle] = useState<string>('');
   
+  // Assignment Modal state (cho section-level)
+  const [isSectionAssignmentModalOpen, setIsSectionAssignmentModalOpen] = useState(false);
+  const [selectedAssignmentSectionId, setSelectedAssignmentSectionId] = useState<string | undefined>();
+  
   // Fetch quizzes for the course
   const { data: quizzesResponse, refetch: refetchQuizzes, isLoading: isLoadingQuizzes } = useInstructorQuizzes({ 
     course_id: courseId,
@@ -83,13 +87,15 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
     course_idValue: q.course_id
   })));
   
-  const courseLevelQuizzes = quizzes
-    .filter((q: any) => {
-      // Quiz cấp course: không có section_id (hoặc section_id là null/undefined) và có course_id
-      const hasSectionId = q.section_id != null && q.section_id !== '';
-      const hasCourseId = q.course_id != null && q.course_id !== '';
-      return !hasSectionId && hasCourseId;
-    })
+  // Lưu thứ tự ban đầu của quizzes từ API (trước khi sort)
+  const courseLevelQuizzesRaw = quizzes.filter((q: any) => {
+    const hasSectionId = q.section_id != null && q.section_id !== '';
+    const hasCourseId = q.course_id != null && q.course_id !== '';
+    return !hasSectionId && hasCourseId;
+  });
+  
+  const courseLevelQuizzes = courseLevelQuizzesRaw
+    .map((q: any, index: number) => ({ ...q, _quizOriginalIndex: index }))
     .sort((a: any, b: any) => {
       // Ưu tiên sắp xếp theo order_index nếu có
       if (a.order_index != null && b.order_index != null) {
@@ -117,18 +123,39 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
       courseId,
     });
     
-    // Log từng quiz để xem structure
+    // Log từng quiz để xem structure và kiểm tra created_at
     if (quizzes.length > 0) {
       console.log('[CurriculumTab] First quiz:', quizzes[0]);
+      console.log('[CurriculumTab] First quiz keys:', Object.keys(quizzes[0]));
+      console.log('[CurriculumTab] First quiz created_at:', quizzes[0].created_at);
       console.log('[CurriculumTab] All quizzes:', quizzes);
+      
+      // Log course-level quizzes để kiểm tra created_at
+      if (courseLevelQuizzes.length > 0) {
+        console.log('[CurriculumTab] Course-level quizzes with created_at check:');
+        courseLevelQuizzes.forEach((q: any, index: number) => {
+          console.log(`[CurriculumTab] Quiz ${index + 1}:`, {
+            id: q.id,
+            title: q.title,
+            created_at: q.created_at,
+            created_atType: typeof q.created_at,
+            hasCreatedAt: 'created_at' in q,
+            allKeys: Object.keys(q)
+          });
+        });
+      }
     }
   }, [quizzesResponse, quizzes, courseLevelQuizzes, courseId]);
 
   // Assignments (course-level)
   const { data: assignmentsResponse, refetch: refetchAssignments } = useCourseAssignments(courseId);
   const assignments = Array.isArray(assignmentsResponse) ? assignmentsResponse : [];
-  const courseLevelAssignments = assignments
-    .filter((a: any) => !a.section_id && a.course_id) // Assignment cấp course (có course_id nhưng không có section_id)
+  
+  // Lưu thứ tự ban đầu của assignments từ API (trước khi sort)
+  const courseLevelAssignmentsRaw = assignments.filter((a: any) => !a.section_id && a.course_id);
+  
+  const courseLevelAssignments = courseLevelAssignmentsRaw
+    .map((a: any, index: number) => ({ ...a, _assignmentOriginalIndex: index }))
     .sort((a: any, b: any) => {
       // Ưu tiên sắp xếp theo order_index nếu có
       if (a.order_index != null && b.order_index != null) {
@@ -140,10 +167,19 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
       return dateA - dateB; // ASC: cũ nhất trước
     });
 
-  // Kết hợp quizzes và assignments và sắp xếp cùng nhau theo thứ tự tạo
+  // Kết hợp sections, quizzes và assignments và sắp xếp cùng nhau theo thứ tự tạo
+  // Lưu thứ tự ban đầu từ API response (trước khi sort) để dùng khi không có created_at
   const courseLevelContent = [
-    ...courseLevelQuizzes.map((q: any) => ({ ...q, type: 'quiz' as const })),
-    ...courseLevelAssignments.map((a: any) => ({ ...a, type: 'assignment' as const }))
+    ...courseLevelQuizzes.map((q: any) => ({ 
+      ...q, 
+      type: 'quiz' as const,
+      _originalApiIndex: courseLevelQuizzesRaw.findIndex((raw: any) => raw.id === q.id)
+    })),
+    ...courseLevelAssignments.map((a: any) => ({ 
+      ...a, 
+      type: 'assignment' as const,
+      _originalApiIndex: courseLevelAssignmentsRaw.length + courseLevelAssignmentsRaw.findIndex((raw: any) => raw.id === a.id)
+    }))
   ].sort((a: any, b: any) => {
     // Ưu tiên sắp xếp theo order_index nếu có
     if (a.order_index != null && b.order_index != null) {
@@ -155,13 +191,111 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
     return dateA - dateB; // ASC: cũ nhất trước
   });
 
+  // Kết hợp tất cả items (sections, course-level quizzes, course-level assignments) và sort theo thứ tự tạo
+  // Lưu thứ tự ban đầu để dùng làm fallback khi không có created_at
+  // Sections đã được sort theo order_index từ backend, nên giữ nguyên thứ tự
+  // Course-level content cũng đã được sort theo created_at hoặc order_index
+  const sectionsWithIndex = sections.map((s: any, index: number) => ({ 
+    ...s, 
+    type: 'section' as const,
+    _originalIndex: index // Lưu thứ tự ban đầu
+  }));
+  
+  // Lưu thứ tự ban đầu của course-level content (đã được sort trong courseLevelContent)
+  const courseLevelContentWithIndex = courseLevelContent.map((item: any, index: number) => ({
+    ...item,
+    _originalIndex: sections.length + index // Lưu thứ tự ban đầu (sau tất cả sections)
+  }));
+
+  const allCurriculumItems = [
+    ...sectionsWithIndex,
+    ...courseLevelContentWithIndex
+  ].sort((a: any, b: any) => {
+    // Sắp xếp theo created_at (cũ nhất trước)
+    // Nếu không có created_at:
+    // - Với sections: dùng order_index để tạo timestamp giả
+    // - Với quizzes/assignments: dùng thứ tự ban đầu trong mảng để tạo timestamp giả
+    const getDate = (item: any): number => {
+      if (item.created_at) {
+        return new Date(item.created_at).getTime();
+      }
+      // Nếu là section và có order_index, tạo timestamp giả dựa trên order_index
+      if (item.type === 'section' && item.order_index != null) {
+        // Giả sử mỗi section cách nhau 1 giây, bắt đầu từ timestamp cũ (2020-01-01)
+        const baseTimestamp = new Date('2020-01-01').getTime();
+        return baseTimestamp + (item.order_index || 0) * 1000;
+      }
+      // Nếu không có created_at và không phải section, dùng thứ tự ban đầu từ API
+      // Tính timestamp giả dựa trên thứ tự ban đầu từ API response, bắt đầu sau sections
+      const baseTimestamp = new Date('2020-01-01').getTime();
+      const maxSectionOrderIndex = sections.length > 0 
+        ? Math.max(...sections.map((s: any) => s.order_index ?? 0)) 
+        : -1;
+      // Quizzes/assignments bắt đầu sau section cuối cùng, dùng _originalApiIndex để tính
+      // _originalApiIndex là thứ tự ban đầu từ API response (trước khi sort)
+      const originalApiIndex = item._originalApiIndex ?? (item._originalIndex - sections.length);
+      return baseTimestamp + (maxSectionOrderIndex + 1 + originalApiIndex) * 1000;
+    };
+    
+    const dateA = getDate(a);
+    const dateB = getDate(b);
+    
+    return dateA - dateB; // ASC: cũ nhất trước
+  });
+
+  // Debug log để kiểm tra thứ tự sắp xếp
+  useEffect(() => {
+    const getDate = (item: any): number => {
+      if (item.created_at) {
+        return new Date(item.created_at).getTime();
+      }
+      if (item.type === 'section' && item.order_index != null) {
+        const baseTimestamp = new Date('2020-01-01').getTime();
+        return baseTimestamp + (item.order_index || 0) * 1000;
+      }
+      // Nếu không có created_at và không phải section, dùng thứ tự ban đầu
+      const baseTimestamp = new Date('2020-01-01').getTime();
+      const maxSectionOrderIndex = sections.length > 0 
+        ? Math.max(...sections.map((s: any) => s.order_index ?? 0)) 
+        : -1;
+      return baseTimestamp + (maxSectionOrderIndex + 1 + (item._originalIndex - sections.length)) * 1000;
+    };
+
+    console.log('[CurriculumTab] ===== DEBUG: Curriculum Items Sorting =====');
+    console.log('[CurriculumTab] Total items:', allCurriculumItems.length);
+    console.log('[CurriculumTab] Sections count:', sections.length);
+    console.log('[CurriculumTab] Course-level content count:', courseLevelContent.length);
+    console.log('[CurriculumTab] Sorted items with dates:');
+    
+    allCurriculumItems.forEach((item: any, index: number) => {
+      const computedDate = getDate(item);
+      const dateFormatted = computedDate === Infinity 
+        ? 'Infinity (newest)' 
+        : new Date(computedDate).toISOString();
+      
+      console.log(`[CurriculumTab] ${index + 1}. ${item.type.toUpperCase()}:`, {
+        title: item.title || item.name || 'Untitled',
+        created_at: item.created_at || 'N/A',
+        order_index: item.order_index ?? 'N/A',
+        _originalIndex: item._originalIndex ?? 'N/A',
+        _originalApiIndex: item._originalApiIndex ?? 'N/A',
+        computedDate,
+        computedDateFormatted: dateFormatted
+      });
+    });
+    
+    console.log('[CurriculumTab] ===== END DEBUG =====');
+  }, [allCurriculumItems, sections.length, courseLevelContent.length]);
+
   const createAssignmentMutation = useCreateAssignment();
   const updateAssignmentMutation = useUpdateAssignment();
   const deleteAssignmentMutation = useDeleteAssignment();
   const deleteQuizMutation = useDeleteQuiz();
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<any | null>(null); // Assignment đang edit
   const [assignmentTitle, setAssignmentTitle] = useState('');
   const [assignmentDescription, setAssignmentDescription] = useState('');
+  const [assignmentInstructions, setAssignmentInstructions] = useState('');
   const [assignmentMaxScore, setAssignmentMaxScore] = useState(100);
   const [assignmentDueDate, setAssignmentDueDate] = useState('');
   const [assignmentAllowLate, setAssignmentAllowLate] = useState(false);
@@ -279,28 +413,100 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
       return;
     }
     try {
-      await createAssignmentMutation.mutateAsync({
-        course_id: courseId,
-        title: assignmentTitle.trim(),
-        description: assignmentDescription.trim() || undefined,
-        max_score: assignmentMaxScore,
-        submission_type: assignmentSubmissionType,
-        allow_late_submission: assignmentAllowLate,
-        due_date: assignmentDueDate ? assignmentDueDate : undefined,
-        is_published: assignmentPublish,
-      } as any);
-      toast.success('Đã tạo bài tập cấp khóa');
+      if (editingAssignment) {
+        // Update assignment
+        await updateAssignmentMutation.mutateAsync({
+          assignmentId: editingAssignment.id,
+            data: {
+              title: assignmentTitle.trim(),
+              description: assignmentDescription.trim() || undefined,
+              instructions: assignmentInstructions.trim() || undefined,
+              max_score: assignmentMaxScore || 100,
+            submission_type: assignmentSubmissionType || 'text',
+            allow_late_submission: assignmentAllowLate,
+            due_date: assignmentDueDate ? assignmentDueDate : undefined,
+            is_published: assignmentPublish,
+          },
+        });
+        toast.success('Đã cập nhật bài tập');
+      } else {
+        // Create assignment - kiểm tra xem có sectionId không
+        const isSectionLevel = !!selectedAssignmentSectionId;
+        await createAssignmentMutation.mutateAsync({
+          ...(isSectionLevel ? { section_id: selectedAssignmentSectionId } : { course_id: courseId }),
+          title: assignmentTitle.trim(),
+          description: assignmentDescription.trim() || undefined,
+          instructions: assignmentInstructions.trim() || undefined,
+          max_score: assignmentMaxScore || 100,
+          submission_type: assignmentSubmissionType || 'text', // Đảm bảo luôn có giá trị
+          allow_late_submission: assignmentAllowLate,
+          due_date: assignmentDueDate ? assignmentDueDate : undefined,
+          is_published: assignmentPublish,
+        } as any);
+        toast.success(isSectionLevel ? 'Đã tạo bài tập trong section' : 'Đã tạo bài tập cấp khóa');
+      }
+      // Reset form
       setAssignmentTitle('');
       setAssignmentDescription('');
+      setAssignmentInstructions('');
       setAssignmentMaxScore(100);
       setAssignmentDueDate('');
       setAssignmentAllowLate(false);
       setAssignmentSubmissionType('text');
       setAssignmentPublish(false);
+      setEditingAssignment(null);
       setIsAssignmentModalOpen(false);
+      setIsSectionAssignmentModalOpen(false);
+      setSelectedAssignmentSectionId(undefined);
       refetchAssignments();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Không thể tạo bài tập');
+      toast.error(error?.response?.data?.message || (editingAssignment ? 'Không thể cập nhật bài tập' : 'Không thể tạo bài tập'));
+    }
+  };
+
+  const handleEditAssignment = (assignment: any) => {
+    setEditingAssignment(assignment);
+    setAssignmentTitle(assignment.title || '');
+    setAssignmentDescription(assignment.description || '');
+    // Đảm bảo instructions được load (có thể là null, undefined, hoặc empty string)
+    setAssignmentInstructions(assignment.instructions ?? '');
+    setAssignmentMaxScore(assignment.max_score || 100);
+    setAssignmentDueDate(assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : '');
+    setAssignmentAllowLate(assignment.allow_late_submission || false);
+    setAssignmentSubmissionType(assignment.submission_type || 'text');
+    setAssignmentPublish(assignment.is_published || false);
+    
+    // Debug log để kiểm tra instructions
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[CurriculumTab] Editing assignment:', {
+        id: assignment.id,
+        title: assignment.title,
+        description: assignment.description,
+        instructions: assignment.instructions,
+        instructionsType: typeof assignment.instructions,
+        hasInstructions: assignment.instructions != null,
+        allKeys: Object.keys(assignment)
+      });
+    }
+    
+    // Phân biệt section-level và course-level (giống quiz)
+    if (assignment.section_id) {
+      setSelectedAssignmentSectionId(assignment.section_id);
+      setIsSectionAssignmentModalOpen(true);
+    } else {
+      setSelectedAssignmentSectionId(undefined);
+      setIsAssignmentModalOpen(true);
+    }
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    if (!confirm('Xóa bài tập này?')) return;
+    try {
+      await deleteAssignmentMutation.mutateAsync(assignmentId);
+      toast.success('Đã xóa bài tập');
+      refetchAssignments();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Không thể xóa bài tập');
     }
   };
 
@@ -615,29 +821,33 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
       </div>
 
       <div className="space-y-4">
-        {/* Sections */}
-        {sections.length === 0 && courseLevelContent.length === 0 ? (
+        {/* Tất cả items (Sections, Quizzes, Assignments) được sắp xếp theo thứ tự tạo */}
+        {allCurriculumItems.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
             <p className="text-gray-500 mb-4">Chưa có nội dung nào.</p>
           </div>
         ) : (
-          sections.map((section, sectionIndex) => {
-            // Debug: Log section info cho tất cả sections
-            console.log(`[CurriculumTab] Section ${sectionIndex + 1} info:`, {
-              sectionId: section.id,
-              sectionTitle: section.title,
-              sectionIdType: typeof section.id,
-              sectionIdString: String(section.id).trim(),
-              allQuizzesWithSectionId: quizzes.filter((q: any) => q.section_id).map((q: any) => ({
-                id: q.id,
-                title: q.title,
-                section_id: q.section_id,
-                section_idType: typeof q.section_id,
-                section_idString: q.section_id ? String(q.section_id).trim() : null,
-                matches: q.section_id ? String(q.section_id).trim() === String(section.id).trim() : false
-              }))
-            });
-            return (
+          allCurriculumItems.map((item: any, itemIndex: number) => {
+            // Render Section
+            if (item.type === 'section') {
+              const section = item as CourseSection & { isExpanded: boolean };
+              const sectionIndex = sections.findIndex(s => s.id === section.id);
+              // Debug: Log section info cho tất cả sections
+              console.log(`[CurriculumTab] Section ${sectionIndex + 1} info:`, {
+                sectionId: section.id,
+                sectionTitle: section.title,
+                sectionIdType: typeof section.id,
+                sectionIdString: String(section.id).trim(),
+                allQuizzesWithSectionId: quizzes.filter((q: any) => q.section_id).map((q: any) => ({
+                  id: q.id,
+                  title: q.title,
+                  section_id: q.section_id,
+                  section_idType: typeof q.section_id,
+                  section_idString: q.section_id ? String(q.section_id).trim() : null,
+                  matches: q.section_id ? String(q.section_id).trim() === String(section.id).trim() : false
+                }))
+              });
+              return (
             <div key={section.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-200">
                 <DragHandle />
@@ -703,6 +913,13 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                                   if (type === 'quiz') {
                                     setSelectedSectionId(section.id);
                                     setIsQuizModalOpen(true);
+                                    return;
+                                  }
+                                  
+                                  // Nếu là assignment, mở modal tạo assignment (giống quiz)
+                                  if (type === 'assignment') {
+                                    setSelectedAssignmentSectionId(section.id);
+                                    setIsSectionAssignmentModalOpen(true);
                                     return;
                                   }
                                   
@@ -830,7 +1047,11 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                           ))}
                   
                         {assignments
-                          .filter((a: any) => a.section_id === section.id)
+                          .filter((a: any) => {
+                            const assignmentSectionId = a.section_id ? String(a.section_id).trim() : null;
+                            const currentSectionId = section.id ? String(section.id).trim() : null;
+                            return assignmentSectionId === currentSectionId && assignmentSectionId !== null;
+                          })
                           .map((assignment: any) => (
                             <div key={`section-assignment-${assignment.id}`} className="mt-4">
                               <ContentItem
@@ -839,12 +1060,8 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                                 duration={assignment.duration_minutes}
                                 isPreview={false}
                                 isPractice={assignment.is_practice}
-                                onEdit={() => {
-                                  toast('Tính năng chỉnh sửa assignment đang được phát triển', { icon: 'ℹ️' });
-                                }}
-                                onDelete={() => {
-                                  toast('Tính năng xóa assignment đang được phát triển', { icon: 'ℹ️' });
-                                }}
+                                onEdit={() => handleEditAssignment(assignment)}
+                                onDelete={() => handleDeleteAssignment(assignment.id)}
                               />
                             </div>
                           ))}
@@ -857,6 +1074,13 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                                 if (type === 'quiz') {
                                   setSelectedSectionId(section.id);
                                   setIsQuizModalOpen(true);
+                                  return;
+                                }
+                                
+                                // Nếu là assignment, mở modal tạo assignment (giống quiz)
+                                if (type === 'assignment') {
+                                  setSelectedAssignmentSectionId(section.id);
+                                  setIsSectionAssignmentModalOpen(true);
                                   return;
                                 }
                                 
@@ -890,85 +1114,96 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
               )}
             </div>
             );
+            }
+
+            // Render Quiz (course-level)
+            if (item.type === 'quiz') {
+              return (
+                <div key={`quiz-${item.id}`} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-200">
+                    <ClipboardList className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="font-semibold text-gray-900">Quiz:</span>
+                      <span className="text-lg text-gray-900">{item.title}</span>
+                      {item.description && (
+                        <span className="text-sm text-gray-500 ml-2">- {item.description}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                        {item.is_published ? 'Published' : 'Draft'}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedQuizId(item.id);
+                          setSelectedQuizTitle(item.title);
+                          setIsManageQuizModalOpen(true);
+                        }}
+                      >
+                        Quản lý
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleDeleteCourseQuiz(item.id)}
+                      >
+                        Xóa
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Render Assignment (course-level)
+            if (item.type === 'assignment') {
+              return (
+                <div key={`assignment-${item.id}`} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-200">
+                    <FileText className="w-5 h-5 text-green-600" />
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="font-semibold text-gray-900">Assignment:</span>
+                      <span className="text-lg text-gray-900">{item.title}</span>
+                      {item.description && (
+                        <span className="text-sm text-gray-500 ml-2">- {item.description}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                        {item.is_published ? 'Published' : 'Draft'}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditAssignment(item)}
+                      >
+                        Chỉnh sửa
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleAssignmentPublish(item.id, item.is_published)}
+                      >
+                        {item.is_published ? 'Unpublish' : 'Publish'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleDeleteCourseAssignment(item.id)}
+                      >
+                        Xóa
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
           })
         )}
-
-        {/* Course-level Quizzes và Assignments - hiển thị cùng cấp với Section, sau sections, sắp xếp theo thứ tự tạo */}
-        {!isLoadingQuizzes && courseLevelContent.map((item: any) => {
-          if (item.type === 'quiz') {
-            return (
-              <div key={`quiz-${item.id}`} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-200">
-                  <ClipboardList className="w-5 h-5 text-blue-600" />
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="font-semibold text-gray-900">Quiz:</span>
-                    <span className="text-lg text-gray-900">{item.title}</span>
-                    {item.description && (
-                      <span className="text-sm text-gray-500 ml-2">- {item.description}</span>
-                    )}
-                  </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-                            {item.is_published ? 'Published' : 'Draft'}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedQuizId(item.id);
-                              setSelectedQuizTitle(item.title);
-                              setIsManageQuizModalOpen(true);
-                            }}
-                          >
-                            Quản lý
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => handleDeleteCourseQuiz(item.id)}
-                          >
-                            Xóa
-                          </Button>
-                        </div>
-                </div>
-              </div>
-            );
-          } else {
-            return (
-              <div key={`assignment-${item.id}`} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-200">
-                  <FileText className="w-5 h-5 text-green-600" />
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="font-semibold text-gray-900">Assignment:</span>
-                    <span className="text-lg text-gray-900">{item.title}</span>
-                    {item.description && (
-                      <span className="text-sm text-gray-500 ml-2">- {item.description}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-                      {item.is_published ? 'Published' : 'Draft'}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleToggleAssignmentPublish(item.id, item.is_published)}
-                    >
-                      {item.is_published ? 'Unpublish' : 'Publish'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => handleDeleteCourseAssignment(item.id)}
-                    >
-                      Xóa
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-        })}
       </div>
 
       {/* Action buttons at the bottom */}
@@ -991,7 +1226,10 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
         </Button>
         <Button
           variant="outline"
-          onClick={() => setIsAssignmentModalOpen(true)}
+          onClick={() => {
+            setSelectedAssignmentSectionId(undefined); // Đảm bảo là course-level
+            setIsAssignmentModalOpen(true);
+          }}
           className="gap-2"
         >
           <ClipboardList className="w-4 h-4" />
@@ -1086,11 +1324,30 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
         }}
       />
 
-      {/* Create Assignment (course-level) */}
+      {/* Create Assignment Modal (dùng chung cho cả course-level và section-level) */}
       <Modal
-        isOpen={isAssignmentModalOpen}
-        onClose={() => setIsAssignmentModalOpen(false)}
-        title="Tạo Assignment cấp khóa"
+        isOpen={isAssignmentModalOpen || isSectionAssignmentModalOpen}
+        onClose={() => {
+          setIsAssignmentModalOpen(false);
+          setIsSectionAssignmentModalOpen(false);
+          setEditingAssignment(null);
+          setSelectedAssignmentSectionId(undefined);
+          // Reset form khi đóng
+          setAssignmentTitle('');
+          setAssignmentDescription('');
+          setAssignmentMaxScore(100);
+          setAssignmentDueDate('');
+          setAssignmentAllowLate(false);
+          setAssignmentSubmissionType('text');
+          setAssignmentPublish(false);
+        }}
+        title={
+          editingAssignment 
+            ? "Chỉnh sửa Assignment" 
+            : selectedAssignmentSectionId
+            ? "Tạo Assignment trong Section"
+            : "Tạo Assignment cấp khóa"
+        }
         size="md"
       >
         <ModalBody>
@@ -1108,7 +1365,17 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
               <Input
                 value={assignmentDescription}
                 onChange={(e) => setAssignmentDescription(e.target.value)}
-                placeholder="Mô tả ngắn"
+                placeholder="Mô tả ngắn về assignment"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Câu hỏi/Yêu cầu</label>
+              <textarea
+                value={assignmentInstructions}
+                onChange={(e) => setAssignmentInstructions(e.target.value)}
+                placeholder="Nhập câu hỏi hoặc yêu cầu chi tiết của assignment..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[100px]"
+                rows={4}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1166,8 +1433,21 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
           <Button variant="outline" onClick={() => setIsAssignmentModalOpen(false)}>
             Hủy
           </Button>
-          <Button onClick={handleCreateCourseAssignment} className="ml-2">
-            Tạo assignment
+          <Button 
+            onClick={handleCreateCourseAssignment} 
+            className="ml-2"
+            disabled={createAssignmentMutation.isPending || updateAssignmentMutation.isPending}
+          >
+            {createAssignmentMutation.isPending || updateAssignmentMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Đang xử lý...
+              </>
+            ) : editingAssignment ? (
+              'Cập nhật'
+            ) : (
+              'Tạo assignment'
+            )}
           </Button>
         </ModalFooter>
       </Modal>

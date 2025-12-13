@@ -156,6 +156,9 @@ export interface CourseContentOverview {
   total_duration_minutes: number;
   total_materials: number;
   sections: SectionWithLessons[];
+  // Quiz và Assignment độc lập (không phải lesson)
+  course_level_quizzes?: any[]; // Quiz cấp course (course_id có, section_id null)
+  course_level_assignments?: any[]; // Assignment cấp course (course_id có, section_id null)
 }
 
 // ===== REORDER TYPES =====

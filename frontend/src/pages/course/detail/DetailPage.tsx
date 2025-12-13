@@ -215,25 +215,54 @@ export function DetailPage() {
   });
 
   // Fetch tất cả assignments (bao gồm cả course-level và section-level)
+  // Logic giống hệt với quizzes
   const { data: allAssignments } = useQuery<Assignment[]>({
     queryKey: ['all-assignments-detail', courseId],
     queryFn: async () => {
       try {
-      const res = await assignmentApi.getCourseAssignments(courseId);
-      const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
-      return list
+        console.log('[DetailPage] Fetching assignments for course:', courseId);
+        const res = await assignmentApi.getCourseAssignments(courseId);
+        console.log('[DetailPage] Assignment API response:', res);
+        
+        // Xử lý response giống quiz - có thể là array hoặc { data: [...] }
+        const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
+        console.log('[DetailPage] Parsed assignments list:', list.length, list);
+        
+        const filtered = list
           .filter((a: any) => {
-            // Chỉ lấy assignments đã published, không có lesson_id
+            // Chỉ lấy assignments đã published, không có lesson_id (giống quiz)
             const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
-            return !hasLessonId && a.is_published;
+            const isPublished = a.is_published === true;
+            const result = !hasLessonId && isPublished;
+            if (!result && a) {
+              console.log('[DetailPage] Assignment filtered out:', {
+                title: a.title,
+                hasLessonId,
+                isPublished,
+                lesson_id: a.lesson_id,
+                is_published: a.is_published
+              });
+            }
+            return result;
           })
-        .sort((a: any, b: any) => {
-          // Sắp xếp theo created_at (cũ nhất trước)
-          const dateA = new Date(a.created_at || 0).getTime();
-          const dateB = new Date(b.created_at || 0).getTime();
-          return dateA - dateB; // ASC: cũ nhất trước
-        });
+          .sort((a: any, b: any) => {
+            // Sắp xếp theo created_at (cũ nhất trước) - giống quiz
+            const dateA = new Date(a.created_at || 0).getTime();
+            const dateB = new Date(b.created_at || 0).getTime();
+            return dateA - dateB; // ASC: cũ nhất trước
+          });
+        
+        console.log('[DetailPage] Filtered assignments:', filtered.length, filtered.map((a: any) => ({
+          id: a.id,
+          title: a.title,
+          section_id: a.section_id,
+          course_id: a.course_id,
+          is_published: a.is_published
+        })));
+        
+        return filtered;
       } catch (error: any) {
+        console.error('[DetailPage] Error fetching assignments:', error);
         // Nếu lỗi permission, chỉ log và trả về mảng rỗng (không hiển thị toast)
         if (error?.response?.status === 403 || error?.response?.status === 401) {
           console.warn('[DetailPage] Permission denied when fetching assignments:', error?.response?.data?.message);
@@ -275,6 +304,20 @@ export function DetailPage() {
     const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
     const hasSectionId = a.section_id != null && a.section_id !== '';
     return !hasLessonId && hasSectionId;
+  });
+  
+  // Debug: Log để kiểm tra assignments
+  console.log('[DetailPage] Assignments debug:', {
+    allAssignmentsCount: allAssignments?.length || 0,
+    sectionLevelAssignmentsCount: sectionLevelAssignments.length,
+    sectionLevelAssignments: sectionLevelAssignments.map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      section_id: a.section_id,
+      course_id: a.course_id,
+      is_published: a.is_published
+    })),
+    curriculumSectionsIds: curriculumSections.map((s: any) => s.id)
   });
 
   // Fetch quiz attempts và assignment submissions để biết quiz/assignment nào đã hoàn thành
@@ -370,17 +413,51 @@ export function DetailPage() {
 
   // Gắn quizzes và assignments vào sections tương ứng và thêm completion status
   curriculumSections = curriculumSections.map((section: any) => {
-    const sectionQuizzes = sectionLevelQuizzes.filter((q: any) => {
-      const quizSectionId = q.section_id ? String(q.section_id).trim() : null;
-      const currentSectionId = section.id ? String(section.id).trim() : null;
-      return quizSectionId === currentSectionId && quizSectionId !== null;
-    });
+    // Nếu section đã có quizzes/assignments từ courseContent (backend), dùng chúng
+    // Nếu không, thêm từ sectionLevelQuizzes/sectionLevelAssignments (fetch riêng)
+    const sectionQuizzes = (section.quizzes && section.quizzes.length > 0) 
+      ? section.quizzes 
+      : sectionLevelQuizzes.filter((q: any) => {
+          const quizSectionId = q.section_id ? String(q.section_id).trim() : null;
+          const currentSectionId = section.id ? String(section.id).trim() : null;
+          return quizSectionId === currentSectionId && quizSectionId !== null;
+        });
 
-    const sectionAssignments = sectionLevelAssignments.filter((a: any) => {
-      const assignmentSectionId = a.section_id ? String(a.section_id).trim() : null;
+    // Ưu tiên dùng assignments từ courseContent (backend), nếu không có thì dùng từ sectionLevelAssignments (fetch riêng)
+    // Đảm bảo luôn filter và gán assignments vào sections, kể cả khi section đến từ fallback (course.sections)
+    // Logic giống hệt với quizzes
+    const sectionAssignments = (section.assignments && section.assignments.length > 0)
+      ? section.assignments
+      : sectionLevelAssignments.filter((a: any) => {
+          // Convert sang string và trim để so sánh chính xác (giống quiz)
+          const assignmentSectionId = a.section_id ? String(a.section_id).trim() : null;
+          const currentSectionId = section.id ? String(section.id).trim() : null;
+          const match = assignmentSectionId && currentSectionId && assignmentSectionId === currentSectionId;
+          if (match) {
+            console.log(`[DetailPage] Assignment "${a.title}" (section_id: ${assignmentSectionId}) matched section "${section.title}" (id: ${currentSectionId})`);
+          }
+          return match;
+        });
+    
+    // Debug log để kiểm tra
+    if (sectionAssignments.length > 0) {
+      console.log(`[DetailPage] Section "${section.title}" (${section.id}): Found ${sectionAssignments.length} assignments:`, 
+        sectionAssignments.map((a: any) => ({ title: a.title, section_id: a.section_id })));
+    } else if (sectionLevelAssignments.some((a: any) => {
+      const aSectionId = a.section_id ? String(a.section_id).trim() : null;
       const currentSectionId = section.id ? String(section.id).trim() : null;
-      return assignmentSectionId === currentSectionId && assignmentSectionId !== null;
-    });
+      return aSectionId === currentSectionId;
+    })) {
+      // Có assignments với section_id khớp nhưng filter failed
+      const matchingAssignments = sectionLevelAssignments.filter((a: any) => {
+        const aSectionId = a.section_id ? String(a.section_id).trim() : null;
+        const currentSectionId = section.id ? String(section.id).trim() : null;
+        return aSectionId === currentSectionId;
+      });
+      console.warn(`[DetailPage] Section "${section.title}" (${section.id}): Found ${matchingAssignments.length} assignments but filter failed. Assignment section_ids:`, 
+        matchingAssignments.map((a: any) => ({ title: a.title, section_id: a.section_id, section_id_type: typeof a.section_id })),
+        `Section id: ${section.id}, type: ${typeof section.id}`);
+    }
 
     // Merge completion status từ progressData vào lessons
     const sectionProgress = progressData?.sections?.find((s: any) => s.section_id === section.id);
@@ -388,43 +465,28 @@ export function DetailPage() {
       sectionProgress?.lessons?.map((l: any) => [l.lesson_id, l.is_completed]) || []
     );
 
-    // Tạo lesson items từ quizzes và assignments với completion status
-    const quizLessons = sectionQuizzes.map((quiz: any) => ({
-      id: `quiz-${quiz.id}`,
-      title: quiz.title,
-      content_type: 'quiz' as const,
-      section_id: quiz.section_id,
-      order_index: quiz.order_index || 999,
-      is_practice: quiz.is_practice,
-      is_free_preview: false,
-      duration_minutes: quiz.duration_minutes,
-      quiz_id: quiz.id,
-      is_completed: !quiz.is_practice && completedQuizIds.has(quiz.id),
-    }));
-
-    const assignmentLessons = sectionAssignments.map((assignment: any) => ({
-      id: `assignment-${assignment.id}`,
-      title: assignment.title,
-      content_type: 'assignment' as const,
-      section_id: assignment.section_id,
-      order_index: assignment.order_index || 999,
-      is_practice: assignment.is_practice,
-      is_free_preview: false,
-      duration_minutes: assignment.duration_minutes,
-      assignment_id: assignment.id,
-      is_completed: !assignment.is_practice && completedAssignmentIds.has(assignment.id),
-    }));
-
+    // Thêm quizzes và assignments vào section (riêng biệt, không merge vào lessons)
+    // CurriculumTree sẽ hiển thị chúng riêng biệt từ section.quizzes và section.assignments
     return {
       ...section,
-      lessons: [
-        ...(section.lessons || []).map((lesson: any) => ({
-          ...lesson,
-          is_completed: completedLessonMap.get(lesson.id) || completedLessonIds.has(lesson.id) || false,
-        })),
-        ...quizLessons,
-        ...assignmentLessons,
-      ].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
+      // Giữ nguyên lessons (chỉ lessons thật, không bao gồm quiz/assignment)
+      lessons: (section.lessons || []).map((lesson: any) => ({
+        ...lesson,
+        is_completed: completedLessonMap.get(lesson.id) || completedLessonIds.has(lesson.id) || false,
+      })),
+      // Thêm quizzes và assignments riêng biệt
+      quizzes: sectionQuizzes.length > 0 ? sectionQuizzes.map((quiz: any) => ({
+        ...quiz,
+        is_completed: !quiz.is_practice && completedQuizIds.has(quiz.id),
+      })) : undefined,
+      assignments: sectionAssignments.length > 0 ? sectionAssignments.map((assignment: any) => ({
+        ...assignment,
+        is_completed: !assignment.is_practice && completedAssignmentIds.has(assignment.id),
+      })) : (sectionAssignments.length === 0 && sectionLevelAssignments.some((a: any) => {
+        const aSectionId = a.section_id ? String(a.section_id).trim() : null;
+        const currentSectionId = section.id ? String(section.id).trim() : null;
+        return aSectionId === currentSectionId;
+      })) ? [] : undefined,
     };
   });
   const learningPath = courseId ? generateRoute.student.learning(courseId) : ROUTES.COURSES;
@@ -435,7 +497,26 @@ export function DetailPage() {
       console.log('[DetailPage] Course data:', course);
       console.log('[DetailPage] Course sections:', course.sections);
       console.log('[DetailPage] CourseContent sections:', courseContent?.sections);
+      console.log('[DetailPage] CourseContent course_level_assignments:', courseContent?.course_level_assignments);
+      // Log assignments trong từng section
+      courseContent?.sections?.forEach((section: any, index: number) => {
+        console.log(`[DetailPage] Section ${index} (${section.title}):`, {
+          id: section.id,
+          hasAssignments: !!section.assignments,
+          assignmentsCount: section.assignments?.length || 0,
+          assignments: section.assignments
+        });
+      });
       console.log('[DetailPage] Final curriculumSections:', curriculumSections);
+      // Log assignments trong final sections
+      curriculumSections.forEach((section: any, index: number) => {
+        console.log(`[DetailPage] Final Section ${index} (${section.title}):`, {
+          id: section.id,
+          hasAssignments: !!section.assignments,
+          assignmentsCount: section.assignments?.length || 0,
+          assignments: section.assignments
+        });
+      });
     }
   }, [course, courseContent, curriculumSections]);
 
@@ -643,6 +724,47 @@ export function DetailPage() {
     }
 
     if (canAccessContent) {
+      // Tìm bài học đầu tiên từ curriculumSections
+      const firstLesson = (() => {
+        // Sắp xếp sections theo order_index
+        const sortedSections = [...curriculumSections].sort(
+          (a, b) => (a.order_index || 0) - (b.order_index || 0)
+        );
+        
+        // Tìm bài học đầu tiên (lesson thật, không phải quiz/assignment)
+        for (const section of sortedSections) {
+          if (section.lessons && section.lessons.length > 0) {
+            // Sắp xếp lessons theo order_index
+            const sortedLessons = [...section.lessons].sort(
+              (a, b) => (a.order_index || 0) - (b.order_index || 0)
+            );
+            
+            // Tìm lesson đầu tiên (content_type là video, document, text, link - không phải quiz/assignment)
+            const firstRealLesson = sortedLessons.find(
+              (lesson: any) => 
+                lesson.content_type && 
+                ['video', 'document', 'text', 'link'].includes(lesson.content_type) &&
+                lesson.id &&
+                !lesson.id.startsWith('quiz-') &&
+                !lesson.id.startsWith('assignment-')
+            );
+            
+            if (firstRealLesson) {
+              return firstRealLesson;
+            }
+          }
+        }
+        
+        return null;
+      })();
+      
+      // Nếu có bài học đầu tiên, navigate đến nó
+      if (firstLesson && firstLesson.id) {
+        navigate(generateRoute.student.lesson(courseId, firstLesson.id));
+        return;
+      }
+      
+      // Fallback về trang learning nếu không có bài học
       navigate(learningPath);
       return;
     }
@@ -1323,6 +1445,22 @@ export function DetailPage() {
                       <CurriculumTree
                         sections={curriculumSections}
                         onLessonClick={handleLessonPreviewClick}
+                        onQuizClick={(quizId) => {
+                          if (canAccessContent) {
+                            navigate(generateRoute.student.quiz(courseId, quizId));
+                          } else {
+                            toast.error('Vui lòng đăng ký khóa học để làm bài kiểm tra');
+                          }
+                        }}
+                        onAssignmentClick={(assignmentId) => {
+                          if (canAccessContent) {
+                            navigate(generateRoute.student.assignment(courseId, assignmentId));
+                          } else {
+                            toast.error('Vui lòng đăng ký khóa học để làm bài tập');
+                          }
+                        }}
+                        courseLevelQuizzes={courseLevelQuizzes}
+                        courseLevelAssignments={courseLevelAssignments}
                         isPreviewMode={true}
                       />
                     </div>

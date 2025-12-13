@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { AssignmentController } from './assignment.controller';
 import { assignmentSchemas } from './assignment.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
-import { validate } from '../../middlewares/validate.middleware';
+import { validateBody, validateQuery, validateParams } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
 
 const router = Router();
@@ -92,7 +92,7 @@ router.get(
  * @desc    Get all assignments with pagination and filters
  * @access  Authenticated
  */
-router.get('/', controller.getAll);
+router.get('/', validateQuery(assignmentSchemas.assignmentQuery), controller.getAll);
 
 /**
  * @route   GET /api/assignments/my
@@ -109,7 +109,7 @@ router.get('/my', controller.getMyAssignments);
 router.post(
   '/',
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate([assignmentSchemas.createAssignment]),
+  validateBody(assignmentSchemas.createAssignment),
   controller.create
 );
 
@@ -118,7 +118,7 @@ router.post(
  * @desc    Get assignment by ID
  * @access  Authenticated
  */
-router.get('/:id', validate([assignmentSchemas.assignmentId]), controller.getOne);
+router.get('/:id', validateParams(assignmentSchemas.assignmentId), controller.getOne);
 
 /**
  * @route   PUT /api/assignments/:id
@@ -128,7 +128,8 @@ router.get('/:id', validate([assignmentSchemas.assignmentId]), controller.getOne
 router.put(
   '/:id',
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate([assignmentSchemas.assignmentId]),
+  validateParams(assignmentSchemas.assignmentId),
+  validateBody(assignmentSchemas.updateAssignment),
   controller.update
 );
 
@@ -140,7 +141,7 @@ router.put(
 router.delete(
   '/:id',
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
-  validate([assignmentSchemas.assignmentId]),
+  validateParams(assignmentSchemas.assignmentId),
   controller.delete
 );
 

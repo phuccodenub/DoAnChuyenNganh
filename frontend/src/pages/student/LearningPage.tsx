@@ -139,6 +139,18 @@ export function LearningPage() {
     navigate(ROUTES.STUDENT.MY_COURSES);
   };
 
+  const handleQuizClick = (quizId: string) => {
+    if (courseId) {
+      navigate(generateRoute.student.quiz(courseId, quizId));
+    }
+  };
+
+  const handleAssignmentClick = (assignmentId: string) => {
+    if (courseId) {
+      navigate(generateRoute.student.assignment(courseId, assignmentId));
+    }
+  };
+
   if (isLoadingContent) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -238,6 +250,10 @@ export function LearningPage() {
                   sections={courseContent.sections as Section[]}
                   activeLessonId={currentLessonId || null}
                   onLessonClick={handleLessonClick}
+                  onQuizClick={handleQuizClick}
+                  onAssignmentClick={handleAssignmentClick}
+                  courseLevelQuizzes={courseContent.course_level_quizzes}
+                  courseLevelAssignments={courseContent.course_level_assignments}
                 />
               )}
               {sidebarTab === 'discussion' && <DiscussionTab />}

@@ -78,6 +78,9 @@ export interface Section {
   duration_minutes?: number;
   objectives?: string[];
   lessons?: Lesson[];
+  // Quiz và Assignment độc lập trong section (không phải lesson)
+  quizzes?: any[]; // Quiz cấp section
+  assignments?: any[]; // Assignment cấp section
   created_at: string;
   updated_at: string;
 }
@@ -92,6 +95,9 @@ export interface CourseContent {
   total_duration_minutes: number;
   total_materials: number;
   sections: Section[];
+  // Quiz và Assignment độc lập (không phải lesson)
+  course_level_quizzes?: any[]; // Quiz cấp course
+  course_level_assignments?: any[]; // Assignment cấp course
   // Progress fields (added when user is enrolled)
   completed_lessons?: number;
   progress_percentage?: number;

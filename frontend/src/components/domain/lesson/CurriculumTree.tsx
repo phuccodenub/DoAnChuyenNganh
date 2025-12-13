@@ -8,6 +8,10 @@ interface CurriculumTreeProps {
   sections: Section[];
   activeLessonId?: string | null;
   onLessonClick?: (lessonId: string) => void;
+  onQuizClick?: (quizId: string) => void;
+  onAssignmentClick?: (assignmentId: string) => void;
+  courseLevelQuizzes?: any[];
+  courseLevelAssignments?: any[];
   isPreviewMode?: boolean;
 }
 
@@ -43,6 +47,10 @@ export function CurriculumTree({
   sections,
   activeLessonId,
   onLessonClick,
+  onQuizClick,
+  onAssignmentClick,
+  courseLevelQuizzes = [],
+  courseLevelAssignments = [],
   isPreviewMode = true
 }: CurriculumTreeProps) {
   // Tìm section chứa activeLessonId để mở rộng mặc định
@@ -108,7 +116,18 @@ export function CurriculumTree({
         const sectionLessons = (section.lessons || []).sort((a, b) => 
           (a.order_index || 0) - (b.order_index || 0)
         );
-        const lessonCount = sectionLessons.length;
+        const sectionQuizzes = (section.quizzes || []).sort((a: any, b: any) => 
+          new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        );
+        const sectionAssignments = (section.assignments || []).sort((a: any, b: any) => 
+          new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        );
+        const lessonCount = sectionLessons.length + sectionQuizzes.length + sectionAssignments.length;
+
+        // Debug log
+        if (sectionAssignments.length > 0) {
+          console.log(`[CurriculumTree] Section "${section.title}" has ${sectionAssignments.length} assignments:`, sectionAssignments);
+        }
 
         return (
           <div key={section.id}>
@@ -140,8 +159,9 @@ export function CurriculumTree({
             </button>
 
             {/* Lesson Items - Accordion Content */}
-            {isExpanded && sectionLessons.length > 0 && (
+            {isExpanded && (sectionLessons.length > 0 || sectionQuizzes.length > 0 || sectionAssignments.length > 0) && (
               <div className="bg-gray-50/50 border-t border-gray-100">
+                {/* Lessons */}
                 {sectionLessons.map((lesson) => {
                   const isActive = lesson.id === activeLessonId;
 
@@ -196,11 +216,128 @@ export function CurriculumTree({
                     </button>
                   );
                 })}
+                
+                {/* Section-level Quizzes */}
+                {sectionQuizzes.map((quiz: any) => (
+                  <button
+                    key={`quiz-${quiz.id}`}
+                    onClick={() => onQuizClick?.(quiz.id)}
+                    disabled={!onQuizClick}
+                    className={cn(
+                      "w-full px-5 py-3 flex items-center gap-3 text-left transition-colors",
+                      "hover:bg-gray-100 border-b border-gray-100 last:border-b-0",
+                      !onQuizClick && "cursor-default"
+                    )}
+                  >
+                    <ClipboardList className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-sm flex-1 text-gray-700">
+                      Quiz: {quiz.title}
+                    </span>
+                    {quiz.is_practice !== undefined && (
+                      <Badge 
+                        variant={quiz.is_practice ? "warning" : "success"} 
+                        size="sm"
+                        className="mr-1"
+                      >
+                        {quiz.is_practice ? 'Luyện tập' : 'Tính điểm'}
+                      </Badge>
+                    )}
+                  </button>
+                ))}
+                
+                {/* Section-level Assignments */}
+                {sectionAssignments.map((assignment: any) => (
+                  <button
+                    key={`assignment-${assignment.id}`}
+                    onClick={() => onAssignmentClick?.(assignment.id)}
+                    disabled={!onAssignmentClick}
+                    className={cn(
+                      "w-full px-5 py-3 flex items-center gap-3 text-left transition-colors",
+                      "hover:bg-gray-100 border-b border-gray-100 last:border-b-0",
+                      !onAssignmentClick && "cursor-default"
+                    )}
+                  >
+                    <ClipboardList className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <span className="text-sm flex-1 text-gray-700">
+                      Assignment: {assignment.title}
+                    </span>
+                    {assignment.is_practice !== undefined && (
+                      <Badge 
+                        variant={assignment.is_practice ? "warning" : "success"} 
+                        size="sm"
+                        className="mr-1"
+                      >
+                        {assignment.is_practice ? 'Luyện tập' : 'Tính điểm'}
+                      </Badge>
+                    )}
+                  </button>
+                ))}
               </div>
             )}
           </div>
         );
       })}
+      
+      {/* Course-level Quizzes và Assignments - hiển thị sau tất cả sections */}
+      {(courseLevelQuizzes.length > 0 || courseLevelAssignments.length > 0) && (
+        <div className="bg-gray-50/50 border-t border-gray-200">
+          {/* Course-level Quizzes */}
+          {courseLevelQuizzes.map((quiz: any) => (
+            <button
+              key={`course-quiz-${quiz.id}`}
+              onClick={() => onQuizClick?.(quiz.id)}
+              disabled={!onQuizClick}
+              className={cn(
+                "w-full px-5 py-3 flex items-center gap-3 text-left transition-colors",
+                "hover:bg-gray-100 border-b border-gray-100 last:border-b-0",
+                !onQuizClick && "cursor-default"
+              )}
+            >
+              <ClipboardList className="w-4 h-4 text-gray-500 flex-shrink-0" />
+              <span className="text-sm flex-1 text-gray-700">
+                Quiz: {quiz.title}
+              </span>
+              {quiz.is_practice !== undefined && (
+                <Badge 
+                  variant={quiz.is_practice ? "warning" : "success"} 
+                  size="sm"
+                  className="mr-1"
+                >
+                  {quiz.is_practice ? 'Luyện tập' : 'Tính điểm'}
+                </Badge>
+              )}
+            </button>
+          ))}
+          
+          {/* Course-level Assignments */}
+          {courseLevelAssignments.map((assignment: any) => (
+            <button
+              key={`course-assignment-${assignment.id}`}
+              onClick={() => onAssignmentClick?.(assignment.id)}
+              disabled={!onAssignmentClick}
+              className={cn(
+                "w-full px-5 py-3 flex items-center gap-3 text-left transition-colors",
+                "hover:bg-gray-100 border-b border-gray-100 last:border-b-0",
+                !onAssignmentClick && "cursor-default"
+              )}
+            >
+              <ClipboardList className="w-4 h-4 text-green-600 flex-shrink-0" />
+              <span className="text-sm flex-1 text-gray-700">
+                Assignment: {assignment.title}
+              </span>
+              {assignment.is_practice !== undefined && (
+                <Badge 
+                  variant={assignment.is_practice ? "warning" : "success"} 
+                  size="sm"
+                  className="mr-1"
+                >
+                  {assignment.is_practice ? 'Luyện tập' : 'Tính điểm'}
+                </Badge>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

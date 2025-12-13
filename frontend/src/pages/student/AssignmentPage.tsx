@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Upload, FileText, X, CheckCircle, AlertCircle, Award } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -165,7 +165,7 @@ export function AssignmentPage() {
   const timeRemaining = getTimeRemaining();
   const isOverdue = timeRemaining === 'Đã hết hạn';
   const isNearDeadline = timeRemaining && timeRemaining.includes('giờ');
-  const alreadySubmitted = submission?.status === 'submitted';
+  const alreadySubmitted = submission?.status === 'submitted' || submission?.status === 'graded';
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -246,7 +246,7 @@ export function AssignmentPage() {
       {/* Submission Status */}
       {alreadySubmitted && (
         <Card>
-          <CardContent className="py-4">
+          <CardContent className="py-4 space-y-4">
             <div className="flex items-center gap-3">
               <CheckCircle className="w-6 h-6 text-green-600" />
               <div>
@@ -254,13 +254,63 @@ export function AssignmentPage() {
                 <p className="text-sm text-gray-600">
                   Nộp lúc: {new Date(submission.submitted_at).toLocaleString('vi-VN')}
                 </p>
-                {submission.score !== null && (
-                  <p className="text-sm text-gray-600">
+                {submission.status === 'graded' && submission.score !== null && (
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
                     Điểm: {submission.score}/{assignment.max_score}
+                  </p>
+                )}
+                {submission.status === 'submitted' && (
+                  <p className="text-sm text-yellow-600 mt-1">
+                    Đang chờ giáo viên chấm bài...
                   </p>
                 )}
               </div>
             </div>
+
+            {/* Grading Results - Hiển thị khi đã được chấm */}
+            {submission.status === 'graded' && (
+              <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-blue-600" />
+                  <h4 className="font-semibold text-gray-900">Kết quả chấm bài</h4>
+                </div>
+                
+                {submission.score !== null && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-blue-900">
+                        {submission.score}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        / {assignment.max_score} điểm
+                      </span>
+                    </div>
+                    {submission.graded_at && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Chấm lúc: {new Date(submission.graded_at).toLocaleString('vi-VN')}
+                      </p>
+                    )}
+                    {submission.graded_by && (
+                      <p className="text-xs text-gray-500">
+                        Người chấm: {submission.graded_by.full_name}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {submission.feedback && (
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h5 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Nhận xét từ giáo viên:
+                    </h5>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {submission.feedback}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

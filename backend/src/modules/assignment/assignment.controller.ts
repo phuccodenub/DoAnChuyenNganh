@@ -132,7 +132,21 @@ export class AssignmentController {
       const userRole = (req as any).user?.role as string;
       
       // Instructors and admins can see unpublished assignments
-      const includeUnpublished = ['instructor', 'admin', 'super_admin'].includes(userRole);
+      // Nhưng chỉ nếu họ là instructor của course này
+      // Nếu không phải instructor của course, chỉ cho xem published (giống quiz)
+      const isInstructorOrAdmin = ['instructor', 'admin', 'super_admin'].includes(userRole);
+      
+      // Kiểm tra xem user có phải instructor của course không
+      let includeUnpublished = false;
+      if (isInstructorOrAdmin && userId) {
+        const isInstructor = await this.assignmentService.isCourseInstructor(courseId, userId);
+        if (isInstructor) {
+          includeUnpublished = true;
+        } else {
+          // Nếu không phải instructor của course, chỉ xem published (giống quiz)
+          logger.info(`User ${userId} (role: ${userRole}) is not instructor of course ${courseId}, showing only published assignments`);
+        }
+      }
       
       const assignments = await this.assignmentService.getCourseAssignments(courseId, userId, includeUnpublished);
 

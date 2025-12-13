@@ -23,6 +23,7 @@ import { gradePaths } from './paths/grade.paths';
 import { liveSessionPaths } from './paths/live-session.paths';
 import { notificationPaths } from './paths/notification.paths';
 import { chatPaths } from './paths/chat.paths';
+import { courseContentPaths } from './paths/course-content.paths';
 
 import env from '../config/env.config';
 
@@ -122,6 +123,10 @@ export const swaggerSpec = {
       description: 'Course section management endpoints'
     },
     {
+      name: 'Course Content',
+      description: 'Course content overview endpoints (mục lục khóa học)'
+    },
+    {
       name: 'Assignments',
       description: 'Assignment management endpoints'
     },
@@ -167,6 +172,7 @@ export const swaggerSpec = {
     ...liveSessionPaths,
     ...notificationPaths,
     ...chatPaths,
+    ...courseContentPaths,
     '/ping': {
       get: {
         summary: 'Ping',

@@ -29,6 +29,11 @@ const Assignment = sequelize.define('Assignment', {
     allowNull: false
   },
   description: DataTypes.TEXT,
+  instructions: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Câu hỏi/yêu cầu chi tiết của assignment (khác với description - mô tả tổng quan)'
+  },
   max_score: {
     type: DataTypes.DECIMAL(5, 2),
     defaultValue: 100.0

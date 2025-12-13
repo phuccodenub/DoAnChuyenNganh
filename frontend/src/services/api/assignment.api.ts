@@ -65,10 +65,11 @@ export const assignmentApi = {
    * Get assignment by ID
    */
   getAssignment: async (assignmentId: string): Promise<Assignment> => {
-    const response = await apiClient.get<Assignment>(
+    const response = await apiClient.get<{ success: boolean; message: string; data: Assignment }>(
       `/assignments/${assignmentId}`
     );
-    return response.data;
+    // Backend trả về: { success, message, data: Assignment }
+    return response.data?.data || response.data as any;
   },
 
   /**
@@ -91,11 +92,13 @@ export const assignmentApi = {
       file_urls?: string[];
     }
   ): Promise<Submission> => {
-    const response = await apiClient.post<Submission>(
-      `/assignments/${assignmentId}/submit`,
+    // Backend route: POST /assignments/:assignmentId/submissions
+    const response = await apiClient.post<{ success: boolean; message: string; data: Submission }>(
+      `/assignments/${assignmentId}/submissions`,
       payload
     );
-    return response.data;
+    // Backend trả về: { success, message, data: Submission }
+    return response.data?.data || response.data as any;
   },
 
   /**
@@ -122,10 +125,30 @@ export const assignmentApi = {
    */
   getSubmission: async (assignmentId: string): Promise<Submission | null> => {
     try {
-      const response = await apiClient.get<Submission>(
-        `/assignments/${assignmentId}/submission`
+      // Route giống quiz: quiz dùng /current-attempt, assignment dùng /submissions/my
+      const response = await apiClient.get<{ success: boolean; message: string; data: any }>(
+        `/assignments/${assignmentId}/submissions/my`
       );
-      return response.data;
+      // Backend trả về: { success, message, data: Submission }
+      const submission = response.data?.data || response.data as any;
+      if (!submission) return null;
+
+      // Transform grader to graded_by với full_name
+      if (submission.grader) {
+        submission.graded_by = {
+          id: submission.grader.id,
+          full_name: `${submission.grader.first_name || ''} ${submission.grader.last_name || ''}`.trim() || 'Giáo viên'
+        };
+      }
+
+      // Transform file_url thành file_urls array nếu cần
+      if (submission.file_url && !submission.file_urls) {
+        submission.file_urls = [submission.file_url];
+      } else if (!submission.file_urls) {
+        submission.file_urls = [];
+      }
+
+      return submission as Submission;
     } catch (error) {
       return null;
     }

@@ -56,10 +56,11 @@ export class AssignmentService {
       // Verify user is instructor of the course
       await this.verifyInstructorAccess(dto.course_id, userId, dto.section_id);
       
-      // Convert DTO to model attributes (handle null → undefined, enforce XOR)
+      // Convert DTO to model attributes - XOR logic giống quiz
+      // Nếu có section_id thì course_id = null, ngược lại
       const createData = {
         ...dto,
-        course_id: dto.section_id ? null : (dto.course_id || null),
+        course_id: dto.section_id ? null : (dto.course_id ?? null),
         section_id: dto.section_id ?? null,
         due_date: dto.due_date === null ? undefined : (dto.due_date ? new Date(dto.due_date) : undefined)
       } as any;
@@ -80,10 +81,17 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      // Check if assignment is published or user is instructor
-      if (!assignment.is_published && userId) {
+      // Giống quiz: Nếu assignment đã published, cho phép mọi người xem
+      // Chỉ verify instructor access nếu assignment chưa published VÀ có userId
+      if (!assignment.is_published) {
+        // Nếu assignment chưa published, chỉ instructor mới được xem
+        if (!userId) {
+          throw new ApiError('Assignment is not published', 403);
+        }
+        // Verify instructor access
         await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.section_id);
       }
+      // Nếu assignment đã published, cho phép mọi người xem (không cần verify)
 
       return assignment;
     } catch (error: unknown) {
@@ -99,19 +107,22 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.lesson_id);
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.section_id);
 
-      // Convert DTO to model attributes (handle null → undefined)
+      // Convert DTO to model attributes - XOR logic giống quiz
       const updateData: any = {
         ...data,
         due_date: data.due_date === null ? undefined : (data.due_date ? new Date(data.due_date) : undefined)
       };
 
+      // Xử lý course_id và section_id - XOR logic
       if (data.course_id !== undefined || data.section_id !== undefined) {
         if (data.section_id) {
+          // Có section_id → course_id = null
           updateData.section_id = data.section_id;
           updateData.course_id = null;
         } else {
+          // Có course_id hoặc section_id = null → chỉ có course_id
           updateData.course_id = data.course_id ?? null;
           updateData.section_id = null;
         }
@@ -133,7 +144,7 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.lesson_id);
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.section_id);
 
       await this.repo.deleteAssignment(assignmentId);
       logger.info(`Assignment deleted: ${assignmentId} by user ${userId}`);
@@ -146,10 +157,14 @@ export class AssignmentService {
 
   async getCourseAssignments(courseId: string, userId?: string, includeUnpublished: boolean = false) {
     try {
+      // Chỉ verify instructor access nếu thực sự muốn include unpublished
+      // Nếu chỉ xem published assignments, không cần verify (giống quiz)
       if (includeUnpublished && userId) {
         await this.verifyInstructorAccess(courseId, userId);
       }
 
+      // Luôn cho phép fetch published assignments (không cần verify)
+      // Repository sẽ tự filter theo includeUnpublished
       return await this.repo.getCourseAssignments(courseId, includeUnpublished);
     } catch (error: unknown) {
       logger.error(`Error getting course assignments: ${error}`);
@@ -186,8 +201,29 @@ export class AssignmentService {
         throw new ApiError('Assignment already submitted', 400);
       }
 
-      // Verify enrollment
-      await this.verifyEnrollment(assignment.course_id, userId);
+      // Resolve course_id từ section_id nếu course_id là null (XOR logic)
+      const resolvedCourseId = assignment.course_id ?? await this.resolveCourseIdFromSection((assignment as any)?.section_id);
+      if (!resolvedCourseId) {
+        throw new ApiError('Course context not found for assignment', 400);
+      }
+
+      // Verify enrollment - nhưng cho phép instructor submit (giống quiz)
+      // Instructor có thể submit để test/preview assignment
+      try {
+        await this.verifyEnrollment(resolvedCourseId, userId);
+        logger.info(`User ${userId} is enrolled in course ${resolvedCourseId}, allowing submission`);
+      } catch (enrollmentError) {
+        // Nếu không enrolled, kiểm tra xem có phải instructor của course không
+        logger.info(`User ${userId} is not enrolled, checking if instructor of course ${resolvedCourseId}`);
+        const isInstructor = await this.isCourseInstructor(resolvedCourseId, userId);
+        if (!isInstructor) {
+          // Nếu không phải instructor, throw lỗi enrollment
+          logger.warn(`User ${userId} is not enrolled and not instructor of course ${resolvedCourseId}, denying submission`);
+          throw enrollmentError;
+        }
+        // Nếu là instructor, cho phép submit (bỏ qua enrollment check)
+        logger.info(`Instructor ${userId} submitting assignment ${assignmentId} without enrollment (preview/test mode)`);
+      }
 
       const submission = await this.repo.submit(assignmentId, userId, dto);
       logger.info(`Assignment submitted: ${assignmentId} by user ${userId}`);
@@ -241,7 +277,7 @@ export class AssignmentService {
       // Check if user owns the submission or is instructor
       if (submission.user_id !== userId) {
         const assignment = await this.repo.getAssignmentById(submission.assignment_id);
-        await this.verifyInstructorAccess(assignment!.course_id, userId, (assignment as any)?.lesson_id);
+        await this.verifyInstructorAccess(assignment!.course_id, userId, (assignment as any)?.section_id);
       }
 
       return submission;
@@ -263,7 +299,7 @@ export class AssignmentService {
       }
 
       const assignment = await this.repo.getAssignmentById(submission.assignment_id);
-      await this.verifyInstructorAccess(assignment!.course_id, graderId, (assignment as any)?.lesson_id);
+      await this.verifyInstructorAccess(assignment!.course_id, graderId, (assignment as any)?.section_id);
 
       // Validate score
       if (data.score !== undefined) {
@@ -288,7 +324,7 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.lesson_id);
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.section_id);
 
       return await this.repo.getAssignmentSubmissions(assignmentId, page, limit);
     } catch (error: unknown) {
@@ -304,7 +340,7 @@ export class AssignmentService {
         throw new ApiError('Assignment not found', 404);
       }
 
-      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.lesson_id);
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.section_id);
 
       return await this.repo.getAssignmentStatistics(assignmentId);
     } catch (error: unknown) {
@@ -382,6 +418,18 @@ export class AssignmentService {
     }
 
     return course;
+  }
+
+  /**
+   * Check if user is instructor of a course (public method for controller)
+   */
+  async isCourseInstructor(courseId: string, userId: string): Promise<boolean> {
+    try {
+      await this.verifyInstructorAccess(courseId, userId);
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   private async verifyEnrollment(courseId: string, userId: string) {

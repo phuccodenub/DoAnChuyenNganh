@@ -44,6 +44,7 @@ import { up as renameMaxPointsToMaxScore, down as revertMaxPointsRename } from '
 import { up as extendUserActivityLogsForAdmin, down as revertExtendUserActivityLogsForAdmin } from './038-extend-user-activity-logs-for-admin';
 import { up as createSystemSettingsTable, down as dropSystemSettingsTable } from './039-create-system-settings-table';
 import { up as repairUserActivityLogsAdminColumns, down as revertRepairUserActivityLogsAdminColumns } from './040-repair-user-activity-logs-admin-columns';
+import { up as addInstructionsToAssignments, down as removeInstructionsFromAssignments } from './041-add-instructions-to-assignments';
 
 // Migration interface
 export interface Migration {
@@ -313,6 +314,12 @@ export const migrations: Migration[] = [
     description: 'Repair user_activity_logs admin columns/indexes if missing',
     up: repairUserActivityLogsAdminColumns,
     down: revertRepairUserActivityLogsAdminColumns
+  },
+  {
+    version: '041',
+    description: 'Add instructions column to assignments table',
+    up: addInstructionsToAssignments,
+    down: removeInstructionsFromAssignments
   }
 ];
 
