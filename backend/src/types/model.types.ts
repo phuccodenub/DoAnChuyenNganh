@@ -763,13 +763,25 @@ export interface LiveSessionAttendanceInstance extends Model, LiveSessionAttenda
 
 export interface UserActivityLogAttributes {
   id: string;
-  user_id: string;
-  action: string;
-  resource_type?: string;
-  resource_id?: string;
-  details?: Record<string, any>;
-  ip_address?: string;
-  user_agent?: string;
+  user_id: string | null;
+
+  // Legacy
+  activity_type: string;
+  activity_description?: string | null;
+
+  // Structured (admin)
+  action?: string | null;
+  resource_type?: string | null;
+  resource_id?: string | null;
+  old_values?: Record<string, unknown> | null;
+  new_values?: Record<string, unknown> | null;
+  status?: 'success' | 'failed' | string | null;
+  error_message?: string | null;
+
+  // Request info
+  ip_address?: string | null;
+  user_agent?: string | null;
+  metadata?: Record<string, unknown> | null;
   created_at: Date;
   updated_at: Date;
 }

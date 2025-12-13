@@ -8,6 +8,7 @@
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "build": "tsc",
     "build:watch": "tsc --watch",
+    "type-check": "tsc --noEmit",
     "clean": "rimraf dist",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --watch",

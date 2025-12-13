@@ -32,6 +32,7 @@ export { default as DirectMessage } from './direct-message.model';
 export { default as Certificate } from './certificate.model';
 export { default as CourseChatReadStatus } from './course-chat-read-status.model';
 export { default as CoursePrerequisite } from './course-prerequisite.model';
+export { default as SystemSetting } from './system-setting.model';
 
 // Import models for associations
 import User from './user.model';

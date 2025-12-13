@@ -41,6 +41,9 @@ import { up as redesignConversationsForAdmin, down as revertConversationsDesign 
 import { up as createCoursePrerequisitesTable, down as dropCoursePrerequisitesTable } from './035-create-course-prerequisites-table';
 import { up as createCourseChatReadStatus, down as dropCourseChatReadStatus } from './036-create-course-chat-read-status';
 import { up as renameMaxPointsToMaxScore, down as revertMaxPointsRename } from './037-rename-max-points-to-max-score';
+import { up as extendUserActivityLogsForAdmin, down as revertExtendUserActivityLogsForAdmin } from './038-extend-user-activity-logs-for-admin';
+import { up as createSystemSettingsTable, down as dropSystemSettingsTable } from './039-create-system-settings-table';
+import { up as repairUserActivityLogsAdminColumns, down as revertRepairUserActivityLogsAdminColumns } from './040-repair-user-activity-logs-admin-columns';
 
 // Migration interface
 export interface Migration {
@@ -292,6 +295,24 @@ export const migrations: Migration[] = [
     description: 'Rename max_points to max_score in assignments table',
     up: renameMaxPointsToMaxScore,
     down: revertMaxPointsRename
+  },
+  {
+    version: '038',
+    description: 'Extend user_activity_logs for admin audit log features',
+    up: extendUserActivityLogsForAdmin,
+    down: revertExtendUserActivityLogsForAdmin
+  },
+  {
+    version: '039',
+    description: 'Create system_settings singleton table for admin configuration',
+    up: createSystemSettingsTable,
+    down: dropSystemSettingsTable
+  },
+  {
+    version: '040',
+    description: 'Repair user_activity_logs admin columns/indexes if missing',
+    up: repairUserActivityLogsAdminColumns,
+    down: revertRepairUserActivityLogsAdminColumns
   }
 ];
 

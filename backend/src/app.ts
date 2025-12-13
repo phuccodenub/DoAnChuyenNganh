@@ -13,6 +13,7 @@ import { specs, swaggerUi } from './config/swagger.config';
 
 // Import middlewares
 import { requestIdMiddleware, loggerMiddleware } from '@middlewares/logger.middleware';
+import { auditLogMiddleware } from '@middlewares/audit-log.middleware';
 import { errorHandler, notFoundHandler } from '@middlewares/error.middleware';
 import logger from '@utils/logger.util';
 
@@ -175,6 +176,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 
 // API routes with versioning
 app.use('/api', apiRoutes);
+
+// Audit log middleware (records write operations after auth)
+// Must be placed after API routes to capture response status
+app.use(auditLogMiddleware);
 
 // Temporary: dump key API routes at startup to verify registration order
 try {
