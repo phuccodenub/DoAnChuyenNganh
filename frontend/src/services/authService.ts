@@ -120,7 +120,7 @@ export const authService = {
    */
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
     const response = await httpClient.post<AuthResponse>('/auth/refresh', {
-      refresh_token: refreshToken
+      refreshToken: refreshToken
     })
     return response.data
   },

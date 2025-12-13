@@ -8,6 +8,13 @@ export TS_NODE_PROJECT=/app/tsconfig.json
 # Ensure expected working directory
 cd /app
 
+# Always install dependencies first (critical for Docker volume mounts)
+echo "📦 Verifying dependencies..."
+if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/ts-node-dev" ]; then
+  echo "Installing dependencies..."
+  npm install || npm ci || true
+fi
+
 # If DATABASE_URL points to an external DB (e.g., Supabase), do not run local-postgres
 # bootstrap logic. Instead, ensure migrations are applied and start the server.
 if [ -n "${DATABASE_URL:-}" ]; then

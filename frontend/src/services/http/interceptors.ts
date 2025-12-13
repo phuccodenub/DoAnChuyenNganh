@@ -158,7 +158,7 @@ export const setupInterceptors = () => {
         try {
           // Call refresh token API
           const response = await httpClient.post('/auth/refresh', {
-            refresh_token: refreshToken,
+            refreshToken: refreshToken,
           });
 
           if (response.data.success) {
