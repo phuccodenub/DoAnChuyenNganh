@@ -605,6 +605,17 @@ export function InstructorDetailPage() {
             <div>
                 {activeTab === 'overview' && (
                     <OverviewTab
+                        courseId={courseId}
+                        courseData={courseResponse?.data ? {
+                            title: courseResponse.data.title || '',
+                            description: courseResponse.data.description,
+                            content: '',
+                            lessons: sections.flatMap(s => s.lessons),
+                            enrollmentStats: {
+                                total: statsResponse?.data?.total_students || 0,
+                                active: statsResponse?.data?.active_students || 0,
+                            },
+                        } : undefined}
                         stats={stats}
                         students={students}
                         onTabChange={setActiveTab}
@@ -637,6 +648,7 @@ export function InstructorDetailPage() {
                             courseTitle={course?.title || ''}
                             courseId={courseId || '1'}
                             assignmentId={selectedAssignment.id}
+                            assignmentInstructions={selectedAssignment.description || selectedAssignment.title}
                             onBack={() => setSelectedAssignment(null)}
                         />
                     ) : (

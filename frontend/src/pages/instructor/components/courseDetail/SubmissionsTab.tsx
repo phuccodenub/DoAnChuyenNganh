@@ -24,6 +24,8 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Moda
 import { Submission, AssignmentStats } from './types';
 import { ROUTES } from '@/constants/routes';
 import { useGradeSubmission } from '@/hooks/useAssignments';
+import { AiFeedbackGenerator } from '@/components/instructor';
+import toast from 'react-hot-toast';
 
 /**
  * SubmissionsTab Component
@@ -48,6 +50,8 @@ interface SubmissionsTabProps {
     courseTitle: string;
     courseId: string;
     assignmentId: string;
+    assignmentInstructions?: string; // Instructions for the assignment
+    assignmentQuestions?: any[]; // For auto-grading
     onBack: () => void; // Callback để quay lại danh sách assignments
 }
 
@@ -629,6 +633,54 @@ export function SubmissionsTab({
                                     </div>
                                 </div>
                             )}
+
+                            {/* AI Feedback Generator */}
+                            <AiFeedbackGenerator
+                                assignmentId={assignmentId}
+                                submissionId={selectedSubmission.id}
+                                submissionContent={selectedSubmission.submission_text || selectedSubmission.file_urls?.join('\n') || ''}
+                                assignmentInstructions={assignmentInstructions || assignmentTitle}
+                                maxScore={selectedSubmission.max_score}
+                                assignmentQuestions={assignmentQuestions}
+                                submissionAnswers={{}}
+                                onFeedbackGenerated={(feedback) => {
+                                    if (feedback.feedback?.score !== undefined) {
+                                        setGradingScore(feedback.feedback.score);
+                                    }
+                                    if (feedback.feedback?.feedback) {
+                                        setGradingFeedback(feedback.feedback.feedback);
+                                    }
+                                    toast.success('Đã tạo feedback từ AI');
+                                }}
+                                onAutoGraded={(grade) => {
+                                    setGradingScore(grade.score);
+                                    toast.success('Đã chấm điểm tự động');
+                                }}
+                            />
+
+                            {/* AI Feedback Generator */}
+                            <AiFeedbackGenerator
+                                assignmentId={assignmentId}
+                                submissionId={selectedSubmission.id}
+                                submissionContent={selectedSubmission.submission_text || selectedSubmission.file_urls?.join('\n') || ''}
+                                assignmentInstructions={assignmentInstructions || assignmentTitle}
+                                maxScore={selectedSubmission.max_score}
+                                assignmentQuestions={assignmentQuestions}
+                                submissionAnswers={{}}
+                                onFeedbackGenerated={(feedback) => {
+                                    if (feedback.feedback?.score !== undefined) {
+                                        setGradingScore(feedback.feedback.score);
+                                    }
+                                    if (feedback.feedback?.feedback) {
+                                        setGradingFeedback(feedback.feedback.feedback);
+                                    }
+                                    toast.success('Đã tạo feedback từ AI');
+                                }}
+                                onAutoGraded={(grade) => {
+                                    setGradingScore(grade.score);
+                                    toast.success('Đã chấm điểm tự động');
+                                }}
+                            />
 
                             {/* Form chấm điểm */}
                             <div className="space-y-4">

@@ -173,7 +173,11 @@ function AppRoutes() {
             />
             <Route
               path={ROUTES.COURSE_CREATE}
-              element={<CourseEditorPage />}
+              element={
+                <MainLayout>
+                  <CourseEditorPage />
+                </MainLayout>
+              }
             />
             <Route
               path={ROUTES.COURSE_CURRICULUM}

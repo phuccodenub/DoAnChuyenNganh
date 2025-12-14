@@ -23,6 +23,7 @@ import {
     RecentSubmission,
     AcademicAlert
 } from './types';
+import { AiCourseImprovements, AiStudentAnalyzer } from '@/components/instructor';
 
 /**
  * OverviewTab Component
@@ -40,11 +41,22 @@ import {
 export function OverviewTab({
     stats,
     students,
-    onTabChange
+    onTabChange,
+    courseId,
+    courseData,
 }: {
     stats: CourseStats;
     students: Student[];
     onTabChange: (tab: TabType) => void;
+    courseId?: string;
+    courseData?: {
+        title: string;
+        description?: string;
+        content?: string;
+        lessons?: any[];
+        studentFeedback?: any[];
+        enrollmentStats?: any;
+    };
 }): JSX.Element {
     // ================== MOCK DATA FOR CHARTS & LISTS ==================
     // TODO: Replace with real API data
@@ -513,6 +525,27 @@ export function OverviewTab({
                     </CardContent>
                 </Card>
             </div>
+
+            {/* AI Features Section */}
+            {courseId && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                    {/* AI Course Improvements */}
+                    {courseData && (
+                        <AiCourseImprovements
+                            courseId={courseId}
+                            courseData={courseData}
+                        />
+                    )}
+
+                    {/* AI Student Analyzer */}
+                    {stats.total_students > 0 && (
+                        <AiStudentAnalyzer
+                            courseId={courseId}
+                            studentIds={students.map(s => s.id)}
+                        />
+                    )}
+                </div>
+            )}
 
             {/* Empty State for New Courses */}
             {stats.total_students === 0 && (

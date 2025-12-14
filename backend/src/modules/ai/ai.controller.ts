@@ -10,6 +10,13 @@ import {
   GenerateQuizRequest,
   ContentRecommendationRequest,
   LearningAnalyticsRequest,
+  GenerateCourseOutlineRequest,
+  SuggestCourseImprovementsRequest,
+  AnalyzeStudentsRequest,
+  GenerateFeedbackRequest,
+  AutoGradeRequest,
+  GenerateThumbnailRequest,
+  GenerateLessonContentRequest,
 } from './ai.types';
 import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
@@ -194,6 +201,194 @@ export class AIController {
       );
     } catch (error) {
       logger.error('[AIController] Get status error:', error);
+      next(error);
+    }
+  };
+
+  // ==================== INSTRUCTOR AI FEATURES ====================
+
+  /**
+   * Generate course outline
+   * POST /ai/instructor/generate-outline
+   */
+  generateCourseOutline = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { topic, description, duration, level, numberOfSections } = req.body;
+
+      if (!topic) {
+        return responseUtils.sendValidationError(res, 'topic is required');
+      }
+
+      const request: GenerateCourseOutlineRequest = {
+        topic,
+        description,
+        duration,
+        level,
+        numberOfSections,
+      };
+
+      const response = await this.aiService.generateCourseOutline(request);
+      return responseUtils.success(res, response, 'Course outline generated successfully');
+    } catch (error) {
+      logger.error('[AIController] Generate course outline error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Suggest course improvements
+   * POST /ai/instructor/suggest-improvements
+   */
+  suggestCourseImprovements = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseId, courseData } = req.body;
+
+      if (!courseId || !courseData) {
+        return responseUtils.sendValidationError(res, 'courseId and courseData are required');
+      }
+
+      const request: SuggestCourseImprovementsRequest = {
+        courseId,
+        courseData,
+      };
+
+      const response = await this.aiService.suggestCourseImprovements(request);
+      return responseUtils.success(res, response, 'Course improvements suggested successfully');
+    } catch (error) {
+      logger.error('[AIController] Suggest improvements error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Analyze student performance
+   * POST /ai/instructor/analyze-students
+   */
+  analyzeStudents = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseId, studentIds } = req.body;
+
+      if (!courseId) {
+        return responseUtils.sendValidationError(res, 'courseId is required');
+      }
+
+      const request: AnalyzeStudentsRequest = {
+        courseId,
+        studentIds,
+      };
+
+      const response = await this.aiService.analyzeStudents(request);
+      return responseUtils.success(res, response, 'Student analysis completed successfully');
+    } catch (error) {
+      logger.error('[AIController] Analyze students error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Generate feedback for assignment
+   * POST /ai/instructor/generate-feedback
+   */
+  generateFeedback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { assignmentId, submissionId, submissionContent, assignmentInstructions, rubric, maxScore } = req.body;
+
+      if (!assignmentId || !submissionId || !submissionContent || !assignmentInstructions) {
+        return responseUtils.sendValidationError(res, 'assignmentId, submissionId, submissionContent, and assignmentInstructions are required');
+      }
+
+      const request: GenerateFeedbackRequest = {
+        assignmentId,
+        submissionId,
+        submissionContent,
+        assignmentInstructions,
+        rubric,
+        maxScore,
+      };
+
+      const response = await this.aiService.generateFeedback(request);
+      return responseUtils.success(res, response, 'Feedback generated successfully');
+    } catch (error) {
+      logger.error('[AIController] Generate feedback error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Auto-grade assignment
+   * POST /ai/instructor/auto-grade
+   */
+  autoGrade = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { assignmentId, submissionId, submissionAnswers, assignmentQuestions } = req.body;
+
+      if (!assignmentId || !submissionId || !submissionAnswers || !assignmentQuestions) {
+        return responseUtils.sendValidationError(res, 'assignmentId, submissionId, submissionAnswers, and assignmentQuestions are required');
+      }
+
+      const request: AutoGradeRequest = {
+        assignmentId,
+        submissionId,
+        submissionAnswers,
+        assignmentQuestions,
+      };
+
+      const response = await this.aiService.autoGrade(request);
+      return responseUtils.success(res, response, 'Assignment auto-graded successfully');
+    } catch (error) {
+      logger.error('[AIController] Auto-grade error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Generate thumbnail prompt for course
+   * POST /ai/instructor/generate-thumbnail
+   */
+  generateThumbnail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseTitle, courseDescription, category, level } = req.body;
+      if (!courseTitle) {
+        return responseUtils.sendValidationError(res, 'courseTitle is required');
+      }
+      const response = await this.aiService.generateThumbnailPrompt({
+        courseTitle,
+        courseDescription,
+        category,
+        level,
+      });
+      return responseUtils.success(res, response, 'Thumbnail prompt generated successfully');
+    } catch (error) {
+      logger.error('[AIController] Generate thumbnail prompt error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Generate detailed content for a lesson
+   * POST /ai/instructor/generate-lesson-content
+   */
+  generateLessonContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { lessonTitle, lessonDescription, courseTitle, courseDescription, sectionTitle, level } = req.body;
+      
+      if (!lessonTitle || !courseTitle) {
+        return responseUtils.sendValidationError(res, 'lessonTitle and courseTitle are required');
+      }
+
+      const request: GenerateLessonContentRequest = {
+        lessonTitle,
+        lessonDescription,
+        courseTitle,
+        courseDescription,
+        sectionTitle,
+        level,
+      };
+
+      const response = await this.aiService.generateLessonContent(request);
+      return responseUtils.success(res, response, 'Lesson content generated successfully');
+    } catch (error) {
+      logger.error('[AIController] Generate lesson content error:', error);
       next(error);
     }
   };

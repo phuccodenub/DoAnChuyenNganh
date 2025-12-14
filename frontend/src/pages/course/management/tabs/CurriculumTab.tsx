@@ -24,6 +24,7 @@ import {
   type CourseSection,
   type CourseLesson,
 } from '@/hooks/useInstructorCourse';
+import { useInstructorCourseDetail } from '@/hooks/useInstructorCourse';
 import { generateRoute } from '@/constants/routes';
 import { Loader2 } from 'lucide-react';
 import { LessonModal } from '@/pages/instructor/components/courseDetail/LessonModal';
@@ -49,6 +50,8 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: sectionsResponse, isLoading, refetch } = useCourseSections(courseId);
+  const { data: courseData } = useInstructorCourseDetail(courseId); // Lấy course info để dùng cho AI
+  const course = courseData?.data;
   const [sections, setSections] = useState<(CourseSection & { isExpanded: boolean })[]>([]);
   
   // Lesson Modal state
@@ -549,16 +552,18 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
     const section = sections.find(s => s.id === sectionId);
     if (!section) return;
     try {
+      // Không gửi order_index, để backend tự động tính (tránh conflict với unique constraint)
       const newLesson = await createLessonMutation.mutateAsync({
         section_id: sectionId,
         title: 'New Lesson',
         content_type: 'video',
-        order_index: section.lessons?.length || 0,
+        // Không gửi order_index - backend sẽ tự động tính max order_index + 1
       });
       setSections(sections.map(s =>
         s.id === sectionId ? { ...s, lessons: [...s.lessons, newLesson.data] } : s
       ));
       toast.success('Đã tạo lesson mới');
+      refetch(); // Refetch để đảm bảo data sync
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Không thể tạo lesson');
     }
@@ -658,8 +663,9 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
       return;
     }
 
-    if (lesson.content_type === 'video' || lesson.content_type === 'document') {
-      // Mở LessonModal để chỉnh sửa
+    // Mở LessonModal để chỉnh sửa cho video, document, text, link
+    if (lesson.content_type === 'video' || lesson.content_type === 'document' || 
+        lesson.content_type === 'text' || lesson.content_type === 'link') {
       setEditingLesson({ sectionId, lesson });
       setLessonForm({
         title: lesson.title,
@@ -675,8 +681,15 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
       return;
     }
 
-    // TODO: Mở modal chỉnh sửa cho assignment, text, link
-    console.log('Edit lesson:', lesson);
+    // Xử lý assignment riêng
+    if (lesson.content_type === 'assignment') {
+      // TODO: Mở modal chỉnh sửa assignment
+      console.log('Edit assignment lesson:', lesson);
+      toast('Chức năng chỉnh sửa assignment đang được phát triển', { icon: 'ℹ️' });
+      return;
+    }
+
+    console.log('Edit lesson (unknown type):', lesson);
   };
 
   const handleCloseLessonModal = () => {
@@ -925,16 +938,18 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                                   
                                   // Các loại khác tạo lesson trực tiếp
                                   try {
+                                    // Không gửi order_index, để backend tự động tính (tránh conflict với unique constraint)
                                     const newLesson = await createLessonMutation.mutateAsync({
                                       section_id: section.id,
                                       title: `New ${type}`,
                                       content_type: type,
-                                      order_index: currentSection.lessons?.length || 0,
+                                      // Không gửi order_index - backend sẽ tự động tính max order_index + 1
                                     });
                                     setSections(sections.map(s =>
                                       s.id === section.id ? { ...s, lessons: [...(s.lessons || []), newLesson.data] } : s
                                     ));
                                     toast.success(`Đã tạo ${type} mới`);
+                                    refetch(); // Refetch để đảm bảo data sync
                                   } catch (error: any) {
                                     toast.error(error?.response?.data?.message || `Không thể tạo ${type}`);
                                   }
@@ -1271,6 +1286,10 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
           }
         }}
         onClose={handleCloseLessonModal}
+        courseTitle={course?.title}
+        courseDescription={course?.description}
+        sectionTitle={editingLesson ? sections.find(s => s.id === editingLesson.sectionId)?.title : undefined}
+        courseLevel={course?.level as 'beginner' | 'intermediate' | 'advanced' | undefined}
       />
 
       {/* Create Quiz Modal */}

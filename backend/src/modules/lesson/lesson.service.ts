@@ -65,15 +65,54 @@ export class LessonService {
       // Tự động tính order_index nếu không được cung cấp
       if (lessonData.order_index === undefined || lessonData.order_index === null) {
         const maxOrderIndex = await this.lessonRepository.getMaxOrderIndex(lessonData.section_id);
-        lessonData.order_index = maxOrderIndex + 1;
-        logger.info('Auto-calculated order_index', { order_index: lessonData.order_index });
+        // Đảm bảo order_index bắt đầu từ 0, không phải -1
+        lessonData.order_index = Math.max(maxOrderIndex, -1) + 1;
+        logger.info('Auto-calculated order_index', { 
+          maxOrderIndex, 
+          calculatedOrderIndex: lessonData.order_index,
+          sectionId: lessonData.section_id 
+        });
+      } else {
+        // Nếu order_index được cung cấp, kiểm tra xem có conflict không
+        logger.info('Using provided order_index', { 
+          order_index: lessonData.order_index,
+          sectionId: lessonData.section_id 
+        });
       }
       
       const lesson = await this.lessonRepository.create(lessonData);
       
       logger.info('Lesson created successfully', { lessonId: lesson.id });
       return lesson;
-    } catch (error) {
+    } catch (error: any) {
+      // Nếu lỗi là unique constraint violation cho order_index, thử lại với order_index mới
+      if (error?.name === 'SequelizeUniqueConstraintError' && 
+          error?.parent?.constraint === 'unique_lesson_order_per_section') {
+        logger.warn('Order index conflict detected, recalculating...', {
+          sectionId: lessonData.section_id,
+          attemptedOrderIndex: lessonData.order_index
+        });
+        
+        // Tính lại order_index từ database
+        const maxOrderIndex = await this.lessonRepository.getMaxOrderIndex(lessonData.section_id);
+        lessonData.order_index = Math.max(maxOrderIndex, -1) + 1;
+        
+        logger.info('Retrying with new order_index', { 
+          newOrderIndex: lessonData.order_index,
+          sectionId: lessonData.section_id 
+        });
+        
+        // Thử lại một lần nữa
+        try {
+          const lesson = await this.lessonRepository.create(lessonData);
+          logger.info('Lesson created successfully after retry', { lessonId: lesson.id });
+          return lesson;
+        } catch (retryError) {
+          logger.error('Error creating lesson after retry:', retryError);
+          throw retryError;
+        }
+      }
+      
       logger.error('Error creating lesson:', error);
       throw error;
     }

@@ -208,6 +208,19 @@ export class DatabaseError extends BaseError {
       if (path) return String(path);
       if (lowerMsg.includes('username')) return 'username';
       if (lowerMsg.includes('email')) return 'email';
+      // Kiểm tra constraint name để infer field chính xác hơn
+      if (constraint && typeof constraint === 'string') {
+        const constraintLower = constraint.toLowerCase();
+        if (constraintLower.includes('order') || constraintLower.includes('lesson_order')) {
+          return 'order_index';
+        }
+        if (constraintLower.includes('section')) {
+          // Nếu constraint liên quan đến section_id và order_index, ưu tiên order_index
+          if (constraintLower.includes('order')) {
+            return 'order_index';
+          }
+        }
+      }
       return undefined;
     };
     const inferredField = inferField();

@@ -22,9 +22,18 @@ export class LessonRepository extends BaseRepository<LessonInstance> {
       const result = await (model as any).findOne({
         where: { section_id: sectionId },
         order: [['order_index', 'DESC']],
-        attributes: ['order_index']
+        attributes: ['order_index'],
+        raw: true // Trả về plain object để tránh vấn đề với Sequelize instance
       });
-      return result?.order_index ?? -1;
+      
+      const maxIndex = result?.order_index ?? -1;
+      logger.debug('Max order_index for section', { 
+        sectionId, 
+        maxOrderIndex: maxIndex,
+        result 
+      });
+      
+      return typeof maxIndex === 'number' ? maxIndex : -1;
     } catch (error) {
       logger.error('Error getting max order_index:', error);
       return -1;

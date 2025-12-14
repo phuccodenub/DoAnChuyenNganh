@@ -35,6 +35,8 @@ import { Lesson, ContentType, contentTypeLabels } from './types';
 import { lessonApi, type LessonMaterial } from '@/services/api/lesson.api';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGenerateLessonContent } from '@/hooks/useAi';
+import { Sparkles } from 'lucide-react';
 
 // Cập nhật Interface
 interface LessonFormData {
@@ -57,6 +59,10 @@ interface LessonModalProps {
     onClose: () => void;
     isUploading?: boolean;
     uploadProgress?: number;
+    courseTitle?: string; // Thông tin course để dùng cho AI
+    courseDescription?: string;
+    sectionTitle?: string; // Tên section để context tốt hơn
+    courseLevel?: 'beginner' | 'intermediate' | 'advanced';
 }
 
 // ... (ToolbarButton và ToolbarDivider giữ nguyên) ...
@@ -96,8 +102,13 @@ export function LessonModal({
     onFormChange,
     onSave,
     onClose,
+    courseTitle,
+    courseDescription,
+    sectionTitle,
+    courseLevel,
 }: LessonModalProps) {
     const queryClient = useQueryClient();
+    const generateLessonContent = useGenerateLessonContent();
     // State cơ bản
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [tempTitle, setTempTitle] = useState(lessonForm.title);
@@ -163,6 +174,7 @@ export function LessonModal({
                     documentEditorRef.current.innerHTML = contentToLoad;
                     console.log('[LessonModal] Set content to document editor:', contentToLoad);
                 } else if (descriptionEditorRef.current) {
+                    // Dùng cho text, link, video (description)
                     descriptionEditorRef.current.innerHTML = contentToLoad || '';
                     console.log('[LessonModal] Set content to description editor:', contentToLoad);
                 }
@@ -714,8 +726,104 @@ export function LessonModal({
                         </div>
                     )}
 
-                    {/* 3. DESCRIPTION EDITOR - Ẩn khi content_type là 'document' vì đã có editor riêng */}
-                    {lessonForm.content_type !== 'document' && (
+                    {/* 3. TEXT/LINK CONTENT EDITOR - Hiển thị khi content_type là 'text' hoặc 'link' */}
+                    {(lessonForm.content_type === 'text' || lessonForm.content_type === 'link') && (
+                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 space-y-4">
+                            {lessonForm.content_type === 'link' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        URL Liên kết
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={lessonForm.video_url || ''}
+                                        onChange={(e) => onFormChange({ ...lessonForm, video_url: e.target.value })}
+                                        placeholder="https://example.com"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+                            )}
+                            
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-semibold text-gray-900">
+                                        {lessonForm.content_type === 'text' ? 'Nội dung bài học' : 'Mô tả liên kết'}
+                                    </h3>
+                                    <div className="flex items-center gap-2">
+                                        {/* Nút tạo nội dung bằng AI - chỉ hiển thị cho text lesson */}
+                                        {lessonForm.content_type === 'text' && editingLesson && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        toast.loading('Đang tạo nội dung bằng AI...', { id: 'generate-content' });
+                                                        
+                                                        const result = await generateLessonContent.mutateAsync({
+                                                            lessonTitle: lessonForm.title,
+                                                            lessonDescription: lessonForm.description || lessonForm.title,
+                                                            courseTitle: courseTitle || 'Khóa học',
+                                                            courseDescription: courseDescription || '',
+                                                            sectionTitle: sectionTitle || '',
+                                                            level: courseLevel || 'beginner',
+                                                        });
+                                                        
+                                                        // Cập nhật content vào editor
+                                                        if (descriptionEditorRef.current) {
+                                                            descriptionEditorRef.current.innerHTML = result.content;
+                                                            setContent(result.content);
+                                                            onFormChange({ ...lessonForm, content: result.content });
+                                                        }
+                                                        
+                                                        toast.success('Đã tạo nội dung bằng AI!', { id: 'generate-content' });
+                                                    } catch (error: any) {
+                                                        console.error('Error generating lesson content:', error);
+                                                        toast.error(error?.response?.data?.message || 'Không thể tạo nội dung', { id: 'generate-content' });
+                                                    }
+                                                }}
+                                                disabled={generateLessonContent.isPending || !lessonForm.title.trim()}
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                                                title="Tạo nội dung chi tiết bằng AI"
+                                            >
+                                                <Sparkles className="w-4 h-4" />
+                                                {generateLessonContent.isPending ? 'Đang tạo...' : 'Tạo bằng AI'}
+                                            </button>
+                                        )}
+                                        {/* Toolbar */}
+                                        <div className="flex items-center gap-1 scale-90 origin-right">
+                                            <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Đậm" />
+                                            <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Nghiêng" />
+                                            <ToolbarButton icon={<Underline className="w-4 h-4" />} onClick={handleUnderline} title="Gạch chân" />
+                                            <ToolbarDivider />
+                                            <ToolbarButton icon={<Heading1 className="w-4 h-4" />} onClick={handleHeading1} title="Heading 1" />
+                                            <ToolbarButton icon={<Heading2 className="w-4 h-4" />} onClick={handleHeading2} title="Heading 2" />
+                                            <ToolbarButton icon={<Heading3 className="w-4 h-4" />} onClick={handleHeading3} title="Heading 3" />
+                                            <ToolbarDivider />
+                                            <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Danh sách" />
+                                            <ToolbarButton icon={<ListOrdered className="w-4 h-4" />} onClick={handleOrderedList} title="Danh sách đánh số" />
+                                            <ToolbarDivider />
+                                            <ToolbarButton icon={<Link className="w-4 h-4" />} onClick={handleInsertLink} title="Chèn liên kết" />
+                                            <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Chèn hình ảnh" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white border border-gray-200 rounded-lg">
+                                    <div
+                                        ref={descriptionEditorRef}
+                                        contentEditable
+                                        suppressContentEditableWarning
+                                        className="min-h-[400px] p-6 outline-none prose prose-sm max-w-none text-gray-700"
+                                        data-placeholder={lessonForm.content_type === 'text' ? 'Nhập nội dung bài học...' : 'Nhập mô tả về liên kết...'}
+                                        onInput={(e) => setContent(e.currentTarget.innerHTML)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 3. DESCRIPTION EDITOR - Chỉ hiển thị cho video (không phải document, text, link) */}
+                    {lessonForm.content_type !== 'document' && 
+                     lessonForm.content_type !== 'text' && 
+                     lessonForm.content_type !== 'link' && (
                         <div className="flex flex-col min-h-[400px]">
                             <div className="px-6 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-gray-700">Mô tả bài học</h3>
@@ -725,7 +833,6 @@ export function LessonModal({
                                     <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Nghiêng" />
                                     <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Danh sách" />
                                     <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Hình ảnh" />
-                                    {/* Video button ở đây để chèn vào body text nếu cần, nhưng đã có phần attachment ở trên */}
                                 </div>
                             </div>
 
@@ -742,7 +849,6 @@ export function LessonModal({
                         </div>
                     )}
                 </div>
-
                 {/* ================== FOOTER ================== */}
                 <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
                     <div className="text-sm text-gray-500">
@@ -792,10 +898,15 @@ export function LessonModal({
                                 
                                 // Update form với content từ editor
                                 // Với document type, nếu không có content nhưng đã upload PDF, vẫn cho phép save
+                                // Với text/link, lưu vào content field
                                 const updatedForm = {
                                     ...lessonForm,
-                                    content: contentToSave || undefined, // undefined nếu empty để backend không update
-                                    description: contentToSave || undefined,
+                                    content: (lessonForm.content_type === 'text' || lessonForm.content_type === 'link') 
+                                        ? (contentToSave || undefined)
+                                        : (lessonForm.content_type === 'document' ? (contentToSave || undefined) : undefined),
+                                    description: (lessonForm.content_type === 'video' || lessonForm.content_type === 'document')
+                                        ? (contentToSave || undefined)
+                                        : undefined,
                                 };
                                 
                                 onFormChange(updatedForm);

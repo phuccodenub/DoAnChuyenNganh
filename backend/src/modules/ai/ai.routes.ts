@@ -51,6 +51,57 @@ router.get('/recommendations', controller.getRecommendations);
  */
 router.get('/analytics', controller.getAnalytics);
 
+// ==================== INSTRUCTOR AI FEATURES ====================
+
+/**
+ * @route   POST /ai/instructor/generate-outline
+ * @desc    Generate course outline from topic
+ * @access  Private (Instructor/Admin only)
+ */
+router.post('/instructor/generate-outline', controller.generateCourseOutline);
+
+/**
+ * @route   POST /ai/instructor/suggest-improvements
+ * @desc    Suggest course improvements
+ * @access  Private (Instructor/Admin only)
+ */
+router.post('/instructor/suggest-improvements', controller.suggestCourseImprovements);
+
+/**
+ * @route   POST /ai/instructor/analyze-students
+ * @desc    Analyze student performance
+ * @access  Private (Instructor/Admin only)
+ */
+router.post('/instructor/analyze-students', controller.analyzeStudents);
+
+/**
+ * @route   POST /ai/instructor/generate-feedback
+ * @desc    Generate feedback for assignment submission
+ * @access  Private (Instructor/Admin only)
+ */
+router.post('/instructor/generate-feedback', controller.generateFeedback);
+
+/**
+ * @route   POST /ai/instructor/auto-grade
+ * @desc    Auto-grade assignment (objective questions)
+ * @access  Private (Instructor/Admin only)
+ */
+router.post('/instructor/auto-grade', controller.autoGrade);
+
+/**
+ * @route   POST /ai/instructor/generate-thumbnail
+ * @desc    Generate thumbnail prompt for course
+ * @access  Private (Instructor/Admin only)
+ */
+router.post('/instructor/generate-thumbnail', controller.generateThumbnail);
+
+/**
+ * @route   POST /ai/instructor/generate-lesson-content
+ * @desc    Generate detailed content for a lesson
+ * @access  Private (Instructor/Admin only)
+ */
+router.post('/instructor/generate-lesson-content', controller.generateLessonContent);
+
 export default router;
 
 

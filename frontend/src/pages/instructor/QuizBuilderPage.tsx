@@ -36,6 +36,7 @@ import {
   useUpdateQuestion,
   useDeleteQuestion,
 } from '@/hooks/useInstructorQuiz';
+import { AiQuizGenerator } from '@/components/instructor';
 
 /**
  * QuizBuilderPage - Modern Quiz Builder
@@ -579,6 +580,39 @@ export function QuizBuilderPage() {
           {/* Editor Workspace */}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-4xl mx-auto space-y-4">
+              {/* AI Quiz Generator */}
+              {questions.length === 0 && (
+                <AiQuizGenerator
+                  courseContent={`Quiz: ${quizTitle}\n\nSử dụng AI để tạo câu hỏi cho quiz này.`}
+                  onQuestionsGenerated={(generatedQuestions) => {
+                    // Add generated questions to the quiz
+                    generatedQuestions.forEach((q: any, idx: number) => {
+                      const newQuestion: Question = {
+                        id: `temp-${Date.now()}-${idx}`,
+                        type: q.type || 'multiple_choice',
+                        question_text: q.question || '',
+                        points: 1,
+                        answers: q.options?.map((opt: string, optIdx: number) => ({
+                          id: `temp-answer-${Date.now()}-${idx}-${optIdx}`,
+                          text: opt,
+                          is_correct: optIdx === q.correctAnswer,
+                        })) || [],
+                        is_required: true,
+                        multiple_answer: false,
+                        answer_with_image: false,
+                        randomize_order: false,
+                        estimation_time: 60,
+                      };
+                      setQuestions(prev => [...prev, newQuestion]);
+                      if (idx === 0) {
+                        setSelectedQuestionId(newQuestion.id);
+                      }
+                    });
+                    toast.success(`Đã thêm ${generatedQuestions.length} câu hỏi từ AI`);
+                  }}
+                />
+              )}
+
               {/* Pro Banner */}
               {/* TODO: [LOGIC] Kiểm tra subscription của user từ API hoặc store */}
               {/* TODO: [LOGIC] Chỉ hiển thị banner này nếu user chưa có gói PRO */}

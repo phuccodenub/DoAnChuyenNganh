@@ -16,9 +16,13 @@ import {
 } from 'lucide-react';
 
 import { ROUTES, generateRoute } from '@/constants/routes';
-import { useCreateCourse, useUpdateCourse, useInstructorCourseDetail } from '@/hooks/useInstructorCourse';
+import { useCreateCourse, useUpdateCourse, useInstructorCourseDetail, useCreateSection } from '@/hooks/useInstructorCourse';
 import { mediaApi } from '@/services/api/media.api';
 import { useRole } from '@/hooks/useRole';
+import { AiCourseOutlineGenerator } from '@/components/instructor';
+import { instructorApi } from '@/services/api/instructor.api';
+import { aiApi } from '@/services/api/ai.api';
+import { Sparkles } from 'lucide-react';
 
 /**
  * CourseEditorPage - Trang tạo/chỉnh sửa khóa học với 3 bước
@@ -41,6 +45,10 @@ export function CourseEditorPage() {
   const createCourseMutation = useCreateCourse();
   const updateCourseMutation = useUpdateCourse();
   const { data: existingCourse, isLoading } = useInstructorCourseDetail(isEditMode ? courseId : '');
+  const createSectionMutation = useCreateSection();
+  
+  // State để lưu AI outline
+  const [aiOutline, setAiOutline] = useState<any>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -104,6 +112,7 @@ export function CourseEditorPage() {
 
   const [isUploading, setIsUploading] = useState(false);
   const [createdCourseId, setCreatedCourseId] = useState<string | null>(courseId || null);
+  const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
 
   // Handle image selection
   const handleImageSelect = (file: File | null) => {
@@ -112,6 +121,102 @@ export function CourseEditorPage() {
       setFormData(prev => ({ ...prev, coverImage: file, coverImagePreview: previewUrl }));
     } else {
       setFormData(prev => ({ ...prev, coverImage: null, coverImagePreview: '' }));
+    }
+  };
+
+  // Generate thumbnail prompt using AI
+  const handleGenerateThumbnail = async () => {
+    if (!formData.title.trim()) {
+      toast.error('Vui lòng nhập tiêu đề khóa học trước');
+      return;
+    }
+
+    try {
+      setIsGeneratingThumbnail(true);
+      toast.loading('Đang tạo prompt thumbnail bằng AI...', { id: 'generate-thumbnail' });
+      
+      const result = await aiApi.generateThumbnail({
+        courseTitle: formData.title,
+        courseDescription: formData.description,
+        category: formData.category,
+        level: formData.level,
+      });
+
+      toast.success('Đã tạo prompt thumbnail!', { id: 'generate-thumbnail' });
+      
+      // Hiển thị prompt cho user (có thể copy để dùng với Imagen hoặc service khác)
+      const promptText = `Prompt để tạo thumbnail:\n\n${result.prompt}\n\n${result.suggestions && result.suggestions.length > 0 ? `\nCác gợi ý khác:\n${result.suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n')}` : ''}`;
+      
+      // Copy prompt vào clipboard
+      await navigator.clipboard.writeText(result.prompt);
+      toast.success('Đã copy prompt vào clipboard! Bạn có thể dùng prompt này với Imagen API hoặc service tạo ảnh khác.');
+      
+      // Log để user có thể xem
+      console.log('Thumbnail prompt:', promptText);
+      
+      // TODO: Có thể tích hợp trực tiếp với Imagen API nếu có
+      // Hiện tại chỉ tạo prompt, user có thể dùng prompt này với service khác
+    } catch (error: any) {
+      console.error('Error generating thumbnail prompt:', error);
+      toast.error(error?.response?.data?.message || 'Không thể tạo prompt thumbnail', { id: 'generate-thumbnail' });
+    } finally {
+      setIsGeneratingThumbnail(false);
+    }
+  };
+
+  // Tạo sections và lessons từ AI outline
+  const createSectionsAndLessonsFromOutline = async (courseId: string, outline: any) => {
+    if (!outline?.sections || outline.sections.length === 0) {
+      return;
+    }
+
+    try {
+      toast.loading('Đang tạo chương và bài học từ AI outline...', { id: 'create-sections-lessons' });
+      
+      for (const section of outline.sections) {
+        // Tạo section
+        const sectionResult = await createSectionMutation.mutateAsync({
+          course_id: courseId,
+          title: section.title,
+          description: section.description,
+          order_index: section.order || 0,
+        });
+
+        // Response structure: { success, message, data: CourseSection }
+        const sectionId = sectionResult?.data?.id || sectionResult?.data?.data?.id;
+        if (!sectionId) {
+          console.error('Failed to create section:', section.title, 'Response:', sectionResult);
+          continue;
+        }
+
+        // Tạo lessons cho section này (chỉ tạo outline, không có content chi tiết)
+        // Content chi tiết sẽ được tạo sau bằng nút "Tạo nội dung bằng AI" trong CurriculumTab
+        if (section.lessons && section.lessons.length > 0) {
+          for (const lesson of section.lessons) {
+            try {
+              const lessonResult = await instructorApi.createLesson({
+                section_id: sectionId,
+                title: lesson.title,
+                description: lesson.description,
+                // Không tạo content ở đây - sẽ tạo sau từng lesson một
+                content_type: 'text', // Default to text, user can change later
+                duration_minutes: lesson.estimatedDuration || 30,
+                order_index: lesson.order || 0,
+                is_published: false, // Draft by default
+              });
+              console.log('Lesson created:', lesson.title, lessonResult);
+            } catch (lessonError: any) {
+              console.error('Error creating lesson:', lesson.title, lessonError);
+              console.error('Error details:', lessonError?.response?.data);
+            }
+          }
+        }
+      }
+
+      toast.success('Đã tạo chương và bài học từ AI outline thành công!', { id: 'create-sections-lessons' });
+    } catch (error: any) {
+      console.error('Error creating sections and lessons:', error);
+      toast.error('Có lỗi khi tạo chương và bài học', { id: 'create-sections-lessons' });
     }
   };
 
@@ -161,9 +266,15 @@ export function CourseEditorPage() {
         await updateCourseMutation.mutateAsync({ courseId: createdCourseId, data: courseData });
       } else {
         // Create new course
+        const wasNewCourse = !createdCourseId; // Lưu trạng thái trước khi tạo
         const result = await createCourseMutation.mutateAsync(courseData);
         savedCourseId = result.data?.id || null;
         setCreatedCourseId(savedCourseId);
+
+        // Nếu có AI outline và đây là course mới (vừa tạo lần đầu), tạo sections và lessons
+        if (savedCourseId && aiOutline && wasNewCourse) {
+          await createSectionsAndLessonsFromOutline(savedCourseId, aiOutline);
+        }
       }
 
       return savedCourseId;
@@ -273,6 +384,28 @@ export function CourseEditorPage() {
         {/* Step 1: Basic Info */}
         {currentStep === 1 && (
           <div className="space-y-6">
+            {/* AI Course Outline Generator */}
+            {!isEditMode && (
+              <AiCourseOutlineGenerator
+                onOutlineGenerated={(outline) => {
+                  // Lưu outline để tạo sections/lessons sau khi tạo course
+                  setAiOutline(outline);
+                  
+                  // Auto-fill form with AI-generated outline
+                  if (outline.title) {
+                    setFormData(prev => ({ ...prev, title: outline.title }));
+                  }
+                  if (outline.description) {
+                    setFormData(prev => ({ ...prev, description: outline.description }));
+                  }
+                  if (outline.learningOutcomes && outline.learningOutcomes.length > 0) {
+                    setFormData(prev => ({ ...prev, learningOutcomes: outline.learningOutcomes }));
+                  }
+                  toast.success('Đã áp dụng outline từ AI. Các chương và bài học sẽ được tạo tự động sau khi lưu khóa học.');
+                }}
+              />
+            )}
+
             {/* Course Title Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
               <div className="flex items-center gap-3 mb-6">
@@ -444,9 +577,20 @@ export function CourseEditorPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Cover Image */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Ảnh bìa khóa học
-                  </label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Ảnh bìa khóa học
+                    </label>
+                    <button
+                      onClick={handleGenerateThumbnail}
+                      disabled={isGeneratingThumbnail || !formData.title.trim()}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                      title="Tạo prompt thumbnail bằng AI (Gemini)"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      {isGeneratingThumbnail ? 'Đang tạo...' : 'Tạo bằng AI'}
+                    </button>
+                  </div>
                   <div
                     className={`relative border-2 border-dashed rounded-2xl transition-all cursor-pointer hover:border-blue-400 hover:bg-blue-50 ${
                       formData.coverImagePreview ? 'border-green-400 bg-green-50' : 'border-gray-300'
