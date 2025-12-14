@@ -37,7 +37,7 @@ export function ImageDropzone({ label, value, onChange, accept = 'image/*', maxS
 
     const handleFile = (file: File) => {
         if (file.size > maxSize * 1024 * 1024) {
-            alert(`File size must be less than ${maxSize}MB`);
+            alert(`Kích thước tệp phải nhỏ hơn ${maxSize}MB`);
             return;
         }
 
@@ -90,7 +90,7 @@ export function ImageDropzone({ label, value, onChange, accept = 'image/*', maxS
                         <div className="relative inline-block">
                             <img
                                 src={preview}
-                                alt="Preview"
+                                alt="Xem trước"
                                 className="max-w-full max-h-48 rounded-lg shadow-md"
                             />
                             <button
@@ -103,7 +103,7 @@ export function ImageDropzone({ label, value, onChange, accept = 'image/*', maxS
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
-                        <p className="text-sm text-gray-600">Click to change image</p>
+                        <p className="text-sm text-gray-600">Nhấp để đổi hình ảnh</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -111,12 +111,12 @@ export function ImageDropzone({ label, value, onChange, accept = 'image/*', maxS
                             <ImageIcon className="w-8 h-8 text-gray-400" />
                         </div>
                         <div>
-                            <p className="text-lg font-medium text-gray-900">Upload cover image</p>
+                            <p className="text-lg font-medium text-gray-900">Tải lên hình ảnh bìa</p>
                             <p className="text-sm text-gray-500 mt-1">
-                                Drag and drop an image here, or click to browse
+                                Kéo thả hình ảnh vào đây, hoặc nhấp để chọn
                             </p>
                             <p className="text-xs text-gray-400 mt-2">
-                                PNG, JPG up to {maxSize}MB
+                                PNG, JPG tối đa {maxSize}MB
                             </p>
                         </div>
                         <button

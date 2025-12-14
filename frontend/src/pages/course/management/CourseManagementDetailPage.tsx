@@ -46,7 +46,7 @@ export function CourseManagementDetailPage() {
         <PageWrapper>
           <div className="text-center py-12">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Course ID không hợp lệ</p>
+            <p className="text-gray-600">Mã khóa học không hợp lệ</p>
           </div>
         </PageWrapper>
       </MainLayout>
@@ -126,7 +126,7 @@ export function CourseManagementDetailPage() {
                 )}
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Dashboard
+                Tổng quan
               </button>
               <button
                 onClick={() => setActiveTab('info')}
@@ -150,7 +150,7 @@ export function CourseManagementDetailPage() {
                 )}
               >
                 <BookOpen className="w-4 h-4 mr-2" />
-                Curriculum
+                Giáo trình
               </button>
               <button
                 onClick={() => setActiveTab('content')}

@@ -38,8 +38,8 @@ export default function CertificateDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Certificate not found</p>
-          <Button onClick={() => navigate(-1)}>Go Back</Button>
+          <p className="text-gray-600 mb-4">Không tìm thấy chứng chỉ</p>
+          <Button onClick={() => navigate(-1)}>Quay lại</Button>
         </div>
       </div>
     );
@@ -47,6 +47,15 @@ export default function CertificateDetailPage() {
 
   const verificationUrl = `${window.location.origin}${ROUTES.CERTIFICATES_VERIFY}?hash=${certificate.certificate_hash}`;
   const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${certificate.ipfs_hash}`;
+
+  const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'active': 'Đang hoạt động',
+      'revoked': 'Đã thu hồi',
+      'expired': 'Đã hết hạn',
+    };
+    return statusMap[status] || status;
+  };
 
   const handleDownload = async () => {
     try {
@@ -65,7 +74,7 @@ export default function CertificateDetailPage() {
       
       toast.success('Certificate downloaded successfully');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to download certificate');
+      toast.error(error.response?.data?.message || 'Không thể tải xuống chứng chỉ');
     }
   };
 
@@ -73,8 +82,8 @@ export default function CertificateDetailPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Certificate: ${certificate.metadata.course.title}`,
-          text: `I completed the course "${certificate.metadata.course.title}"`,
+          title: `Chứng chỉ: ${certificate.metadata.course.title}`,
+          text: `Tôi đã hoàn thành khóa học "${certificate.metadata.course.title}"`,
           url: verificationUrl,
         });
       } catch (error) {
@@ -83,7 +92,7 @@ export default function CertificateDetailPage() {
     } else {
       // Fallback: Copy to clipboard
       navigator.clipboard.writeText(verificationUrl);
-      toast.success('Verification link copied to clipboard');
+      toast.success('Đã sao chép liên kết xác minh vào clipboard');
     }
   };
 
@@ -97,9 +106,9 @@ export default function CertificateDetailPage() {
             onClick={() => navigate(-1)}
             className="mb-4"
           >
-            ← Back
+            ← Quay lại
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Certificate Details</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Chi tiết chứng chỉ</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -112,10 +121,10 @@ export default function CertificateDetailPage() {
                   <Award className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Certificate of Completion
+                  Chứng chỉ hoàn thành
                 </h2>
                 <p className="text-gray-600">
-                  This is to certify that
+                  Chứng nhận rằng
                 </p>
               </div>
 
@@ -125,7 +134,7 @@ export default function CertificateDetailPage() {
                   {certificate.metadata.student.name}
                 </h3>
                 <p className="text-gray-600">
-                  has successfully completed the course
+                  đã hoàn thành thành công khóa học
                 </p>
               </div>
 
@@ -152,7 +161,7 @@ export default function CertificateDetailPage() {
               {/* Completion Info */}
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="text-center">
-                  <p className="text-sm text-gray-500 mb-1">Completion Date</p>
+                  <p className="text-sm text-gray-500 mb-1">Ngày hoàn thành</p>
                   <p className="font-semibold text-gray-900">
                     {new Date(certificate.metadata.completion.date).toLocaleDateString('vi-VN', {
                       year: 'numeric',
@@ -163,7 +172,7 @@ export default function CertificateDetailPage() {
                 </div>
                 {certificate.metadata.completion.grade && (
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 mb-1">Final Grade</p>
+                    <p className="text-sm text-gray-500 mb-1">Điểm cuối khóa</p>
                     <p className="font-semibold text-gray-900">
                       {certificate.metadata.completion.grade.toFixed(1)}%
                     </p>
@@ -173,7 +182,7 @@ export default function CertificateDetailPage() {
 
               {/* Certificate Number */}
               <div className="text-center pt-6 border-t border-gray-200">
-                <p className="text-xs text-gray-500 mb-2">Certificate Number</p>
+                <p className="text-xs text-gray-500 mb-2">Số chứng chỉ</p>
                 <p className="font-mono text-sm text-gray-700">
                   {certificate.certificate_number}
                 </p>
@@ -184,11 +193,11 @@ export default function CertificateDetailPage() {
             <div className="mt-6 flex gap-4">
               <Button onClick={handleDownload} className="flex-1">
                 <Download className="w-4 h-4 mr-2" />
-                Download PDF
+                Tải PDF
               </Button>
               <Button onClick={handleShare} variant="outline" className="flex-1">
                 <Share2 className="w-4 h-4 mr-2" />
-                Share
+                Chia sẻ
               </Button>
               {isAdmin && certificate.status === 'active' && (
                 <Button 
@@ -197,7 +206,7 @@ export default function CertificateDetailPage() {
                   className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
                 >
                   <Ban className="w-4 h-4 mr-2" />
-                  Revoke
+                  Thu hồi
                 </Button>
               )}
             </div>
@@ -206,20 +215,20 @@ export default function CertificateDetailPage() {
             {showRevokeModal && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <Card className="p-6 max-w-md w-full mx-4">
-                  <h3 className="text-lg font-semibold mb-4">Revoke Certificate</h3>
+                  <h3 className="text-lg font-semibold mb-4">Thu hồi chứng chỉ</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Are you sure you want to revoke this certificate? This action cannot be undone.
+                    Bạn có chắc chắn muốn thu hồi chứng chỉ này? Hành động này không thể hoàn tác.
                   </p>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Reason (optional)
+                      Lý do (tùy chọn)
                     </label>
                     <textarea
                       value={revokeReason}
                       onChange={(e) => setRevokeReason(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                       rows={3}
-                      placeholder="Enter reason for revocation..."
+                      placeholder="Nhập lý do thu hồi..."
                     />
                   </div>
                   <div className="flex gap-3">
@@ -231,7 +240,7 @@ export default function CertificateDetailPage() {
                       variant="outline"
                       className="flex-1"
                     >
-                      Cancel
+                      Hủy
                     </Button>
                     <Button
                       onClick={() => {
@@ -239,13 +248,13 @@ export default function CertificateDetailPage() {
                           { id: certificate.id, reason: revokeReason },
                           {
                             onSuccess: () => {
-                              toast.success('Certificate revoked successfully');
+                              toast.success('Đã thu hồi chứng chỉ thành công');
                               setShowRevokeModal(false);
                               setRevokeReason('');
                               refetch();
                             },
                             onError: (error: any) => {
-                              toast.error(error.response?.data?.message || 'Failed to revoke certificate');
+                              toast.error(error.response?.data?.message || 'Không thể thu hồi chứng chỉ');
                             },
                           }
                         );
@@ -254,7 +263,7 @@ export default function CertificateDetailPage() {
                       className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
                       disabled={isRevoking}
                     >
-                      {isRevoking ? 'Revoking...' : 'Revoke'}
+                      {isRevoking ? 'Đang thu hồi...' : 'Thu hồi'}
                     </Button>
                   </div>
                 </Card>
@@ -266,7 +275,7 @@ export default function CertificateDetailPage() {
           <div className="space-y-6">
             {/* QR Code */}
             <Card className="p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Verify Certificate</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">Xác minh chứng chỉ</h3>
               <div className="flex flex-col items-center">
                 <div className="bg-white p-4 rounded-lg mb-4">
                   <QRCodeSVG
@@ -277,46 +286,46 @@ export default function CertificateDetailPage() {
                   />
                 </div>
                 <p className="text-xs text-gray-500 text-center mb-4">
-                  Scan QR code to verify this certificate
+                  Quét mã QR để xác minh chứng chỉ này
                 </p>
                 <Link
                   to={`${ROUTES.CERTIFICATES_VERIFY}?hash=${certificate.certificate_hash}`}
                   className="text-sm text-blue-600 hover:text-blue-700"
                 >
-                  Open verification page →
+                  Mở trang xác minh →
                 </Link>
               </div>
             </Card>
 
             {/* Certificate Info */}
             <Card className="p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Certificate Information</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">Thông tin chứng chỉ</h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Status</p>
+                  <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className={`w-4 h-4 ${
                       certificate.status === 'active' ? 'text-green-500' : 'text-gray-400'
                     }`} />
-                    <span className="text-sm font-medium capitalize">
-                      {certificate.status}
+                    <span className="text-sm font-medium">
+                      {getStatusText(certificate.status)}
                     </span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Issued Date</p>
+                  <p className="text-xs text-gray-500 mb-1">Ngày cấp</p>
                   <p className="text-sm text-gray-900">
                     {new Date(certificate.issued_at).toLocaleDateString('vi-VN')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Certificate Hash</p>
+                  <p className="text-xs text-gray-500 mb-1">Mã băm chứng chỉ</p>
                   <p className="text-xs font-mono text-gray-700 break-all">
                     {certificate.certificate_hash}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">IPFS Hash</p>
+                  <p className="text-xs text-gray-500 mb-1">Mã băm IPFS</p>
                   <a
                     href={ipfsUrl}
                     target="_blank"

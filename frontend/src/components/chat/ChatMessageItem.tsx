@@ -142,7 +142,7 @@ export function ChatMessageItem({
             <button
               onClick={() => onReply(message)}
               className="p-1 hover:bg-gray-200 rounded transition-colors"
-              title="Reply"
+              title="Trả lời"
             >
               <MessageCircle className="w-4 h-4 text-gray-600" />
             </button>
@@ -152,7 +152,7 @@ export function ChatMessageItem({
             <button
               onClick={() => onEdit(message)}
               className="p-1 hover:bg-gray-200 rounded transition-colors"
-              title="Edit"
+              title="Chỉnh sửa"
             >
               <Edit2 className="w-4 h-4 text-gray-600" />
             </button>
@@ -162,7 +162,7 @@ export function ChatMessageItem({
             <button
               onClick={() => onDelete(message.id)}
               className="p-1 hover:bg-gray-200 rounded transition-colors"
-              title="Delete"
+              title="Xóa"
             >
               <Trash2 className="w-4 h-4 text-gray-600" />
             </button>

@@ -272,33 +272,33 @@ export const supportAvatars = [
 
 export const faqs: FaqItem[] = [
   {
-    question: 'Is there a free trial available?',
+    question: 'Có bản dùng thử miễn phí không?',
     answer:
-      "Yes, you can try us for free for 30 days. If you want, we'll provide you with a free, personalized 30-minute onboarding call to get you up and running as soon as possible."
+      "Có, bạn có thể dùng thử miễn phí trong 30 ngày. Nếu bạn muốn, chúng tôi sẽ cung cấp cho bạn một cuộc gọi onboarding miễn phí 30 phút được cá nhân hóa để giúp bạn bắt đầu sớm nhất có thể."
   },
   {
-    question: 'Can I change my plan later?',
-    answer: 'Yes, you can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.'
+    question: 'Tôi có thể thay đổi gói sau này không?',
+    answer: 'Có, bạn có thể nâng cấp hoặc hạ cấp gói của mình bất cứ lúc nào. Các thay đổi sẽ được phản ánh trong chu kỳ thanh toán tiếp theo của bạn.'
   },
   {
-    question: 'What is your cancellation policy?',
+    question: 'Chính sách hủy của bạn là gì?',
     answer:
-      'You can cancel your subscription at any time. There are no cancellation fees, and you will continue to have access until the end of your current billing period.'
+      'Bạn có thể hủy đăng ký của mình bất cứ lúc nào. Không có phí hủy, và bạn sẽ tiếp tục có quyền truy cập cho đến cuối chu kỳ thanh toán hiện tại của bạn.'
   },
   {
-    question: 'Can other info be added to an invoice?',
+    question: 'Có thể thêm thông tin khác vào hóa đơn không?',
     answer:
-      'Yes, you can customize your invoices with additional information such as company details, tax information, and custom notes.'
+      'Có, bạn có thể tùy chỉnh hóa đơn của mình với thông tin bổ sung như chi tiết công ty, thông tin thuế và ghi chú tùy chỉnh.'
   },
   {
-    question: 'How does billing work?',
+    question: 'Cách thanh toán hoạt động như thế nào?',
     answer:
-      'We offer monthly and annual billing options. All plans are billed in advance, and you can update your payment method at any time in your account settings.'
+      'Chúng tôi cung cấp các tùy chọn thanh toán hàng tháng và hàng năm. Tất cả các gói được thanh toán trước, và bạn có thể cập nhật phương thức thanh toán của mình bất cứ lúc nào trong cài đặt tài khoản.'
   },
   {
-    question: 'How do I change my account email?',
+    question: 'Làm thế nào để thay đổi email tài khoản của tôi?',
     answer:
-      'You can change your account email by going to your account settings and updating your email address. You will need to verify the new email address.'
+      'Bạn có thể thay đổi email tài khoản của mình bằng cách vào cài đặt tài khoản và cập nhật địa chỉ email của bạn. Bạn sẽ cần xác minh địa chỉ email mới.'
   }
 ]
 

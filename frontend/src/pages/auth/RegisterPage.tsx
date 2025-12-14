@@ -153,10 +153,10 @@ function RegisterPage() {
           {/* Heading */}
           <div className="mb-6 text-center">
             <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-              Create Account
+              {t('auth.register.title')}
             </h1>
             <p className="text-gray-500">
-              Join our learning community and start your journey.
+              {t('auth.register.subtitle')}
             </p>
           </div>
 
@@ -165,7 +165,7 @@ function RegisterPage() {
             {/* Full Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name <span className="text-red-500">*</span>
+                {t('auth.register.fullName')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -173,7 +173,7 @@ function RegisterPage() {
                   type="text"
                   value={formData.full_name}
                   onChange={(e) => updateFormData('full_name', e.target.value)}
-                  placeholder="Enter your full name"
+                  placeholder="Nhập họ và tên của bạn"
                   className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                     errors.full_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
@@ -186,7 +186,7 @@ function RegisterPage() {
             {/* Username */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username <span className="text-gray-400 text-xs">(auto-generated if empty)</span>
+                Tên người dùng <span className="text-gray-400 text-xs">(tự động tạo nếu để trống)</span>
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -197,7 +197,7 @@ function RegisterPage() {
                     const value = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase()
                     updateFormData('username', value)
                   }}
-                  placeholder="username (optional)"
+                  placeholder="Tên người dùng (tùy chọn)"
                   className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                     errors.username ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
@@ -210,7 +210,7 @@ function RegisterPage() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address <span className="text-red-500">*</span>
+                {t('auth.register.email')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -218,7 +218,7 @@ function RegisterPage() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => updateFormData('email', e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder="Nhập email của bạn"
                   className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                     errors.email
                       ? 'border-red-500 focus:ring-red-500'
@@ -238,13 +238,13 @@ function RegisterPage() {
             {/* Phone (optional) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number <span className="text-gray-400 text-xs">(Optional)</span>
+                {t('auth.register.phoneNumber')} <span className="text-gray-400 text-xs">({t('common.optional')})</span>
               </label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => updateFormData('phone', e.target.value)}
-                placeholder="Enter your phone number (optional)"
+                placeholder="Nhập số điện thoại của bạn (tùy chọn)"
                 className="w-full px-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isLoading}
               />
@@ -253,7 +253,7 @@ function RegisterPage() {
             {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password <span className="text-red-500">*</span>
+                {t('auth.register.password')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -261,7 +261,7 @@ function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => updateFormData('password', e.target.value)}
-                  placeholder="Min 8 chars, uppercase, lowercase, number, special"
+                  placeholder="Tối thiểu 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt"
                   className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                     errors.password
                       ? 'border-red-500 focus:ring-red-500'
@@ -285,7 +285,7 @@ function RegisterPage() {
             {/* Confirm Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password <span className="text-red-500">*</span>
+                {t('auth.register.confirmPassword')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -293,7 +293,7 @@ function RegisterPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={(e) => updateFormData('confirmPassword', e.target.value)}
-                  placeholder="Confirm your password"
+                  placeholder="Xác nhận mật khẩu của bạn"
                   className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                     errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
@@ -316,7 +316,7 @@ function RegisterPage() {
               isLoading={isLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium"
             >
-              Create Account
+              {t('auth.register.submit')}
             </Button>
           </form>
 
@@ -352,7 +352,7 @@ function RegisterPage() {
           <div className="relative z-0 p-8 lg:p-12">
             <img
               src="/auth_register.png"
-              alt="Register illustration"
+              alt="Hình minh họa đăng ký"
               className="w-full max-w-md h-auto object-contain drop-shadow-2xl"
               onError={(e) => {
                 const target = e.currentTarget

@@ -28,7 +28,7 @@ export function FileManagementPanel({ courseId }: FileManagementPanelProps) {
   return (
     <div className="w-full max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">
-        File Management
+        Quản lý tệp
       </h1>
 
       {/* Storage Quota Widget */}
@@ -47,7 +47,7 @@ export function FileManagementPanel({ courseId }: FileManagementPanelProps) {
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Upload Files
+            Tải tệp lên
           </button>
           <button
             onClick={() => setActiveTab('files')}
@@ -57,7 +57,7 @@ export function FileManagementPanel({ courseId }: FileManagementPanelProps) {
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            My Files
+            Tệp của tôi
           </button>
         </div>
       </div>
@@ -66,7 +66,7 @@ export function FileManagementPanel({ courseId }: FileManagementPanelProps) {
       {activeTab === 'upload' && (
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Upload New Files
+            Tải tệp mới lên
           </h2>
           <FileUpload
             courseId={courseId}
@@ -80,7 +80,7 @@ export function FileManagementPanel({ courseId }: FileManagementPanelProps) {
       {activeTab === 'files' && (
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Course Files
+            Tệp khóa học
           </h2>
           <FileList
             key={refreshKey}

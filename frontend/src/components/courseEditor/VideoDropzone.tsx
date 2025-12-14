@@ -53,7 +53,7 @@ export function VideoDropzone({
 
     const handleFile = (file: File) => {
         if (file.size > maxSize * 1024 * 1024) {
-            alert(`File size must be less than ${maxSize}MB`);
+            alert(`Kích thước tệp phải nhỏ hơn ${maxSize}MB`);
             return;
         }
 
@@ -62,7 +62,7 @@ export function VideoDropzone({
         video.preload = 'metadata';
         video.onloadedmetadata = () => {
             if (video.duration > maxDuration) {
-                alert(`Video duration must be less than ${maxDuration} seconds`);
+                alert(`Thời lượng video phải nhỏ hơn ${maxDuration} giây`);
                 return;
             }
             onChange(file);
@@ -133,7 +133,7 @@ export function VideoDropzone({
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-900">{fileName}</p>
-                            <p className="text-sm text-gray-600">Click to change video</p>
+                            <p className="text-sm text-gray-600">Nhấp để đổi video</p>
                         </div>
                     </div>
                 ) : (
@@ -142,19 +142,19 @@ export function VideoDropzone({
                             <Video className="w-8 h-8 text-gray-400" />
                         </div>
                         <div>
-                            <p className="text-lg font-medium text-gray-900">Upload promotional video</p>
+                            <p className="text-lg font-medium text-gray-900">Tải lên video giới thiệu</p>
                             <p className="text-sm text-gray-500 mt-1">
-                                Drag and drop a video here, or click to browse
+                                Kéo thả video vào đây, hoặc nhấp để chọn
                             </p>
                             <p className="text-xs text-gray-400 mt-2">
-                                MP4 up to {maxSize}MB, max {maxDuration}s
+                                MP4 tối đa {maxSize}MB, tối đa {maxDuration} giây
                             </p>
                         </div>
                         <button
                             type="button"
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
-                            Browse
+                            Chọn
                         </button>
                     </div>
                 )}

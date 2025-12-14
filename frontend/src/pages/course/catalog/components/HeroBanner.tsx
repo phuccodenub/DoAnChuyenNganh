@@ -146,14 +146,14 @@ export function HeroBanner() {
       <button
         onClick={goToPrevious}
         className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white p-2 rounded-full transition-colors"
-        aria-label="Previous slide"
+        aria-label="Slide trước"
       >
         <ChevronLeft className="w-6 h-6" />
       </button>
       <button
         onClick={goToNext}
         className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white p-2 rounded-full transition-colors"
-        aria-label="Next slide"
+        aria-label="Slide tiếp theo"
       >
         <ChevronRight className="w-6 h-6" />
       </button>

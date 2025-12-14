@@ -64,7 +64,7 @@ export function HeroSection({ onPrimaryCta, onSecondaryCta }: HeroSectionProps) 
         <div className="flex justify-center">
           <img
             src="/learning_banner.png"
-            alt="Learning experience illustration"
+            alt="Hình minh họa trải nghiệm học tập"
             className="w-full max-w-xl object-contain lg:max-w-2xl"
           />
         </div>

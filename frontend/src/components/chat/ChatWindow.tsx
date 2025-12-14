@@ -30,9 +30,9 @@ export function ChatWindow({
       {/* Header */}
       <div className="border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold">Course Discussion</h3>
+          <h3 className="text-lg font-semibold">Thảo luận khóa học</h3>
           <p className="text-sm opacity-90">
-            {statistics ? `${statistics.totalMessages} messages` : 'Loading...'}
+            {statistics ? `${statistics.totalMessages} tin nhắn` : 'Đang tải...'}
           </p>
         </div>
 
@@ -40,7 +40,7 @@ export function ChatWindow({
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5" />
           <span className="text-sm font-medium">
-            {onlineUsers?.length || 0} online
+            {onlineUsers?.length || 0} đang online
           </span>
         </div>
 
@@ -49,7 +49,7 @@ export function ChatWindow({
           <button
             onClick={onClose}
             className="ml-2 p-1 hover:bg-blue-500 rounded transition-colors"
-            title="Close"
+            title="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
@@ -62,7 +62,7 @@ export function ChatWindow({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search messages..."
+            placeholder="Tìm kiếm tin nhắn..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"

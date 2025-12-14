@@ -12,10 +12,10 @@ import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, Loader } from 'lucide-reac
  */
 const resetPasswordSchema = z.object({
   password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
+    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+    .regex(/[A-Z]/, 'Mật khẩu phải chứa ít nhất một chữ cái in hoa')
+    .regex(/[a-z]/, 'Mật khẩu phải chứa ít nhất một chữ cái thường')
+    .regex(/[0-9]/, 'Mật khẩu phải chứa ít nhất một số'),
   confirmPassword: z.string(),
 }).refine(
   (data) => data.password === data.confirmPassword,
@@ -84,12 +84,12 @@ export default function ResetPasswordPage() {
 
             {/* Title */}
             <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">
-              Password Reset Successfully
+              Đặt lại mật khẩu thành công
             </h1>
 
             {/* Description */}
             <p className="text-center text-slate-600 mb-6">
-              Your password has been changed successfully. Redirecting to login...
+              Mật khẩu của bạn đã được thay đổi thành công. Đang chuyển hướng đến trang đăng nhập...
             </p>
 
             {/* Success Animation */}
@@ -119,12 +119,12 @@ export default function ResetPasswordPage() {
 
             {/* Title */}
             <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">
-              Invalid Reset Link
+              Liên kết đặt lại không hợp lệ
             </h1>
 
             {/* Description */}
             <p className="text-center text-slate-600 mb-6">
-              This password reset link is invalid or has expired. Please request a new one.
+              Liên kết đặt lại mật khẩu này không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu liên kết mới.
             </p>
 
             {/* Action Button */}
@@ -132,7 +132,7 @@ export default function ResetPasswordPage() {
               to={ROUTES.FORGOT_PASSWORD}
               className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-center"
             >
-              Request New Reset Link
+              Yêu cầu liên kết đặt lại mới
             </Link>
 
             {/* Back to Login */}
@@ -155,10 +155,10 @@ export default function ResetPasswordPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Reset Password
+              Đặt lại mật khẩu
             </h1>
             <p className="text-slate-600">
-              Enter your new password below. Make sure it's strong and secure.
+              Nhập mật khẩu mới của bạn bên dưới. Đảm bảo mật khẩu mạnh và an toàn.
             </p>
           </div>
 
@@ -167,9 +167,9 @@ export default function ResetPasswordPage() {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-900">Error</p>
+                <p className="text-sm font-medium text-red-900">Lỗi</p>
                 <p className="text-sm text-red-700">
-                  {error.message || 'Failed to reset password. Please try again.'}
+                  {error.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.'}
                 </p>
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function ResetPasswordPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   {...register('password')}
-                  placeholder="Enter new password"
+                  placeholder="Nhập mật khẩu mới"
                   className={`w-full pl-10 pr-10 py-2.5 border rounded-lg font-medium transition-colors ${
                     errors.password
                       ? 'border-red-300 bg-red-50 text-slate-900 placeholder:text-red-300'
@@ -220,7 +220,7 @@ export default function ResetPasswordPage() {
               {passwordValue && (
                 <div className="mt-3 p-3 bg-slate-50 rounded-lg text-sm space-y-1">
                   <p className={passwordValue.length >= 8 ? 'text-emerald-600' : 'text-slate-600'}>
-                    {passwordValue.length >= 8 ? '✓' : '○'} At least 8 characters
+                    {passwordValue.length >= 8 ? '✓' : '○'} Ít nhất 8 ký tự
                   </p>
                   <p className={/[A-Z]/.test(passwordValue) ? 'text-emerald-600' : 'text-slate-600'}>
                     {/[A-Z]/.test(passwordValue) ? '✓' : '○'} At least one uppercase letter
@@ -238,7 +238,7 @@ export default function ResetPasswordPage() {
             {/* Confirm Password Field */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-900 mb-2">
-                Confirm Password
+                Xác nhận mật khẩu
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -246,7 +246,7 @@ export default function ResetPasswordPage() {
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   {...register('confirmPassword')}
-                  placeholder="Confirm new password"
+                  placeholder="Xác nhận mật khẩu mới"
                   className={`w-full pl-10 pr-10 py-2.5 border rounded-lg font-medium transition-colors ${
                     errors.confirmPassword
                       ? 'border-red-300 bg-red-50 text-slate-900 placeholder:text-red-300'
@@ -288,10 +288,10 @@ export default function ResetPasswordPage() {
               {isPending ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-blue-200 border-t-white rounded-full animate-spin" />
-                  Resetting...
+                  Đang đặt lại...
                 </span>
               ) : (
-                'Reset Password'
+                'Đặt lại mật khẩu'
               )}
             </button>
           </form>

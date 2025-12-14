@@ -36,7 +36,7 @@ export function LearningOutcomeInput({ outcomes, onChange, suggestions = [] }: L
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="What will students learn in this course?"
+                    placeholder="Học viên sẽ học được gì trong khóa học này?"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>

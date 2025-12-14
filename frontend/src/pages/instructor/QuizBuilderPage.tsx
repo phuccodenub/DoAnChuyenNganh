@@ -424,8 +424,8 @@ export function QuizBuilderPage() {
     return (
       <PageWrapper>
         <PageHeader
-          title="Loading Quiz..."
-          breadcrumbs={['Courses', 'Curriculum', 'Loading...']}
+          title="Đang tải Quiz..."
+          breadcrumbs={['Khóa học', 'Giáo trình', 'Đang tải...']}
         />
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
@@ -440,8 +440,8 @@ export function QuizBuilderPage() {
     return (
       <PageWrapper>
         <PageHeader
-          title="Error"
-          breadcrumbs={['Courses', 'Curriculum', 'Error']}
+          title="Lỗi"
+          breadcrumbs={['Khóa học', 'Giáo trình', 'Lỗi']}
         />
         <div className="flex flex-col items-center justify-center h-64">
           <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
@@ -465,8 +465,8 @@ export function QuizBuilderPage() {
 
       {/* ========== PAGE HEADER - Breadcrumbs (giống CourseEditorPage & CurriculumBuilderPage) ========== */}
       <PageHeader
-        title={isEditMode ? 'Edit Quiz' : 'Create Quiz'}
-        breadcrumbs={['Courses', 'Curriculum', isEditMode ? 'Edit Quiz' : 'Create Quiz']}
+        title={isEditMode ? 'Chỉnh sửa Quiz' : 'Tạo Quiz'}
+        breadcrumbs={['Khóa học', 'Giáo trình', isEditMode ? 'Chỉnh sửa Quiz' : 'Tạo Quiz']}
       />
 
       {/* ========== QUIZ TITLE & ACTIONS ========== */}

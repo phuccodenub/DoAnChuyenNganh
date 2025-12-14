@@ -66,8 +66,8 @@ export function ChatMessagesList({
       {messages.length === 0 && (
         <div className="flex items-center justify-center h-full text-center">
           <div className="text-gray-500">
-            <p className="text-sm">No messages yet</p>
-            <p className="text-xs">Start a conversation!</p>
+            <p className="text-sm">Chưa có tin nhắn</p>
+            <p className="text-xs">Bắt đầu cuộc trò chuyện!</p>
           </div>
         </div>
       )}

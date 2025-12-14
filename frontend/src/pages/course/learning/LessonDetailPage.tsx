@@ -80,7 +80,7 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
         contentType: lesson.content_type,
         hasContent: !!lesson.content,
         contentLength: lesson.content?.length || 0,
-        contentPreview: lesson.content?.substring(0, 200) || 'NO CONTENT',
+        contentPreview: lesson.content?.substring(0, 200) || 'KHÔNG CÓ NỘI DUNG',
         contentStartsWithHTML: lesson.content?.trim().startsWith('<') || false,
       });
     }
@@ -842,7 +842,7 @@ export function LessonDetailPage() {
         lessonDataKeys: lessonData ? Object.keys(lessonData) : [],
         hasContent: !!lesson?.content,
         contentLength: lesson?.content?.length || 0,
-        contentPreview: lesson?.content?.substring(0, 100) || 'NO CONTENT',
+        contentPreview: lesson?.content?.substring(0, 100) || 'KHÔNG CÓ NỘI DUNG',
         contentType: lesson?.content_type,
         courseContentSectionsCount: courseContent?.sections?.length || 0,
         courseDataSectionsCount: courseData?.sections?.length || 0,

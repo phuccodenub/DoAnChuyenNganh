@@ -13,7 +13,7 @@ export function ActionGroup({ onEdit, onDelete, className = '' }: ActionGroupPro
                 <button
                     onClick={onEdit}
                     className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                    title="Edit"
+                    title="Chỉnh sửa"
                 >
                     <Edit className="w-4 h-4" />
                 </button>
@@ -22,7 +22,7 @@ export function ActionGroup({ onEdit, onDelete, className = '' }: ActionGroupPro
                 <button
                     onClick={onDelete}
                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                    title="Delete"
+                    title="Xóa"
                 >
                     <Trash2 className="w-4 h-4" />
                 </button>

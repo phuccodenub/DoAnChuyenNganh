@@ -101,10 +101,10 @@ export function useIssueCertificate() {
     mutationFn: certificateApi.issueCertificate,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['certificates'] });
-      toast.success('Certificate issued successfully');
+      toast.success('Đã cấp chứng chỉ thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to issue certificate');
+      toast.error(error.response?.data?.message || 'Không thể cấp chứng chỉ');
     },
   });
 }
@@ -120,10 +120,10 @@ export function useRevokeCertificate() {
       certificateApi.revokeCertificate(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['certificates'] });
-      toast.success('Certificate revoked successfully');
+      toast.success('Đã thu hồi chứng chỉ thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to revoke certificate');
+      toast.error(error.response?.data?.message || 'Không thể thu hồi chứng chỉ');
     },
   });
 }

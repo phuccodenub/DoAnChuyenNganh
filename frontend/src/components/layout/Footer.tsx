@@ -14,7 +14,7 @@ export function Footer() {
               <img src="/GekLearn.png" alt="GekLearn logo" className="h-8 w-auto object-contain" />
             </div>
             <p className="text-sm text-slate-400">
-              Design amazing digital experiences that create more happy in the world.
+              Thiết kế những trải nghiệm số tuyệt vời tạo thêm niềm vui cho thế giới.
             </p>
           </div>
 
@@ -31,7 +31,7 @@ export function Footer() {
               <li>
                 <Link to={ROUTES.COURSES} className="hover:text-white transition-colors inline-flex items-center gap-1">
                   Computer
-                  <span className="rounded bg-slate-700 px-1.5 py-0.5 text-xs text-slate-300">New</span>
+                  <span className="rounded bg-slate-700 px-1.5 py-0.5 text-xs text-slate-300">Mới</span>
                 </Link>
               </li>
               <li>
@@ -60,7 +60,7 @@ export function Footer() {
 
           {/* Analytical Skills */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-white">Analytical Skills</h3>
+            <h3 className="mb-4 text-sm font-semibold text-white">Kỹ năng Phân tích</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
                 <Link to={`${ROUTES.COURSES}?category=ai-ml`} className="hover:text-white transition-colors">AI</Link>
@@ -91,7 +91,7 @@ export function Footer() {
 
           {/* Business Skills */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-white">Business Skills</h3>
+            <h3 className="mb-4 text-sm font-semibold text-white">Kỹ năng Kinh doanh</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
                 <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Accounting</Link>
@@ -153,31 +153,31 @@ export function Footer() {
             <h3 className="mb-4 text-sm font-semibold text-white">GekLearn</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
-                <Link to={ROUTES.ABOUT} className="hover:text-white transition-colors">About</Link>
+                <Link to={ROUTES.ABOUT} className="hover:text-white transition-colors">Giới thiệu</Link>
               </li>
               <li>
-                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">What We Offer</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Những gì chúng tôi cung cấp</Link>
               </li>
               <li>
-                <Link to={ROUTES.ABOUT} className="hover:text-white transition-colors">Leadership</Link>
+                <Link to={ROUTES.ABOUT} className="hover:text-white transition-colors">Ban lãnh đạo</Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">Careers</a>
+                <a href="#" className="hover:text-white transition-colors">Tuyển dụng</a>
               </li>
               <li>
-                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Catalog</Link>
+                <Link to={ROUTES.COURSES} className="hover:text-white transition-colors">Danh mục</Link>
               </li>
               <li>
                 <a href="#" className="hover:text-white transition-colors">GekLearn Plus</a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">Degrees</a>
+                <a href="#" className="hover:text-white transition-colors">Bằng cấp</a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">For Enterprise</a>
+                <a href="#" className="hover:text-white transition-colors">Cho Doanh nghiệp</a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">For Government</a>
+                <a href="#" className="hover:text-white transition-colors">Cho Chính phủ</a>
               </li>
             </ul>
           </div>

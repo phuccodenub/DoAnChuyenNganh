@@ -13,7 +13,7 @@ export function InlineEditInput({
     value,
     onSave,
     onCancel,
-    placeholder = 'Click to edit...',
+    placeholder = 'Nhấp để chỉnh sửa...',
     className = ''
 }: InlineEditInputProps) {
     const [isEditing, setIsEditing] = useState(false);
@@ -68,14 +68,14 @@ export function InlineEditInput({
                 <button
                     onClick={handleSave}
                     className="p-1 text-green-600 hover:bg-green-50 rounded"
-                    title="Save"
+                    title="Lưu"
                 >
                     <Check className="w-4 h-4" />
                 </button>
                 <button
                     onClick={handleCancel}
                     className="p-1 text-gray-500 hover:bg-gray-100 rounded"
-                    title="Cancel"
+                    title="Hủy"
                 >
                     <X className="w-4 h-4" />
                 </button>
@@ -87,7 +87,7 @@ export function InlineEditInput({
         <span
             onClick={handleStartEdit}
             className={`cursor-pointer hover:bg-gray-100 px-2 py-1 rounded transition-colors ${className}`}
-            title="Click to edit"
+            title="Nhấp để chỉnh sửa"
         >
             {value || <span className="text-gray-400 italic">{placeholder}</span>}
         </span>

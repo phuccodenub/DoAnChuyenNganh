@@ -44,10 +44,10 @@ export default function CertificateVerifyPage() {
             <Award className="w-8 h-8 text-blue-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Certificate Verification
+            Xác minh chứng chỉ
           </h1>
           <p className="text-gray-600">
-            Verify the authenticity of a certificate using its hash
+            Xác minh tính xác thực của chứng chỉ bằng mã hash
           </p>
         </div>
 
@@ -63,15 +63,15 @@ export default function CertificateVerifyPage() {
                   type="text"
                   value={hash}
                   onChange={(e) => setHash(e.target.value)}
-                  placeholder="Enter certificate hash..."
+                  placeholder="Nhập mã hash chứng chỉ..."
                   className="flex-1 font-mono text-sm"
                 />
                 <Button onClick={handleVerify} disabled={!hash.trim() || isLoading}>
-                  Verify
+                  Xác minh
                 </Button>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Enter the certificate hash to verify its authenticity
+                Nhập mã hash chứng chỉ để xác minh tính xác thực
               </p>
             </div>
           </div>
@@ -82,7 +82,7 @@ export default function CertificateVerifyPage() {
           <Card className="p-8">
             <div className="flex flex-col items-center justify-center">
               <Spinner size="lg" />
-              <p className="mt-4 text-gray-600">Verifying certificate...</p>
+              <p className="mt-4 text-gray-600">Đang xác minh chứng chỉ...</p>
             </div>
           </Card>
         )}
@@ -97,10 +97,10 @@ export default function CertificateVerifyPage() {
                     <CheckCircle2 className="w-8 h-8 text-green-600" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Certificate Verified
+                    Chứng chỉ đã được xác minh
                   </h2>
                   <p className="text-green-600 font-medium">
-                    This certificate is authentic and valid
+                    Chứng chỉ này là xác thực và hợp lệ
                   </p>
                 </div>
 
@@ -130,7 +130,7 @@ export default function CertificateVerifyPage() {
                       <div className="flex items-start gap-3">
                         <User className="w-5 h-5 text-gray-400 mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Instructor</p>
+                          <p className="text-xs text-gray-500 mb-1">Giảng viên</p>
                           <p className="font-medium text-gray-900">
                             {verifyResult.certificate.metadata.course.instructor.name}
                           </p>
@@ -140,7 +140,7 @@ export default function CertificateVerifyPage() {
                       <div className="flex items-start gap-3">
                         <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Completion Date</p>
+                          <p className="text-xs text-gray-500 mb-1">Ngày hoàn thành</p>
                           <p className="font-medium text-gray-900">
                             {new Date(verifyResult.certificate.metadata.completion.date).toLocaleDateString('vi-VN', {
                               year: 'numeric',
@@ -166,7 +166,7 @@ export default function CertificateVerifyPage() {
                       <div className="flex items-start gap-3">
                         <Hash className="w-5 h-5 text-gray-400 mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Certificate Number</p>
+                          <p className="text-xs text-gray-500 mb-1">Số chứng chỉ</p>
                           <p className="font-mono text-sm text-gray-900">
                             {verifyResult.certificate.certificate_number}
                           </p>
@@ -193,11 +193,11 @@ export default function CertificateVerifyPage() {
                       <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                       <div className="text-left">
                         <p className="text-sm font-medium text-yellow-800">
-                          Certificate Status: {verifyResult.certificate.status}
+                          Trạng thái chứng chỉ: {verifyResult.certificate.status === 'active' ? 'Đang hoạt động' : verifyResult.certificate.status === 'revoked' ? 'Đã thu hồi' : verifyResult.certificate.status}
                         </p>
                         {verifyResult.certificate.revoked_reason && (
                           <p className="text-xs text-yellow-700 mt-1">
-                            Reason: {verifyResult.certificate.revoked_reason}
+                            Lý do: {verifyResult.certificate.revoked_reason}
                           </p>
                         )}
                       </div>
@@ -215,7 +215,7 @@ export default function CertificateVerifyPage() {
             to={ROUTES.LANDING_PAGE}
             className="text-sm text-gray-600 hover:text-gray-900"
           >
-            ← Back to Home
+            ← Về trang chủ
           </Link>
         </div>
       </div>

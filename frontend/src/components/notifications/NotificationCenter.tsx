@@ -37,7 +37,7 @@ export function NotificationCenter() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        title="Notifications"
+        title="Thông báo"
       >
         <Bell className="w-6 h-6 text-gray-700" />
         {unreadCount > 0 && (
@@ -53,14 +53,14 @@ export function NotificationCenter() {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">
-              Notifications
+              Thông báo
             </h3>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button
                   onClick={() => handleMarkAllAsRead()}
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                  title="Mark all as read"
+                  title="Đánh dấu tất cả đã đọc"
                 >
                   <CheckCheck className="w-4 h-4" />
                 </button>
@@ -83,7 +83,7 @@ export function NotificationCenter() {
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-gray-500">
                 <Bell className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-sm">No notifications yet</p>
+                <p className="text-sm">Chưa có thông báo nào</p>
               </div>
             ) : (
               <ul className="divide-y divide-gray-200">
@@ -147,7 +147,7 @@ export function NotificationCenter() {
                           handleDelete(notification.id);
                         }}
                         className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
+                        title="Xóa"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -162,7 +162,7 @@ export function NotificationCenter() {
           {notifications.length > 0 && (
             <div className="border-t border-gray-200 p-3 bg-gray-50">
               <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
-                View All Notifications
+                Xem tất cả thông báo
               </button>
             </div>
           )}

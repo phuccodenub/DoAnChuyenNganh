@@ -671,31 +671,31 @@ export function LessonModal({
                                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                                     {/* Toolbar cho Document */}
                                     <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-1 flex-wrap">
-                                        <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Bold" />
-                                        <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Italic" />
-                                        <ToolbarButton icon={<Underline className="w-4 h-4" />} onClick={handleUnderline} title="Underline" />
-                                        <ToolbarButton icon={<Strikethrough className="w-4 h-4" />} onClick={handleStrikethrough} title="Strikethrough" />
+                                        <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Đậm" />
+                                        <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Nghiêng" />
+                                        <ToolbarButton icon={<Underline className="w-4 h-4" />} onClick={handleUnderline} title="Gạch chân" />
+                                        <ToolbarButton icon={<Strikethrough className="w-4 h-4" />} onClick={handleStrikethrough} title="Gạch ngang" />
                                         <ToolbarDivider />
                                         <ToolbarButton icon={<Heading1 className="w-4 h-4" />} onClick={handleHeading1} title="Heading 1" />
                                         <ToolbarButton icon={<Heading2 className="w-4 h-4" />} onClick={handleHeading2} title="Heading 2" />
                                         <ToolbarButton icon={<Heading3 className="w-4 h-4" />} onClick={handleHeading3} title="Heading 3" />
                                         <ToolbarButton icon={<Type className="w-4 h-4" />} onClick={handleParagraph} title="Paragraph" />
                                         <ToolbarDivider />
-                                        <ToolbarButton icon={<AlignLeft className="w-4 h-4" />} onClick={handleAlignLeft} title="Align Left" />
-                                        <ToolbarButton icon={<AlignCenter className="w-4 h-4" />} onClick={handleAlignCenter} title="Align Center" />
-                                        <ToolbarButton icon={<AlignRight className="w-4 h-4" />} onClick={handleAlignRight} title="Align Right" />
-                                        <ToolbarButton icon={<AlignJustify className="w-4 h-4" />} onClick={handleAlignJustify} title="Justify" />
+                                        <ToolbarButton icon={<AlignLeft className="w-4 h-4" />} onClick={handleAlignLeft} title="Căn trái" />
+                                        <ToolbarButton icon={<AlignCenter className="w-4 h-4" />} onClick={handleAlignCenter} title="Căn giữa" />
+                                        <ToolbarButton icon={<AlignRight className="w-4 h-4" />} onClick={handleAlignRight} title="Căn phải" />
+                                        <ToolbarButton icon={<AlignJustify className="w-4 h-4" />} onClick={handleAlignJustify} title="Căn đều" />
                                         <ToolbarDivider />
-                                        <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Bullet List" />
-                                        <ToolbarButton icon={<ListOrdered className="w-4 h-4" />} onClick={handleOrderedList} title="Numbered List" />
+                                        <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Danh sách dấu đầu dòng" />
+                                        <ToolbarButton icon={<ListOrdered className="w-4 h-4" />} onClick={handleOrderedList} title="Danh sách đánh số" />
                                         <ToolbarDivider />
-                                        <ToolbarButton icon={<Link className="w-4 h-4" />} onClick={handleInsertLink} title="Insert Link" />
-                                        <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Insert Image" />
-                                        <ToolbarButton icon={<Code className="w-4 h-4" />} onClick={handleCode} title="Code Block" />
-                                        <ToolbarButton icon={<Quote className="w-4 h-4" />} onClick={handleBlockquote} title="Quote" />
+                                        <ToolbarButton icon={<Link className="w-4 h-4" />} onClick={handleInsertLink} title="Chèn liên kết" />
+                                        <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Chèn hình ảnh" />
+                                        <ToolbarButton icon={<Code className="w-4 h-4" />} onClick={handleCode} title="Khối mã" />
+                                        <ToolbarButton icon={<Quote className="w-4 h-4" />} onClick={handleBlockquote} title="Trích dẫn" />
                                         <ToolbarDivider />
-                                        <ToolbarButton icon={<Undo className="w-4 h-4" />} onClick={handleUndo} title="Undo" />
-                                        <ToolbarButton icon={<Redo className="w-4 h-4" />} onClick={handleRedo} title="Redo" />
+                                        <ToolbarButton icon={<Undo className="w-4 h-4" />} onClick={handleUndo} title="Hoàn tác" />
+                                        <ToolbarButton icon={<Redo className="w-4 h-4" />} onClick={handleRedo} title="Làm lại" />
                                     </div>
 
                                     {/* Editor Area */}
@@ -721,10 +721,10 @@ export function LessonModal({
                                 <h3 className="text-sm font-semibold text-gray-700">Mô tả bài học</h3>
                                 {/* Toolbar nhỏ gọn hơn */}
                                 <div className="flex items-center gap-1 scale-90 origin-right">
-                                    <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Bold" />
-                                    <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Italic" />
-                                    <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="List" />
-                                    <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Image" />
+                                    <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Đậm" />
+                                    <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Nghiêng" />
+                                    <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Danh sách" />
+                                    <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Hình ảnh" />
                                     {/* Video button ở đây để chèn vào body text nếu cần, nhưng đã có phần attachment ở trên */}
                                 </div>
                             </div>

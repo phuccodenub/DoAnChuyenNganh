@@ -12,7 +12,7 @@ export function AffiliateProgram({ onPrimaryCta }: AffiliateProgramProps) {
           <div className="relative h-96 md:h-full">
             <img
               src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800"
-              alt="Join Affiliate Program"
+              alt="Tham gia chương trình đối tác"
               className="h-full w-full object-cover"
             />
           </div>

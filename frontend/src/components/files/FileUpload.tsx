@@ -52,7 +52,7 @@ export function FileUpload({
   const processFiles = (files: File[]) => {
     // Validate file count
     if (files.length > maxFiles) {
-      alert(`Maximum ${maxFiles} files allowed`);
+      alert(`Tối đa ${maxFiles} tệp được phép`);
       return;
     }
 
@@ -60,7 +60,7 @@ export function FileUpload({
     const validFiles = files.filter((file) => {
       if (file.size > maxSize) {
         alert(
-          `File "${file.name}" exceeds maximum size of ${(maxSize / 1024 / 1024).toFixed(2)}MB`
+          `Tệp "${file.name}" vượt quá kích thước tối đa ${(maxSize / 1024 / 1024).toFixed(2)}MB`
         );
         return false;
       }
@@ -119,26 +119,26 @@ export function FileUpload({
         />
 
         <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-        <p className="text-gray-700 font-medium mb-1">Drag and drop files here</p>
+        <p className="text-gray-700 font-medium mb-1">Kéo thả tệp vào đây</p>
         <p className="text-sm text-gray-500 mb-4">
-          or{' '}
+          hoặc{' '}
           <button
             onClick={handleBrowse}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            browse
+            chọn tệp
           </button>
         </p>
 
         <p className="text-xs text-gray-500">
-          Maximum {maxFiles} files, {(maxSize / 1024 / 1024).toFixed(0)}MB each
+          Tối đa {maxFiles} tệp, mỗi tệp {(maxSize / 1024 / 1024).toFixed(0)}MB
         </p>
       </div>
 
       {/* Selected Files List */}
       {selectedFiles.length > 0 && (
         <div className="mt-4 space-y-2">
-          <h4 className="font-medium text-gray-900">Selected Files ({selectedFiles.length})</h4>
+          <h4 className="font-medium text-gray-900">Tệp đã chọn ({selectedFiles.length})</h4>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {selectedFiles.map((file, index) => (
               <div
@@ -194,7 +194,7 @@ export function FileUpload({
                 : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
             )}
           >
-            {isPending ? 'Uploading...' : `Upload ${selectedFiles.length} File(s)`}
+            {isPending ? 'Đang tải lên...' : `Tải lên ${selectedFiles.length} tệp`}
           </button>
         </div>
       )}

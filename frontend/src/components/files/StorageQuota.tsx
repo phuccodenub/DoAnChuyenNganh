@@ -51,15 +51,15 @@ export function StorageQuota() {
       {/* Storage Details */}
       <div className="space-y-2 mb-4">
         <div className="flex justify-between text-sm text-gray-700">
-          <span>Used Space</span>
+          <span>Đã sử dụng</span>
           <span className="font-medium">
             {used} GB of {limit} GB
           </span>
         </div>
         <div className="flex justify-between text-sm text-gray-700">
-          <span>Remaining</span>
+          <span>Còn lại</span>
           <span className="font-medium text-green-600">
-            {remaining} GB free
+            {remaining} GB trống
           </span>
         </div>
       </div>
@@ -94,12 +94,12 @@ export function StorageQuota() {
       {/* Warnings */}
       {isCritical && (
         <div className="mt-3 p-2 bg-red-100 border border-red-300 rounded text-sm text-red-700">
-          ⚠️ You have used almost all your storage. Please delete some files.
+          ⚠️ Bạn đã sử dụng gần hết dung lượng lưu trữ. Vui lòng xóa một số tệp.
         </div>
       )}
       {isWarning && !isCritical && (
         <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded text-sm text-yellow-700">
-          ⚠️ You are running low on storage. Consider cleaning up old files.
+          ⚠️ Dung lượng lưu trữ của bạn đang thấp. Hãy xem xét dọn dẹp các tệp cũ.
         </div>
       )}
     </div>

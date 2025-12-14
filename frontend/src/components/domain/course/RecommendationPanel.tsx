@@ -36,7 +36,7 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
       {recommendations.length > 0 && (
         <section aria-labelledby="recommendations-heading">
           <h2 id="recommendations-heading" className="text-lg font-semibold text-gray-900 mb-4">
-            Recommended For You
+            Đề xuất cho bạn
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {recommendations.slice(0, 4).map((item) => (
@@ -68,7 +68,7 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-5 h-5 text-orange-500" />
             <h2 id="trending-heading" className="text-lg font-semibold text-gray-900">
-              Trending Now
+              Đang thịnh hành
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -90,7 +90,7 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({
       {/* Empty State */}
       {recommendations.length === 0 && trending.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-gray-500">{t('common.error')} - No recommendations available</p>
+          <p className="text-gray-500">{t('common.error')} - Không có đề xuất nào</p>
         </div>
       )}
     </div>

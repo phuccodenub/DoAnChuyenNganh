@@ -180,7 +180,7 @@ export default function ProfilePageContent() {
                 <div className="relative shrink-0 -mt-16 md:-mt-12 group">
                     <img 
                         src={getAvatarUrl()} 
-                        alt="Profile" 
+                        alt="Hồ sơ" 
                         className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-md object-cover bg-white"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;

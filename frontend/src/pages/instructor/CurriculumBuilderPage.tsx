@@ -495,8 +495,8 @@ export function CurriculumBuilderPage() {
       <PageWrapper>
         {/* Page Header với breadcrumb và nút Save */}
         <PageHeader
-          title="Curriculum Builder"
-          breadcrumbs={['Courses', 'Curriculum']}
+          title="Xây dựng giáo trình"
+          breadcrumbs={['Khóa học', 'Giáo trình']}
         />
 
         {/* Step Wizard */}
@@ -507,14 +507,14 @@ export function CurriculumBuilderPage() {
           {/* Header với nút Save */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Build Your Curriculum</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Xây dựng giáo trình của bạn</h1>
               <p className="text-gray-600 mt-1">
-                Organize your course content into sections and lessons
+                Tổ chức nội dung khóa học thành các chương và bài học
               </p>
             </div>
             <Button onClick={handleSave} className="gap-2" disabled={deleteSectionMutation.isPending || createSectionMutation.isPending}>
               <Save className="w-4 h-4" />
-              Save Curriculum
+              Lưu giáo trình
             </Button>
           </div>
 
@@ -544,12 +544,12 @@ export function CurriculumBuilderPage() {
                         <ChevronRight className="w-5 h-5 text-gray-500" />
                       )}
                       <span className="font-semibold text-gray-900">
-                        Section {sectionIndex + 1}:
+                        Chương {sectionIndex + 1}:
                       </span>
                       <InlineEditInput
                         value={section.title}
                         onSave={(newTitle) => handleUpdateSectionTitle(section.id, newTitle)}
-                        placeholder="Type section name..."
+                        placeholder="Nhập tên chương..."
                         className="text-lg"
                       />
                     </button>
@@ -582,7 +582,7 @@ export function CurriculumBuilderPage() {
                                 <InlineEditInput
                                   value={lesson.title}
                                   onSave={(newTitle) => handleUpdateLessonTitle(section.id, lesson.id, newTitle)}
-                                  placeholder="Type lesson name..."
+                                  placeholder="Nhập tên bài học..."
                                 />
                                 <ActionGroup
                                   onEdit={() => handleEditContentItem(section.id, lesson)}

@@ -42,7 +42,7 @@ export function ContentItem({ type, title, duration, isPreview, isPractice, onEd
                     <span className="text-sm font-medium text-gray-900">{title}</span>
                     {isPreview && (
                         <Badge variant="info" size="sm">
-                            Preview
+                            Xem trước
                         </Badge>
                     )}
                     {(type === 'quiz' || type === 'assignment') && isPractice !== undefined && (
@@ -60,18 +60,18 @@ export function ContentItem({ type, title, duration, isPreview, isPractice, onEd
                     <button
                         onClick={onEdit}
                         className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                        title="Edit"
+                        title="Chỉnh sửa"
                     >
-                        <span className="text-xs">Edit</span>
+                        <span className="text-xs">Chỉnh sửa</span>
                     </button>
                 )}
                 {onDelete && (
                     <button
                         onClick={onDelete}
                         className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                        title="Delete"
+                        title="Xóa"
                     >
-                        <span className="text-xs">Delete</span>
+                        <span className="text-xs">Xóa</span>
                     </button>
                 )}
             </div>

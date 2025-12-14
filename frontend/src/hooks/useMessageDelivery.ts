@@ -151,7 +151,7 @@ export function useSendMessageWithDelivery(courseId: string) {
   const sendMessage = useCallback(
     async (content: string, replyToId?: string) => {
       if (!content.trim()) {
-        setError('Message cannot be empty');
+        setError('Tin nhắn không được để trống');
         return null;
       }
 

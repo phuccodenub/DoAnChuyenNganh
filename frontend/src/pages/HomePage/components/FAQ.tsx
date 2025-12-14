@@ -57,7 +57,7 @@ export function FAQ({ onSecondaryCta }: FAQProps) {
                 <img
                   key={avatar}
                   src={avatar}
-                  alt="Support avatar"
+                  alt="Ảnh đại diện hỗ trợ"
                   className="h-12 w-12 rounded-full object-cover"
                 />
               ))}

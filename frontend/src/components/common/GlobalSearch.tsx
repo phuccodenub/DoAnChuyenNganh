@@ -58,7 +58,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
           <button
             onClick={handleClear}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            aria-label="Clear search"
+            aria-label="Xóa tìm kiếm"
           >
             <X className="w-5 h-5" />
           </button>
@@ -110,7 +110,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
             </ul>
           ) : (
             <div className="p-4 text-center text-gray-500">
-              {t('common.error')} - No results found
+              {t('common.error')} - Không tìm thấy kết quả
             </div>
           )}
         </div>

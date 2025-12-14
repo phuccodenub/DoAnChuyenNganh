@@ -71,21 +71,21 @@ export function WYSIWYGEditor({ value, onChange, placeholder }: WYSIWYGEditorPro
                     <button
                         onClick={() => execCommand('bold')}
                         className="p-2 hover:bg-gray-700 rounded"
-                        title="Bold"
+                        title="Đậm"
                     >
                         <Bold className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => execCommand('italic')}
                         className="p-2 hover:bg-gray-700 rounded"
-                        title="Italic"
+                        title="Nghiêng"
                     >
                         <Italic className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => execCommand('underline')}
                         className="p-2 hover:bg-gray-700 rounded"
-                        title="Underline"
+                        title="Gạch chân"
                     >
                         <Underline className="w-4 h-4" />
                     </button>
@@ -93,39 +93,39 @@ export function WYSIWYGEditor({ value, onChange, placeholder }: WYSIWYGEditorPro
                     <button
                         onClick={() => execCommand('insertUnorderedList')}
                         className="p-2 hover:bg-gray-700 rounded"
-                        title="Bullet List"
+                        title="Danh sách dấu đầu dòng"
                     >
                         <List className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => execCommand('insertOrderedList')}
                         className="p-2 hover:bg-gray-700 rounded"
-                        title="Numbered List"
+                        title="Danh sách đánh số"
                     >
                         <ListOrdered className="w-4 h-4" />
                     </button>
                     <div className="w-px h-6 bg-gray-600 mx-1" />
                     <button
                         onClick={() => {
-                            const url = prompt('Enter URL:');
+                            const url = prompt('Nhập URL:');
                             if (url) execCommand('createLink', url);
                         }}
                         className="p-2 hover:bg-gray-700 rounded"
-                        title="Insert Link"
+                        title="Chèn liên kết"
                     >
                         <Link className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => execCommand('formatBlock', 'blockquote')}
                         className="p-2 hover:bg-gray-700 rounded"
-                        title="Quote"
+                        title="Trích dẫn"
                     >
                         <Quote className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => execCommand('formatBlock', 'pre')}
                         className="p-2 hover:bg-gray-700 rounded"
-                        title="Code Block"
+                        title="Khối mã"
                     >
                         <Code className="w-4 h-4" />
                     </button>
@@ -141,7 +141,7 @@ export function WYSIWYGEditor({ value, onChange, placeholder }: WYSIWYGEditorPro
                 onMouseUp={handleSelectionChange}
                 onKeyUp={handleSelectionChange}
                 className="min-h-[200px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent prose prose-sm max-w-none"
-                data-placeholder={placeholder || 'Start writing your course description...'}
+                data-placeholder={placeholder || 'Bắt đầu viết mô tả khóa học của bạn...'}
                 style={{
                     outline: 'none'
                 }}

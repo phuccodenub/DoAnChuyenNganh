@@ -1,0 +1,116 @@
+# Cursor Ignore File
+# Giúp Cursor bỏ qua các file/thư mục không cần thiết khi index để tăng tốc độ
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vite/
+**/dist/
+**/build/
+**/out/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+**/.cache/
+**/.vite/
+
+# Logs
+*.log
+logs/
+**/logs/
+**/*.log
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+
+# Docker
+.docker/
+docker/volumes/
+
+# Coverage
+coverage/
+.nyc_output/
+**/coverage/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Large data files
+*.sql
+*.dump
+*.backup
+*.bak
+
+# Upload directories (có thể chứa nhiều file lớn)
+uploads/
+**/uploads/
+public/uploads/
+
+# Git
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Backend specific
+backend/dist/
+backend/build/
+backend/logs/
+backend/coverage/
+backend/.cache/
+
+# Frontend specific  
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.next/
+frontend/coverage/
+
+# RTMP files (có thể chứa nhiều file lớn)
+rtmp/
+**/rtmp/
+
+# Monitoring data
+monitoring/data/
+
+# Large markdown files (nếu có)
+*.md.bak
+
+# Test results
+test-results/
+playwright-report/
+**/test-results/
+
+# Package lock files (không cần index)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

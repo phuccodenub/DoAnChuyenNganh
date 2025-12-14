@@ -15,7 +15,7 @@ interface ChatInputProps {
 export function ChatInput({
   courseId,
   onMessageSent,
-  placeholder = 'Type your message...',
+  placeholder = 'Nhập tin nhắn của bạn...',
 }: ChatInputProps) {
   const [content, setContent] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,7 +71,7 @@ export function ChatInput({
           type="button"
           className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
           disabled={isPending}
-          title="Attach file"
+          title="Đính kèm tệp"
         >
           <Paperclip className="w-5 h-5" />
         </button>
@@ -81,7 +81,7 @@ export function ChatInput({
           type="button"
           className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
           disabled={isPending}
-          title="Add emoji"
+          title="Thêm emoji"
         >
           <Smile className="w-5 h-5" />
         </button>
@@ -91,7 +91,7 @@ export function ChatInput({
           onClick={handleSend}
           disabled={isPending || content.trim().length === 0}
           className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white p-2 transition-colors disabled:bg-gray-300"
-          title="Send message"
+          title="Gửi tin nhắn"
         >
           {isPending ? (
             <Loader className="w-5 h-5 animate-spin" />
@@ -103,7 +103,7 @@ export function ChatInput({
 
       {/* Character count */}
       <div className="mt-2 text-xs text-gray-500">
-        {content.length} / 5000 characters
+        {content.length} / 5000 ký tự
       </div>
     </div>
   );

@@ -275,7 +275,7 @@ export function CourseInfoTab({ courseId, course: initialCourse }: CourseInfoTab
               <div className="relative inline-block">
                 <img
                   src={formData.thumbnailPreview}
-                  alt="Thumbnail preview"
+                  alt="Xem trước thumbnail"
                   className="w-full max-w-md aspect-video object-cover rounded-lg border border-gray-200"
                 />
                 <button

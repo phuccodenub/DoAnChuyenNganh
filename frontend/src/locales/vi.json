@@ -29,7 +29,8 @@
     "register": "Đăng ký",
     "confirm": "Xác nhận",
     "yes": "Có",
-    "no": "Không"
+    "no": "Không",
+    "optional": "Tùy chọn"
   },
   "myCourses": {
     "accessDeniedTitle": "Từ chối truy cập",
@@ -87,7 +88,13 @@
       "studentDemo": "Demo Học sinh",
       "demoPasswordHint": "Tất cả tài khoản demo sử dụng mật khẩu: demo123",
       "noAccount": "Chưa có tài khoản?",
-      "signUp": "Đăng ký"
+      "signUp": "Đăng ký",
+      "hidePassword": "Ẩn mật khẩu",
+      "showPassword": "Hiển thị mật khẩu",
+      "orContinueWith": "Hoặc tiếp tục với",
+      "loginWithGoogle": "Đăng nhập bằng Google",
+      "loginWithApple": "Đăng nhập bằng Apple",
+      "loginWithFacebook": "Đăng nhập bằng Facebook"
     },
     "register": {
       "title": "Tạo tài khoản",
@@ -114,7 +121,11 @@
       "submit": "Tạo tài khoản",
       "haveAccount": "Đã có tài khoản?",
       "signIn": "Đăng nhập",
-      "demoNote": "Lưu ý: Đây là chế độ demo. Dữ liệu sẽ không được lưu trữ sau khi làm mới trình duyệt."
+      "demoNote": "Lưu ý: Đây là chế độ demo. Dữ liệu sẽ không được lưu trữ sau khi làm mới trình duyệt.",
+      "phoneNumber": "Số điện thoại",
+      "phonePlaceholder": "Nhập số điện thoại của bạn (tùy chọn)",
+      "username": "Tên người dùng",
+      "usernamePlaceholder": "Tên người dùng (tự động tạo từ email nếu để trống)"
     },
     "messages": {
       "loginSuccess": "Đăng nhập thành công!",

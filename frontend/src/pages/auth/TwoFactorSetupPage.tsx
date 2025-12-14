@@ -138,7 +138,7 @@ export default function TwoFactorSetupPage() {
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('step_1_scan_qr_code')}</h2>
                 <div className="bg-gray-100 p-4 rounded-lg text-center">
                   {setupData.qrCode ? (
-                    <img src={setupData.qrCode} alt="QR Code" className="mx-auto w-48 h-48" />
+                    <img src={setupData.qrCode} alt="Mã QR" className="mx-auto w-48 h-48" />
                   ) : (
                     <p className="text-gray-600">{t('qr_code_loading')}</p>
                   )}

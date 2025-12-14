@@ -863,11 +863,11 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                   )}
                 </button>
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="font-semibold text-gray-900">Section {sectionIndex + 1}:</span>
+                  <span className="font-semibold text-gray-900">Chương {sectionIndex + 1}:</span>
                   <InlineEditInput
                     value={section.title}
                     onSave={(newTitle) => handleUpdateSectionTitle(section.id, newTitle)}
-                    placeholder="Type section name..."
+                    placeholder="Nhập tên chương..."
                     className="text-lg"
                   />
                   {section.lessons && section.lessons.length > 0 && (
@@ -943,7 +943,7 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                             />
                             <Button onClick={() => handleAddLesson(section.id)} variant="outline" className="gap-2 mt-4">
                               <Plus className="w-4 h-4" />
-                              Add Lesson
+                              Thêm bài học
                             </Button>
                           </div>
                         </>
@@ -958,11 +958,11 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                               <TimelineConnector key={lesson.id} isLast={lessonIndex === (section.lessons?.length || 0) - 1}>
                                 <div className="flex items-center gap-3 mb-3">
                                   <DragHandle className="text-gray-500" />
-                                  <span className="font-medium text-gray-700">Lesson {lessonIndex + 1}:</span>
+                                  <span className="font-medium text-gray-700">Bài học {lessonIndex + 1}:</span>
                                   <InlineEditInput
                                     value={lesson.title}
                                     onSave={(newTitle) => handleUpdateLessonTitle(section.id, lesson.id, newTitle)}
-                                    placeholder="Type lesson name..."
+                                    placeholder="Nhập tên bài học..."
                                   />
                                   <ActionGroup
                                     onEdit={() => handleEditContentItem(section.id, lesson)}

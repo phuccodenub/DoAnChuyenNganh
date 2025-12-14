@@ -39,15 +39,15 @@ export function FileList({ courseId, onFileDeleted }: FileListProps) {
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return '0 Byte';
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ['Byte', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const handleDelete = (fileId: string) => {
-    if (confirm('Are you sure you want to delete this file?')) {
+    if (confirm('Bạn có chắc chắn muốn xóa tệp này?')) {
       deleteFile(fileId, {
         onSuccess: () => {
           onFileDeleted?.(fileId);
@@ -72,7 +72,7 @@ export function FileList({ courseId, onFileDeleted }: FileListProps) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-gray-500">
         <File className="w-12 h-12 mb-3 opacity-50" />
-        <p className="text-sm font-medium">No files uploaded yet</p>
+        <p className="text-sm font-medium">Chưa có tệp nào được tải lên</p>
       </div>
     );
   }
@@ -85,19 +85,19 @@ export function FileList({ courseId, onFileDeleted }: FileListProps) {
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="px-4 py-3 text-left font-semibold text-gray-900">
-                File Name
+                Tên tệp
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900">
-                Size
+                Kích thước
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900">
-                Uploaded By
+                Người tải lên
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900">
-                Date
+                Ngày
               </th>
               <th className="px-4 py-3 text-right font-semibold text-gray-900">
-                Actions
+                Thao tác
               </th>
             </tr>
           </thead>
@@ -147,7 +147,7 @@ export function FileList({ courseId, onFileDeleted }: FileListProps) {
                         link.click();
                       }}
                       className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                      title="Download"
+                      title="Tải xuống"
                     >
                       <Download className="w-4 h-4" />
                     </button>
@@ -155,7 +155,7 @@ export function FileList({ courseId, onFileDeleted }: FileListProps) {
                     <button
                       onClick={() => handleShare(file.id)}
                       className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
-                      title="Share"
+                      title="Chia sẻ"
                     >
                       <Share2 className="w-4 h-4" />
                     </button>
@@ -163,7 +163,7 @@ export function FileList({ courseId, onFileDeleted }: FileListProps) {
                     <button
                       onClick={() => handleDelete(file.id)}
                       className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                      title="Delete"
+                      title="Xóa"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -179,8 +179,8 @@ export function FileList({ courseId, onFileDeleted }: FileListProps) {
       {data.total > 20 && (
         <div className="flex items-center justify-between mt-4">
           <p className="text-sm text-gray-600">
-            Showing {(page - 1) * 20 + 1} to{' '}
-            {Math.min(page * 20, data.total)} of {data.total} files
+            Hiển thị {(page - 1) * 20 + 1} đến{' '}
+            {Math.min(page * 20, data.total)} trong tổng số {data.total} tệp
           </p>
           <div className="flex gap-2">
             <button
@@ -188,14 +188,14 @@ export function FileList({ courseId, onFileDeleted }: FileListProps) {
               disabled={page === 1}
               className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
             >
-              Previous
+              Trước
             </button>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page * 20 >= data.total}
               className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
             >
-              Next
+              Sau
             </button>
           </div>
         </div>

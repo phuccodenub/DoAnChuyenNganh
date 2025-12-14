@@ -125,10 +125,10 @@ function LoginPage() {
           {/* Heading */}
           <div className="mb-8 text-center">
             <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
-              Welcome Back
+              {t('auth.login.title')}
             </h1>
             <p className="text-gray-500">
-              Welcome Back, Please enter Your details.
+              {t('auth.login.subtitle')}
             </p>
           </div>
 
@@ -137,7 +137,7 @@ function LoginPage() {
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                {t('auth.login.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -148,7 +148,7 @@ function LoginPage() {
                     setEmail(e.target.value)
                     if (errors.email) setErrors((prev) => ({ ...prev, email: '' }))
                   }}
-                  placeholder="Enter your email"
+                  placeholder="Nhập email của bạn"
                   className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                     errors.email
                       ? 'border-red-500 focus:ring-red-500'
@@ -170,7 +170,7 @@ function LoginPage() {
             {/* Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                Mật khẩu
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -181,7 +181,7 @@ function LoginPage() {
                     setPassword(e.target.value)
                     if (errors.password) setErrors((prev) => ({ ...prev, password: '' }))
                   }}
-                  placeholder="Enter your password"
+                  placeholder="Nhập mật khẩu của bạn"
                   className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                     errors.password
                       ? 'border-red-500 focus:ring-red-500'
@@ -193,7 +193,7 @@ function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -246,7 +246,7 @@ function LoginPage() {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or Continue With</span>
+              <span className="px-4 bg-white text-gray-500">Hoặc tiếp tục với</span>
             </div>
           </div>
 
@@ -255,7 +255,7 @@ function LoginPage() {
             <button
               type="button"
               className="w-12 h-12 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
-              aria-label="Login with Google"
+              aria-label="Đăng nhập bằng Google"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -267,7 +267,7 @@ function LoginPage() {
             <button
               type="button"
               className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-gray-900 transition-colors"
-              aria-label="Login with Apple"
+              aria-label="Đăng nhập bằng Apple"
             >
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
@@ -276,7 +276,7 @@ function LoginPage() {
             <button
               type="button"
               className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center hover:bg-blue-700 transition-colors"
-              aria-label="Login with Facebook"
+              aria-label="Đăng nhập bằng Facebook"
             >
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -291,7 +291,7 @@ function LoginPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo Accounts</span>
+                <span className="px-2 bg-white text-gray-500">{t('auth.login.demoAccounts')}</span>
               </div>
             </div>
 
@@ -340,7 +340,7 @@ function LoginPage() {
           <div className="relative z-0 p-8 lg:p-12">
             <img
               src="/auth_login.png"
-              alt="Login illustration"
+              alt="Hình minh họa đăng nhập"
               className="w-full max-w-md h-auto object-contain drop-shadow-2xl"
               onError={(e) => {
                 const target = e.currentTarget

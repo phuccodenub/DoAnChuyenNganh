@@ -46,10 +46,10 @@ export function MaterialCard({ material, className, onAction }: MaterialCardProp
 
   const getTypeLabel = (type: MaterialType) => {
     switch (type) {
-      case 'course': return 'Course';
-      case 'quiz': return 'Quiz';
-      case 'learning-path': return 'Learning Path';
-      case 'page': return 'Page';
+      case 'course': return 'Khóa học';
+      case 'quiz': return 'Bài kiểm tra';
+      case 'learning-path': return 'Lộ trình học';
+      case 'page': return 'Trang';
     }
   };
 
@@ -97,7 +97,7 @@ export function MaterialCard({ material, className, onAction }: MaterialCardProp
             <>
               <span>•</span>
               <span className="text-blue-600 flex items-center gap-1">
-                <Award className="w-3 h-3" /> Certified
+                <Award className="w-3 h-3" /> Đã chứng nhận
               </span>
             </>
           )}
@@ -115,7 +115,7 @@ export function MaterialCard({ material, className, onAction }: MaterialCardProp
               key={index}
               className={cn(
                 "px-2 py-1 rounded-md text-xs font-medium",
-                tag === 'Urgent' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'
+                tag === 'Urgent' || tag === 'Khẩn cấp' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'
               )}
             >
               {tag}
@@ -141,7 +141,7 @@ export function MaterialCard({ material, className, onAction }: MaterialCardProp
                   </svg>
                 </div>
                 <span className="text-xs font-medium text-gray-700">
-                  Progress: {material.progress}%
+                  Tiến độ: {material.progress}%
                 </span>
               </div>
             ) : (
@@ -153,7 +153,7 @@ export function MaterialCard({ material, className, onAction }: MaterialCardProp
                   </>
                 )}
                 {material.status === 'not-started' && !material.meta && (
-                  <span className="text-gray-400">Not Started</span>
+                  <span className="text-gray-400">Chưa bắt đầu</span>
                 )}
               </div>
             )}
@@ -169,9 +169,9 @@ export function MaterialCard({ material, className, onAction }: MaterialCardProp
                 : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50"
             )}
           >
-            {material.status === 'in-progress' ? 'Continue' : 
-             material.status === 'completed' ? 'Review' : 
-             material.type === 'quiz' ? 'View' : 'Start'}
+            {material.status === 'in-progress' ? 'Tiếp tục' : 
+             material.status === 'completed' ? 'Xem lại' : 
+             material.type === 'quiz' ? 'Xem' : 'Bắt đầu'}
           </button>
         </div>
       </div>

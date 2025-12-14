@@ -313,12 +313,12 @@ export function AuthModal() {
           {/* Heading */}
           <div className="mb-8 text-center">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-              {activeTab === 'signin' ? 'Welcome Back' : 'Create Account'}
+              {activeTab === 'signin' ? t('auth.login.title') : t('auth.register.title')}
             </h1>
             <p className="text-gray-500 text-sm md:text-base">
               {activeTab === 'signin'
-                ? 'Welcome Back, Please enter Your details.'
-                : 'Join our learning community and start your journey.'}
+                ? t('auth.login.subtitle')
+                : t('auth.register.subtitle')}
             </p>
           </div>
 
@@ -374,7 +374,7 @@ export function AuthModal() {
                         setLoginErrors((prev) => ({ ...prev, email: '' }))
                       }
                     }}
-                    placeholder="Enter your email"
+                    placeholder="Nhập email của bạn"
                     className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       loginErrors.email
                         ? 'border-red-500 focus:ring-red-500'
@@ -395,7 +395,7 @@ export function AuthModal() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
+                  {t('auth.login.password')}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -408,7 +408,7 @@ export function AuthModal() {
                         setLoginErrors((prev) => ({ ...prev, password: '' }))
                       }
                     }}
-                    placeholder="Enter your password"
+                    placeholder={t('auth.login.passwordPlaceholder')}
                     className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       loginErrors.password
                         ? 'border-red-500 focus:ring-red-500'
@@ -420,7 +420,7 @@ export function AuthModal() {
                     type="button"
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                    aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showLoginPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                   >
                     {showLoginPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -454,7 +454,7 @@ export function AuthModal() {
                 isLoading={isLoading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium"
               >
-                Continue
+                {t('common.continue')}
               </Button>
 
               {loginErrors.general && (
@@ -467,7 +467,7 @@ export function AuthModal() {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500">Or Continue With</span>
+                  <span className="px-4 bg-white text-gray-500">Hoặc tiếp tục với</span>
                 </div>
               </div>
 
@@ -476,7 +476,7 @@ export function AuthModal() {
                 <button
                   type="button"
                   className="w-12 h-12 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                  aria-label="Login with Google"
+                  aria-label={t('auth.login.loginWithGoogle')}
                 >
                   <svg className="w-6 h-6" viewBox="0 0 24 24">
                     <path
@@ -500,7 +500,7 @@ export function AuthModal() {
                 <button
                   type="button"
                   className="w-12 h-12 rounded-full bg-black flex items-center justify-center hover:bg-gray-900 transition-colors"
-                  aria-label="Login with Apple"
+                  aria-label={t('auth.login.loginWithApple')}
                 >
                   <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
@@ -509,7 +509,7 @@ export function AuthModal() {
                 <button
                   type="button"
                   className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center hover:bg-blue-700 transition-colors"
-                  aria-label="Login with Facebook"
+                  aria-label={t('auth.login.loginWithFacebook')}
                 >
                   <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -524,7 +524,7 @@ export function AuthModal() {
                     <div className="w-full border-t border-gray-300" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Demo Accounts</span>
+                    <span className="px-2 bg-white text-gray-500">{t('auth.login.demoAccounts')}</span>
                   </div>
                 </div>
 
@@ -581,7 +581,7 @@ export function AuthModal() {
             <form onSubmit={handleRegisterSubmit} className="space-y-6 flex-1 flex flex-col">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
+                  {t('auth.register.fullName')}
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -589,7 +589,7 @@ export function AuthModal() {
                     type="text"
                     value={registerData.full_name}
                     onChange={(e) => updateRegisterData('full_name', e.target.value)}
-                    placeholder="Enter your full name"
+                    placeholder={t('auth.register.fullNamePlaceholder')}
                     className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       registerErrors.full_name
                         ? 'border-red-500 focus:ring-red-500'
@@ -605,7 +605,7 @@ export function AuthModal() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Username <span className="text-red-500">*</span>
+                  {t('auth.register.username')} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -617,7 +617,7 @@ export function AuthModal() {
                       const value = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase()
                       updateRegisterData('username', value)
                     }}
-                    placeholder="username (tự động tạo từ email nếu để trống)"
+                    placeholder={t('auth.register.usernamePlaceholder')}
                     className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       registerErrors.username
                         ? 'border-red-500 focus:ring-red-500'
@@ -648,7 +648,7 @@ export function AuthModal() {
                     type="email"
                     value={registerData.email}
                     onChange={(e) => updateRegisterData('email', e.target.value)}
-                    placeholder="Enter your email"
+                    placeholder="Nhập email của bạn"
                     className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       registerErrors.email
                         ? 'border-red-500 focus:ring-red-500'
@@ -669,14 +669,14 @@ export function AuthModal() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number <span className="text-gray-400 text-xs">(Optional)</span>
+                  {t('auth.register.phoneNumber')} <span className="text-gray-400 text-xs">({t('common.optional')})</span>
                 </label>
                 <div className="relative">
                   <input
                     type="tel"
                     value={registerData.phone}
                     onChange={(e) => updateRegisterData('phone', e.target.value)}
-                    placeholder="Enter your phone number (optional)"
+                    placeholder={t('auth.register.phonePlaceholder')}
                     className="w-full pl-3 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled={isLoading}
                   />
@@ -707,7 +707,7 @@ export function AuthModal() {
                     type="button"
                     onClick={() => setShowRegisterPassword(!showRegisterPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                    aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showRegisterPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                   >
                     {showRegisterPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -728,7 +728,7 @@ export function AuthModal() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password <span className="text-red-500">*</span>
+                  {t('auth.register.confirmPassword')} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -736,7 +736,7 @@ export function AuthModal() {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={registerData.confirmPassword}
                     onChange={(e) => updateRegisterData('confirmPassword', e.target.value)}
-                    placeholder="Confirm your password"
+                    placeholder={t('auth.register.confirmPasswordPlaceholder')}
                     className={`w-full pl-10 pr-10 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 ${
                       registerErrors.confirmPassword
                         ? 'border-red-500 focus:ring-red-500'
@@ -748,7 +748,7 @@ export function AuthModal() {
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showConfirmPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -767,12 +767,12 @@ export function AuthModal() {
                 isLoading={isLoading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium"
               >
-                Create Account
+                {t('auth.register.submit')}
               </Button>
 
               {/* Bottom text */}
               <p className="text-xs text-gray-500 text-center mt-6">
-                By creating an account, you agree to our Terms of Service and Privacy Policy.
+                Bằng cách tạo tài khoản, bạn đồng ý với Điều khoản Dịch vụ và Chính sách Bảo mật của chúng tôi.
               </p>
             </form>
           </div>
@@ -800,7 +800,7 @@ export function AuthModal() {
                 <img
                   key="login"
                   src="/auth_login.png"
-                  alt="Login illustration"
+                  alt="Hình minh họa đăng nhập"
                   className="w-full h-auto max-h-[80vh] object-contain drop-shadow-2xl animate-fadeIn"
                   onError={(e) => {
                     console.error('Failed to load auth_login.png')
@@ -813,7 +813,7 @@ export function AuthModal() {
                 <img
                   key="register"
                   src="/auth_register.png"
-                  alt="Register illustration"
+                  alt="Hình minh họa đăng ký"
                   className="w-full h-auto max-h-[80vh] object-contain drop-shadow-2xl animate-fadeIn"
                   onError={(e) => {
                     console.error('Failed to load auth_register.png')

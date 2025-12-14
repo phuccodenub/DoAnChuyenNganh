@@ -1264,10 +1264,10 @@ export function DetailPage() {
                             <div className="pt-8 mt-6 select-none">
                               <div className="text-center select-none">
                                 <div className="text-xs text-gray-900 mb-3 uppercase tracking-wide font-bold select-none" style={{ letterSpacing: '2px', fontSize: '12px', userSelect: 'none' }}>
-                                  Certificate No. <span className="font-mono text-sm bg-gray-100 px-3 py-1 ml-2 inline-block select-none" style={{ fontSize: '14px', letterSpacing: '2px', fontFamily: 'Courier New, monospace', userSelect: 'none' }}>[CERT-XXXXXX]</span>
+                                  Số chứng chỉ <span className="font-mono text-sm bg-gray-100 px-3 py-1 ml-2 inline-block select-none" style={{ fontSize: '14px', letterSpacing: '2px', fontFamily: 'Courier New, monospace', userSelect: 'none' }}>[CERT-XXXXXX]</span>
                                 </div>
                                 <div className="text-xs text-gray-500 mt-3 leading-relaxed select-none" style={{ fontSize: '9px', lineHeight: '1.5', userSelect: 'none' }}>
-                                  <p className="select-none" style={{ userSelect: 'none' }}>Verification URL:</p>
+                                  <p className="select-none" style={{ userSelect: 'none' }}>URL xác minh:</p>
                                   <p className="text-gray-700 font-mono text-xs mt-1 break-all select-none" style={{ fontSize: '8px', fontWeight: '500', fontFamily: 'Courier New, monospace', userSelect: 'none' }}>
                                     [Verification URL]
                                   </p>

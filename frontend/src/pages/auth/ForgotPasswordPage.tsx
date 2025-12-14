@@ -12,8 +12,8 @@ import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
  */
 const forgotPasswordSchema = z.object({
   email: z.string()
-    .min(1, 'Email is required')
-    .email('Invalid email address'),
+    .min(1, 'Email là bắt buộc')
+    .email('Email không hợp lệ'),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -60,12 +60,12 @@ export default function ForgotPasswordPage() {
 
             {/* Title */}
             <h1 className="text-2xl font-bold text-center text-slate-900 mb-2">
-              Check Your Email
+              Kiểm tra Email của bạn
             </h1>
 
             {/* Description */}
             <p className="text-center text-slate-600 mb-4">
-              We've sent a password reset link to:
+              Chúng tôi đã gửi liên kết đặt lại mật khẩu đến:
             </p>
 
             {/* Email Display */}
@@ -76,13 +76,13 @@ export default function ForgotPasswordPage() {
             {/* Instructions */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-blue-900">
-                Click the link in the email to reset your password. The link will expire in 24 hours.
+                Nhấp vào liên kết trong email để đặt lại mật khẩu của bạn. Liên kết sẽ hết hạn sau 24 giờ.
               </p>
             </div>
 
             {/* Resend Info */}
             <p className="text-sm text-slate-600 text-center mb-6">
-              Didn't receive the email? Check your spam folder or{' '}
+              Không nhận được email? Kiểm tra thư mục spam hoặc{' '}
               <button
                 onClick={() => {
                   reset();
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
                 }}
                 className="text-blue-600 hover:text-blue-700 font-medium"
               >
-                try again
+                thử lại
               </button>
             </p>
 
@@ -134,9 +134,9 @@ export default function ForgotPasswordPage() {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-900">Error</p>
+                <p className="text-sm font-medium text-red-900">Lỗi</p>
                 <p className="text-sm text-red-700">
-                  {error.message || 'Failed to send reset email. Please try again.'}
+                  {error.message || 'Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại.'}
                 </p>
               </div>
             </div>
@@ -147,7 +147,7 @@ export default function ForgotPasswordPage() {
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-900 mb-2">
-                Email Address
+                {t('auth.login.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -185,17 +185,17 @@ export default function ForgotPasswordPage() {
               {isPending ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                  Sending...
+                  Đang gửi...
                 </span>
               ) : (
-                'Send Reset Link'
+                'Gửi liên kết đặt lại'
               )}
             </button>
           </form>
 
           {/* Footer Links */}
           <div className="mt-6 text-center text-sm text-slate-600">
-            Remember your password?{' '}
+            Nhớ mật khẩu?{' '}
             <Link to={ROUTES.LOGIN} className="text-blue-600 hover:text-blue-700 font-medium">
               Log in here
             </Link>
