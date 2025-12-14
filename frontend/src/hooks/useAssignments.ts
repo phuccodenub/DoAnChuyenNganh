@@ -165,7 +165,9 @@ export function useCreateAssignment() {
   return useMutation({
     mutationFn: (data: CreateAssignmentPayload) => assignmentApi.createAssignment(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: assignmentKeys.courseAssignments(variables.course_id) });
+      if (variables.course_id) {
+        queryClient.invalidateQueries({ queryKey: assignmentKeys.courseAssignments(variables.course_id) });
+      }
       toast.success('Tạo bài tập thành công!');
     },
     onError: (error: Error) => {

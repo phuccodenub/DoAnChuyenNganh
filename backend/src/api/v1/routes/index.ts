@@ -38,6 +38,7 @@ import { chatRoutes } from '../../../modules/chat';
 import logger from '../../../utils/logger.util';
 import activityLogsAdminRoutes from '../../../modules/activity-logs/activity-logs.admin.routes';
 import { ReportsAdminController } from '../../../modules/reports/reports.admin.controller';
+import instructorRoutes from './instructor.routes';
 
 const router = Router();
 
@@ -95,6 +96,10 @@ router.use('/enrollments', enrollmentRoutes);
 router.use('/lessons', lessonRoutes);
 router.use('/sections', sectionRoutes);
 router.use('/categories', categoryRoutes);
+
+// Instructor-specific routes
+logger.info('Registering v1 instructor at /instructor');
+router.use('/instructor', instructorRoutes);
 
 // Module-based routes (from refactor)
 router.use('/course-content', courseContentRoutes);

@@ -183,36 +183,19 @@ export const instructorApi = {
 
   /**
    * Lấy thống kê dashboard cho instructor
-   * Aggregates data from my-courses API
+   * Uses new /instructor/dashboard/stats endpoint
    */
   getDashboardStats: async (): Promise<InstructorDashboardStats> => {
-    // Fetch all courses for instructor
-    const response = await httpClient.get<ApiResponse<{
-      data: InstructorCourse[];
-      pagination: { page: number; limit: number; total: number; totalPages: number };
-    }>>('/courses/instructor/my-courses', { params: { limit: 100 } });
-    
-    const courses = response.data.data?.data || [];
-    
-    // Calculate stats from courses
-    const stats: InstructorDashboardStats = {
-      total_courses: courses.length,
-      published_courses: courses.filter(c => c.status === 'published').length,
-      draft_courses: courses.filter(c => c.status === 'draft').length,
-      total_students: courses.reduce((sum, c) => sum + (c.total_students || 0), 0),
-      total_revenue: courses.reduce((sum, c) => sum + (c.total_revenue || 0), 0),
-      total_lessons: courses.reduce((sum, c) => sum + (c.total_lessons || 0), 0),
-      total_sections: courses.reduce((sum, c) => sum + (c.total_sections || 0), 0),
-      avg_rating: courses.length > 0 
-        ? courses.reduce((sum, c) => sum + (c.average_rating || 0), 0) / courses.length 
-        : 0,
-      total_reviews: courses.reduce((sum, c) => sum + (c.total_ratings || 0), 0),
-      pending_assignments: 0, // TODO: Add assignment stats
-      this_month_enrollments: 0, // TODO: Need separate API
-      completion_rate: 0, // TODO: Calculate from enrollments
-    };
-    
-    return stats;
+    const response = await httpClient.get<ApiResponse<InstructorDashboardStats>>('/instructor/dashboard/stats');
+    return response.data.data;
+  },
+
+  /**
+   * Lấy hoạt động gần đây
+   */
+  getRecentActivities: async (limit: number = 20) => {
+    const response = await httpClient.get<ApiResponse<any[]>>('/instructor/activities/recent', { params: { limit } });
+    return response.data.data;
   },
 
   // ===== COURSE MANAGEMENT =====
@@ -278,79 +261,22 @@ export const instructorApi = {
 
   /**
    * Lấy tất cả học viên từ tất cả khóa học của instructor
+   * Uses new /instructor/students endpoint
    */
-  getAllMyStudents: async (params?: { page?: number; limit?: number; search?: string }) => {
-    // First get all courses
-    const coursesResponse = await httpClient.get<ApiResponse<{
-      data: InstructorCourse[];
+  getAllMyStudents: async (params?: { page?: number; limit?: number; search?: string; course_id?: string }) => {
+    const response = await httpClient.get<ApiResponse<{
+      students: Array<CourseStudent & { course_id: string; course_title: string; enrollment_id: string }>;
       pagination: { page: number; limit: number; total: number; totalPages: number };
-    }>>('/courses/instructor/my-courses', { params: { limit: 100 } });
-    
-    const courses = coursesResponse.data.data?.data || [];
-    const courseIds = courses.map(c => c.id);
-    
-    // Fetch students for each course and combine
-    const allStudents: Array<CourseStudent & { course_id: string; course_title: string }> = [];
-    const studentMap = new Map<string, CourseStudent & { course_id: string; course_title: string; courses: string[] }>();
-    
-    for (const course of courses) {
-      try {
-        const studentsResponse = await httpClient.get<ApiResponse<{
-          students: CourseStudent[];
-          pagination: { page: number; limit: number; total: number; totalPages: number };
-        }>>(`/courses/${course.id}/students`, { params: { limit: 100 } });
-        
-        const students = studentsResponse.data.data?.students || [];
-        
-        for (const student of students) {
-          const existing = studentMap.get(student.id);
-          if (existing) {
-            existing.courses.push(course.title);
-          } else {
-            studentMap.set(student.id, {
-              ...student,
-              course_id: course.id,
-              course_title: course.title,
-              courses: [course.title],
-            });
-          }
-        }
-      } catch (e) {
-        // Skip if error fetching students for a course
-        console.warn(`Failed to fetch students for course ${course.id}`, e);
-      }
-    }
-    
-    let students = Array.from(studentMap.values());
-    
-    // Apply search filter
-    if (params?.search) {
-      const search = params.search.toLowerCase();
-      students = students.filter(s => 
-        s.name?.toLowerCase().includes(search) || 
-        s.email?.toLowerCase().includes(search)
-      );
-    }
-    
-    // Apply pagination
-    const page = params?.page || 1;
-    const limit = params?.limit || 10;
-    const start = (page - 1) * limit;
-    const paginatedStudents = students.slice(start, start + limit);
-    
-    return {
-      success: true,
-      message: 'Students retrieved successfully',
-      data: {
-        students: paginatedStudents,
-        pagination: {
-          page,
-          limit,
-          total: students.length,
-          totalPages: Math.ceil(students.length / limit),
-        },
-      },
-    };
+    }>>('/instructor/students', { params });
+    return response.data;
+  },
+
+  /**
+   * Xóa học viên khỏi khóa học (unenroll)
+   */
+  unenrollStudent: async (enrollmentId: string) => {
+    const response = await httpClient.delete<ApiResponse<null>>(`/instructor/enrollments/${enrollmentId}`);
+    return response.data;
   },
 
   /**
@@ -473,6 +399,122 @@ export const instructorApi = {
     const response = await httpClient.put<ApiResponse<InstructorCourse>>(`/courses/${courseId}`, {
       status: 'archived'
     });
+    return response.data;
+  },
+
+  // ===== ASSIGNMENTS MANAGEMENT =====
+
+  /**
+   * Lấy danh sách bài tập chờ chấm (pending submissions)
+   */
+  getPendingSubmissions: async (params?: { page?: number; limit?: number }) => {
+    const response = await httpClient.get<ApiResponse<{
+      submissions: Array<{
+        id: string;
+        assignment_id: string;
+        assignment_title: string;
+        course_id: string;
+        course_title: string;
+        max_score: number;
+        due_date: string;
+        student: {
+          id: string;
+          name: string;
+          email: string;
+          avatar_url?: string;
+        };
+        submitted_at: string;
+        is_late: boolean;
+        submission_text?: string;
+        file_url?: string;
+      }>;
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>>('/instructor/assignments/pending', { params });
+    return response.data;
+  },
+
+  /**
+   * Lấy danh sách bài tập của một khóa học
+   */
+  getCourseAssignments: async (courseId: string) => {
+    const response = await httpClient.get<ApiResponse<Array<{
+      id: string;
+      title: string;
+      description?: string;
+      max_score: number;
+      due_date?: string;
+      is_published: boolean;
+      allow_late_submission: boolean;
+      created_at: string;
+      stats: {
+        total_submissions: number;
+        pending: number;
+        graded: number;
+        avg_score: string | null;
+      };
+    }>>>(`/instructor/courses/${courseId}/assignments`);
+    return response.data;
+  },
+
+  /**
+   * Lấy danh sách bài nộp của một bài tập
+   */
+  getAssignmentSubmissions: async (assignmentId: string, params?: { page?: number; limit?: number; status?: string }) => {
+    const response = await httpClient.get<ApiResponse<{
+      assignment: {
+        id: string;
+        title: string;
+        max_score: number;
+        due_date?: string;
+        course_title: string;
+      };
+      submissions: Array<{
+        id: string;
+        student: {
+          id: string;
+          name: string;
+          email: string;
+          avatar_url?: string;
+        };
+        submitted_at: string;
+        status: 'submitted' | 'graded' | 'returned';
+        is_late: boolean;
+        score?: number;
+        feedback?: string;
+        graded_at?: string;
+        submission_text?: string;
+        file_url?: string;
+      }>;
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>>(`/instructor/assignments/${assignmentId}/submissions`, { params });
+    return response.data;
+  },
+
+  /**
+   * Chấm điểm bài nộp
+   */
+  gradeSubmission: async (submissionId: string, data: { score: number; feedback?: string }) => {
+    const response = await httpClient.post<ApiResponse<{
+      id: string;
+      score: number;
+      feedback?: string;
+      status: string;
+      graded_at: string;
+    }>>(`/instructor/submissions/${submissionId}/grade`, data);
+    return response.data;
+  },
+
+  /**
+   * Gửi thông báo hàng loạt cho học viên
+   */
+  sendBulkNotification: async (data: {
+    student_ids: string[];
+    course_id?: string;
+    title: string;
+    message: string;
+    type?: string;
+  }) => {
+    const response = await httpClient.post<ApiResponse<{ count: number }>>('/instructor/notifications/bulk', data);
     return response.data;
   },
 };

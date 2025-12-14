@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, Eye, Upload, Calendar } from 'lucide-react';
+import { Save, Eye, Upload, Calendar, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
+import { useCreateAssignment, useUpdateAssignment } from '@/hooks/useAssignments';
+import toast from 'react-hot-toast';
 
 /**
  * AssignmentBuilderPage
@@ -125,12 +127,53 @@ export function AssignmentBuilderPage() {
     }
   };
 
-  const handleSave = (action: 'draft' | 'publish') => {
-    // TODO: Implement API call
-    console.log('Save assignment:', action, { assignmentForm, fileConfig, rubric });
-    // Role-based navigation
-    navigateTo.myCourses();
+  // Assignment mutations
+  const createAssignmentMutation = useCreateAssignment();
+  const updateAssignmentMutation = useUpdateAssignment();
+
+  const handleSave = async (action: 'draft' | 'publish') => {
+    // Validate required fields
+    if (!assignmentForm.title.trim()) {
+      toast.error('Vui lòng nhập tiêu đề bài tập');
+      return;
+    }
+    if (!assignmentForm.description.trim()) {
+      toast.error('Vui lòng nhập mô tả bài tập');
+      return;
+    }
+    if (!courseId) {
+      toast.error('Không tìm thấy ID khóa học');
+      return;
+    }
+
+    const payload = {
+      course_id: courseId,
+      title: assignmentForm.title,
+      description: assignmentForm.description,
+      instructions: assignmentForm.instructions,
+      max_score: assignmentForm.max_score,
+      due_date: assignmentForm.due_date ? new Date(assignmentForm.due_date).toISOString() : undefined,
+      allow_late_submission: assignmentForm.allow_late_submission,
+      submission_type: assignmentForm.submission_type,
+      is_published: action === 'publish',
+    };
+
+    try {
+      if (isEditMode && assignmentId) {
+        await updateAssignmentMutation.mutateAsync({ assignmentId, data: payload });
+        toast.success('Đã cập nhật bài tập thành công!');
+      } else {
+        await createAssignmentMutation.mutateAsync(payload);
+        toast.success('Đã tạo bài tập thành công!');
+      }
+      navigateTo.myCourses();
+    } catch (error) {
+      console.error('Error saving assignment:', error);
+      toast.error('Có lỗi xảy ra khi lưu bài tập');
+    }
   };
+
+  const isSaving = createAssignmentMutation.isPending || updateAssignmentMutation.isPending;
 
   const totalRubricPoints = rubric.reduce((sum, r) => sum + r.max_score, 0);
 
@@ -431,13 +474,14 @@ export function AssignmentBuilderPage() {
             variant="outline"
             onClick={() => handleSave('draft')}
             className="gap-2"
+            disabled={isSaving}
           >
-            <Save className="w-4 h-4" />
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Lưu nháp
           </Button>
 
-          <Button onClick={() => handleSave('publish')} className="gap-2">
-            <Eye className="w-4 h-4" />
+          <Button onClick={() => handleSave('publish')} className="gap-2" disabled={isSaving}>
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
             Xuất bản
           </Button>
         </div>

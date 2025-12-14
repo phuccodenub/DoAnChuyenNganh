@@ -48,7 +48,7 @@ export function useInstructorDashboardStats() {
 /**
  * Hook để lấy tất cả học viên từ tất cả khóa học
  */
-export function useAllMyStudents(params?: { page?: number; limit?: number; search?: string }) {
+export function useAllMyStudents(params?: { page?: number; limit?: number; search?: string; course_id?: string }) {
   return useQuery({
     queryKey: instructorCourseKeys.allStudents(params),
     queryFn: () => instructorApi.getAllMyStudents(params),
@@ -289,6 +289,89 @@ export function useDeleteLesson(courseId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: instructorCourseKeys.sections(courseId) });
     },
+  });
+}
+
+// ===== ASSIGNMENTS HOOKS =====
+
+/**
+ * Hook để lấy bài tập chờ chấm
+ */
+export function usePendingSubmissions(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['instructor-pending-submissions', params],
+    queryFn: () => instructorApi.getPendingSubmissions(params),
+    staleTime: 1 * 60 * 1000, // 1 minute - frequently updated
+  });
+}
+
+/**
+ * Hook để lấy danh sách bài tập của khóa học
+ */
+export function useCourseAssignments(courseId: string) {
+  return useQuery({
+    queryKey: ['instructor-course-assignments', courseId],
+    queryFn: () => instructorApi.getCourseAssignments(courseId),
+    enabled: !!courseId,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook để lấy danh sách bài nộp của một bài tập
+ */
+export function useAssignmentSubmissions(assignmentId: string, params?: { page?: number; limit?: number; status?: string }) {
+  return useQuery({
+    queryKey: ['instructor-assignment-submissions', assignmentId, params],
+    queryFn: () => instructorApi.getAssignmentSubmissions(assignmentId, params),
+    enabled: !!assignmentId,
+    staleTime: 1 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook để chấm điểm bài nộp
+ */
+export function useGradeSubmission() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ submissionId, data }: { submissionId: string; data: { score: number; feedback?: string } }) =>
+      instructorApi.gradeSubmission(submissionId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor-pending-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor-assignment-submissions'] });
+    },
+  });
+}
+
+/**
+ * Hook để xóa học viên khỏi khóa học
+ */
+export function useUnenrollStudent() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (enrollmentId: string) => instructorApi.unenrollStudent(enrollmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: instructorCourseKeys.allStudents() });
+      queryClient.invalidateQueries({ queryKey: instructorCourseKeys.dashboard() });
+    },
+  });
+}
+
+/**
+ * Hook để gửi thông báo hàng loạt
+ */
+export function useSendBulkNotification() {
+  return useMutation({
+    mutationFn: (data: {
+      student_ids: string[];
+      course_id?: string;
+      title: string;
+      message: string;
+      type?: string;
+    }) => instructorApi.sendBulkNotification(data),
   });
 }
 

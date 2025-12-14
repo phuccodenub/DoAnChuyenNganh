@@ -17,7 +17,7 @@ export function SubmissionsTab({ courseId }: SubmissionsTabProps) {
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
 
   // Fetch assignments
-  const { data: assignmentsData, isLoading: assignmentsLoading } = useCourseAssignments(courseId, true);
+  const { data: assignmentsData, isLoading: assignmentsLoading } = useCourseAssignments(courseId);
   
   // Fetch students for stats
   const { data: studentsResponse } = useCourseStudents(courseId);
@@ -29,14 +29,14 @@ export function SubmissionsTab({ courseId }: SubmissionsTabProps) {
       id: a.id,
       title: a.title,
       description: a.description,
-      course_id: a.course_id,
-      section_id: a.section_id,
-      due_date: a.due_date,
-      max_score: a.max_score,
       type: 'assignment' as const,
-      is_published: a.is_published,
-      created_at: a.created_at,
-      updated_at: a.updated_at,
+      due_date: a.due_date || '',
+      max_score: a.max_score || 100,
+      is_active: a.is_published || false,
+      created_at: a.created_at || '',
+      lesson_id: a.lesson_id,
+      lesson_title: a.lesson?.title,
+      section_title: a.section?.title,
     }));
   }, [assignmentsData]);
 

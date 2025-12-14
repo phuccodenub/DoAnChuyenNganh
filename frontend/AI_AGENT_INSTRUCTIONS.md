@@ -201,7 +201,7 @@ return <div>{data.map(...)}</div>;
 ```
 1. Nhận task
    ↓
-2. Đọc docs & analyze code (BẮT BUỘC!)
+2. Đọc docs & analyze code
    ↓
 3. Plan implementation
    ↓

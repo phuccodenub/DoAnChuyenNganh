@@ -9,10 +9,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
-import { useAllMyStudents, useInstructorCourses, useCourseStudents } from '@/hooks/useInstructorCourse';
+import { useAllMyStudents, useInstructorCourses, useCourseStudents, useUnenrollStudent } from '@/hooks/useInstructorCourse';
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { format, formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import toast from 'react-hot-toast';
 
 /**
  * StudentManagementPage - Instructor
@@ -39,26 +40,19 @@ export function StudentManagementPage() {
   const courses = coursesData?.data?.data || [];
 
   // Fetch students based on filter
-  const { data: allStudentsData, isLoading: allStudentsLoading } = useAllMyStudents({
+  const { data: allStudentsData, isLoading: allStudentsLoading, refetch: refetchAllStudents } = useAllMyStudents({
     page: currentPage,
     limit: itemsPerPage,
     search: searchQuery,
+    course_id: selectedCourseId !== 'all' ? selectedCourseId : undefined,
   });
 
-  const { data: courseStudentsData, isLoading: courseStudentsLoading } = useCourseStudents(
-    selectedCourseId !== 'all' ? selectedCourseId : '',
-    {
-      page: currentPage,
-      limit: itemsPerPage,
-      search: searchQuery,
-    }
-  );
+  // Unenroll mutation
+  const unenrollMutation = useUnenrollStudent();
 
-  // Use appropriate data based on filter
-  const isLoading = selectedCourseId === 'all' ? allStudentsLoading : courseStudentsLoading;
-  const studentsData = selectedCourseId === 'all' 
-    ? allStudentsData?.data 
-    : courseStudentsData?.data;
+  // Use all students data (now supports course_id filter)
+  const isLoading = allStudentsLoading;
+  const studentsData = allStudentsData?.data;
   
   const students = studentsData?.students || [];
   const pagination = studentsData?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 };
@@ -123,10 +117,14 @@ export function StudentManagementPage() {
     alert('Tính năng xuất danh sách đang được phát triển');
   };
 
-  const handleUnenroll = (studentId: string, studentName: string) => {
+  const handleUnenroll = async (enrollmentId: string, studentName: string) => {
     if (confirm(`Bạn có chắc muốn xóa "${studentName}" khỏi khóa học?`)) {
-      // TODO: Call API to unenroll
-      alert('Tính năng đang được phát triển');
+      try {
+        await unenrollMutation.mutateAsync(enrollmentId);
+        toast.success('Đã xóa học viên khỏi khóa học');
+      } catch (error: any) {
+        toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi xóa học viên');
+      }
     }
   };
 
@@ -416,7 +414,8 @@ export function StudentManagementPage() {
                         size="sm"
                         variant="outline"
                         className="text-red-600 border-red-300 hover:bg-red-50"
-                        onClick={() => handleUnenroll(student.id, student.name)}
+                        onClick={() => handleUnenroll((student as any).enrollment_id || student.id, student.name)}
+                        disabled={unenrollMutation.isPending}
                       >
                         <UserX className="w-3 h-3" />
                       </Button>
