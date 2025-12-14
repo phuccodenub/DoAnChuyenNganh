@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronDown, BookOpen } from 'lucide-react';
 import { MainLayout } from '@/layouts/MainLayout';
 import { CourseCard } from '@/components/domain/course/CourseCard';
@@ -69,11 +69,20 @@ function RecommendedSection({ courses, onCourseClick }: RecommendedSectionProps)
 // Main CourseCatalogPage Component
 // ============================================================================
 export function CatalogPage() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [filters, setFilters] = useState<Partial<CourseFilters>>({
     status: 'published',
   });
   const navigate = useNavigate();
+
+  // Sync search term from URL query params
+  useEffect(() => {
+    const urlSearch = searchParams.get('search');
+    if (urlSearch !== null && urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+    }
+  }, [searchParams]);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 

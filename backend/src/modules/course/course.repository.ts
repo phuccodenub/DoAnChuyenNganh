@@ -103,8 +103,21 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         // Always use the real-time student count from enrollments table
         // instead of relying on potentially stale total_students field
         const actualStudentCount = studentCounts.get(courseData.id) ?? 0;
+        
+        // Map thumbnail to thumbnail_url for frontend compatibility
+        // If thumbnail is a relative path, convert to full URL
+        let thumbnailUrl = courseData.thumbnail || courseData.thumbnail_url || null;
+        if (thumbnailUrl && !thumbnailUrl.startsWith('http://') && !thumbnailUrl.startsWith('https://')) {
+          // Relative path - add base URL
+          const publicUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
+          thumbnailUrl = thumbnailUrl.startsWith('/') 
+            ? `${publicUrl}${thumbnailUrl}`
+            : `${publicUrl}/uploads/${thumbnailUrl}`;
+        }
+        
         return {
           ...courseData,
+          thumbnail_url: thumbnailUrl,
           total_students: actualStudentCount
         };
       });
@@ -183,7 +196,15 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         delete courseData.enrollments;
         
         // Map thumbnail to thumbnail_url for frontend compatibility
-        const thumbnailUrl = courseData.thumbnail || null;
+        // If thumbnail is a relative path, convert to full URL
+        let thumbnailUrl = courseData.thumbnail || courseData.thumbnail_url || null;
+        if (thumbnailUrl && !thumbnailUrl.startsWith('http://') && !thumbnailUrl.startsWith('https://')) {
+          // Relative path - add base URL
+          const publicUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
+          thumbnailUrl = thumbnailUrl.startsWith('/') 
+            ? `${publicUrl}${thumbnailUrl}`
+            : `${publicUrl}/uploads/${thumbnailUrl}`;
+        }
         
         return {
           ...courseData,
@@ -544,7 +565,26 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
     if (filters.status && filters.status.length) where.status = filters.status[0];
     const CourseModel = Course as unknown as ModelStatic<CourseInstance>;
     const { count, rows } = await (CourseModel as any).findAndCountAll({ where, limit, offset, order: [[options?.sortBy || 'created_at', (options?.sortOrder || 'DESC').toUpperCase()]] });
-    return { courses: rows, pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) } };
+    
+    // Map thumbnail to thumbnail_url for frontend compatibility
+    const courses = rows.map((course: any) => {
+      const courseData = course.toJSON ? course.toJSON() : { ...course };
+      // If thumbnail is a relative path, convert to full URL
+      let thumbnailUrl = courseData.thumbnail || courseData.thumbnail_url || null;
+      if (thumbnailUrl && !thumbnailUrl.startsWith('http://') && !thumbnailUrl.startsWith('https://')) {
+        // Relative path - add base URL
+        const publicUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
+        thumbnailUrl = thumbnailUrl.startsWith('/') 
+          ? `${publicUrl}${thumbnailUrl}`
+          : `${publicUrl}/uploads/${thumbnailUrl}`;
+      }
+      return {
+        ...courseData,
+        thumbnail_url: thumbnailUrl
+      };
+    });
+    
+    return { courses, pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) } };
   }
 
   async getPopularCourses(limit: number = 10): Promise<CourseInstance[]> {
@@ -628,8 +668,21 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
         const courseData = course.toJSON ? course.toJSON() : course;
         // Always use the real-time student count from enrollments table
         const actualStudentCount = studentCounts.get(courseData.id) ?? 0;
+        
+        // Map thumbnail to thumbnail_url for frontend compatibility
+        // If thumbnail is a relative path, convert to full URL
+        let thumbnailUrl = courseData.thumbnail || courseData.thumbnail_url || null;
+        if (thumbnailUrl && !thumbnailUrl.startsWith('http://') && !thumbnailUrl.startsWith('https://')) {
+          // Relative path - add base URL
+          const publicUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
+          thumbnailUrl = thumbnailUrl.startsWith('/') 
+            ? `${publicUrl}${thumbnailUrl}`
+            : `${publicUrl}/uploads/${thumbnailUrl}`;
+        }
+        
         return {
           ...courseData,
+          thumbnail_url: thumbnailUrl,
           student_count: actualStudentCount,
           total_students: actualStudentCount
         };

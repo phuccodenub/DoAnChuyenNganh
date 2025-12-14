@@ -23,6 +23,7 @@ import { useAuthStore } from '@/stores/authStore.enhanced';
 import { ROUTES } from '@/constants/routes';
 import { getDashboardByRole } from '@/utils/navigation';
 import { NotificationPanel } from '@/components/notifications/NotificationPanel';
+import { SearchBar } from '@/components/layout/SearchBar';
 
 /**
  * Sidebar navigation items
@@ -316,12 +317,10 @@ export default function AdminDashboardLayout({ children }: AdminDashboardLayoutP
               </button>
 
               {/* Search bar */}
-              <div className="hidden md:flex flex-1 max-w-xl items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
-                <Search className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                <input
-                  type="text"
+              <div className="hidden md:flex flex-1 max-w-xl">
+                <SearchBar 
                   placeholder="Tìm kiếm người dùng, khóa học..."
-                  className="w-full border-none bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
+                  maxResults={5}
                 />
               </div>
             </div>

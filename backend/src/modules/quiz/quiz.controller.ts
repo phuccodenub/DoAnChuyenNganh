@@ -322,7 +322,9 @@ export class QuizController {
         throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
       }
 
-      const result = await this.quizService.submitQuizAttempt(attemptId, userId, answers);
+      // Frontend gửi answers là array, nhưng service expect SubmitQuizDto { answers: [...] }
+      const submitDto = Array.isArray(answers) ? { answers } : answers;
+      const result = await this.quizService.submitQuizAttempt(attemptId, userId, submitDto);
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
         success: true,

@@ -2,6 +2,7 @@ import { Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, User } from '.
 import { Op } from 'sequelize';
 import { CreateQuizDto, UpdateQuizDto, CreateQuestionDto, UpdateQuestionDto } from './quiz.types';
 import { QuizOptionCreationAttributes, QuizAnswerCreationAttributes } from '../../types/model.types';
+import logger from '../../utils/logger.util';
 type QuizOptionCreateDTO = Omit<QuizOptionCreationAttributes, 'id' | 'created_at' | 'updated_at' | 'question_id'>;
 type QuizAnswerCreateDTO = Omit<QuizAnswerCreationAttributes, 'id' | 'created_at' | 'updated_at' | 'attempt_id'>;
 
@@ -352,14 +353,18 @@ export class QuizRepository {
   }
 
   async submitAnswers(attemptId: string, answers: ReadonlyArray<QuizAnswerCreateDTO>) {
+    // Normalize question_id và option IDs để đảm bảo consistency
     const answerData: QuizAnswerCreationAttributes[] = answers.map(answer => ({
       attempt_id: attemptId,
-      question_id: answer.question_id,
-      selected_option_id: answer.selected_option_id,
-      selected_options: answer.selected_options,
+      question_id: String(answer.question_id).trim(),
+      selected_option_id: answer.selected_option_id ? String(answer.selected_option_id).trim() : null,
+      selected_options: Array.isArray(answer.selected_options) 
+        ? answer.selected_options.map((id: any) => String(id).trim())
+        : null,
       is_correct: answer.is_correct,
       points_earned: answer.points_earned
     }));
+    
     return await QuizAnswer.bulkCreate(answerData);
   }
 

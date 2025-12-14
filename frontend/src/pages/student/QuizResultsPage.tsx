@@ -218,7 +218,7 @@ export function QuizResultsPage() {
                       <div className="px-4 pb-4 space-y-3 bg-gray-50">
                         <p className="text-gray-900">{question.question_text}</p>
 
-                        {question.student_answer && (
+                        {question.student_answer ? (
                           <div>
                             <p className="text-sm font-medium text-gray-700 mb-1">
                               Câu trả lời của bạn:
@@ -227,9 +227,18 @@ export function QuizResultsPage() {
                               {question.student_answer}
                             </p>
                           </div>
+                        ) : (
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 mb-1">
+                              Câu trả lời của bạn:
+                            </p>
+                            <p className="text-sm text-gray-500 italic">
+                              Chưa trả lời
+                            </p>
+                          </div>
                         )}
 
-                        {!isCorrect && question.correct_answer && (
+                        {question.correct_answer && (
                           <div>
                             <p className="text-sm font-medium text-gray-700 mb-1">
                               Đáp án đúng:

@@ -1465,64 +1465,6 @@ export function DetailPage() {
                       />
                     </div>
                   )}
-
-                  {/* Course-level Quizzes - hiển thị sau sections, cùng cấp */}
-                  {courseLevelQuizzes?.map((quiz) => {
-                    const isCompleted = !quiz.is_practice && completedQuizIds.has(quiz.id);
-                    return (
-                    <div
-                      key={`quiz-${quiz.id}`}
-                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => {
-                        if (canAccessContent) {
-                          navigate(generateRoute.student.quiz(courseId, quiz.id));
-                        } else {
-                          toast.error('Vui lòng đăng ký khóa học để làm bài kiểm tra');
-                        }
-                      }}
-                    >
-                      <ClipboardList className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 text-sm">Quiz: {quiz.title}</h3>
-                        {quiz.description && (
-                          <p className="text-xs text-gray-500 mt-1">{quiz.description}</p>
-                        )}
-                      </div>
-                        {isCompleted && (
-                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        )}
-                    </div>
-                    );
-                  })}
-
-                  {/* Course-level Assignments - hiển thị sau sections, cùng cấp */}
-                  {courseLevelAssignments?.map((asmt) => {
-                    const isCompleted = !asmt.is_practice && completedAssignmentIds.has(asmt.id);
-                    return (
-                    <div
-                      key={`assignment-${asmt.id}`}
-                      className="px-5 py-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => {
-                        if (canAccessContent) {
-                          navigate(`/assignments/${asmt.id}`);
-                        } else {
-                          toast.error('Vui lòng đăng ký khóa học để làm bài tập');
-                        }
-                      }}
-                    >
-                      <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 text-sm">Assignment: {asmt.title}</h3>
-                        {asmt.description && (
-                          <p className="text-xs text-gray-500 mt-1">{asmt.description}</p>
-                        )}
-                      </div>
-                        {isCompleted && (
-                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        )}
-                    </div>
-                    );
-                  })}
                 </div>
               ) : isContentLoading ? (
                 <Card>

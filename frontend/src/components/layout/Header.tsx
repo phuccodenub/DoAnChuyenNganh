@@ -8,6 +8,7 @@ import { ROUTES } from '@/constants/routes'
 import { getDashboardByRole } from '@/utils/navigation'
 import { NotificationPanel } from '@/components/notifications/NotificationPanel'
 import { MessagePanel } from '@/components/messages/MessagePanel'
+import { SearchBar } from './SearchBar'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -86,14 +87,11 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
 
         {/* Center section: Search bar */}
         <div className="hidden lg:flex flex-1 items-center justify-center">
-          <div className="w-full max-w-2xl flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
-            <Search className="h-4 w-4 text-slate-400 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Bạn muốn học gì?"
-              className="w-full border-none bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
-            />
-          </div>
+          <SearchBar 
+            placeholder="Bạn muốn học gì?"
+            className="w-full max-w-2xl"
+            maxResults={5}
+          />
         </div>
 
         {/* Right section: User avatar/buttons */}

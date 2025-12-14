@@ -22,6 +22,7 @@ import { getDashboardByRole } from '@/utils/navigation';
 import { cn } from '@/lib/utils';
 import { NotificationPanel } from '@/components/notifications/NotificationPanel';
 import { MessagePanel } from '@/components/messages/MessagePanel';
+import { SearchBar } from '@/components/layout/SearchBar';
 
 interface StudentDashboardLayoutProps {
   children: ReactNode;
@@ -264,13 +265,11 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
                 <Menu className="w-6 h-6" />
               </button>
 
-              {/* Search bar - matching Landing Page style */}
-              <div className="hidden md:flex flex-1 max-w-xl items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
-                <Search className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                <input
-                  type="text"
+              {/* Search bar */}
+              <div className="hidden md:flex flex-1 max-w-xl">
+                <SearchBar 
                   placeholder="Tìm kiếm khóa học..."
-                  className="w-full border-none bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
+                  maxResults={5}
                 />
               </div>
             </div>

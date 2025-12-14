@@ -493,7 +493,20 @@ export class QuizService {
 
       // Tính toán thống kê từ answers (không dựa vào cột is_correct trong quiz_answers,
       // mà tính lại giống hàm calculateScore)
-      const answers = await this.repo.getAttemptAnswers(attemptId);
+      const answersRaw = await this.repo.getAttemptAnswers(attemptId);
+      // Normalize answers từ Sequelize models thành plain objects
+      const answers = answersRaw.map((a: any) => {
+        const answerData = a.toJSON ? a.toJSON() : a;
+        return {
+          ...answerData,
+          question_id: String(answerData.question_id).trim(),
+          selected_option_id: answerData.selected_option_id ? String(answerData.selected_option_id).trim() : null,
+          selected_options: Array.isArray(answerData.selected_options) 
+            ? answerData.selected_options.map((id: any) => String(id).trim())
+            : null,
+        };
+      });
+      
       const questions = await this.repo.listQuestions(attempt.quiz_id, true);
       
       let correctAnswers = 0;
@@ -503,7 +516,13 @@ export class QuizService {
       const questionsWithReview = await Promise.all(
         questions.map(async (q: any) => {
           const question = q.toJSON ? q.toJSON() : q;
-          const answer = answers.find((a: any) => a.question_id === question.id);
+          const questionId = String(question.id).trim();
+          
+          // Normalize answer.question_id để so sánh chính xác
+          const answer = answers.find((a: any) => {
+            const answerQuestionId = String(a.question_id).trim();
+            return answerQuestionId === questionId;
+          });
 
           if (!answer) {
             unanswered++;
@@ -552,12 +571,22 @@ export class QuizService {
 
   private formatStudentAnswer(question: any, answer: any): string {
     if (question.question_type === 'multiple_choice') {
-      const selectedIds = Array.isArray(answer.selected_options) ? answer.selected_options : [];
+      const selectedIds = Array.isArray(answer.selected_options) 
+        ? answer.selected_options.map((id: any) => String(id).trim())
+        : [];
       const options = question.options || [];
-      const selectedOptions = options.filter((opt: any) => selectedIds.includes(opt.id));
-      return selectedOptions.map((opt: any) => opt.option_text).join(', ');
+      const selectedOptions = options.filter((opt: any) => {
+        const optId = String(opt.id).trim();
+        return selectedIds.some((selectedId: string) => selectedId === optId);
+      });
+      return selectedOptions.map((opt: any) => opt.option_text).join(', ') || '';
     } else {
-      const option = (question.options || []).find((opt: any) => opt.id === answer.selected_option_id);
+      const selectedId = answer.selected_option_id ? String(answer.selected_option_id).trim() : null;
+      if (!selectedId) return '';
+      const option = (question.options || []).find((opt: any) => {
+        const optId = String(opt.id).trim();
+        return optId === selectedId;
+      });
       return option?.option_text || '';
     }
   }
@@ -572,29 +601,48 @@ export class QuizService {
 
     if (question.question_type === 'single_choice') {
       const options = question.options || [];
-      const selected = options.find((opt: any) => opt.id === answer.selected_option_id);
+      const selectedId = answer.selected_option_id ? String(answer.selected_option_id).trim() : null;
+      if (!selectedId) return false;
+      const selected = options.find((opt: any) => {
+        const optId = String(opt.id).trim();
+        return optId === selectedId;
+      });
       return !!selected?.is_correct;
     }
 
     if (question.question_type === 'multiple_choice') {
       const options = question.options || [];
-      const selectedIds = Array.isArray(answer.selected_options) ? answer.selected_options : [];
-      const selectedOptions = options.filter((opt: any) => selectedIds.includes(opt.id));
+      const selectedIds = Array.isArray(answer.selected_options) 
+        ? answer.selected_options.map((id: any) => String(id).trim())
+        : [];
+      const selectedOptions = options.filter((opt: any) => {
+        const optId = String(opt.id).trim();
+        return selectedIds.some((selectedId: string) => selectedId === optId);
+      });
       const correctOptions = options.filter((opt: any) => opt.is_correct);
 
       if (selectedOptions.length !== correctOptions.length) {
         return false;
       }
 
-      return selectedOptions.every((opt: any) =>
-        correctOptions.some((c: any) => c.id === opt.id)
-      );
+      return selectedOptions.every((opt: any) => {
+        const optId = String(opt.id).trim();
+        return correctOptions.some((c: any) => {
+          const correctId = String(c.id).trim();
+          return correctId === optId;
+        });
+      });
     }
 
     if (question.question_type === 'true_false') {
       const options = question.options || [];
       const correct = options.find((opt: any) => opt.is_correct);
-      const selected = options.find((opt: any) => opt.id === answer.selected_option_id);
+      const selectedId = answer.selected_option_id ? String(answer.selected_option_id).trim() : null;
+      if (!selectedId) return false;
+      const selected = options.find((opt: any) => {
+        const optId = String(opt.id).trim();
+        return optId === selectedId;
+      });
       const correctText = correct?.option_text?.toLowerCase();
       const selectedText = selected?.option_text?.toLowerCase();
       return !!correctText && !!selectedText && correctText === selectedText;
