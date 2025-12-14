@@ -163,18 +163,26 @@ export default function CourseDetailModal({ isOpen, onClose, courseId, onEdit }:
                     {studentsData.students.slice(0, 5).map((enrollment) => (
                       <div key={enrollment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm font-medium">
-                              {enrollment.student.full_name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
+                          {enrollment.student.avatar_url ? (
+                            <img 
+                              src={enrollment.student.avatar_url} 
+                              alt={enrollment.student.full_name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                              <span className="text-white text-sm font-medium">
+                                {enrollment.student.full_name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm font-medium text-gray-900">{enrollment.student.full_name}</p>
                             <p className="text-xs text-gray-500">{enrollment.student.email}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-medium text-gray-900">{enrollment.progress}%</p>
+                          <p className="text-xs font-medium text-blue-600">{enrollment.progress}%</p>
                           <p className="text-xs text-gray-500">
                             {formatDate(enrollment.enrolled_at)}
                           </p>
@@ -186,45 +194,49 @@ export default function CourseDetailModal({ isOpen, onClose, courseId, onEdit }:
               )}
 
               {/* Actions */}
-              <div className="border-t border-gray-200 pt-4 space-y-3">
+              <div className="border-t border-gray-200 pt-4 space-y-4">
                 <h4 className="text-sm font-medium text-gray-700">Hành động</h4>
                 
-                {/* Status Change */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={() => handleStatusChange('published')}
-                    disabled={course.status === 'published' || changeStatusMutation.isPending}
-                    className="px-3 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 disabled:opacity-50"
-                  >
-                    Xuất bản
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('draft')}
-                    disabled={course.status === 'draft' || changeStatusMutation.isPending}
-                    className="px-3 py-2 text-sm font-medium text-yellow-600 bg-yellow-50 rounded-lg hover:bg-yellow-100 disabled:opacity-50"
-                  >
-                    Chuyển về nháp
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange('archived')}
-                    disabled={course.status === 'archived' || changeStatusMutation.isPending}
-                    className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-                  >
-                    Lưu trữ
-                  </button>
+                {/* Status Change - Full width row */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-600">Trạng thái:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleStatusChange('published')}
+                      disabled={course.status === 'published' || changeStatusMutation.isPending}
+                      className="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Xuất bản
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange('draft')}
+                      disabled={course.status === 'draft' || changeStatusMutation.isPending}
+                      className="px-3 py-1.5 text-xs font-medium text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Chuyển về nháp
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange('archived')}
+                      disabled={course.status === 'archived' || changeStatusMutation.isPending}
+                      className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Lưu trữ
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Edit/Delete - Right aligned */}
+                <div className="flex items-center justify-end gap-3">
                   <button
                     onClick={() => { onEdit(course); onClose(); }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <Edit className="w-4 h-4" />
                     Chỉnh sửa
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     Xóa khóa học

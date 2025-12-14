@@ -409,21 +409,69 @@ export class GlobalUserService {
   }
 
   /**
-   * Get recent activities
+   * Get recent activities from activity logs
    */
   async getRecentActivities(limit: number = 10): Promise<any> {
     try {
-      // This would typically come from an activity log table
-      // For now, return mock data based on recent user activity
-      const recentUsers = await userRepository.getRecentUsers(limit);
-      return recentUsers.map((user: any) => ({
-        id: user.id,
-        type: 'user_activity',
-        description: `User ${user.first_name} ${user.last_name} activity`,
-        user_name: `${user.first_name} ${user.last_name}`,
-        timestamp: user.updated_at,
-        created_at: user.updated_at
-      }));
+      const { UserActivityLog, User } = await import('../../models');
+      
+      const rows = await UserActivityLog.findAll({
+        order: [['createdAt', 'DESC']],
+        limit,
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar'],
+            required: false,
+          },
+        ],
+      });
+
+      return rows.map((row: any) => {
+        const user = row.user;
+        const userName = user 
+          ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email 
+          : 'Hệ thống';
+        const action = row.action || row.activity_type || 'activity';
+        const resourceType = row.resource_type || 'system';
+        
+        // Build description based on action and resource type
+        let description = '';
+        switch (action) {
+          case 'login':
+            description = 'đã đăng nhập vào hệ thống';
+            break;
+          case 'logout':
+            description = 'đã đăng xuất khỏi hệ thống';
+            break;
+          case 'create':
+            description = `đã tạo ${resourceType}`;
+            break;
+          case 'update':
+            description = `đã cập nhật ${resourceType}`;
+            break;
+          case 'delete':
+            description = `đã xóa ${resourceType}`;
+            break;
+          default:
+            description = `hoạt động: ${action}`;
+        }
+
+        return {
+          id: row.id,
+          type: action,
+          action,
+          resource_type: resourceType,
+          description,
+          user_id: row.user_id,
+          user_name: userName,
+          user_avatar: user?.avatar || null,
+          status: row.status || 'success',
+          created_at: row.createdAt || row.created_at,
+          timestamp: row.createdAt || row.created_at
+        };
+      });
     } catch (error: unknown) {
       logger.error('Error getting recent activities:', error);
       return [];

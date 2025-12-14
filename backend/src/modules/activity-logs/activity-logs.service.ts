@@ -100,7 +100,7 @@ export class ActivityLogsService {
         user_agent: row.user_agent || '',
         status: (row.status === 'failed' ? 'failed' : 'success') as 'success' | 'failed',
         error_message: row.error_message || undefined,
-        created_at: row.created_at,
+        created_at: row.createdAt || row.created_at, // Sequelize returns camelCase in JS
       };
     });
 
@@ -135,7 +135,7 @@ export class ActivityLogsService {
       user_agent: row.user_agent || '',
       status: (row.status === 'failed' ? 'failed' : 'success') as 'success' | 'failed',
       error_message: row.error_message || undefined,
-      created_at: row.created_at,
+      created_at: row.createdAt || row.created_at, // Sequelize returns camelCase in JS
     };
   }
 

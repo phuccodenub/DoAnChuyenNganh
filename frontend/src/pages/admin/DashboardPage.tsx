@@ -1,4 +1,4 @@
-import { Users, BookOpen, GraduationCap, DollarSign, TrendingUp, Clock, UserPlus, FileText } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, DollarSign, TrendingUp, Clock, UserPlus, FileText, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAdminDashboardStats, useRecentActivities } from '@/hooks/useAdminUsers';
@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useState } from 'react';
 
 /**
  * AdminDashboardPage Component
@@ -18,8 +19,16 @@ import { vi } from 'date-fns/locale';
  */
 export default function AdminDashboardPage() {
   const { data: stats, isLoading: statsLoading } = useAdminDashboardStats();
-  const { data: activities, isLoading: activitiesLoading } = useRecentActivities(10);
+  const { data: activities, isLoading: activitiesLoading } = useRecentActivities(50); // Fetch more for pagination
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  
+  // Calculate pagination
+  const totalItems = activities?.length || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentActivities = activities?.slice(startIndex, startIndex + itemsPerPage) || [];
 
   if (statsLoading) {
     return (
@@ -211,38 +220,82 @@ export default function AdminDashboardPage() {
 
       {/* Recent Activities */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Hoạt động gần đây</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Hoạt động gần đây</h3>
+          <button
+            onClick={() => navigate(ROUTES.ADMIN.ACTIVITY_LOGS)}
+            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Xem tất cả
+            <ExternalLink className="w-4 h-4" />
+          </button>
+        </div>
         {activitiesLoading ? (
           <div className="flex items-center justify-center py-8">
             <Spinner size="md" />
           </div>
-        ) : activities && activities.length > 0 ? (
-          <div className="space-y-4">
-            {activities.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                {/* Avatar */}
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  {activity.user_avatar ? (
-                    <img src={activity.user_avatar} alt={activity.user_name} className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    <span className="text-white text-sm font-medium">
-                      {activity.user_name.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">
-                    <span className="font-medium">{activity.user_name}</span> {activity.description}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                    <Clock className="w-3 h-3" />
-                    <span>{format(new Date(activity.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}</span>
+        ) : currentActivities && currentActivities.length > 0 ? (
+          <>
+            {/* Activity List */}
+            <div className="space-y-4 mb-4">
+              {currentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-start gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                  {/* Avatar */}
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    {activity.user_avatar ? (
+                      <img src={activity.user_avatar} alt={activity.user_name} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <span className="text-white text-sm font-medium">
+                        {activity.user_name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900">
+                      <span className="font-medium">{activity.user_name}</span> {activity.description}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        {activity.created_at 
+                          ? format(new Date(activity.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })
+                          : 'N/A'
+                        }
+                      </span>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <span className="text-sm text-gray-500">
+                  Trang {currentPage} / {totalPages} ({totalItems} hoạt động)
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Trước
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Sau
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-8 text-gray-500">
             <p>Chưa có hoạt động nào</p>

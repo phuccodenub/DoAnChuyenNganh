@@ -344,24 +344,28 @@ export const courseAdminApi = {
     const data = response.data.data || {};
 
     const students: EnrollmentInfo[] = Array.isArray(data.students)
-      ? data.students.map((enrollment: any) => ({
-          id: enrollment.id,
-          student: {
-            id: enrollment.user?.id ?? '',
-            full_name:
-              `${enrollment.user?.first_name || ''} ${enrollment.user?.last_name || ''}`.trim() ||
-              enrollment.user?.email ||
-              'Học viên',
-            avatar_url: enrollment.user?.avatar_url ?? enrollment.user?.avatar ?? undefined,
-            email: enrollment.user?.email ?? '',
-          },
-          enrolled_at:
-            enrollment.created_at instanceof Date
-              ? enrollment.created_at.toISOString()
-              : enrollment.created_at,
-          progress: enrollment.progress ?? enrollment.progress_percentage ?? 0,
-          status: (enrollment.status as EnrollmentInfo['status']) ?? 'active',
-        }))
+      ? data.students.map((enrollment: any) => {
+          // Backend returns 'student' field, not 'user'
+          const studentData = enrollment.student || enrollment.user || {};
+          return {
+            id: enrollment.id,
+            student: {
+              id: studentData.id ?? '',
+              full_name:
+                `${studentData.first_name || ''} ${studentData.last_name || ''}`.trim() ||
+                studentData.email ||
+                'Học viên',
+              avatar_url: studentData.avatar_url ?? studentData.avatar ?? null,
+              email: studentData.email ?? '',
+            },
+            enrolled_at:
+              enrollment.created_at instanceof Date
+                ? enrollment.created_at.toISOString()
+                : enrollment.created_at,
+            progress: Number(enrollment.progress_percentage ?? enrollment.progress ?? 0),
+            status: (enrollment.status as EnrollmentInfo['status']) ?? 'active',
+          };
+        })
       : [];
 
     const total = data.total ?? students.length;
