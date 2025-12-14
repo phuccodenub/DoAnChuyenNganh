@@ -91,4 +91,21 @@ export class SystemSettingsController {
       responseUtils.sendBadRequest(res, `Email connection failed: ${e.message || 'Unknown error'}`);
     }
   }
+
+  async sendTestEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { to_email, subject, message } = req.body;
+      if (!to_email) {
+        return responseUtils.sendBadRequest(res, 'Email người nhận (to_email) là bắt buộc');
+      }
+      const result = await this.service.sendTestEmail({
+        to_email,
+        subject,
+        message,
+      });
+      responseUtils.sendSuccess(res, result.message, result);
+    } catch (e: any) {
+      responseUtils.sendBadRequest(res, `Gửi email thất bại: ${e.message || 'Unknown error'}`);
+    }
+  }
 }

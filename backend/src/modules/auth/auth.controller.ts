@@ -4,6 +4,36 @@ import { LoginCredentials, RegisterData, ChangePasswordData, UpdateProfileData }
 import { responseUtils } from '@utils/response.util';
 import { RESPONSE_CONSTANTS } from '@constants/response.constants';
 import logger from '@utils/logger.util';
+import { UserActivityLog } from '../../models';
+
+// Helper function to log activity
+const logActivity = async (params: {
+  userId: string;
+  action: 'login' | 'logout' | 'register' | 'password_change';
+  status: 'success' | 'failed';
+  ipAddress?: string;
+  userAgent?: string;
+  errorMessage?: string;
+}) => {
+  try {
+    await UserActivityLog.create({
+      user_id: params.userId,
+      activity_type: params.action, // legacy column
+      action: params.action,
+      resource_type: 'auth',
+      resource_id: params.userId,
+      status: params.status,
+      error_message: params.errorMessage || null,
+      ip_address: params.ipAddress || null,
+      user_agent: params.userAgent || null,
+      metadata: {},
+      old_values: {},
+      new_values: {},
+    });
+  } catch (err) {
+    logger.warn('Failed to log activity', { error: err });
+  }
+};
 
 export class AuthController {
   private authService: AuthModuleService;
@@ -68,6 +98,18 @@ export class AuthController {
       const userAgent = req.headers['user-agent'] || 'Unknown User Agent';
 
       const result = await this.authService.login(credentials, device, ipAddress, userAgent);
+      
+      // Log successful login
+      if (result.user?.id) {
+        void logActivity({
+          userId: result.user.id,
+          action: 'login',
+          status: 'success',
+          ipAddress: ipAddress as string,
+          userAgent: userAgent as string,
+        });
+      }
+      
       responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.LOGIN_SUCCESS, result);
     } catch (error: unknown) {
       logger.error('Error during login:', error);
@@ -166,6 +208,15 @@ export class AuthController {
         (responseUtils as any).sendUnauthorized(res, RESPONSE_CONSTANTS.ERROR.UNAUTHORIZED);
         return;
       }
+      
+      // Log logout activity before actual logout
+      void logActivity({
+        userId,
+        action: 'logout',
+        status: 'success',
+        ipAddress: (req.ip || req.connection.remoteAddress || 'Unknown IP') as string,
+        userAgent: (req.headers['user-agent'] || 'Unknown User Agent') as string,
+      });
       
       await this.authService.logout(userId);
       responseUtils.sendSuccess(res, RESPONSE_CONSTANTS.MESSAGE.LOGOUT_SUCCESS, null);

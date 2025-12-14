@@ -145,3 +145,19 @@ export const useTestEmailConnection = () => {
     },
   });
 };
+
+export const useSendTestEmail = () => {
+  return useMutation({
+    mutationFn: (data: {
+      to_email: string;
+      subject?: string;
+      message?: string;
+    }) => systemSettingsApi.sendTestEmail(data),
+    onSuccess: (result) => {
+      toast.success(result.message || 'Email đã được gửi thành công!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Gửi email thất bại');
+    },
+  });
+};

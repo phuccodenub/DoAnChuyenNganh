@@ -25,6 +25,37 @@ const formatDate = (dateValue: string | Date | null | undefined): string => {
   }
 };
 
+// Helper function to get action label in Vietnamese
+const getActionLabel = (action: string): { label: string; color: string } => {
+  const actionMap: Record<string, { label: string; color: string }> = {
+    login: { label: 'Đăng nhập', color: 'bg-green-100 text-green-800' },
+    logout: { label: 'Đăng xuất', color: 'bg-gray-100 text-gray-800' },
+    create: { label: 'Tạo mới', color: 'bg-blue-100 text-blue-800' },
+    update: { label: 'Cập nhật', color: 'bg-yellow-100 text-yellow-800' },
+    delete: { label: 'Xóa', color: 'bg-red-100 text-red-800' },
+    register: { label: 'Đăng ký', color: 'bg-purple-100 text-purple-800' },
+    password_change: { label: 'Đổi mật khẩu', color: 'bg-orange-100 text-orange-800' },
+  };
+  return actionMap[action?.toLowerCase()] || { label: action || 'N/A', color: 'bg-gray-100 text-gray-800' };
+};
+
+// Helper function to get resource type label in Vietnamese
+const getResourceTypeLabel = (resourceType: string): string => {
+  const resourceMap: Record<string, string> = {
+    auth: 'Xác thực',
+    users: 'Người dùng',
+    courses: 'Khóa học',
+    enrollments: 'Đăng ký',
+    lessons: 'Bài học',
+    sections: 'Chương',
+    quizzes: 'Bài kiểm tra',
+    assignments: 'Bài tập',
+    'system-settings': 'Cài đặt',
+    system: 'Hệ thống',
+  };
+  return resourceMap[resourceType?.toLowerCase()] || resourceType || 'N/A';
+};
+
 export const ActivityLogsPage: React.FC = () => {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
@@ -73,18 +104,21 @@ export const ActivityLogsPage: React.FC = () => {
     {
       key: 'action',
       header: t('admin.activity_logs.action'),
-      render: (row) => (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {row.action}
-        </span>
-      ),
+      render: (row) => {
+        const { label, color } = getActionLabel(row.action);
+        return (
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${color}`}>
+            {label}
+          </span>
+        );
+      },
       sortable: true,
     },
     {
       key: 'resource_type',
       header: t('admin.activity_logs.resource_type'),
       render: (row) => (
-        <span className="text-gray-600">{row.resource_type}</span>
+        <span className="text-gray-600">{getResourceTypeLabel(row.resource_type)}</span>
       ),
       sortable: true,
     },
@@ -146,11 +180,13 @@ export const ActivityLogsPage: React.FC = () => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
               <option value="">{t('admin.activity_logs.all_actions')}</option>
-              <option value="create">CREATE</option>
-              <option value="update">UPDATE</option>
-              <option value="delete">DELETE</option>
-              <option value="login">LOGIN</option>
-              <option value="logout">LOGOUT</option>
+              <option value="login">Đăng nhập</option>
+              <option value="logout">Đăng xuất</option>
+              <option value="create">Tạo mới</option>
+              <option value="update">Cập nhật</option>
+              <option value="delete">Xóa</option>
+              <option value="register">Đăng ký</option>
+              <option value="password_change">Đổi mật khẩu</option>
             </select>
           </div>
 
@@ -165,11 +201,15 @@ export const ActivityLogsPage: React.FC = () => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
               <option value="">{t('admin.activity_logs.all_types')}</option>
-              <option value="user">Người dùng</option>
-              <option value="course">Khóa học</option>
-              <option value="lesson">Bài học</option>
-              <option value="quiz">Bài kiểm tra</option>
-              <option value="assignment">Bài tập</option>
+              <option value="auth">Xác thực</option>
+              <option value="users">Người dùng</option>
+              <option value="courses">Khóa học</option>
+              <option value="enrollments">Đăng ký khóa học</option>
+              <option value="lessons">Bài học</option>
+              <option value="sections">Chương</option>
+              <option value="quizzes">Bài kiểm tra</option>
+              <option value="assignments">Bài tập</option>
+              <option value="system-settings">Cài đặt hệ thống</option>
             </select>
           </div>
 

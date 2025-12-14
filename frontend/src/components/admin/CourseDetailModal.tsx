@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { X, Users, Clock, Star, DollarSign, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,18 @@ import {
   useDeleteCourse,
   useChangeCourseStatus,
 } from '@/hooks/useAdminCourses';
+
+// Helper function to safely format dates
+const formatDate = (dateValue: string | Date | null | undefined): string => {
+  if (!dateValue) return 'N/A';
+  try {
+    const date = typeof dateValue === 'string' ? parseISO(dateValue) : dateValue;
+    if (!isValid(date)) return 'N/A';
+    return format(date, 'dd/MM/yyyy', { locale: vi });
+  } catch {
+    return 'N/A';
+  }
+};
 
 interface CourseDetailModalProps {
   isOpen: boolean;
@@ -125,22 +137,19 @@ export default function CourseDetailModal({ isOpen, onClose, courseId, onEdit }:
 
               {/* Statistics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Users className="w-4 h-4 text-gray-600" />
-                  </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
                   <p className="text-2xl font-bold text-gray-900">{course.student_count || 0}</p>
                   <p className="text-xs text-gray-600 mt-1">Học viên</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
                   <p className="text-2xl font-bold text-gray-900">{course.sections_count || 0}</p>
                   <p className="text-xs text-gray-600 mt-1">Chương</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
                   <p className="text-2xl font-bold text-gray-900">{course.lessons_count || 0}</p>
                   <p className="text-xs text-gray-600 mt-1">Bài học</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
                   <p className="text-2xl font-bold text-gray-900">{course.completion_rate || 0}%</p>
                   <p className="text-xs text-gray-600 mt-1">Hoàn thành</p>
                 </div>
@@ -167,7 +176,7 @@ export default function CourseDetailModal({ isOpen, onClose, courseId, onEdit }:
                         <div className="text-right">
                           <p className="text-xs font-medium text-gray-900">{enrollment.progress}%</p>
                           <p className="text-xs text-gray-500">
-                            {format(new Date(enrollment.enrolled_at), 'dd/MM/yyyy', { locale: vi })}
+                            {formatDate(enrollment.enrolled_at)}
                           </p>
                         </div>
                       </div>

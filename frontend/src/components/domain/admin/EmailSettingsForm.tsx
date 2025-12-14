@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { EmailSettingsSchema } from '@/types/system-settings.types';
-import { useUpdateEmailSettings, useTestEmailConnection } from '@/hooks/admin/useSystemSettings';
+import { useUpdateEmailSettings, useTestEmailConnection, useSendTestEmail } from '@/hooks/admin/useSystemSettings';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { useTranslation } from 'react-i18next';
+import { Mail, Send, CheckCircle } from 'lucide-react';
 
 type EmailSettingsFormData = z.infer<typeof EmailSettingsSchema>;
 
@@ -19,6 +20,10 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
   const { t } = useTranslation();
   const { mutate: updateSettings, isPending } = useUpdateEmailSettings();
   const { mutate: testConnection, isPending: isTesting } = useTestEmailConnection();
+  const { mutate: sendTestEmail, isPending: isSending } = useSendTestEmail();
+  
+  // State for send test email
+  const [testEmailAddress, setTestEmailAddress] = useState('');
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<EmailSettingsFormData>({
     resolver: zodResolver(EmailSettingsSchema),
@@ -50,9 +55,17 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
     testConnection(data);
   };
 
+  const handleSendTestEmail = () => {
+    if (!testEmailAddress.trim()) {
+      return;
+    }
+    sendTestEmail({ to_email: testEmailAddress.trim() });
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Email From */}
         <div className="md:col-span-2">
           <label htmlFor="email_from" className="block text-sm font-medium text-gray-700">
@@ -185,5 +198,61 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({ initialDat
         </Button>
       </div>
     </form>
+
+      {/* Send Test Email Section */}
+      <div className="border-t border-gray-200 pt-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Mail className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Gửi email kiểm tra</h3>
+            <p className="text-sm text-gray-500">Gửi email thử nghiệm để kiểm tra cấu hình SMTP</p>
+          </div>
+        </div>
+        
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <label htmlFor="test_email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email người nhận
+              </label>
+              <Input
+                id="test_email"
+                type="email"
+                value={testEmailAddress}
+                onChange={(e) => setTestEmailAddress(e.target.value)}
+                placeholder="nhập email để nhận thử nghiệm..."
+                className="w-full"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                onClick={handleSendTestEmail}
+                disabled={isSending || !testEmailAddress.trim()}
+                className="gap-2 bg-green-600 hover:bg-green-700"
+              >
+                {isSending ? (
+                  <>
+                    <Spinner className="w-4 h-4" />
+                    Đang gửi...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Gửi email thử
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-gray-500 flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" />
+            Email sẽ được gửi sử dụng cấu hình SMTP từ file .env của hệ thống
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };

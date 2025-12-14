@@ -165,4 +165,55 @@ export class SystemSettingsService {
     await transport.verify();
     return { success: true, message: 'Kết nối email thành công' };
   }
+
+  /**
+   * Send a test email to a specific recipient using .env configuration
+   */
+  async sendTestEmail(params: {
+    to_email: string;
+    subject?: string;
+    message?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const host = process.env.MAIL_HOST || process.env.EMAIL_HOST;
+    const port = Number(process.env.MAIL_PORT || process.env.EMAIL_PORT || 587);
+    const user = process.env.MAIL_USER || process.env.EMAIL_USER;
+    const pass = process.env.MAIL_PASS || process.env.EMAIL_PASS;
+    const from = process.env.MAIL_FROM || process.env.EMAIL_FROM || user;
+    const secure = process.env.MAIL_SECURE === 'true';
+
+    if (!host || !user || !pass) {
+      throw new Error('Cấu hình email chưa được thiết lập trong .env (MAIL_HOST, MAIL_USER, MAIL_PASS)');
+    }
+
+    const transport = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
+    });
+
+    const subject = params.subject || '[LMS] Email kiểm tra từ hệ thống';
+    const message = params.message || `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #3b82f6;">🎉 Email kiểm tra thành công!</h2>
+        <p>Xin chào,</p>
+        <p>Đây là email kiểm tra được gửi từ hệ thống LMS.</p>
+        <p>Nếu bạn nhận được email này, điều đó có nghĩa là cấu hình email của hệ thống đã hoạt động đúng.</p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+        <p style="color: #6b7280; font-size: 12px;">
+          Email được gửi lúc: ${new Date().toLocaleString('vi-VN')}
+        </p>
+      </div>
+    `;
+
+    await transport.sendMail({
+      from,
+      to: params.to_email,
+      subject,
+      html: message,
+    });
+
+    return { success: true, message: `Email đã được gửi thành công đến ${params.to_email}` };
+  }
 }

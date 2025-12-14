@@ -12,5 +12,6 @@ router.use(authorizeRoles([UserRole.ADMIN, UserRole.SUPER_ADMIN]));
 router.get('/', (req: Request, res: Response, next: NextFunction) => controller.getSettings(req, res, next));
 router.put('/', (req: Request, res: Response, next: NextFunction) => controller.updateSettings(req, res, next));
 router.post('/test-email', (req: Request, res: Response, next: NextFunction) => controller.testEmailConnection(req, res, next));
+router.post('/send-email', (req: Request, res: Response, next: NextFunction) => controller.sendTestEmail(req, res, next));
 
 export default router;

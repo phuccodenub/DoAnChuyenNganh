@@ -113,4 +113,13 @@ export const systemSettingsApi = {
     const response = await httpClient.post('/system-settings/test-email', data);
     return response.data;
   },
+
+  sendTestEmail: async (data: {
+    to_email: string;
+    subject?: string;
+    message?: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    const response = await httpClient.post('/system-settings/send-email', data);
+    return response.data;
+  },
 };
