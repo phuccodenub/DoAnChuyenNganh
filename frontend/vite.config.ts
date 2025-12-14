@@ -16,12 +16,12 @@ export default defineConfig({
     proxy: {
       // Proxy cho API với version v1.3.0
       '/api': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         rewrite: (path) => path, // Giữ nguyên path để proxy đúng version
       },
       '/socket.io': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         ws: true,
       },

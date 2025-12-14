@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { instructorApi } from '@/services/api/instructor.api';
 import type {
   InstructorCourse,
+  InstructorDashboardStats,
   CourseStats,
   CourseStudent,
   CourseSection,
@@ -20,6 +21,8 @@ import type {
 // Query keys
 export const instructorCourseKeys = {
   all: ['instructor-courses'] as const,
+  dashboard: () => [...instructorCourseKeys.all, 'dashboard'] as const,
+  allStudents: (filters?: Record<string, unknown>) => [...instructorCourseKeys.all, 'all-students', filters] as const,
   lists: () => [...instructorCourseKeys.all, 'list'] as const,
   list: (filters: Record<string, unknown>) => [...instructorCourseKeys.lists(), filters] as const,
   details: () => [...instructorCourseKeys.all, 'detail'] as const,
@@ -28,6 +31,30 @@ export const instructorCourseKeys = {
   students: (id: string) => [...instructorCourseKeys.detail(id), 'students'] as const,
   sections: (id: string) => [...instructorCourseKeys.detail(id), 'sections'] as const,
 };
+
+// ===== DASHBOARD QUERY =====
+
+/**
+ * Hook để lấy thống kê dashboard cho instructor
+ */
+export function useInstructorDashboardStats() {
+  return useQuery({
+    queryKey: instructorCourseKeys.dashboard(),
+    queryFn: () => instructorApi.getDashboardStats(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook để lấy tất cả học viên từ tất cả khóa học
+ */
+export function useAllMyStudents(params?: { page?: number; limit?: number; search?: string }) {
+  return useQuery({
+    queryKey: instructorCourseKeys.allStudents(params),
+    queryFn: () => instructorApi.getAllMyStudents(params),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
 
 // ===== COURSE QUERIES =====
 
