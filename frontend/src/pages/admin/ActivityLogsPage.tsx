@@ -6,12 +6,24 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { 
   Activity, Filter, Download, Trash2, FileJson, FileText, 
   Clock, User, Tag, Server, CheckCircle2, XCircle, Globe 
 } from 'lucide-react';
+
+// Helper function to safely format dates
+const formatDate = (dateValue: string | Date | null | undefined): string => {
+  if (!dateValue) return 'N/A';
+  try {
+    const date = typeof dateValue === 'string' ? parseISO(dateValue) : dateValue;
+    if (!isValid(date)) return 'N/A';
+    return format(date, 'dd/MM/yyyy HH:mm:ss', { locale: vi });
+  } catch {
+    return 'N/A';
+  }
+};
 
 export const ActivityLogsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -49,7 +61,7 @@ export const ActivityLogsPage: React.FC = () => {
     {
       key: 'created_at',
       header: t('admin.activity_logs.timestamp'),
-      render: (row) => format(new Date(row.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: vi }),
+      render: (row) => formatDate(row.created_at),
       sortable: true,
     },
     {

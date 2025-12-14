@@ -110,7 +110,7 @@ export const systemSettingsApi = {
     email_password: string;
     smtp_encryption: 'none' | 'ssl' | 'tls';
   }): Promise<{ success: boolean; message: string }> => {
-    const response = await httpClient.post('/system-settings/email/test', data);
+    const response = await httpClient.post('/system-settings/test-email', data);
     return response.data;
   },
 };

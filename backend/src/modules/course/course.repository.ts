@@ -691,19 +691,23 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       ] = await Promise.all([
         (EnrollmentModel as any).count({ where: { course_id: courseId } }),
         (SectionModel as any).count({ where: { course_id: courseId } }),
-        // Count lessons via join on sections (Lesson belongsTo Section as 'section')
-        (LessonModel as any).count({
-          include: [
-            {
-              model: Section,
-              as: 'section',
-              attributes: [],
+        // Count lessons via raw query to avoid Sequelize join issues
+        (async () => {
+          try {
+            const sections = await (SectionModel as any).findAll({
               where: { course_id: courseId },
-            },
-          ],
-          distinct: true,
-          col: 'Lesson.id',
-        }),
+              attributes: ['id'],
+              raw: true,
+            });
+            if (!sections || sections.length === 0) return 0;
+            const sectionIds = sections.map((s: any) => s.id);
+            return await (LessonModel as any).count({
+              where: { section_id: { [Op.in]: sectionIds } },
+            });
+          } catch {
+            return 0;
+          }
+        })(),
         (EnrollmentModel as any).count({
           where: {
             course_id: courseId,
