@@ -139,7 +139,7 @@ export function CourseEditorPage() {
         courseTitle: formData.title,
         courseDescription: formData.description,
         category: formData.category,
-        level: formData.level,
+        level: formData.level as 'beginner' | 'intermediate' | 'advanced' | undefined,
       });
 
       toast.success('Đã tạo prompt thumbnail!', { id: 'generate-thumbnail' });
@@ -183,7 +183,7 @@ export function CourseEditorPage() {
         });
 
         // Response structure: { success, message, data: CourseSection }
-        const sectionId = sectionResult?.data?.id || sectionResult?.data?.data?.id;
+        const sectionId = sectionResult?.data?.id || null;
         if (!sectionId) {
           console.error('Failed to create section:', section.title, 'Response:', sectionResult);
           continue;

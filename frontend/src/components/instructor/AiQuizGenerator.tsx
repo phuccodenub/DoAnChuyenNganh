@@ -15,7 +15,8 @@ interface AiQuizGeneratorProps {
 export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizGeneratorProps) {
   const [numberOfQuestions, setNumberOfQuestions] = useState(5);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
-  const [questionType, setQuestionType] = useState<'multiple_choice' | 'true_false' | 'short_answer'>('multiple_choice');
+  // Loại câu hỏi AI support: trắc nghiệm (nhiều phương án) & Đúng/Sai
+  const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false' >('single_choice');
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
 
   const generateQuiz = useMutation({
@@ -24,7 +25,7 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
       courseContent: string;
       numberOfQuestions?: number;
       difficulty?: 'easy' | 'medium' | 'hard';
-      questionType?: 'multiple_choice' | 'true_false' | 'short_answer';
+      questionType?: 'single_choice' | 'multiple_choice' | 'true_false';
     }) => aiApi.generateQuiz(payload),
   });
 
@@ -111,9 +112,11 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
               onChange={(e) => setQuestionType(e.target.value as any)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="multiple_choice">Trắc nghiệm</option>
+              {/* Hiện tại AI chỉ hỗ trợ dạng 1 đáp án đúng (single choice) và Đúng/Sai.
+                  Trắc nghiệm nhiều đáp án đúng sẽ được bổ sung sau khi mapping với QuizBuilder. */}
+              <option value="single_choice">Trắc nghiệm</option>
+              <option value="multiple_choice">Nhiều đáp án</option>
               <option value="true_false">Đúng/Sai</option>
-              <option value="short_answer">Tự luận ngắn</option>
             </select>
           </div>
         </div>

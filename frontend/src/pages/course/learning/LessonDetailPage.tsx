@@ -106,8 +106,10 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
     useEffect(() => {
       if (contentRef.current && contentToRender) {
         const raw = contentToRender.trim();
-        // Nếu không bắt đầu bằng thẻ HTML, xử lý markdown để giữ format
-        const html = raw.startsWith('<') ? raw : marked.parse(raw, { breaks: true });
+        // Luôn parse qua markdown để thống nhất format (kể cả khi có sẵn HTML)
+        let html = marked.parse(raw, { breaks: true, gfm: true });
+        // Loại bỏ các tag lạ còn sót (ví dụ </tên_gói> do AI sinh)
+        html = (html as string).replace(/<\/?tên_gói>/gi, '');
         contentRef.current.innerHTML = '';
         contentRef.current.innerHTML = html;
       }
@@ -282,8 +284,10 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
         // Clear content trước khi set để tránh hiển thị giá trị cũ
         contentRef.current.innerHTML = '';
         const raw = contentToRender.trim();
-        // Nếu không bắt đầu bằng HTML, convert Markdown -> HTML để giữ format
-        const html = raw.startsWith('<') ? raw : marked.parse(raw, { breaks: true });
+        // Luôn parse qua markdown để thống nhất format (kể cả khi có sẵn HTML)
+        let html = marked.parse(raw, { breaks: true, gfm: true });
+        // Loại bỏ các tag lạ còn sót (ví dụ </tên_gói> do AI sinh)
+        html = (html as string).replace(/<\/?tên_gói>/gi, '');
         contentRef.current.innerHTML = html;
       }
     }, [contentToRender]);

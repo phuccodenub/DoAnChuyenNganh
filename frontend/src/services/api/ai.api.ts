@@ -46,7 +46,7 @@ export const aiApi = {
     courseContent: string;
     numberOfQuestions?: number;
     difficulty?: 'easy' | 'medium' | 'hard';
-    questionType?: 'multiple_choice' | 'true_false' | 'short_answer';
+    questionType?: 'single_choice' | 'multiple_choice' | 'true_false';
   }): Promise<any> => {
     const res = await apiClient.post<{ data: any }>('/ai/generate-quiz', payload);
     return res.data.data;

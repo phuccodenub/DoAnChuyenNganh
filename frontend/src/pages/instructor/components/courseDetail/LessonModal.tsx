@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { marked } from 'marked';
 import {
     X,
     Pencil,
@@ -142,6 +143,16 @@ export function LessonModal({
         pdfMaterials: existingPdfMaterials
     });
 
+    // Helper: convert markdown/plain text -> HTML (including GFM, line breaks)
+    const renderHtmlFromContent = (raw: string): string => {
+        const trimmed = (raw || '').trim();
+        if (!trimmed) return '';
+        let html = marked.parse(trimmed, { breaks: true, gfm: true });
+        // Remove stray tags like </tên_gói> that AI might emit
+        html = (html as string).replace(/<\/?tên_gói>/gi, '');
+        return html;
+    };
+
     // Effect: Reset state khi mở modal và load content vào editor
     useEffect(() => {
         if (isOpen) {
@@ -171,11 +182,11 @@ export function LessonModal({
             // Set content vào editor sau khi DOM đã render
             setTimeout(() => {
                 if (lessonForm.content_type === 'document' && documentEditorRef.current) {
-                    documentEditorRef.current.innerHTML = contentToLoad;
+                    documentEditorRef.current.innerHTML = renderHtmlFromContent(contentToLoad);
                     console.log('[LessonModal] Set content to document editor:', contentToLoad);
                 } else if (descriptionEditorRef.current) {
                     // Dùng cho text, link, video (description)
-                    descriptionEditorRef.current.innerHTML = contentToLoad || '';
+                    descriptionEditorRef.current.innerHTML = renderHtmlFromContent(contentToLoad || '');
                     console.log('[LessonModal] Set content to description editor:', contentToLoad);
                 }
             }, 100); // Tăng timeout để đảm bảo DOM đã render
@@ -411,40 +422,56 @@ export function LessonModal({
                 <div className="flex-1 overflow-y-auto">
 
                     {/* 1. LESSON META */}
-                    <div className="px-6 py-4 bg-white border-b border-gray-200 flex flex-wrap items-center gap-4">
-                        <div className="flex flex-col gap-1.5 min-w-[180px]">
-                            <label className="text-sm font-medium text-gray-700">Loại nội dung</label>
-                            <select
-                                value={lessonForm.content_type}
-                                onChange={(e) => onFormChange({ ...lessonForm, content_type: e.target.value as ContentType })}
-                                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            >
-                                {(Object.keys(contentTypeLabels) as ContentType[]).map((type) => (
-                                    <option key={type} value={type}>{contentTypeLabels[type]}</option>
-                                ))}
-                            </select>
-                        </div>
-                        
-                        {/* Chỉ hiển thị thời lượng khi đã có video */}
-                        {lessonForm.content_type === 'video' && lessonForm.video_url && lessonForm.duration_minutes > 0 && (
-                            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg">
-                                <Video className="w-4 h-4" />
-                                <span className="text-sm font-medium">
-                                    Thời lượng: {lessonForm.duration_minutes} phút
-                                </span>
+                    <div className="px-6 py-4 bg-white border-b border-gray-200 space-y-4">
+                        <div className="flex flex-wrap items-center gap-4">
+                            <div className="flex flex-col gap-1.5 min-w-[180px]">
+                                <label className="text-sm font-medium text-gray-700">Loại nội dung</label>
+                                <select
+                                    value={lessonForm.content_type}
+                                    onChange={(e) => onFormChange({ ...lessonForm, content_type: e.target.value as ContentType })}
+                                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    {(Object.keys(contentTypeLabels) as ContentType[]).map((type) => (
+                                        <option key={type} value={type}>{contentTypeLabels[type]}</option>
+                                    ))}
+                                </select>
                             </div>
-                        )}
-                        
-                        <div className="flex items-center ml-auto">
-                            <label className="flex items-center gap-2 cursor-pointer select-none">
-                                <input
-                                    type="checkbox"
-                                    checked={lessonForm.is_preview}
-                                    onChange={(e) => onFormChange({ ...lessonForm, is_preview: e.target.checked })}
-                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                />
-                                <span className="text-sm font-medium text-gray-700">Cho phép xem trước</span>
+                            
+                            {/* Chỉ hiển thị thời lượng khi đã có video */}
+                            {lessonForm.content_type === 'video' && lessonForm.video_url && lessonForm.duration_minutes > 0 && (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg">
+                                    <Video className="w-4 h-4" />
+                                    <span className="text-sm font-medium">
+                                        Thời lượng: {lessonForm.duration_minutes} phút
+                                    </span>
+                                </div>
+                            )}
+                            
+                            <div className="flex items-center ml-auto">
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={lessonForm.is_preview}
+                                        onChange={(e) => onFormChange({ ...lessonForm, is_preview: e.target.checked })}
+                                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">Cho phép xem trước</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Mô tả ngắn bài học (description) */}
+                        <div className="mt-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Mô tả ngắn bài học
                             </label>
+                            <textarea
+                                value={lessonForm.description || ''}
+                                onChange={(e) => onFormChange({ ...lessonForm, description: e.target.value })}
+                                placeholder="Nhập mô tả ngắn gọn tóm tắt nội dung chính của bài học (hiển thị ở đầu trang học viên)..."
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
                         </div>
                     </div>
 
@@ -766,9 +793,9 @@ export function LessonModal({
                                                             level: courseLevel || 'beginner',
                                                         });
                                                         
-                                                        // Cập nhật content vào editor
+                                                        const html = renderHtmlFromContent(result.content);
                                                         if (descriptionEditorRef.current) {
-                                                            descriptionEditorRef.current.innerHTML = result.content;
+                                                            descriptionEditorRef.current.innerHTML = html;
                                                             setContent(result.content);
                                                             onFormChange({ ...lessonForm, content: result.content });
                                                         }
@@ -901,12 +928,12 @@ export function LessonModal({
                                 // Với text/link, lưu vào content field
                                 const updatedForm = {
                                     ...lessonForm,
+                                    // Giữ nguyên description do user nhập/AI sinh ở field riêng
+                                    description: lessonForm.description || undefined,
+                                    // Content: lưu nội dung chi tiết (tùy theo loại)
                                     content: (lessonForm.content_type === 'text' || lessonForm.content_type === 'link') 
                                         ? (contentToSave || undefined)
-                                        : (lessonForm.content_type === 'document' ? (contentToSave || undefined) : undefined),
-                                    description: (lessonForm.content_type === 'video' || lessonForm.content_type === 'document')
-                                        ? (contentToSave || undefined)
-                                        : undefined,
+                                        : (lessonForm.content_type === 'document' ? (contentToSave || undefined) : lessonForm.content),
                                 };
                                 
                                 onFormChange(updatedForm);

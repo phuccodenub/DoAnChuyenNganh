@@ -48,12 +48,14 @@ export interface GenerateQuizRequest {
   courseContent: string;
   numberOfQuestions?: number;
   difficulty?: 'easy' | 'medium' | 'hard';
-  questionType?: 'multiple_choice' | 'true_false' | 'short_answer';
+  // single_choice = 1 đáp án đúng, multiple_choice = nhiều đáp án đúng, true_false = Đúng/Sai
+  questionType?: 'single_choice' | 'multiple_choice' | 'true_false';
 }
 
 export interface QuizQuestion {
   question: string;
-  type: 'multiple_choice' | 'true_false' | 'short_answer';
+  // single_choice = 1 đáp án đúng, multiple_choice = nhiều đáp án đúng, true_false = Đúng/Sai
+  type: 'single_choice' | 'multiple_choice' | 'true_false';
   options?: string[];
   correctAnswer: string | number;
   explanation?: string;
@@ -289,6 +291,3 @@ export interface GenerateLessonContentRequest {
 export interface GenerateLessonContentResponse {
   content: string; // Nội dung chi tiết đầy đủ (HTML hoặc markdown)
 }
-
-
-

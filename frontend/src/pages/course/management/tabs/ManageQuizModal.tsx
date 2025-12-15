@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Loader2, Plus, Trash2, Edit2, CheckCircle, XCircle, Settings, Save } from 'lucide-react';
-import { quizApi, type Question, type UpdateQuizData } from '@/services/api/quiz.api';
+import { quizApi, type Question, type UpdateQuizData, type CreateQuestionData } from '@/services/api/quiz.api';
 import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useInstructorQuizQuestions, useDeleteQuestion, useInstructorQuiz, useUpdateQuiz, useDeleteQuiz } from '@/hooks/useInstructorQuiz';
+import { AiQuizGenerator } from '@/components/instructor/AiQuizGenerator';
 import { CreateQuestionModal } from './CreateQuestionModal';
 
 interface ManageQuizModalProps {
@@ -36,6 +37,7 @@ export function ManageQuizModal({
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isEditQuizOpen, setIsEditQuizOpen] = useState(false);
   const [isDeletingQuiz, setIsDeletingQuiz] = useState(false);
+  const [isImportingFromAI, setIsImportingFromAI] = useState(false);
   
   const { data: questionsData, isLoading } = useInstructorQuizQuestions(effectiveQuizId);
   const { data: quizData, refetch: refetchQuiz, isLoading: isLoadingQuiz } = useInstructorQuiz(effectiveQuizId);
@@ -83,6 +85,24 @@ export function ManageQuizModal({
       questions = (questionsData as any).questions;
     }
   }
+  
+  // Chuẩn bị nội dung nguồn cho AI Quiz Generator: title + description + danh sách câu hỏi hiện có
+  const aiSourceContent = useMemo(() => {
+    const parts: string[] = [];
+    if (quiz?.title) {
+      parts.push(`# ${quiz.title}`);
+    }
+    if (quiz?.description) {
+      parts.push(quiz.description);
+    }
+    if (questions.length > 0) {
+      parts.push('## Câu hỏi hiện có trong quiz');
+      questions.forEach((q, idx) => {
+        parts.push(`### Câu ${idx + 1}: ${q.question_text}`);
+      });
+    }
+    return parts.join('\n\n');
+  }, [quiz, questions]);
   
   // Tính tổng điểm từ các câu hỏi hiện có, hoặc sử dụng totalPoints từ props
   // Nếu có quiz data, có thể lấy từ đó, hoặc tính từ tổng điểm các câu hỏi
@@ -274,11 +294,127 @@ export function ManageQuizModal({
                   Tổng cộng: {questions.length} câu hỏi
                 </p>
               </div>
-              <Button onClick={handleAddQuestion} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Thêm câu hỏi
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleAddQuestion} className="gap-2" variant="outline">
+                  <Plus className="w-4 h-4" />
+                  Thêm thủ công
+                </Button>
+              </div>
             </div>
+
+            {/* AI Quiz Generator */}
+            <AiQuizGenerator
+              courseContent={aiSourceContent}
+              onQuestionsGenerated={async (generated) => {
+                if (!generated || generated.length === 0) return;
+
+                try {
+                  setIsImportingFromAI(true);
+
+                  // Map câu hỏi từ AI sang CreateQuestionData để lưu trực tiếp vào quiz
+                  const startOrder = questions.length;
+                  const payloads: CreateQuestionData[] = generated.map(
+                    (q: any, index: number): CreateQuestionData => {
+                      const aiType: string = q.type || 'single_choice';
+                      let question_type: CreateQuestionData['question_type'] = 'single_choice';
+
+                      if (aiType === 'true_false') {
+                        question_type = 'true_false';
+                      } else if (aiType === 'multiple_choice') {
+                        // Nhiều đáp án đúng
+                        question_type = 'multiple_choice';
+                      } else {
+                        // Mặc định: 1 đáp án đúng
+                        question_type = 'single_choice';
+                      }
+
+                      // Chuẩn hoá options: bỏ tiền tố "A. ", "B) ", "1) " nếu AI lỡ thêm
+                      const rawOptionsInput: string[] = Array.isArray(q.options) ? q.options : [];
+                      const rawOptions = rawOptionsInput.map((opt) => {
+                        if (typeof opt !== 'string') return '';
+                        const trimmed = opt.trim();
+                        // Remove prefix patterns: "A. ", "B) ", "1. ", "1) "
+                        const cleaned = trimmed.replace(/^[A-Z]\s*[\.\)]\s*/i, '').replace(/^[0-9]+\s*[\.\)]\s*/, '');
+                        return cleaned.trim();
+                      });
+                      const correct = q.correctAnswer;
+
+                      // Chuẩn hoá danh sách index đáp án đúng (0-based)
+                      const correctIndexes: number[] = [];
+
+                      const pushIndex = (idx: number) => {
+                        if (!Number.isNaN(idx) && idx >= 0 && idx < rawOptions.length && !correctIndexes.includes(idx)) {
+                          correctIndexes.push(idx);
+                        }
+                      };
+
+                      if (Array.isArray(correct)) {
+                        // multiple_choice: mảng index hoặc chữ cái
+                        correct.forEach((item) => {
+                          if (typeof item === 'number') {
+                            pushIndex(item);
+                          } else if (typeof item === 'string') {
+                            const upper = item.trim().toUpperCase();
+                            if (/^[0-9]+$/.test(upper)) {
+                              pushIndex(Number(upper));
+                            } else if (upper >= 'A' && upper <= 'Z') {
+                              pushIndex(upper.charCodeAt(0) - 65);
+                            }
+                          }
+                        });
+                      } else if (typeof correct === 'number') {
+                        pushIndex(correct);
+                      } else if (typeof correct === 'string') {
+                        // single_choice: 1 index hoặc 1 chữ cái
+                        const upper = correct.trim().toUpperCase();
+                        if (/^[0-9]+$/.test(upper)) {
+                          pushIndex(Number(upper));
+                        } else if (upper >= 'A' && upper <= 'Z') {
+                          pushIndex(upper.charCodeAt(0) - 65);
+                        }
+                      }
+
+                      const options =
+                        rawOptions.length > 0
+                          ? rawOptions.map((opt, optIdx) => ({
+                              option_text: opt,
+                              is_correct:
+                                question_type === 'true_false'
+                                  ? false
+                                  : correctIndexes.includes(optIdx),
+                              order_index: optIdx,
+                            }))
+                          : undefined;
+
+                      return {
+                        question_text: q.question || '',
+                        question_type,
+                        points: 1, // Mặc định 1 điểm, instructor có thể chỉnh sau
+                        order_index: startOrder + index,
+                        explanation: q.explanation,
+                        options,
+                      };
+                    }
+                  );
+
+                  const created = await quizApi.bulkAddQuestions(quizId, payloads);
+
+                  toast.success(`Đã thêm ${created.length} câu hỏi từ AI vào quiz`);
+                  // Refetch danh sách câu hỏi để hiển thị ngay
+                  queryClient.invalidateQueries({
+                    queryKey: ['instructor-quiz-questions', quizId],
+                  });
+                } catch (error: any) {
+                  console.error('[ManageQuizModal] Import AI questions error:', error);
+                  toast.error(
+                    error?.response?.data?.message ||
+                      'Không thể thêm câu hỏi từ AI vào quiz. Vui lòng thử lại.'
+                  );
+                } finally {
+                  setIsImportingFromAI(false);
+                }
+              }}
+            />
 
             {/* Danh sách câu hỏi */}
             {isLoading ? (

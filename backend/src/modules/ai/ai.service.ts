@@ -380,24 +380,36 @@ export class AIService {
     }
 
     try {
-      const prompt = `Tạo ${request.numberOfQuestions || 5} câu hỏi ${request.difficulty || 'medium'} từ nội dung khóa học sau:
+      const questionType = request.questionType || 'single_choice';
+      const difficulty = request.difficulty || 'medium';
+
+      const prompt = `Tạo ${request.numberOfQuestions || 5} câu hỏi ${difficulty} từ nội dung khóa học sau:
 
 ${request.courseContent}
 
 Yêu cầu:
-- Loại câu hỏi: ${request.questionType || 'multiple_choice'}
-- Độ khó: ${request.difficulty || 'medium'}
-- Mỗi câu hỏi phải có đáp án đúng và giải thích
-- Trả về dưới dạng JSON với format:
+- Loại câu hỏi: ${questionType}
+- Giải thích rõ:
+  * single_choice = Trắc nghiệm 1 đáp án đúng duy nhất
+  * multiple_choice = Trắc nghiệm có thể có nhiều đáp án đúng (ít nhất 2 đáp án đúng)
+  * true_false = Câu hỏi Đúng/Sai, không có options, chỉ trả về correctAnswer là "true" hoặc "false"
+- Độ khó: ${difficulty}
+- Mỗi câu hỏi phải có đáp án đúng và giải thích ngắn gọn
+- Không thêm tiền tố A./B./C./D. trong text đáp án. Chỉ trả về nội dung đáp án thuần.
+- Với single_choice hoặc multiple_choice: tạo từ 3 tới 6 đáp án (options), không cố định 4.
+- Trả về dưới dạng JSON với format CHÍNH XÁC:
 {
   "questions": [
     {
       "question": "Câu hỏi",
-      "type": "${request.questionType || 'multiple_choice'}",
-      "options": ["A", "B", "C", "D"],
+      "type": "${questionType}", // "single_choice" | "multiple_choice" | "true_false"
+      "options": ["Đáp án 1", "Đáp án 2", "Đáp án 3"], // BẮT BUỘC với single_choice và multiple_choice, KHÔNG dùng với true_false. Không thêm tiền tố A./B./C./D.
+      // Với single_choice: correctAnswer là số chỉ index của đáp án đúng (0-based) hoặc chữ cái "A"/"B"/"C"/...
+      // Với multiple_choice: correctAnswer là MẢNG index các đáp án đúng (ví dụ [0, 2]) hoặc mảng chữ cái ["A","C"]
+      // Với true_false: correctAnswer là chuỗi "true" hoặc "false"
       "correctAnswer": 0,
       "explanation": "Giải thích",
-      "difficulty": "${request.difficulty || 'medium'}"
+      "difficulty": "${difficulty}"
     }
   ]
 }`;
@@ -935,22 +947,86 @@ Trả về JSON format:
       const response = result.response;
       const text = response.text();
 
-      // Parse JSON response
-      try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? jsonMatch[0] : text;
-        const parsed = JSON.parse(jsonText);
+      /**
+       * Extract and normalize lesson content from raw Gemini text.
+       * Handles cases:
+       * - Plain markdown / HTML
+       * - JSON: { "content": "..." }
+       * - Nested JSON: { "content": "{ \"content\": \"...\" }" }
+       * - Fenced blocks: ```markdown ... ```
+       * - Optional "json" prefix
+       */
+      const extractContent = (raw: string): string => {
+        if (!raw) return '';
+        let current = raw.trim();
 
-        return {
-          content: parsed.content || '',
+        // Remove leading "json" keyword if present
+        current = current.replace(/^json\s*/i, '').trim();
+
+        // If wrapped in fence ```...```, strip outer fence first
+        if (current.startsWith('```')) {
+          current = current.replace(/^```(?:markdown|json)?\s*/i, '');
+          current = current.replace(/```$/i, '').trim();
+        }
+
+        // Try up to 2 levels of JSON parsing to get to the real content string
+        const tryParseJsonContent = (value: string): string => {
+          let v = value.trim();
+          try {
+            const parsed: any = JSON.parse(v);
+            // If parsed is a plain string, use it
+            if (typeof parsed === 'string') {
+              return parsed;
+            }
+            // Common key locations
+            const candidate =
+              typeof parsed?.content === 'string'
+                ? parsed.content
+                : typeof parsed?.data?.content === 'string'
+                ? parsed.data.content
+                : undefined;
+            if (candidate) {
+              return candidate;
+            }
+          } catch {
+            // ignore parse errors, fall back to original
+          }
+          return v;
         };
-      } catch (parseError) {
-        logger.error('[AIService] Failed to parse lesson content JSON:', parseError);
-        // Fallback: trả về text trực tiếp nếu không parse được JSON
-        return {
-          content: text.trim(),
-        };
-      }
+
+        // First level parse
+        current = tryParseJsonContent(current);
+        // Second level parse (handles nested "{ \"content\": \"...\" }" as string)
+        current = tryParseJsonContent(current);
+
+        // Strip outer { "content": "..." } if still present but not valid JSON string
+        const braceMatch = current.match(/^\{\s*"content"\s*:\s*([\s\S]*?)\}\s*$/i);
+        if (braceMatch && braceMatch[1]) {
+          current = braceMatch[1].trim();
+          // Remove starting/ending quotes if they wrap the whole value
+          if (
+            (current.startsWith('"') && current.endsWith('"')) ||
+            (current.startsWith("'") && current.endsWith("'"))
+          ) {
+            current = current.slice(1, -1);
+          }
+        }
+
+        // Remove any remaining fences
+        current = current.replace(/^```(?:markdown|json)?\s*/i, '');
+        current = current.replace(/```$/i, '');
+
+        // Remove stray custom tags that may appear
+        current = current.replace(/<\/?tên_gói>/gi, '');
+
+        return current.trim();
+      };
+
+      const cleaned = extractContent(text);
+
+      return {
+        content: cleaned,
+      };
     } catch (error) {
       logger.error('[AIService] Generate lesson content error:', error);
       this.mapGeminiError(error);
