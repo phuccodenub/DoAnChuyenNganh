@@ -15,6 +15,7 @@ import {
   Bookmark,
   BookmarkCheck
 } from 'lucide-react';
+import { marked } from 'marked';
 import { MainLayout } from '@/layouts/MainLayout';
 import { PageWrapper } from '@/components/courseEditor';
 import { Spinner } from '@/components/ui/Spinner';
@@ -101,11 +102,14 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
     const videoRef = useRef<HTMLVideoElement>(null);
     const hasAutoCompletedRef = useRef(false);
     
-    // Set innerHTML trực tiếp vào DOM element
+    // Set innerHTML trực tiếp vào DOM element (hỗ trợ Markdown)
     useEffect(() => {
       if (contentRef.current && contentToRender) {
+        const raw = contentToRender.trim();
+        // Nếu không bắt đầu bằng thẻ HTML, xử lý markdown để giữ format
+        const html = raw.startsWith('<') ? raw : marked.parse(raw, { breaks: true });
         contentRef.current.innerHTML = '';
-        contentRef.current.innerHTML = contentToRender;
+        contentRef.current.innerHTML = html;
       }
     }, [contentToRender]);
 
@@ -272,13 +276,15 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
     const contentRef = useRef<HTMLDivElement>(null);
     const hasAutoCompletedRef = useRef(false);
     
-    // Set innerHTML trực tiếp vào DOM element
+    // Set innerHTML trực tiếp vào DOM element (hỗ trợ Markdown)
     useEffect(() => {
       if (contentRef.current && contentToRender) {
         // Clear content trước khi set để tránh hiển thị giá trị cũ
         contentRef.current.innerHTML = '';
-        // Set content mới
-        contentRef.current.innerHTML = contentToRender;
+        const raw = contentToRender.trim();
+        // Nếu không bắt đầu bằng HTML, convert Markdown -> HTML để giữ format
+        const html = raw.startsWith('<') ? raw : marked.parse(raw, { breaks: true });
+        contentRef.current.innerHTML = html;
       }
     }, [contentToRender]);
 

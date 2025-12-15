@@ -122,6 +122,27 @@ export const aiApi = {
   },
 
   /**
+   * Generate detailed content for a lesson
+   */
+  generateLessonContent: async (payload: {
+    lessonTitle: string;
+    lessonDescription: string;
+    courseTitle: string;
+    courseDescription?: string;
+    sectionTitle?: string;
+    level?: 'beginner' | 'intermediate' | 'advanced';
+  }): Promise<{ content: string }> => {
+    const res = await apiClient.post<{ data: { content: string } }>(
+      '/ai/instructor/generate-lesson-content',
+      payload,
+      {
+        timeout: 60000, // 60s cho mỗi lesson
+      }
+    );
+    return res.data.data;
+  },
+
+  /**
    * Generate thumbnail prompt for course
    */
   generateThumbnail: async (payload: {

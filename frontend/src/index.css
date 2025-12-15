@@ -260,3 +260,62 @@
 .animate-fade-in-delay-3 {
   animation: fade-in 1.2s ease-out 0.6s both;
 }
+
+/* Lesson content typography */
+.lesson-content h1 {
+  font-size: 1.75rem;
+  line-height: 1.35;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem;
+  color: #111827; /* gray-900 */
+}
+
+.lesson-content h2 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+  margin: 1.25rem 0 0.6rem;
+  color: #111827;
+}
+
+.lesson-content h3 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+  color: #1f2937; /* gray-800 */
+}
+
+.lesson-content p {
+  margin: 0.5rem 0;
+  color: #374151; /* gray-700 */
+}
+
+.lesson-content ul,
+.lesson-content ol {
+  margin: 0.75rem 0 0.75rem 1.25rem;
+  padding-left: 1.25rem;
+}
+
+.lesson-content li {
+  margin: 0.25rem 0;
+}
+
+.lesson-content strong {
+  font-weight: 700;
+}
+
+.lesson-content code {
+  background: #f4f4f5;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
+.lesson-content pre {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow: auto;
+}
