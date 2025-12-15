@@ -193,7 +193,7 @@ export default function CertificateVerifyPage() {
                       <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                       <div className="text-left">
                         <p className="text-sm font-medium text-yellow-800">
-                          Trạng thái chứng chỉ: {verifyResult.certificate.status === 'active' ? 'Đang hoạt động' : verifyResult.certificate.status === 'revoked' ? 'Đã thu hồi' : verifyResult.certificate.status}
+                          Trạng thái chứng chỉ: {verifyResult.certificate.status === 'revoked' ? 'Đã thu hồi' : verifyResult.certificate.status === 'expired' ? 'Đã hết hạn' : 'Không xác định'}
                         </p>
                         {verifyResult.certificate.revoked_reason && (
                           <p className="text-xs text-yellow-700 mt-1">

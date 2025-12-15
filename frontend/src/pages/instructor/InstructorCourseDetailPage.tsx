@@ -613,7 +613,7 @@ export function InstructorDetailPage() {
                             lessons: sections.flatMap(s => s.lessons),
                             enrollmentStats: {
                                 total: statsResponse?.data?.total_students || 0,
-                                active: statsResponse?.data?.active_students || 0,
+                                active: statsResponse?.data?.total_students || 0, // Use total_students as active
                             },
                         } : undefined}
                         stats={stats}

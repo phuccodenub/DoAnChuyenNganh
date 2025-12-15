@@ -357,10 +357,10 @@ export class QuizRepository {
     const answerData: QuizAnswerCreationAttributes[] = answers.map(answer => ({
       attempt_id: attemptId,
       question_id: String(answer.question_id).trim(),
-      selected_option_id: answer.selected_option_id ? String(answer.selected_option_id).trim() : null,
+      selected_option_id: answer.selected_option_id ? String(answer.selected_option_id).trim() : undefined,
       selected_options: Array.isArray(answer.selected_options) 
         ? answer.selected_options.map((id: any) => String(id).trim())
-        : null,
+        : undefined,
       is_correct: answer.is_correct,
       points_earned: answer.points_earned
     }));

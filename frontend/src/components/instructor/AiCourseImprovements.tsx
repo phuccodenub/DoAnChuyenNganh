@@ -77,7 +77,7 @@ export function AiCourseImprovements({ courseId, courseData }: AiCourseImproveme
           {improvements?.overallScore !== undefined && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Điểm tổng thể:</span>
-              <Badge variant={improvements.overallScore >= 80 ? 'success' : improvements.overallScore >= 60 ? 'warning' : 'error'}>
+              <Badge variant={improvements.overallScore >= 80 ? 'success' : improvements.overallScore >= 60 ? 'warning' : 'danger'}>
                 {improvements.overallScore}/100
               </Badge>
             </div>
