@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // https://vitejs.dev/config/
+const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:3000'
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -16,12 +18,12 @@ export default defineConfig({
     proxy: {
       // Proxy cho API với version v1.3.0
       '/api': {
-        target: 'http://localhost:3000',
+        target: proxyTarget,
         changeOrigin: true,
         rewrite: (path) => path, // Giữ nguyên path để proxy đúng version
       },
       '/socket.io': {
-        target: 'http://localhost:3000',
+        target: proxyTarget,
         changeOrigin: true,
         ws: true,
       },

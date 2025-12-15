@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, type HTMLAttributes } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -7,7 +7,7 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl' | 'full';
   showCloseButton?: boolean;
 }
 
@@ -16,6 +16,10 @@ const sizeClasses = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '4xl': 'max-w-4xl',
+  '6xl': 'max-w-6xl',
+  full: 'max-w-full mx-8',
 };
 
 /**
@@ -105,17 +109,25 @@ export function Modal({
 }
 
 // Modal subcomponents
-export function ModalHeader({ children }: { children: ReactNode }) {
-  return <div className="mb-4">{children}</div>;
-}
-
-export function ModalBody({ children }: { children: ReactNode }) {
-  return <div className="mb-4">{children}</div>;
-}
-
-export function ModalFooter({ children }: { children: ReactNode }) {
+export function ModalHeader({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+    <div className={cn('mb-4', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function ModalBody({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('mb-4', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function ModalFooter({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('flex items-center justify-end gap-3 pt-4 border-t border-gray-200', className)} {...props}>
       {children}
     </div>
   );

@@ -45,11 +45,15 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const location = useLocation()
   const user = useAuthStore((state) => state.user)
   const { navigateTo, canPerform } = useRoleBasedNavigation()
-  const isInstructorOrHigher = user?.role === 'instructor' || user?.role === 'admin' || user?.role === 'super_admin'
+  
+  // Chỉ true khi user đã load và có role instructor/admin
+  const isInstructorOrHigher = Boolean(user) && (user?.role === 'instructor' || user?.role === 'admin' || user?.role === 'super_admin')
 
   // Dùng cùng hook với trang Instructor để tránh lệch cấu trúc response
+  // Chỉ gọi API khi user đã load xong VÀ là instructor hoặc admin để tránh lỗi 403 cho student
   const { data: instructorCoursesData } = useInstructorCourses(
-    isInstructorOrHigher ? {} : undefined
+    {},
+    { enabled: isInstructorOrHigher === true } // Explicit check to ensure only true enables
   )
   // API instructor trả về { data: { data: courses[], pagination } }
   const instructorCourses =

@@ -102,13 +102,20 @@ export const assignmentApi = {
   },
 
   /**
+   * Cancel/delete own submission (student) - only if not graded
+   */
+  cancelSubmission: async (assignmentId: string): Promise<void> => {
+    await apiClient.delete(`/assignments/${assignmentId}/submissions`);
+  },
+
+  /**
    * Upload assignment file
    */
   uploadFile: async (assignmentId: string, file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await apiClient.post<{ url: string }>(
+    const response = await apiClient.post<{ success: boolean; data: { url: string } }>(
       `/assignments/${assignmentId}/upload`,
       formData,
       {
@@ -117,7 +124,8 @@ export const assignmentApi = {
         },
       }
     );
-    return response.data;
+    // Backend trả về: { success, message, data: { url, originalName, size } }
+    return response.data?.data || response.data as any;
   },
 
   /**

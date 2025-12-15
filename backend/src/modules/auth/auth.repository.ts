@@ -61,7 +61,7 @@ export class AuthRepository extends BaseUserRepository {
         last_name: userData.last_name,
         phone: userData.phone,
         role: userData.role ?? 'student',
-        status: 'active' // Auto-activate new accounts (can be changed to 'pending' if email verification is required)
+        status: 'pending'
       };
 
       const user = await this.create(creation);

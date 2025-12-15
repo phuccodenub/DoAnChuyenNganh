@@ -25,17 +25,6 @@ export function useCourseContent(courseId: string, options?: { enabled?: boolean
                       !!tokens?.accessToken &&
                       options?.enabled !== false;
 
-  // Debug log (có thể bỏ sau khi fix xong)
-  if (process.env.NODE_ENV === 'development' && courseId) {
-    console.log('[useCourseContent] Auth state:', {
-      courseId,
-      isInitialized,
-      isAuthenticated,
-      hasToken: !!tokens?.accessToken,
-      shouldFetch
-    });
-  }
-
   return useQuery({
     queryKey: QUERY_KEYS.lessons.content(courseId),
     queryFn: () => lessonApi.getCourseContent(courseId),

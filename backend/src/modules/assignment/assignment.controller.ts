@@ -205,6 +205,26 @@ export class AssignmentController {
   };
 
   /**
+   * Cancel/delete own submission (student) - only if not graded
+   */
+  cancelSubmission = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as any).user?.userId as string;
+      const { assignmentId } = req.params;
+      
+      await this.assignmentService.cancelSubmission(assignmentId, userId);
+      
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Submission cancelled successfully'
+      });
+    } catch (error) {
+      logger.error('Error in cancelSubmission controller:', error);
+      next(error);
+    }
+  };
+
+  /**
    * Get all submissions for an assignment (instructor)
    */
   getAssignmentSubmissions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -408,6 +428,51 @@ export class AssignmentController {
       });
     } catch (error) {
       logger.error('Error in getMyAssignments controller:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Upload assignment file (student)
+   * Files are uploaded to R2/Google Drive and URL is returned
+   */
+  uploadFile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { assignmentId } = req.params;
+      const userId = (req as any).user?.userId as string;
+      
+      // Verify assignment exists
+      const assignment = await this.assignmentService.getAssignment(assignmentId, userId);
+      if (!assignment) {
+        throw new ApiError('Assignment not found', RESPONSE_CONSTANTS.STATUS_CODE.NOT_FOUND);
+      }
+
+      // Check if file was uploaded
+      const file = req.file;
+      if (!file) {
+        throw new ApiError('No file uploaded', RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST);
+      }
+
+      // Validate file size (max 50MB - controlled by multer)
+      const maxSizeMB = 50;
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        throw new ApiError(`File too large. Maximum size: ${maxSizeMB}MB`, RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST);
+      }
+
+      // Upload file using the service
+      const result = await this.assignmentService.uploadSubmissionFile(assignmentId, userId, file);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'File uploaded successfully',
+        data: {
+          url: result.url,
+          originalName: result.originalName,
+          size: file.size
+        }
+      });
+    } catch (error) {
+      logger.error('Error in uploadFile controller:', error);
       next(error);
     }
   };

@@ -1,4 +1,4 @@
-import { Assignment, AssignmentSubmission, User, Course } from '../../models';
+import { Assignment, AssignmentSubmission, User, Course, Section } from '../../models';
 import { Op } from 'sequelize';
 import type { ModelStatic, WhereOptions } from '../../types/sequelize-types';
 import type {
@@ -111,6 +111,12 @@ export class AssignmentRepository {
       { where: { id: submissionId } as WhereOptions<AssignmentSubmissionAttributes> }
     );
     return this.getSubmissionById(submissionId);
+  }
+
+  async deleteSubmission(submissionId: string): Promise<void> {
+    await this.AssignmentSubmissionModel.destroy({
+      where: { id: submissionId } as WhereOptions<AssignmentSubmissionAttributes>
+    });
   }
 
   async getUserSubmission(assignmentId: string, userId: string): Promise<AssignmentSubmissionInstance | null> {
@@ -541,25 +547,55 @@ export class AssignmentRepository {
         };
       }
 
-      // Build where clause for assignments
+      // Get section IDs for enrolled courses to include section-level assignments
+      const { Section } = await import('../../models');
+      const sections = await Section.findAll({
+        where: { course_id: { [Op.in]: courseIds } },
+        attributes: ['id', 'course_id'],
+        raw: true
+      });
+      const sectionIds = sections.map((s: any) => s.id);
+
+      // Build where clause for assignments:
+      // 1. Course-level assignments (course_id is set, section_id is null)
+      // 2. Section-level assignments (section_id is set, course_id may be null)
+      // Also only include published assignments for students
       const assignmentWhere: any = {
-        course_id: { [Op.in]: courseIds }
+        is_published: true, // Only published assignments for students
+        [Op.or]: [
+          // Course-level assignments
+          { course_id: { [Op.in]: courseIds } },
+          // Section-level assignments
+          ...(sectionIds.length > 0 ? [{ section_id: { [Op.in]: sectionIds } }] : [])
+        ]
       };
 
       if (options.search) {
-        assignmentWhere[Op.or] = [
-          { title: { [Op.iLike]: `%${options.search}%` } }
-        ];
+        assignmentWhere.title = { [Op.iLike]: `%${options.search}%` };
       }
 
-      // Get all assignments from enrolled courses
+      // Get all assignments from enrolled courses (course-level and section-level)
       const assignments = await this.AssignmentModel.findAll({
         where: assignmentWhere,
         include: [
           {
             model: Course,
             as: 'course',
-            attributes: ['id', 'title', 'thumbnail']
+            attributes: ['id', 'title', 'thumbnail'],
+            required: false // Allow section-level assignments without direct course relation
+          },
+          {
+            model: Section,
+            as: 'section',
+            attributes: ['id', 'title', 'course_id'],
+            required: false,
+            include: [
+              {
+                model: Course,
+                as: 'course',
+                attributes: ['id', 'title', 'thumbnail']
+              }
+            ]
           }
         ],
         order: [['due_date', 'ASC']],
@@ -601,16 +637,24 @@ export class AssignmentRepository {
           status = 'overdue';
         }
 
+        // Handle both course-level and section-level assignments
+        // For section-level: get course info from section.course
+        const courseFromSection = a.section?.course;
+        const course = a.course || courseFromSection;
+        const effectiveCourseId = a.course_id || a.section?.course_id || course?.id;
+
         return {
           id: a.id,
           title: a.title,
           description: a.description,
-          course_id: a.course_id,
-          course_name: a.course?.title || '',
-          course_thumbnail: a.course?.thumbnail || null,
+          course_id: effectiveCourseId,
+          section_id: a.section_id,
+          section_name: a.section?.title || null,
+          course_name: course?.title || '',
+          course_thumbnail: course?.thumbnail || null,
           due_date: a.due_date,
           status,
-          max_points: a.max_score || 100,
+          max_points: a.max_score, // Không fallback, để hiển thị giá trị thật
           score: submission?.score || null,
           submitted_at: submission?.submitted_at || null,
           graded_at: submission?.graded_at || null,

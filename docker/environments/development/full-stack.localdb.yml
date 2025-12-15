@@ -1,9 +1,20 @@
-# LMS Backend-Only Development Environment  
-# Includes: PostgreSQL + Redis + Backend (API Only)
-# Perfect for: Mobile apps, Flutter, React Native, External integrations
-# Usage: docker-compose -f docker/environments/development/backend-only.yml up
+# LMS Full Stack Development Environment
+# Includes: PostgreSQL + Redis + Backend + Frontend
 
 # Shared configuration templates (inline to avoid compatibility issues)
+x-postgres-base: &postgres-base
+  image: postgres:15
+  restart: unless-stopped
+  environment:
+    POSTGRES_DB: ${POSTGRES_DB:-lms_db}
+    POSTGRES_USER: ${POSTGRES_USER:-lms_user}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms_user} -d ${POSTGRES_DB:-lms_db}"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+
 x-redis-base: &redis-base
   image: redis:7-alpine
   restart: unless-stopped
@@ -15,8 +26,16 @@ x-redis-base: &redis-base
     retries: 5
 
 services:
-  # Redis Cache Service
-  # Service name = "redis-dev" → With project "lms" → Container "lms-redis-dev"
+  postgres-dev:
+    <<: *postgres-base
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_api_dev_data:/var/lib/postgresql/data
+      - ../../../database/init:/docker-entrypoint-initdb.d
+    networks:
+      - lms-dev-network
+
   redis-dev:
     <<: *redis-base
     ports:
@@ -26,8 +45,6 @@ services:
     networks:
       - lms-dev-network
 
-  # Backend API Service
-  # Service name = "backend-dev" → With project "lms" → Container "lms-backend-dev"
   backend-dev:
     build:
       context: ../../..
@@ -41,6 +58,12 @@ services:
       - ../../../backend/.env
     environment:
       - NODE_ENV=${NODE_ENV:-development}
+      - DATABASE_URL=
+      - DB_HOST=${DB_HOST:-postgres-dev}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-${POSTGRES_DB:-lms_db}}
+      - DB_USER=${DB_USER:-${POSTGRES_USER:-lms_user}}
+      - DB_PASSWORD=${DB_PASSWORD:-${POSTGRES_PASSWORD:-123456}}
       - REDIS_HOST=redis-dev
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-dev:6379
@@ -58,18 +81,19 @@ services:
     networks:
       - lms-dev-network
     depends_on:
+      postgres-dev:
+        condition: service_healthy
       redis-dev:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
     volumes:
       - ../../../backend:/app
       - /app/node_modules
-      - ../../../backend/logs:/app/logs
       - ../../../docker/scripts/start-backend-dev.sh:/app/start-backend-dev.sh:ro
     command:
       - /bin/sh
@@ -79,13 +103,46 @@ services:
         chmod +x /tmp/start-backend-dev.sh && \
         /bin/sh /tmp/start-backend-dev.sh
 
-# Named volumes for data persistence  
+  frontend-dev:
+    build:
+      context: ../../..
+      dockerfile: docker/dockerfiles/frontend.dev.Dockerfile
+    image: lms-frontend-dev-vite:dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - VITE_API_URL=/api/v1.3.0
+      - VITE_SOCKET_URL=
+      - VITE_PROXY_TARGET=http://backend-dev:3000
+    volumes:
+      - ../../../frontend:/app
+      - /app/node_modules
+      - ../../../docker/scripts/start-frontend-dev.sh:/app/start-frontend-dev.sh:ro
+    ports:
+      - "${FRONTEND_PORT:-3001}:5174"
+    networks:
+      - lms-dev-network
+    depends_on:
+      backend-dev:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    command:
+      - /bin/sh
+      - -c
+      - |
+        tr -d '\r' < /app/start-frontend-dev.sh > /tmp/start-frontend-dev.sh && \
+        chmod +x /tmp/start-frontend-dev.sh && \
+        /bin/sh /tmp/start-frontend-dev.sh
+
 volumes:
+  postgres_api_dev_data:
+    name: lms_postgres_api_dev_data
+    external: true
   redis_api_dev_data:
     name: lms_redis_api_dev_data
     external: true
 
-# Networks
 networks:
   lms-dev-network:
     external: true

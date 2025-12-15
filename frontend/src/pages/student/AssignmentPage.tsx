@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Upload, FileText, X, CheckCircle, AlertCircle, Award } from 'lucide-react';
+import { Calendar, Clock, Upload, FileText, X, CheckCircle, AlertCircle, Award, Eye, RotateCcw, Download, ExternalLink } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { useAssignment, useSubmission, useSubmitAssignment, useUploadFile } from '@/hooks/useAssignmentData';
+import { useAssignment, useSubmission, useSubmitAssignment, useUploadFile, useCancelSubmission } from '@/hooks/useAssignmentData';
 import { ROUTES, generateRoute } from '@/constants/routes';
+import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
 
 /**
  * AssignmentPage - Student
@@ -26,15 +27,44 @@ export function AssignmentPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: assignment, isLoading: assignmentLoading } = useAssignment(assignmentId!);
-  const { data: submission } = useSubmission(assignmentId!);
+  const { data: submission, refetch: refetchSubmission } = useSubmission(assignmentId!);
   
   const submitMutation = useSubmitAssignment();
   const uploadMutation = useUploadFile();
+  const cancelMutation = useCancelSubmission();
 
   const [submissionText, setSubmissionText] = useState(submission?.submission_text || '');
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; url: string; size: number }[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  const getSubmissionFileUrls = () => {
+    const s = submission as unknown as {
+      file_urls?: unknown;
+      file_url?: unknown;
+    } | null | undefined;
+
+    const raw = s?.file_urls ?? s?.file_url;
+    if (!raw) return [] as string[];
+    if (Array.isArray(raw)) return raw.filter((x): x is string => typeof x === 'string' && !!x);
+
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (!trimmed) return [];
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((x): x is string => typeof x === 'string' && !!x);
+        }
+        if (typeof parsed === 'string' && parsed) return [parsed];
+      } catch {
+        // ignore
+      }
+      return [trimmed];
+    }
+
+    return [] as string[];
+  };
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -141,24 +171,28 @@ export function AssignmentPage() {
 
   if (assignmentLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <StudentDashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </StudentDashboardLayout>
     );
   }
 
   if (!assignment) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <Card>
-          <CardContent className="text-center py-12">
-            <p className="text-gray-600">Không tìm thấy bài tập</p>
-            <Button onClick={() => navigate(-1)} className="mt-4">
-              Quay lại
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <StudentDashboardLayout>
+        <div className="max-w-4xl mx-auto p-6">
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-gray-600">Không tìm thấy bài tập</p>
+              <Button onClick={() => navigate(-1)} className="mt-4">
+                Quay lại
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </StudentDashboardLayout>
     );
   }
 
@@ -168,7 +202,8 @@ export function AssignmentPage() {
   const alreadySubmitted = submission?.status === 'submitted' || submission?.status === 'graded';
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <StudentDashboardLayout>
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Assignment Info */}
       <Card>
         <CardHeader>
@@ -309,6 +344,139 @@ export function AssignmentPage() {
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Xem lại bài nộp */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Eye className="w-5 h-5 text-gray-600" />
+                <h4 className="font-semibold text-gray-900">Bài nộp của bạn</h4>
+              </div>
+
+              {/* Text submission */}
+              {submission.submission_text && (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg mb-3">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Nội dung văn bản:</h5>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap bg-white p-3 rounded border">
+                    {submission.submission_text}
+                  </p>
+                </div>
+              )}
+
+              {/* File submissions */}
+              {getSubmissionFileUrls().length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-sm font-medium text-gray-700">File đã nộp:</h5>
+                  {(() => {
+                    const files = getSubmissionFileUrls();
+                    
+                    return files.filter(Boolean).map((url: string, idx: number) => {
+                      const fileName = url.split('/').pop() || `file_${idx + 1}`;
+                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                      const isPdf = /\.pdf$/i.test(url);
+                      
+                      return (
+                        <div key={idx} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                              <span className="text-sm font-medium text-gray-900 truncate">
+                                {decodeURIComponent(fileName)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                                title="Xem file"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                              <a
+                                href={url}
+                                download
+                                className="p-2 text-gray-500 hover:text-green-600 transition-colors"
+                                title="Tải xuống"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          </div>
+                          {/* Preview for images */}
+                          {isImage && (
+                            <div className="mt-3">
+                              <img 
+                                src={url} 
+                                alt={fileName} 
+                                className="max-h-48 rounded-lg border object-contain"
+                              />
+                            </div>
+                          )}
+                          {/* Preview for PDF */}
+                          {isPdf && (
+                            <div className="mt-3">
+                              <iframe
+                                src={url}
+                                className="w-full h-64 rounded-lg border"
+                                title={fileName}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+
+              {/* Không có nội dung */}
+              {!submission.submission_text && getSubmissionFileUrls().length === 0 && (
+                <p className="text-sm text-gray-500 italic">Không có nội dung bài nộp</p>
+              )}
+            </div>
+
+            {/* Nút hủy nộp - chỉ hiện khi chưa chấm và chưa hết hạn */}
+            {submission.status === 'submitted' && !isOverdue && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Bạn có thể hủy bài nộp này để nộp lại</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={cancelMutation.isPending}
+                    onClick={async () => {
+                      if (window.confirm('Bạn có chắc muốn hủy bài nộp này? Bạn sẽ cần nộp lại.')) {
+                        try {
+                          await cancelMutation.mutateAsync(assignmentId!);
+                          alert('Đã hủy bài nộp thành công. Bạn có thể nộp lại.');
+                          refetchSubmission();
+                        } catch (error) {
+                          console.error('Cancel failed:', error);
+                          alert('Hủy bài nộp thất bại. Vui lòng thử lại.');
+                        }
+                      }
+                    }}
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    {cancelMutation.isPending ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin mr-2" />
+                        Đang hủy...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Hủy nộp
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
@@ -461,7 +629,8 @@ export function AssignmentPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </StudentDashboardLayout>
   );
 }
 

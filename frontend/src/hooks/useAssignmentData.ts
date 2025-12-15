@@ -51,6 +51,28 @@ export function useSubmitAssignment() {
 }
 
 /**
+ * Hook to cancel submission
+ */
+export function useCancelSubmission() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (assignmentId: string) => assignmentApi.cancelSubmission(assignmentId),
+    onSuccess: (_, assignmentId) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ['assignments', assignmentId, 'submission'] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['assignments', assignmentId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['student', 'assignments'] 
+      });
+    },
+  });
+}
+
+/**
  * Hook to upload assignment file
  */
 export function useUploadFile() {
@@ -138,6 +160,7 @@ export default {
   useAssignment,
   useAssignments,
   useSubmitAssignment,
+  useCancelSubmission,
   useUploadFile,
   useSubmission,
   useSubmissionById,

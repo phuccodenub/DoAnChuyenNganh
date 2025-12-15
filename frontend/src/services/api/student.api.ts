@@ -134,6 +134,15 @@ interface PaginatedResponse<T> {
   };
 }
 
+// Helper function to get level name based on level number
+function getLevelName(level: number): string {
+  if (level <= 1) return 'Người mới';
+  if (level <= 3) return 'Học viên';
+  if (level <= 5) return 'Thành viên tích cực';
+  if (level <= 10) return 'Chuyên gia';
+  return 'Cao thủ';
+}
+
 // ================== API FUNCTIONS ==================
 
 export const studentApi = {
@@ -197,55 +206,69 @@ export const studentApi = {
 
   /**
    * Lấy thống kê tiến độ học tập (lessons, assignments, quizzes)
-   * TODO: Implement backend endpoint, hiện return default
    */
   getProgressStats: async (): Promise<ApiResponse<StudentProgressStats>> => {
-    // Return default values - backend endpoint chưa có
-    return {
-      success: true,
-      message: 'Progress stats (default)',
-      data: {
-        lessons: { completed: 0, total: 0 },
-        assignments: { completed: 0, total: 0 },
-        quizzes: { completed: 0, total: 0 },
-      }
-    };
+    try {
+      const response = await httpClient.get<ApiResponse<StudentProgressStats>>('/student/dashboard/progress');
+      return response.data;
+    } catch {
+      // Return default values if API fails
+      return {
+        success: true,
+        message: 'Progress stats (default)',
+        data: {
+          lessons: { completed: 0, total: 0 },
+          assignments: { completed: 0, total: 0 },
+          quizzes: { completed: 0, total: 0 },
+        }
+      };
+    }
   },
 
   /**
    * Lấy daily goal và streak
-   * TODO: Implement backend endpoint, hiện return default
    */
   getDailyGoal: async (): Promise<ApiResponse<DailyGoal>> => {
-    // Return default values - backend endpoint chưa có
-    return {
-      success: true,
-      message: 'Daily goal (default)',
-      data: {
-        target_minutes: 30,
-        current_minutes: 0,
-        streak_days: 0,
-        longest_streak_days: 0,
-      }
-    };
+    try {
+      const response = await httpClient.get<ApiResponse<DailyGoal>>('/student/dashboard/daily-goal');
+      return response.data;
+    } catch {
+      // Return default values if API fails
+      return {
+        success: true,
+        message: 'Daily goal (default)',
+        data: {
+          target_minutes: 30,
+          current_minutes: 0,
+          streak_days: 0,
+          longest_streak_days: 0,
+        }
+      };
+    }
   },
 
   /**
    * Cập nhật daily goal target
-   * TODO: Implement backend endpoint
    */
   updateDailyGoal: async (targetMinutes: number): Promise<ApiResponse<DailyGoal>> => {
-    // Return updated values - backend endpoint chưa có
-    return {
-      success: true,
-      message: 'Daily goal updated (mock)',
-      data: {
-        target_minutes: targetMinutes,
-        current_minutes: 0,
-        streak_days: 0,
-        longest_streak_days: 0,
-      }
-    };
+    try {
+      const response = await httpClient.put<ApiResponse<DailyGoal>>('/student/dashboard/daily-goal', {
+        target_minutes: targetMinutes
+      });
+      return response.data;
+    } catch {
+      // Return updated values if API fails
+      return {
+        success: true,
+        message: 'Daily goal updated (local)',
+        data: {
+          target_minutes: targetMinutes,
+          current_minutes: 0,
+          streak_days: 0,
+          longest_streak_days: 0,
+        }
+      };
+    }
   },
 
   // ===== COURSES =====
@@ -284,12 +307,25 @@ export const studentApi = {
    * Lấy khóa học được đề xuất
    */
   getRecommendedCourses: async (limit: number = 3) => {
-    const response = await httpClient.get<ApiResponse<RecommendedCourse[]>>(
-      '/courses/recommended',
-      { params: { limit } }
-    );
-    // Return the inner data for direct component access
-    return response.data.data;
+    try {
+      // Try the student dashboard endpoint first
+      const response = await httpClient.get<ApiResponse<RecommendedCourse[]>>(
+        '/student/dashboard/recommended-courses',
+        { params: { limit } }
+      );
+      return response.data.data;
+    } catch {
+      try {
+        // Fallback to general courses endpoint
+        const response = await httpClient.get<ApiResponse<RecommendedCourse[]>>(
+          '/courses/recommended',
+          { params: { limit } }
+        );
+        return response.data.data;
+      } catch {
+        return [];
+      }
+    }
   },
 
   // ===== ASSIGNMENTS =====
@@ -408,22 +444,42 @@ export const studentApi = {
 
   /**
    * Lấy điểm và badges
-   * TODO: Implement backend endpoint, hiện return default
    */
   getGamificationStats: async () => {
-    // Return default values - backend endpoint chưa có
-    return {
-      success: true,
-      message: 'Gamification stats (default)',
-      data: {
-        total_points: 0,
-        level: 1,
-        level_name: 'Người mới',
-        points_to_next_level: 100,
-        badges: [],
-        certificates: []
-      }
-    };
+    try {
+      const response = await httpClient.get<ApiResponse<{
+        total_points: number;
+        level: number;
+        badges: Array<{ id: string; name: string; icon: string }>;
+        achievements: number;
+      }>>('/student/dashboard/gamification');
+      return {
+        success: true,
+        message: 'Gamification stats retrieved',
+        data: {
+          total_points: response.data.data.total_points || 0,
+          level: response.data.data.level || 1,
+          level_name: getLevelName(response.data.data.level || 1),
+          points_to_next_level: 100 - ((response.data.data.total_points || 0) % 100),
+          badges: response.data.data.badges || [],
+          certificates: []
+        }
+      };
+    } catch {
+      // Return default values if API fails
+      return {
+        success: true,
+        message: 'Gamification stats (default)',
+        data: {
+          total_points: 0,
+          level: 1,
+          level_name: 'Người mới',
+          points_to_next_level: 100,
+          badges: [],
+          certificates: []
+        }
+      };
+    }
   },
 
   /**

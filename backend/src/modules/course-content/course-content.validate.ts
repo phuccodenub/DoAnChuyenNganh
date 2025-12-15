@@ -273,27 +273,28 @@ export const courseContentValidation = {
   ],
 
   // ===== PARAM VALIDATIONS =====
+  // Use regex instead of isUUID() to accept non-standard UUIDs (like seed data)
   courseId: [
     param('courseId')
-      .isUUID()
+      .matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       .withMessage('Invalid course ID format')
   ],
 
   sectionId: [
     param('sectionId')
-      .isUUID()
+      .matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       .withMessage('Invalid section ID format')
   ],
 
   lessonId: [
     param('lessonId')
-      .isUUID()
+      .matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       .withMessage('Invalid lesson ID format')
   ],
 
   materialId: [
     param('materialId')
-      .isUUID()
+      .matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       .withMessage('Invalid material ID format')
   ],
 

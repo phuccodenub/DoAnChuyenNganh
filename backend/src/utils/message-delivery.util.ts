@@ -119,6 +119,9 @@ export class MessageDeliveryTracker {
 export const deliveryTracker = new MessageDeliveryTracker();
 
 // Run cleanup every 30 minutes
-setInterval(() => {
-  deliveryTracker.cleanup();
-}, 30 * 60 * 1000);
+const isTestEnv = process.env.NODE_ENV === 'test' || typeof process.env.JEST_WORKER_ID !== 'undefined';
+if (!isTestEnv) {
+  setInterval(() => {
+    deliveryTracker.cleanup();
+  }, 30 * 60 * 1000);
+}

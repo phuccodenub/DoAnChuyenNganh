@@ -29,6 +29,7 @@ export interface UpdateAssignmentDto {
 export interface SubmitAssignmentDto {
   submission_text?: string;
   file_url?: string;
+  file_urls?: string[];  // Support array from frontend
   file_name?: string;
   file_size?: number;
   file_type?: string;

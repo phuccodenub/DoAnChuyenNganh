@@ -28,6 +28,9 @@ import { CurriculumTree } from '@/components/domain/lesson/CurriculumTree';
 import type { Section, CourseContent } from '@/services/api/lesson.api';
 import type { Course } from '@/services/api/course.api';
 import { MainLayout } from '@/layouts/MainLayout';
+import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
+import { InstructorDashboardLayout } from '@/layouts/InstructorDashboardLayout';
+import AdminDashboardLayout from '@/layouts/AdminDashboardLayout';
 import { toast } from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import { quizApi, type Quiz } from '@/services/api/quiz.api';
@@ -79,6 +82,29 @@ export function DetailPage() {
 
   // User can access course content if enrolled OR is the instructor
   const canAccessContent = isUserEnrolled || isInstructor;
+
+  // Determine the appropriate layout based on user role and enrollment status
+  const getLayout = () => {
+    // If user is not logged in or not enrolled → use public MainLayout
+    if (!user || !isAuthenticated) {
+      return MainLayout;
+    }
+    // If user is admin → use AdminDashboardLayout
+    if (user.role === 'admin' || user.role === 'super_admin') {
+      return AdminDashboardLayout;
+    }
+    // If user is instructor → use InstructorDashboardLayout
+    if (user.role === 'instructor' || isInstructor) {
+      return InstructorDashboardLayout;
+    }
+    // If student is enrolled → use StudentDashboardLayout
+    if (isUserEnrolled) {
+      return StudentDashboardLayout;
+    }
+    // Default: public MainLayout for non-enrolled users browsing courses
+    return MainLayout;
+  };
+  const LayoutWrapper = getLayout();
 
   // Fetch reviews data
   const [reviewPage, setReviewPage] = useState(1);
@@ -220,13 +246,10 @@ export function DetailPage() {
     queryKey: ['all-assignments-detail', courseId],
     queryFn: async () => {
       try {
-        console.log('[DetailPage] Fetching assignments for course:', courseId);
         const res = await assignmentApi.getCourseAssignments(courseId);
-        console.log('[DetailPage] Assignment API response:', res);
         
         // Xử lý response giống quiz - có thể là array hoặc { data: [...] }
         const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
-        console.log('[DetailPage] Parsed assignments list:', list.length, list);
         
         const filtered = list
           .filter((a: any) => {
@@ -234,15 +257,6 @@ export function DetailPage() {
             const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
             const isPublished = a.is_published === true;
             const result = !hasLessonId && isPublished;
-            if (!result && a) {
-              console.log('[DetailPage] Assignment filtered out:', {
-                title: a.title,
-                hasLessonId,
-                isPublished,
-                lesson_id: a.lesson_id,
-                is_published: a.is_published
-              });
-            }
             return result;
           })
           .sort((a: any, b: any) => {
@@ -251,14 +265,6 @@ export function DetailPage() {
             const dateB = new Date(b.created_at || 0).getTime();
             return dateA - dateB; // ASC: cũ nhất trước
           });
-        
-        console.log('[DetailPage] Filtered assignments:', filtered.length, filtered.map((a: any) => ({
-          id: a.id,
-          title: a.title,
-          section_id: a.section_id,
-          course_id: a.course_id,
-          is_published: a.is_published
-        })));
         
         return filtered;
       } catch (error: any) {
@@ -304,20 +310,6 @@ export function DetailPage() {
     const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
     const hasSectionId = a.section_id != null && a.section_id !== '';
     return !hasLessonId && hasSectionId;
-  });
-  
-  // Debug: Log để kiểm tra assignments
-  console.log('[DetailPage] Assignments debug:', {
-    allAssignmentsCount: allAssignments?.length || 0,
-    sectionLevelAssignmentsCount: sectionLevelAssignments.length,
-    sectionLevelAssignments: sectionLevelAssignments.map((a: any) => ({
-      id: a.id,
-      title: a.title,
-      section_id: a.section_id,
-      course_id: a.course_id,
-      is_published: a.is_published
-    })),
-    curriculumSectionsIds: curriculumSections.map((s: any) => s.id)
   });
 
   // Fetch quiz attempts và assignment submissions để biết quiz/assignment nào đã hoàn thành
@@ -433,31 +425,8 @@ export function DetailPage() {
           const assignmentSectionId = a.section_id ? String(a.section_id).trim() : null;
           const currentSectionId = section.id ? String(section.id).trim() : null;
           const match = assignmentSectionId && currentSectionId && assignmentSectionId === currentSectionId;
-          if (match) {
-            console.log(`[DetailPage] Assignment "${a.title}" (section_id: ${assignmentSectionId}) matched section "${section.title}" (id: ${currentSectionId})`);
-          }
           return match;
         });
-    
-    // Debug log để kiểm tra
-    if (sectionAssignments.length > 0) {
-      console.log(`[DetailPage] Section "${section.title}" (${section.id}): Found ${sectionAssignments.length} assignments:`, 
-        sectionAssignments.map((a: any) => ({ title: a.title, section_id: a.section_id })));
-    } else if (sectionLevelAssignments.some((a: any) => {
-      const aSectionId = a.section_id ? String(a.section_id).trim() : null;
-      const currentSectionId = section.id ? String(section.id).trim() : null;
-      return aSectionId === currentSectionId;
-    })) {
-      // Có assignments với section_id khớp nhưng filter failed
-      const matchingAssignments = sectionLevelAssignments.filter((a: any) => {
-        const aSectionId = a.section_id ? String(a.section_id).trim() : null;
-        const currentSectionId = section.id ? String(section.id).trim() : null;
-        return aSectionId === currentSectionId;
-      });
-      console.warn(`[DetailPage] Section "${section.title}" (${section.id}): Found ${matchingAssignments.length} assignments but filter failed. Assignment section_ids:`, 
-        matchingAssignments.map((a: any) => ({ title: a.title, section_id: a.section_id, section_id_type: typeof a.section_id })),
-        `Section id: ${section.id}, type: ${typeof section.id}`);
-    }
 
     // Merge completion status từ progressData vào lessons
     const sectionProgress = progressData?.sections?.find((s: any) => s.section_id === section.id);
@@ -490,35 +459,6 @@ export function DetailPage() {
     };
   });
   const learningPath = courseId ? generateRoute.student.learning(courseId) : ROUTES.COURSES;
-
-  // Debug: Log để kiểm tra data
-  useEffect(() => {
-    if (course) {
-      console.log('[DetailPage] Course data:', course);
-      console.log('[DetailPage] Course sections:', course.sections);
-      console.log('[DetailPage] CourseContent sections:', courseContent?.sections);
-      console.log('[DetailPage] CourseContent course_level_assignments:', courseContent?.course_level_assignments);
-      // Log assignments trong từng section
-      courseContent?.sections?.forEach((section: any, index: number) => {
-        console.log(`[DetailPage] Section ${index} (${section.title}):`, {
-          id: section.id,
-          hasAssignments: !!section.assignments,
-          assignmentsCount: section.assignments?.length || 0,
-          assignments: section.assignments
-        });
-      });
-      console.log('[DetailPage] Final curriculumSections:', curriculumSections);
-      // Log assignments trong final sections
-      curriculumSections.forEach((section: any, index: number) => {
-        console.log(`[DetailPage] Final Section ${index} (${section.title}):`, {
-          id: section.id,
-          hasAssignments: !!section.assignments,
-          assignmentsCount: section.assignments?.length || 0,
-          assignments: section.assignments
-        });
-      });
-    }
-  }, [course, courseContent, curriculumSections]);
 
   // Extract counts from API data - ưu tiên dùng data từ progressData (chính xác nhất)
   const totalSections = progressData?.total_sections ?? 
@@ -660,24 +600,14 @@ export function DetailPage() {
           ? course.sections
           : [];
         
-        console.log('[DetailPage] Finding first lesson after enrollment:', {
-          hasUpdatedContent: !!updatedCourseContent?.data?.sections,
-          updatedContentSections: updatedCourseContent?.data?.sections?.length || 0,
-          courseSections: course?.sections?.length || 0,
-          sectionsToUse: sectionsToUse.length,
-          allLessons: sectionsToUse.flatMap(s => s.lessons || []).length
-        });
-        
         const firstLesson = sectionsToUse
           .flatMap(s => s.lessons || [])
           .find(lesson => lesson);
         
         if (firstLesson) {
-          console.log('[DetailPage] Found first lesson, navigating to:', firstLesson.id);
           // Navigate đến trang chi tiết bài học đầu tiên
           navigate(generateRoute.student.lesson(courseId, firstLesson.id));
         } else {
-          console.log('[DetailPage] No lesson found, navigating to learning page');
           // Nếu không có lesson, navigate đến learning page
           navigate(learningPath);
         }
@@ -826,7 +756,7 @@ export function DetailPage() {
   };
 
   return (
-    <MainLayout showSidebar>
+    <LayoutWrapper>
       {/* Hero section */}
       <div className="relative bg-gradient-to-b from-teal-400 via-teal-500 to-green-600 text-white overflow-hidden">
         {/* Decorative background elements - làm mờ */}
@@ -1554,12 +1484,12 @@ export function DetailPage() {
                   </div>
 
                   {/* Nút nhắn tin với giảng viên - chỉ hiển thị khi đã enrolled */}
-                  {isUserEnrolled && (
+                  {isUserEnrolled && (course.instructor?.id || course.instructor_id) && (
                     <Button
                       variant="outline"
                       fullWidth
                       className="mt-4 gap-2"
-                      onClick={() => navigate(generateRoute.student.chat(courseId))}
+                      onClick={() => navigate(generateRoute.shared.dmWithUser(course.instructor?.id || course.instructor_id))}
                     >
                       <MessageCircle className="w-4 h-4" />
                       Nhắn tin với giảng viên
@@ -1743,7 +1673,7 @@ export function DetailPage() {
           </Button>
         </ModalFooter>
       </Modal> */}
-    </MainLayout>
+    </LayoutWrapper>
   );
 }
 

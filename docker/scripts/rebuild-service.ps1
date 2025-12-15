@@ -37,40 +37,60 @@ if (-not (Test-Path $ComposeFile)) {
     exit 1
 }
 
+function Get-ComposeRunner {
+    try {
+        & docker compose version *> $null
+        if ($LASTEXITCODE -eq 0) {
+            return @{ Exe = "docker"; BaseArgs = @("compose") }
+        }
+    } catch {}
+ 
+    try {
+        & docker-compose version *> $null
+        if ($LASTEXITCODE -eq 0) {
+            return @{ Exe = "docker-compose"; BaseArgs = @() }
+        }
+    } catch {}
+ 
+    throw "Không tìm thấy Docker Compose. Cài Docker Desktop hoặc docker-compose trước khi chạy."
+}
+
+$Compose = Get-ComposeRunner
+
 function Reset-DockerService {
     param(
         [string]$ServiceName,
         [string]$DisplayName,
         [bool]$UseNoCache
     )
-    
+     
     Write-Host ""
     Write-Host "[INFO] Rebuilding $DisplayName..." -ForegroundColor Yellow
-    
+     
     # Stop the service first
     Write-Host "  -> Stopping $ServiceName..." -ForegroundColor Gray
-    & docker-compose -f $ComposeFile -p lms stop $ServiceName 2>$null
-    
+    & $Compose.Exe @($Compose.BaseArgs + @('-f', $ComposeFile, '-p', 'lms', 'stop', $ServiceName)) 2>$null
+     
     # Remove the container
     Write-Host "  -> Removing container..." -ForegroundColor Gray
-    & docker-compose -f $ComposeFile -p lms rm -f $ServiceName 2>$null
-    
+    & $Compose.Exe @($Compose.BaseArgs + @('-f', $ComposeFile, '-p', 'lms', 'rm', '-f', $ServiceName)) 2>$null
+     
     # Rebuild the image
     Write-Host "  -> Building image..." -ForegroundColor Gray
     if ($UseNoCache) {
-        & docker-compose -f $ComposeFile -p lms build --no-cache $ServiceName
+        & $Compose.Exe @($Compose.BaseArgs + @('-f', $ComposeFile, '-p', 'lms', 'build', '--no-cache', $ServiceName))
     } else {
-        & docker-compose -f $ComposeFile -p lms build $ServiceName
+        & $Compose.Exe @($Compose.BaseArgs + @('-f', $ComposeFile, '-p', 'lms', 'build', $ServiceName))
     }
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Failed to build $DisplayName" -ForegroundColor Red
         return $false
     }
-    
+     
     # Start the service
     Write-Host "  -> Starting $ServiceName..." -ForegroundColor Gray
-    & docker-compose -f $ComposeFile -p lms up -d $ServiceName
+    & $Compose.Exe @($Compose.BaseArgs + @('-f', $ComposeFile, '-p', 'lms', 'up', '-d', $ServiceName))
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "[OK] $DisplayName rebuilt and started successfully!" -ForegroundColor Green
@@ -99,6 +119,6 @@ switch ($Service) {
 Write-Host ""
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host "[INFO] View logs with:" -ForegroundColor Cyan
-Write-Host "   Backend:  docker logs -f lms-backend-dev" -ForegroundColor White
-Write-Host "   Frontend: docker logs -f lms-frontend-dev" -ForegroundColor White
+Write-Host "   Backend:  $($Compose.Exe) $($Compose.BaseArgs -join ' ') -f $ComposeFile -p lms logs -f backend-dev" -ForegroundColor White
+Write-Host "   Frontend: $($Compose.Exe) $($Compose.BaseArgs -join ' ') -f $ComposeFile -p lms logs -f frontend-dev" -ForegroundColor White
 Write-Host ""

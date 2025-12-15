@@ -167,6 +167,7 @@ export const generateRoute = {
     messages: (courseId?: string) =>
       courseId ? `/messages?courseId=${courseId}` : '/messages',
     conversation: (conversationId: string) => `/messages/${conversationId}`,
+    dmWithUser: (userId: string) => `/messages?dmUserId=${userId}`,
   },
 };
 

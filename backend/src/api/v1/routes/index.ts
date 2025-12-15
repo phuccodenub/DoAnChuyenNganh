@@ -101,6 +101,11 @@ router.use('/categories', categoryRoutes);
 logger.info('Registering v1 instructor at /instructor');
 router.use('/instructor', instructorRoutes);
 
+// Student dashboard routes
+import studentDashboardRoutes from '../../../modules/student-dashboard/student-dashboard.routes';
+logger.info('Registering v1 student dashboard at /student/dashboard');
+router.use('/student/dashboard', studentDashboardRoutes);
+
 // Module-based routes (from refactor)
 router.use('/course-content', courseContentRoutes);
 router.use('/notifications', notificationsRoutes);

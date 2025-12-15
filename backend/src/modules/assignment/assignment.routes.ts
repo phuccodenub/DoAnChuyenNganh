@@ -1,12 +1,42 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { AssignmentController } from './assignment.controller';
 import { assignmentSchemas } from './assignment.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { validateBody, validateQuery, validateParams } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
+import multer from 'multer';
 
 const router = Router();
 const controller = new AssignmentController();
+
+// Multer configuration for assignment file uploads (max 50MB)
+const assignmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB max
+  },
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    // Allow common document and archive types
+    const allowedExtensions = [
+      '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+      '.txt', '.rtf', '.odt', '.ods', '.odp',
+      '.zip', '.rar', '.7z', '.tar', '.gz',
+      '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp',
+      '.mp4', '.mp3', '.wav', '.avi', '.mov',
+      '.py', '.js', '.ts', '.java', '.c', '.cpp', '.h', '.cs', '.rb', '.go', '.rs',
+      '.html', '.css', '.json', '.xml', '.yaml', '.yml', '.md'
+    ];
+    
+    const path = require('path');
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedExtensions.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type ${ext} is not allowed`));
+    }
+  }
+}).single('file');
 
 router.use(authMiddleware);
 
@@ -180,6 +210,46 @@ router.get(
  * @access  Enrolled Students
  */
 router.post('/:assignmentId/submissions', controller.submit);
+
+/**
+ * @route   DELETE /api/assignments/:assignmentId/submissions
+ * @desc    Cancel/delete own submission (student) - only if not graded
+ * @access  Enrolled Students
+ */
+router.delete('/:assignmentId/submissions', controller.cancelSubmission);
+
+/**
+ * @route   POST /api/assignments/:assignmentId/upload
+ * @desc    Upload assignment file (student)
+ * @access  Enrolled Students
+ */
+router.post(
+  '/:assignmentId/upload',
+  (req: Request, res: Response, next: NextFunction) => {
+    assignmentUpload(req, res, (err: any) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'File quá lớn. Kích thước tối đa: 50MB',
+            error: { code: 'FILE_TOO_LARGE', maxSize: 50 * 1024 * 1024 }
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'File upload error'
+        });
+      } else if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'File upload failed'
+        });
+      }
+      next();
+    });
+  },
+  controller.uploadFile
+);
 
 /**
  * @route   GET /api/assignments/:assignmentId/stats

@@ -97,6 +97,15 @@ export async function connectDatabase(): Promise<void> {
     // index creation during sync to avoid permission errors. Indexes should be
     // managed via migrations.
     if (process.env.NODE_ENV !== 'production') {
+      const databaseUrl = process.env.DATABASE_URL;
+      const isExternalDb = !!(databaseUrl && databaseUrl.trim().length > 0);
+
+      // For local Postgres (no DATABASE_URL), prefer running migrations to keep schema in sync.
+      if (!isExternalDb) {
+        const MigrationMod = await import('../migrations');
+        const migrator = new MigrationMod.MigrationManager(db);
+        await migrator.migrate();
+      }
       // Using force: false prevents dropping tables
       // Using alter: false (implicit) prevents schema modifications
       // Sequelize may still try to create missing indexes, which can fail on Supabase

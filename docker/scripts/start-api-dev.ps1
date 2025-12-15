@@ -1,7 +1,8 @@
 param(
     [switch]$Down,
     [switch]$Build,
-    [switch]$Logs
+    [switch]$Logs,
+    [switch]$LocalDb
 )
 
 # Ensure UTF-8 output (avoid encoding issues)
@@ -14,8 +15,57 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path (Join-Path $ScriptDir "..\..")
 Set-Location $ProjectRoot
 
-# Use backend-only.yml so backend reads DATABASE_URL from backend/.env (Supabase)
-$ComposeFile = "./docker/environments/development/backend-only.yml"
+function Get-ComposeRunner {
+    try {
+        & docker compose version *> $null
+        if ($LASTEXITCODE -eq 0) {
+            return @{ Exe = "docker"; BaseArgs = @("compose") }
+        }
+    } catch {}
+
+    try {
+        & docker-compose version *> $null
+        if ($LASTEXITCODE -eq 0) {
+            return @{ Exe = "docker-compose"; BaseArgs = @() }
+        }
+    } catch {}
+
+    throw "Không tìm thấy Docker Compose. Cài Docker Desktop hoặc docker-compose trước khi chạy."
+}
+
+function Import-EnvFileToProcess([string]$Path) {
+    if (-not (Test-Path $Path)) {
+        return
+    }
+
+    Get-Content $Path | ForEach-Object {
+        $line = $_.Trim()
+        if ($line.Length -eq 0 -or $line.StartsWith('#')) { return }
+
+        $idx = $line.IndexOf('=')
+        if ($idx -lt 1) { return }
+
+        $key = $line.Substring(0, $idx).Trim()
+        $value = $line.Substring($idx + 1)
+
+        $existing = [Environment]::GetEnvironmentVariable($key, 'Process')
+        if ($null -eq $existing) {
+            [Environment]::SetEnvironmentVariable($key, $value, 'Process')
+        }
+    }
+}
+
+$Compose = Get-ComposeRunner
+$EnvFilePath = Join-Path $ProjectRoot "docker/environments/development/.env"
+Import-EnvFileToProcess $EnvFilePath
+
+if ($LocalDb) {
+    $ComposeFile = "./docker/environments/development/backend-only.localdb.yml"
+} else {
+    # Default: Supabase mode (DATABASE_URL from backend/.env)
+    $ComposeFile = "./docker/environments/development/backend-only.yml"
+}
+
 $ProjectName = "lms"
 
 Write-Host "LMS Backend API Development Environment" -ForegroundColor Green
@@ -29,27 +79,30 @@ Write-Host ""
 
 if ($Down) {
     Write-Host "Stopping services..." -ForegroundColor Red
-    docker-compose -p $ProjectName -f $ComposeFile down
+    & $Compose.Exe @($Compose.BaseArgs + @('-p', $ProjectName, '-f', $ComposeFile, 'down'))
     return
 }
 
 if ($Logs) {
-    docker-compose -p $ProjectName -f $ComposeFile logs -f
+    & $Compose.Exe @($Compose.BaseArgs + @('-p', $ProjectName, '-f', $ComposeFile, 'logs', '-f'))
     return
 }
 
-$BuildFlag = if ($Build) { "--build" } else { "" }
-
 Write-Host "Starting Backend API services..." -ForegroundColor Green
 
-$command = "docker-compose -p $ProjectName -f $ComposeFile up -d $BuildFlag"
-Invoke-Expression $command
+$UpArgs = @('-p', $ProjectName, '-f', $ComposeFile, 'up', '-d')
+if ($Build) { $UpArgs += '--build' }
+& $Compose.Exe @($Compose.BaseArgs + $UpArgs)
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "Services started successfully!" -ForegroundColor Green
     Write-Host "API Endpoint:  http://localhost:3000/api" -ForegroundColor White
-    Write-Host "Database:      localhost:5432 (user: lms_user, db: lms_db)" -ForegroundColor White
+    if ($LocalDb) {
+        Write-Host "Database:      localhost:5432 (Docker Postgres)" -ForegroundColor White
+    } else {
+        Write-Host "Database:      Supabase (DATABASE_URL từ backend/.env)" -ForegroundColor White
+    }
     Write-Host "Android emu:   http://10.0.2.2:3000/api" -ForegroundColor White
     Write-Host "iOS simulator: http://localhost:3000/api" -ForegroundColor White
 } else {

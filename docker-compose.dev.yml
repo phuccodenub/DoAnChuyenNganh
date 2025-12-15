@@ -57,6 +57,8 @@ services:
     image: lms-backend-dev:latest
     container_name: lms-backend-dev
     restart: unless-stopped
+    env_file:
+      - ./backend/.env
     environment:
       - NODE_ENV=development
       # Redis trong Docker

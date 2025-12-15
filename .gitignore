@@ -5,6 +5,7 @@
 .env
 .env.*
 !.env.example # Dấu ! để không ignore file .env.example
+*token*.txt
 
 # =========================================
 # Thư mục chứa các dependencies (tự động tạo ra khi chạy npm install)

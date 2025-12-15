@@ -22,4 +22,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=5 \
   CMD curl -f http://127.0.0.1:3000/health || exit 1
 
 # Script sẽ kiểm tra và cài node_modules nếu cần, rồi chạy dev server
-CMD ["/bin/sh", "/app/start-backend-dev.sh"]
+CMD ["/bin/sh", "-c", "tr -d '\\r' < /app/start-backend-dev.sh > /tmp/start-backend-dev.sh && chmod +x /tmp/start-backend-dev.sh && /bin/sh /tmp/start-backend-dev.sh"]

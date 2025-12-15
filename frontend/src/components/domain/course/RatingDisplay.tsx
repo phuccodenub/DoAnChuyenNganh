@@ -34,18 +34,17 @@ export function RatingDisplay({
         {Array.from({ length: fullStars }).map((_, i) => (
           <Star
             key={`full-${i}`}
-            className={`${sizeClasses[size]} fill-yellow-400 text-yellow-400`}
+            className={`${sizeClasses[size]} fill-yellow-400 text-yellow-400 flex-shrink-0`}
           />
         ))}
         
         {/* Half star */}
         {hasHalfStar && (
-          <div className="relative">
+          <div className="relative inline-flex flex-shrink-0">
             <Star className={`${sizeClasses[size]} text-gray-300`} />
-            <Star
-              className={`${sizeClasses[size]} fill-yellow-400 text-yellow-400 absolute left-0 overflow-hidden`}
-              style={{ clipPath: 'inset(0 50% 0 0)' }}
-            />
+            <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
+              <Star className={`${sizeClasses[size]} fill-yellow-400 text-yellow-400`} />
+            </div>
           </div>
         )}
         
@@ -53,7 +52,7 @@ export function RatingDisplay({
         {Array.from({ length: emptyStars }).map((_, i) => (
           <Star
             key={`empty-${i}`}
-            className={`${sizeClasses[size]} text-gray-300`}
+            className={`${sizeClasses[size]} text-gray-300 flex-shrink-0`}
           />
         ))}
       </div>

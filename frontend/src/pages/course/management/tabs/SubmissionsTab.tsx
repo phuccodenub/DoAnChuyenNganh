@@ -63,25 +63,47 @@ export function SubmissionsTab({ courseId }: SubmissionsTabProps) {
   // Transform submissions data
   const submissions: Submission[] = useMemo(() => {
     if (!submissionsResponse?.rows) return [];
-    return submissionsResponse.rows.map((s: any) => ({
-      id: s.id,
-      student_id: s.user_id || s.student?.id || '',
-      student_name: s.student ? `${s.student.first_name || ''} ${s.student.last_name || ''}`.trim() : 'Unknown',
-      student_avatar: s.student?.avatar_url,
-      student_mssv: s.student?.student_id,
-      assignment_title: selectedAssignment?.title || '',
-      assignment_type: 'assignment' as const,
-      submitted_at: s.submitted_at || '',
-      is_late: s.is_late || false,
-      late_duration: s.late_duration,
-      status: s.status === 'graded' ? 'graded' : s.status === 'submitted' ? 'pending' : 'missing',
-      score: s.score,
-      max_score: selectedAssignment?.max_score || 100,
-      submission_text: s.submission_text,
-      file_urls: s.file_url ? [s.file_url] : (s.file_urls || []),
-      feedback: s.feedback,
-      graded_at: s.graded_at,
-    }));
+    return submissionsResponse.rows.map((s: any) => {
+      // Parse file_url - could be JSON array string or single URL
+      let fileUrls: string[] = [];
+      if (s.file_url) {
+        try {
+          // Try to parse as JSON array
+          const parsed = JSON.parse(s.file_url);
+          fileUrls = Array.isArray(parsed) ? parsed : [s.file_url];
+        } catch {
+          // If not JSON, treat as single URL
+          fileUrls = [s.file_url];
+        }
+      } else if (s.file_urls) {
+        fileUrls = Array.isArray(s.file_urls) ? s.file_urls : [];
+      }
+
+      // Filter out null, undefined, empty strings, or invalid URLs
+      fileUrls = fileUrls.filter((url: any) => 
+        url && url !== 'null' && url !== 'undefined' && typeof url === 'string' && url.trim() !== ''
+      );
+
+      return {
+        id: s.id,
+        student_id: s.user_id || s.student?.id || '',
+        student_name: s.student ? `${s.student.first_name || ''} ${s.student.last_name || ''}`.trim() : 'Unknown',
+        student_avatar: s.student?.avatar_url,
+        student_mssv: s.student?.student_id,
+        assignment_title: selectedAssignment?.title || '',
+        assignment_type: 'assignment' as const,
+        submitted_at: s.submitted_at || '',
+        is_late: s.is_late || false,
+        late_duration: s.late_duration,
+        status: s.status === 'graded' ? 'graded' : s.status === 'submitted' ? 'pending' : 'missing',
+        score: s.score,
+        max_score: selectedAssignment?.max_score || 100,
+        submission_text: s.submission_text,
+        file_urls: fileUrls,
+        feedback: s.feedback,
+        graded_at: s.graded_at,
+      };
+    });
   }, [submissionsResponse, selectedAssignment]);
 
   // Calculate assignment stats

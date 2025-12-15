@@ -60,12 +60,20 @@ export function useAllMyStudents(params?: { page?: number; limit?: number; searc
 
 /**
  * Hook để lấy danh sách khóa học của instructor
+ * @param params - Query parameters (page, limit, status)
+ * @param options - Additional options including 'enabled' to conditionally disable the query
  */
-export function useInstructorCourses(params?: { page?: number; limit?: number; status?: string }) {
+export function useInstructorCourses(
+  params?: { page?: number; limit?: number; status?: string },
+  options?: { enabled?: boolean }
+) {
+  const enabled = options?.enabled !== false; // Default to true if not specified
+  
   return useQuery({
     queryKey: instructorCourseKeys.list(params || {}),
     queryFn: () => instructorApi.getMyCourses(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled,
   });
 }
 

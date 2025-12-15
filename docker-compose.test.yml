@@ -1,5 +1,3 @@
-version: '3.8'
-
 # 🧪 TEST ENVIRONMENT - Docker Compose Configuration
 # Dành riêng cho Integration và E2E testing
 # Dữ liệu lưu trong RAM (tmpfs) → Tắt container = mất hết → An toàn 100%
@@ -8,7 +6,6 @@ services:
   # PostgreSQL Test Database
   postgres-test:
     image: postgres:15
-    container_name: lms-postgres-e2e
     restart: "no" # Không tự động restart
     environment:
       POSTGRES_DB: lms_db
@@ -35,7 +32,6 @@ services:
   # Redis Test Cache (Optional - nếu test cần Redis)
   redis-test:
     image: redis:7-alpine
-    container_name: lms-redis-e2e
     restart: "no"
     command: redis-server --appendonly no --save ""
     ports:
@@ -57,7 +53,6 @@ services:
 networks:
   test-network:
     driver: bridge
-    name: lms-test-network
 
 # ⚠️  QUAN TRỌNG:
 # - Dữ liệu lưu trong tmpfs (RAM) → không persist

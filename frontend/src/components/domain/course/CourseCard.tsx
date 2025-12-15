@@ -134,23 +134,22 @@ export function CourseCard({
           <p className="text-xs text-gray-600 mb-2 line-clamp-1 mt-0.5">{instructorName}</p>
         )}
 
-        <div className="flex items-center gap-2 mb-2">
+        {/* Rating and badges - flex-wrap để tránh vỡ layout */}
+        <div className="flex flex-wrap items-center gap-1.5 mb-2">
           {isBestseller && (
-            <span className="inline-flex items-center rounded-lg border border-gray-400 px-3 py-1 text-xs font-semibold text-gray-900">
+            <span className="inline-flex items-center rounded-md bg-yellow-50 border border-yellow-200 px-2 py-0.5 text-[10px] font-semibold text-yellow-800 whitespace-nowrap">
               Bestseller
             </span>
           )}
 
-          <span className="inline-flex items-center rounded-lg border border-gray-400 px-3 py-1 text-xs text-gray-900">
-            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 mr-1" />
-            {rating.toFixed(1)}
+          {/* Rating badge */}
+          <span className="inline-flex items-center gap-1 text-xs text-gray-700 whitespace-nowrap">
+            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+            <span className="font-semibold">{rating.toFixed(1)}</span>
+            {totalRatings > 0 && (
+              <span className="text-gray-500">({totalRatings.toLocaleString('vi-VN')})</span>
+            )}
           </span>
-
-          {totalRatings > 0 && (
-            <span className="inline-flex items-center rounded-lg border border-gray-400 px-3 py-1 text-xs text-gray-700">
-              {totalRatings.toLocaleString('vi-VN')} ratings
-            </span>
-          )}
         </div>
 
         <div className="flex items-baseline gap-2">

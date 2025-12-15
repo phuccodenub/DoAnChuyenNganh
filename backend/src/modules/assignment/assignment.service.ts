@@ -67,10 +67,84 @@ export class AssignmentService {
       
       const assignment = await this.repo.createAssignment(createData);
       logger.info(`Assignment created: ${assignment.id} by user ${userId}`);
+
+      // Send notification to all enrolled students (in background, don't block response)
+      this.notifyStudentsAboutNewAssignment(assignment, dto.course_id, dto.section_id).catch((err) => {
+        logger.error(`Error sending assignment notifications: ${err}`);
+      });
+
       return assignment;
     } catch (error: unknown) {
       logger.error(`Error creating assignment: ${error}`);
       throw error;
+    }
+  }
+
+  /**
+   * Send notification to all enrolled students about a new assignment
+   */
+  private async notifyStudentsAboutNewAssignment(
+    assignment: any,
+    courseId?: string | null,
+    sectionId?: string | null
+  ): Promise<void> {
+    try {
+      // Determine course_id
+      let effectiveCourseId = courseId;
+      if (!effectiveCourseId && sectionId) {
+        const { Section } = await import('../../models');
+        const section = await Section.findByPk(sectionId);
+        effectiveCourseId = (section as any)?.course_id;
+      }
+
+      if (!effectiveCourseId) {
+        logger.warn(`Cannot send notification: No course_id found for assignment ${assignment.id}`);
+        return;
+      }
+
+      // Get course info
+      const { Course, Enrollment } = await import('../../models');
+      const course = await Course.findByPk(effectiveCourseId);
+      if (!course) return;
+
+      // Get all enrolled student IDs
+      const enrollments = await Enrollment.findAll({
+        where: { course_id: effectiveCourseId },
+        attributes: ['user_id'],
+        raw: true
+      });
+
+      const studentIds = enrollments.map((e: any) => e.user_id);
+      if (studentIds.length === 0) return;
+
+      // Format due date for notification
+      let dueDateStr = '';
+      if (assignment.due_date) {
+        const dueDate = new Date(assignment.due_date);
+        dueDateStr = ` (Hạn nộp: ${dueDate.toLocaleDateString('vi-VN')})`;
+      }
+
+      // Create notification
+      const { NotificationsService } = await import('../notifications/notifications.service');
+      const notificationService = new NotificationsService();
+
+      await notificationService.create(null, {
+        notification_type: 'course',
+        title: 'Bài tập mới',
+        message: `Bài tập "${assignment.title}" đã được thêm vào khóa học "${(course as any).title}"${dueDateStr}`,
+        link_url: `/student/assignments/${assignment.id}`,
+        priority: 'high',
+        category: 'assignment',
+        related_resource_type: 'assignment',
+        related_resource_id: assignment.id,
+        recipient_ids: studentIds,
+        is_broadcast: false
+      });
+
+      logger.info(`Notification sent to ${studentIds.length} students for assignment ${assignment.id}`);
+    } catch (error) {
+      logger.error(`Failed to send assignment notification: ${error}`);
+      // Don't throw - this is a background task
     }
   }
 
@@ -225,7 +299,16 @@ export class AssignmentService {
         logger.info(`Instructor ${userId} submitting assignment ${assignmentId} without enrollment (preview/test mode)`);
       }
 
-      const submission = await this.repo.submit(assignmentId, userId, dto);
+      // Convert file_urls array to JSON string for file_url field
+      const submissionData: any = { ...dto };
+      if (dto.file_urls && Array.isArray(dto.file_urls) && dto.file_urls.length > 0) {
+        // Store as JSON string in file_url field
+        submissionData.file_url = JSON.stringify(dto.file_urls);
+        delete submissionData.file_urls;
+        logger.info(`Converting file_urls array (${dto.file_urls.length} files) to JSON string`);
+      }
+
+      const submission = await this.repo.submit(assignmentId, userId, submissionData);
       logger.info(`Assignment submitted: ${assignmentId} by user ${userId}`);
       return submission;
     } catch (error: unknown) {
@@ -259,6 +342,32 @@ export class AssignmentService {
       return updated;
     } catch (error: unknown) {
       logger.error(`Error updating submission: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel/delete student's own submission - only if not graded
+   */
+  async cancelSubmission(assignmentId: string, userId: string): Promise<void> {
+    try {
+      const submission = await this.repo.getUserSubmission(assignmentId, userId);
+      if (!submission) {
+        throw new ApiError('Submission not found', 404);
+      }
+
+      if (submission.user_id !== userId) {
+        throw new AuthorizationError('Not authorized to cancel this submission');
+      }
+
+      if (submission.status === 'graded') {
+        throw new ApiError('Cannot cancel graded submission', 400);
+      }
+
+      await this.repo.deleteSubmission(submission.id);
+      logger.info(`Submission cancelled: ${submission.id} by user ${userId}`);
+    } catch (error: unknown) {
+      logger.error(`Error cancelling submission: ${error}`);
       throw error;
     }
   }
@@ -458,6 +567,57 @@ export class AssignmentService {
       return await this.repo.getMyAssignmentsWithStats(userId, options);
     } catch (error: unknown) {
       logger.error(`Error getting student assignments: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload a file for assignment submission
+   * Uses R2 storage (or Google Drive as fallback)
+   */
+  async uploadSubmissionFile(assignmentId: string, userId: string, file: Express.Multer.File): Promise<{
+    url: string;
+    originalName: string;
+  }> {
+    try {
+      // Get assignment to retrieve course_id
+      const assignment = await this.repo.getAssignmentById(assignmentId);
+      if (!assignment) {
+        throw new ApiError('Assignment not found', 404);
+      }
+
+      // Get course_id (from assignment or from section)
+      let courseId = assignment.course_id;
+      if (!courseId && assignment.section_id) {
+        const { Section } = await import('../../models');
+        const section = await Section.findByPk(assignment.section_id);
+        courseId = (section as any)?.course_id;
+      }
+
+      // Verify user is enrolled in the course
+      if (courseId) {
+        await this.verifyEnrollment(courseId, userId);
+      }
+
+      // Import R2 storage service
+      const { R2StorageService } = await import('../../services/storage/r2.service');
+      const r2Service = new R2StorageService();
+
+      // Upload to R2
+      const folder = `assignments/${assignmentId}/submissions/${userId}`;
+      const result = await r2Service.uploadFile(file, {
+        folder,
+        userId
+      });
+
+      logger.info(`Assignment file uploaded: ${result.path} by user ${userId}`);
+
+      return {
+        url: result.url,
+        originalName: result.originalName || file.originalname
+      };
+    } catch (error: unknown) {
+      logger.error(`Error uploading assignment file: ${error}`);
       throw error;
     }
   }

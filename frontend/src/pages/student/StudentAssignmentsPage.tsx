@@ -53,7 +53,7 @@ export default function StudentAssignmentsPage() {
         };
       case 'graded':
         return { 
-          label: `Đã chấm: ${score}/${maxPoints}`, 
+          label: `Đã chấm: ${score ?? 0}/${maxPoints}`, 
           badge: 'bg-green-50 text-green-700 border-green-200', 
           icon: CheckCircle,
           iconColor: 'text-green-600'
@@ -182,7 +182,7 @@ export default function StudentAssignmentsPage() {
                             </span>
                           </div>
                           <span className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-xs">
-                            <Award className="w-3 h-3" /> {assignment.max_score} điểm tối đa
+                            <Award className="w-3 h-3" /> {assignment.max_score} điểm
                           </span>
                         </div>
                       </div>

@@ -172,17 +172,21 @@ function getLayoutWrapper(role: string | undefined) {
  */
 export function MessagesPage() {
     const { user } = useAuth();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { conversationId: routeConversationId } = useParams<{ conversationId: string }>();
 
     // Get courseId from URL if coming from a course page
     const courseIdFromUrl = searchParams.get('courseId');
+    
+    // Get dmUserId from URL if coming from "DM with instructor" button
+    const dmUserIdFromUrl = searchParams.get('dmUserId');
 
     // State
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
         routeConversationId || null
     );
     const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+    const [isCreatingDmFromUrl, setIsCreatingDmFromUrl] = useState(false);
 
     // Chat tabs state
     const { activeTab, setActiveTab } = useChatTabs('dm');
@@ -266,8 +270,69 @@ export function MessagesPage() {
     // Unread count
     const dmUnreadCount = unreadData?.data?.unread_count || conversationsData?.data?.reduce((sum, conv: any) => sum + (conv.unread_count || 0), 0) || 0;
 
+    // Handle dmUserId query param - auto create/open DM with specific user
+    const dmUserIdHandledRef = useRef<string | null>(null);
+    useEffect(() => {
+        // Skip if no dmUserId, already handling, or loading conversations
+        if (!dmUserIdFromUrl || isCreatingDmFromUrl || isLoadingConversations) return;
+        
+        // Skip if we already handled this dmUserId
+        if (dmUserIdHandledRef.current === dmUserIdFromUrl) return;
+        
+        // Check if conversation with this user already exists
+        const existingConversation = conversationsData?.data?.find((conv: any) => {
+            // Check both participants to find the matching user
+            const participants = conv.participants || [];
+            return participants.some((p: any) => p.user_id === dmUserIdFromUrl);
+        });
+
+        if (existingConversation) {
+            // Conversation exists, just select it
+            setSelectedConversationId(existingConversation.id);
+            setActiveTab('dm');
+            dmUserIdHandledRef.current = dmUserIdFromUrl;
+            // Clean up URL
+            setSearchParams(prev => {
+                prev.delete('dmUserId');
+                return prev;
+            });
+        } else {
+            // Create new conversation with this user
+            setIsCreatingDmFromUrl(true);
+            dmUserIdHandledRef.current = dmUserIdFromUrl;
+            createConversationMutation.mutate(
+                { recipient_id: dmUserIdFromUrl },
+                {
+                    onSuccess: (result) => {
+                        if (result.data) {
+                            setSelectedConversationId(result.data.id);
+                            setActiveTab('dm');
+                        }
+                        setIsCreatingDmFromUrl(false);
+                        // Clean up URL
+                        setSearchParams(prev => {
+                            prev.delete('dmUserId');
+                            return prev;
+                        });
+                    },
+                    onError: () => {
+                        setIsCreatingDmFromUrl(false);
+                        // Clean up URL even on error
+                        setSearchParams(prev => {
+                            prev.delete('dmUserId');
+                            return prev;
+                        });
+                    }
+                }
+            );
+        }
+    }, [dmUserIdFromUrl, isCreatingDmFromUrl, isLoadingConversations, conversationsData, createConversationMutation, setActiveTab, setSearchParams]);
+
     // Auto-select conversation based on URL params
     useEffect(() => {
+        // Skip if handling dmUserId
+        if (dmUserIdFromUrl) return;
+        
         // Priority 1: Route param (from /messages/:conversationId)
         if (routeConversationId && conversations.some(c => c.id === routeConversationId)) {
             setSelectedConversationId(routeConversationId);
@@ -289,7 +354,7 @@ export function MessagesPage() {
         if (conversations.length > 0 && !selectedConversationId) {
             setSelectedConversationId(conversations[0].id);
         }
-    }, [routeConversationId, courseIdFromUrl, conversations, selectedConversationId]);
+    }, [routeConversationId, courseIdFromUrl, conversations, selectedConversationId, dmUserIdFromUrl]);
 
     // Mark conversation as read when selected (with debounce to avoid spam)
     const markAsReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);

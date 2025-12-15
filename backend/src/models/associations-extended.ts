@@ -7,6 +7,7 @@
 
 import Course from './course.model';
 import User from './user.model';
+import Section from './section.model';
 import Quiz from './quiz.model';
 import QuizQuestion from './quiz-question.model';
 import QuizOption from './quiz-option.model';
@@ -137,6 +138,17 @@ export const setupExtendedAssociations = () => {
   (Assignment as any).belongsTo(Course, {
     foreignKey: 'course_id',
     as: 'course'
+  });
+
+  // Section 1 ---< Assignment (section-level assignments)
+  (Section as any).hasMany(Assignment, {
+    foreignKey: 'section_id',
+    as: 'assignments',
+    onDelete: 'CASCADE'
+  });
+  (Assignment as any).belongsTo(Section, {
+    foreignKey: 'section_id',
+    as: 'section'
   });
 
   // User >---< Assignment (through AssignmentSubmission)
