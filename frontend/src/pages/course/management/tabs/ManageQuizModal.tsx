@@ -7,6 +7,7 @@ import { quizApi, type Question, type UpdateQuizData, type CreateQuestionData } 
 import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useInstructorQuizQuestions, useDeleteQuestion, useInstructorQuiz, useUpdateQuiz, useDeleteQuiz } from '@/hooks/useInstructorQuiz';
+import { useCourseSections } from '@/hooks/useInstructorCourse';
 import { AiQuizGenerator } from '@/components/instructor/AiQuizGenerator';
 import { CreateQuestionModal } from './CreateQuestionModal';
 
@@ -56,6 +57,20 @@ export function ManageQuizModal({
     }
   }
 
+  // Fetch sections để lấy nội dung section nếu quiz thuộc section
+  const courseId = quiz?.course_id;
+  const shouldFetchSections = !!courseId && !!quiz?.section_id;
+  const { data: sectionsResponse } = useCourseSections(shouldFetchSections ? courseId : '');
+  
+  // Tìm section tương ứng với quiz
+  const section = useMemo(() => {
+    if (!quiz?.section_id || !sectionsResponse?.data) return null;
+    const sections = Array.isArray(sectionsResponse.data) 
+      ? sectionsResponse.data 
+      : (sectionsResponse.data as any)?.data || [];
+    return sections.find((s: any) => s.id === quiz.section_id) || null;
+  }, [quiz?.section_id, sectionsResponse]);
+
   // Debug log để kiểm tra data
   useEffect(() => {
     if (isOpen) {
@@ -86,23 +101,67 @@ export function ManageQuizModal({
     }
   }
   
-  // Chuẩn bị nội dung nguồn cho AI Quiz Generator: title + description + danh sách câu hỏi hiện có
+  // Chuẩn bị nội dung nguồn cho AI Quiz Generator: 
+  // - Nếu quiz thuộc section: dùng nội dung section + lessons
+  // - Nếu không: dùng quiz title + description + câu hỏi hiện có
   const aiSourceContent = useMemo(() => {
     const parts: string[] = [];
-    if (quiz?.title) {
-      parts.push(`# ${quiz.title}`);
+    
+    // Nếu quiz thuộc section, ưu tiên dùng nội dung section
+    if (section) {
+      parts.push(`# ${section.title || 'Chương'}`);
+      if (section.description) {
+        parts.push(`## Mô tả chương\n${section.description}`);
+      }
+      
+      // Thêm nội dung từ các lessons trong section
+      if (section.lessons && section.lessons.length > 0) {
+        parts.push('## Nội dung bài học trong chương');
+        section.lessons
+          .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+          .forEach((lesson: any, idx: number) => {
+            parts.push(`### Bài ${idx + 1}: ${lesson.title || 'Chưa có tiêu đề'}`);
+            if (lesson.description) {
+              parts.push(`**Mô tả:** ${lesson.description}`);
+            }
+            // Thêm nội dung lesson nếu có (text, document, hoặc description của video/link)
+            if (lesson.content) {
+              // Loại bỏ HTML tags để lấy text thuần
+              const textContent = lesson.content
+                .replace(/<[^>]*>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .trim();
+              if (textContent && textContent.length > 0) {
+                // Giới hạn độ dài để tránh prompt quá dài
+                const maxLength = 500;
+                const truncated = textContent.length > maxLength 
+                  ? textContent.substring(0, maxLength) + '...' 
+                  : textContent;
+                parts.push(`**Nội dung:** ${truncated}`);
+              }
+            }
+          });
+      }
+    } else {
+      // Fallback: dùng quiz info nếu không có section
+      if (quiz?.title) {
+        parts.push(`# ${quiz.title}`);
+      }
+      if (quiz?.description) {
+        parts.push(quiz.description);
+      }
     }
-    if (quiz?.description) {
-      parts.push(quiz.description);
-    }
+    
+    // Thêm câu hỏi hiện có (nếu có) để AI tránh trùng lặp
     if (questions.length > 0) {
-      parts.push('## Câu hỏi hiện có trong quiz');
+      parts.push('\n## Câu hỏi hiện có trong quiz (để tham khảo, tránh trùng lặp)');
       questions.forEach((q, idx) => {
         parts.push(`### Câu ${idx + 1}: ${q.question_text}`);
       });
     }
+    
     return parts.join('\n\n');
-  }, [quiz, questions]);
+  }, [quiz, section, questions]);
   
   // Tính tổng điểm từ các câu hỏi hiện có, hoặc sử dụng totalPoints từ props
   // Nếu có quiz data, có thể lấy từ đó, hoặc tính từ tổng điểm các câu hỏi

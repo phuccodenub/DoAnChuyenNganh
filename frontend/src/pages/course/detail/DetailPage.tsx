@@ -1472,15 +1472,17 @@ export function DetailPage() {
                       <Users className="w-4 h-4" />
                       <span>{course.total_students || 0} học viên</span>
                     </div>
-                    {course.rating && course.rating > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      {course.total_ratings && course.total_ratings > 0 ? (
                         <RatingDisplay
-                          rating={course.rating}
-                          totalRatings={course.total_ratings || 0}
+                          rating={course.rating || 0}
+                          totalRatings={course.total_ratings}
                           size="sm"
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <span className="text-gray-500">Chưa có đánh giá</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Nút nhắn tin với giảng viên - chỉ hiển thị khi đã enrolled */}

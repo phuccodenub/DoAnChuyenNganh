@@ -119,7 +119,7 @@ export function ModalHeader({ children, className, ...props }: HTMLAttributes<HT
 
 export function ModalBody({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('mb-4', className)} {...props}>
+    <div className={cn('flex-1 overflow-y-auto', className)} {...props}>
       {children}
     </div>
   );
