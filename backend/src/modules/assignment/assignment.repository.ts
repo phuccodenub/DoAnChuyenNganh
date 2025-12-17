@@ -654,7 +654,7 @@ export class AssignmentRepository {
           course_thumbnail: course?.thumbnail || null,
           due_date: a.due_date,
           status,
-          max_points: a.max_score, // Không fallback, để hiển thị giá trị thật
+          max_score: a.max_score, // Trả đúng tên trường để frontend hiển thị tổng điểm
           score: submission?.score || null,
           submitted_at: submission?.submitted_at || null,
           graded_at: submission?.graded_at || null,

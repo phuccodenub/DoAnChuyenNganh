@@ -12,8 +12,10 @@ export function useCourseSearch(term: string, limit: number = 5) {
 
   return useQuery<Course[]>({
     queryKey: ['course-search', debouncedTerm, limit],
-    enabled: debouncedTerm.length > 1,
+    enabled: debouncedTerm.length > 0,
     queryFn: async () => {
+      if (debouncedTerm.length === 0) return [];
+      
       const response = await courseApi.getAll({
         search: debouncedTerm,
         limit,

@@ -321,14 +321,33 @@ export class EnrollmentRepository extends BaseRepository<EnrollmentInstance> {
   async getUserEnrollmentStats(userId: string): Promise<EnrollmentTypes.UserEnrollmentStats> {
     try {
       logger.debug('Getting user enrollment statistics', { userId });
-      
+
       const user = await (User as any).findByPk(userId);
+
+      // Nếu user không tồn tại, trả về thống kê rỗng thay vì ném lỗi 404
       if (!user) {
-        throw new Error('User not found');
+        const emptyStats: EnrollmentTypes.UserEnrollmentStats = {
+          user_id: userId,
+          username: '',
+          total_enrollments: 0,
+          active_enrollments: 0,
+          completed_enrollments: 0,
+          average_progress: 0,
+          average_grade: 0,
+          completion_rate: 0,
+        };
+
+        logger.warn('User not found when calculating enrollment stats, returning empty stats', {
+          userId,
+        });
+
+        return emptyStats;
       }
-      
+
       const total = await this.count({ where: { user_id: userId } });
-      const active = await this.count({ where: { user_id: userId, status: 'enrolled' } });
+      const active = await this.count({
+        where: { user_id: userId, status: { [Op.in]: ['enrolled', 'active'] } },
+      });
       const completed = await this.count({ where: { user_id: userId, status: 'completed' } });
       
       // Get average progress and grade for this user

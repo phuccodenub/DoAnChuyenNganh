@@ -195,10 +195,12 @@ export class StudentDashboardRepository {
   }
 
   /**
-   * Get recommended courses
+   * Get recommended courses - chỉ trả về các khóa học mà user CHƯA enroll
    */
   async getRecommendedCourses(userId: string, limit: number = 3) {
     try {
+      logger.info('Getting recommended courses', { userId, limit });
+
       // Get user's enrolled course IDs to exclude
       const enrollments = await (Enrollment as any).findAll({
         where: { user_id: userId },
@@ -206,43 +208,64 @@ export class StudentDashboardRepository {
       });
       
       const enrolledCourseIds = enrollments.map((e: any) => e.course_id);
+      logger.debug('User enrolled course IDs', { userId, enrolledCourseIds, count: enrolledCourseIds.length });
+
+      // Build where clause - LUÔN exclude các course đã enroll
+      const whereClause: any = {
+        status: 'published'
+      };
+
+      // Nếu user đã enroll courses, exclude chúng
+      // Nếu user chưa enroll course nào, vẫn chỉ lấy published courses (không cần exclude)
+      if (enrolledCourseIds.length > 0) {
+        whereClause.id = { [Op.notIn]: enrolledCourseIds };
+      }
+
+      logger.debug('Query where clause for recommended courses', { whereClause });
 
       // Get popular published courses that user hasn't enrolled in
       const courses = await (Course as any).findAll({
-        where: {
-          id: { [Op.notIn]: enrolledCourseIds },
-          status: 'published'
-        },
+        where: whereClause,
         include: [{
           model: User,
           as: 'instructor',
-          attributes: ['id', 'first_name', 'last_name', 'avatar_url']
+          attributes: ['id', 'first_name', 'last_name', 'avatar_url'],
+          required: false // Left join để không bỏ sót courses không có instructor
         }],
         order: [
-          ['rating', 'DESC'],
-          ['total_enrollments', 'DESC']
+          ['rating', 'DESC NULLS LAST'], // Ưu tiên courses có rating cao, sau đó mới đến courses không có rating
+          ['total_enrollments', 'DESC'],
+          ['created_at', 'DESC'] // Mới nhất nếu rating và enrollments bằng nhau
         ],
         limit
       });
 
-      return courses.map((course: any) => ({
-        id: course.id,
-        title: course.title,
-        short_description: course.short_description,
-        thumbnail_url: course.thumbnail_url,
-        level: course.level,
-        materials_count: course.total_lessons || 0,
-        tags: course.tags || [],
-        instructor: course.instructor ? {
-          id: course.instructor.id,
-          full_name: `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim(),
-          avatar_url: course.instructor.avatar_url
-        } : null,
-        rating: course.rating || 0,
-        total_ratings: course.total_ratings || 0,
-        price: course.price,
-        is_free: course.is_free
-      }));
+      logger.info('Found recommended courses', { userId, count: courses.length, courseIds: courses.map((c: any) => c.id) });
+
+      // Map và filter để đảm bảo chỉ trả về courses hợp lệ (có title)
+      const recommendedCourses = courses
+        .filter((course: any) => course && course.id && course.title) // Chỉ lấy courses có id và title
+        .map((course: any) => ({
+          id: course.id,
+          title: course.title,
+          short_description: course.short_description,
+          thumbnail_url: course.thumbnail_url,
+          level: course.level,
+          materials_count: course.total_lessons || 0,
+          tags: course.tags || [],
+          instructor: course.instructor ? {
+            id: course.instructor.id,
+            full_name: `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim(),
+            avatar_url: course.instructor.avatar_url
+          } : null,
+          rating: course.rating || 0,
+          total_ratings: course.total_ratings || 0,
+          price: course.price,
+          is_free: course.is_free
+        }));
+
+      logger.info('Returning recommended courses', { userId, count: recommendedCourses.length });
+      return recommendedCourses;
     } catch (error) {
       logger.error('Error getting recommended courses:', error);
       return [];

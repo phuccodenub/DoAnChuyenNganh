@@ -154,14 +154,17 @@ export const studentApi = {
    */
   getDashboardStats: async (): Promise<ApiResponse<StudentDashboardStats>> => {
     try {
-      // Lấy enrolled courses để tính stats
+      // Lấy enrolled courses để tính stats - dùng pagination để lấy tổng số chính xác
       const enrolledResponse = await httpClient.get<ApiResponse<{
         courses: StudentCourse[];
-        pagination: { total: number };
-      }>>('/courses/enrolled');
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      }>>('/courses/enrolled', { params: { page: 1, limit: 1000 } }); // Lấy nhiều để tính stats chính xác
       
       const courses = enrolledResponse.data?.data?.courses || [];
-      const totalCourses = courses.length;
+      const pagination = enrolledResponse.data?.data?.pagination;
+      
+      // Dùng pagination.total thay vì courses.length để đảm bảo đếm chính xác
+      const totalCourses = pagination?.total ?? courses.length;
       const completedCourses = courses.filter(c => c.enrollment?.status === 'completed' || c.enrollment?.progress_percentage === 100).length;
       const inProgressCourses = courses.filter(c => 
         c.enrollment?.status === 'active' && 
@@ -209,19 +212,53 @@ export const studentApi = {
    */
   getProgressStats: async (): Promise<ApiResponse<StudentProgressStats>> => {
     try {
-      const response = await httpClient.get<ApiResponse<StudentProgressStats>>('/student/dashboard/progress');
+      // Gọi endpoint chính xác từ backend
+      const response = await httpClient.get<ApiResponse<StudentProgressStats>>('/student/progress-stats');
       return response.data;
     } catch {
-      // Return default values if API fails
-      return {
-        success: true,
-        message: 'Progress stats (default)',
-        data: {
-          lessons: { completed: 0, total: 0 },
-          assignments: { completed: 0, total: 0 },
-          quizzes: { completed: 0, total: 0 },
+      // Fallback: tính từ enrolled courses
+      try {
+        const enrolledResponse = await httpClient.get<ApiResponse<{
+          courses: StudentCourse[];
+          pagination: { page: number; limit: number; total: number; totalPages: number };
+        }>>('/courses/enrolled', { params: { page: 1, limit: 1000 } });
+        
+        const courses = enrolledResponse.data?.data?.courses || [];
+        let totalLessons = 0;
+        let completedLessons = 0;
+        let totalAssignments = 0;
+        let completedAssignments = 0;
+        let totalQuizzes = 0;
+        let completedQuizzes = 0;
+        
+        // Tính toán từ các khóa học đã đăng ký
+        for (const course of courses) {
+          totalLessons += course.total_lessons || 0;
+          completedLessons += course.completed_lessons || 0;
+          // Không có thông tin assignment và quiz từ course nên dùng mặc định
         }
-      };
+        
+        return {
+          success: true,
+          message: 'Progress stats (calculated from enrolled courses)',
+          data: {
+            lessons: { completed: completedLessons, total: totalLessons },
+            assignments: { completed: completedAssignments, total: totalAssignments },
+            quizzes: { completed: completedQuizzes, total: totalQuizzes },
+          }
+        };
+      } catch {
+        // Return default values if all API calls fail
+        return {
+          success: true,
+          message: 'Progress stats (default)',
+          data: {
+            lessons: { completed: 0, total: 0 },
+            assignments: { completed: 0, total: 0 },
+            quizzes: { completed: 0, total: 0 },
+          }
+        };
+      }
     }
   },
 
@@ -230,20 +267,37 @@ export const studentApi = {
    */
   getDailyGoal: async (): Promise<ApiResponse<DailyGoal>> => {
     try {
-      const response = await httpClient.get<ApiResponse<DailyGoal>>('/student/dashboard/daily-goal');
+      // Gọi endpoint chính xác từ backend
+      const response = await httpClient.get<ApiResponse<DailyGoal>>('/student/daily-goal');
       return response.data;
     } catch {
-      // Return default values if API fails
-      return {
-        success: true,
-        message: 'Daily goal (default)',
-        data: {
-          target_minutes: 30,
-          current_minutes: 0,
-          streak_days: 0,
-          longest_streak_days: 0,
-        }
-      };
+      // Fallback: lấy từ user profile hoặc dùng mặc định
+      try {
+        const profileResponse = await httpClient.get('/users/profile');
+        const userData = profileResponse.data?.data;
+        return {
+          success: true,
+          message: 'Daily goal (from profile)',
+          data: {
+            target_minutes: userData?.daily_goal_target || 30,
+            current_minutes: userData?.daily_learning_minutes || 0,
+            streak_days: userData?.learning_streak || 0,
+            longest_streak_days: userData?.longest_learning_streak || 0,
+          }
+        };
+      } catch {
+        // Return default values if all API calls fail
+        return {
+          success: true,
+          message: 'Daily goal (default)',
+          data: {
+            target_minutes: 30,
+            current_minutes: 0,
+            streak_days: 0,
+            longest_streak_days: 0,
+          }
+        };
+      }
     }
   },
 
@@ -252,22 +306,41 @@ export const studentApi = {
    */
   updateDailyGoal: async (targetMinutes: number): Promise<ApiResponse<DailyGoal>> => {
     try {
-      const response = await httpClient.put<ApiResponse<DailyGoal>>('/student/dashboard/daily-goal', {
+      // Gọi endpoint chính xác từ backend
+      const response = await httpClient.put<ApiResponse<DailyGoal>>('/student/daily-goal', {
         target_minutes: targetMinutes
       });
       return response.data;
     } catch {
-      // Return updated values if API fails
-      return {
-        success: true,
-        message: 'Daily goal updated (local)',
-        data: {
-          target_minutes: targetMinutes,
-          current_minutes: 0,
-          streak_days: 0,
-          longest_streak_days: 0,
-        }
-      };
+      // Fallback: cập nhật thông qua user profile
+      try {
+        const profileResponse = await httpClient.put('/users/profile', {
+          daily_goal_target: targetMinutes
+        });
+        const userData = profileResponse.data?.data;
+        return {
+          success: true,
+          message: 'Daily goal updated (via profile)',
+          data: {
+            target_minutes: userData?.daily_goal_target || targetMinutes,
+            current_minutes: userData?.daily_learning_minutes || 0,
+            streak_days: userData?.learning_streak || 0,
+            longest_streak_days: userData?.longest_learning_streak || 0,
+          }
+        };
+      } catch {
+        // Return updated values if API fails
+        return {
+          success: true,
+          message: 'Daily goal updated (local)',
+          data: {
+            target_minutes: targetMinutes,
+            current_minutes: 0,
+            streak_days: 0,
+            longest_streak_days: 0,
+          }
+        };
+      }
     }
   },
 
@@ -308,20 +381,24 @@ export const studentApi = {
    */
   getRecommendedCourses: async (limit: number = 3) => {
     try {
-      // Try the student dashboard endpoint first
+      // Gọi endpoint chính xác từ backend
       const response = await httpClient.get<ApiResponse<RecommendedCourse[]>>(
-        '/student/dashboard/recommended-courses',
+        '/student/recommended-courses',
         { params: { limit } }
       );
       return response.data.data;
     } catch {
       try {
-        // Fallback to general courses endpoint
-        const response = await httpClient.get<ApiResponse<RecommendedCourse[]>>(
-          '/courses/recommended',
-          { params: { limit } }
-        );
-        return response.data.data;
+        // Fallback: lấy tất cả khóa học và chọn ngẫu nhiên
+        const response = await httpClient.get<ApiResponse<{
+          courses: RecommendedCourse[];
+          pagination: { page: number; limit: number; total: number; totalPages: number };
+        }>>('/courses', { params: { limit: 20 } }); // Lấy 20 khóa học ngẫu nhiên
+        
+        const allCourses = response.data?.data?.courses || [];
+        // Lấy ngẫu nhiên `limit` khóa học từ danh sách
+        const shuffled = [...allCourses].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, limit);
       } catch {
         return [];
       }
@@ -447,12 +524,13 @@ export const studentApi = {
    */
   getGamificationStats: async () => {
     try {
+      // Gọi endpoint chính xác từ backend
       const response = await httpClient.get<ApiResponse<{
         total_points: number;
         level: number;
         badges: Array<{ id: string; name: string; icon: string }>;
         achievements: number;
-      }>>('/student/dashboard/gamification');
+      }>>('/student/gamification');
       return {
         success: true,
         message: 'Gamification stats retrieved',
@@ -466,19 +544,37 @@ export const studentApi = {
         }
       };
     } catch {
-      // Return default values if API fails
-      return {
-        success: true,
-        message: 'Gamification stats (default)',
-        data: {
-          total_points: 0,
-          level: 1,
-          level_name: 'Người mới',
-          points_to_next_level: 100,
-          badges: [],
-          certificates: []
-        }
-      };
+      // Fallback: lấy từ user profile hoặc dùng mặc định
+      try {
+        const profileResponse = await httpClient.get('/users/profile');
+        const userData = profileResponse.data?.data;
+        return {
+          success: true,
+          message: 'Gamification stats (from profile)',
+          data: {
+            total_points: userData?.points || 0,
+            level: userData?.level || 1,
+            level_name: getLevelName(userData?.level || 1),
+            points_to_next_level: 100 - ((userData?.points || 0) % 100),
+            badges: userData?.badges || [],
+            certificates: []
+          }
+        };
+      } catch {
+        // Return default values if all API calls fail
+        return {
+          success: true,
+          message: 'Gamification stats (default)',
+          data: {
+            total_points: 0,
+            level: 1,
+            level_name: 'Người mới',
+            points_to_next_level: 100,
+            badges: [],
+            certificates: []
+          }
+        };
+      }
     }
   },
 

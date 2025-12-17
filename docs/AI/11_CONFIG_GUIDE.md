@@ -1,0 +1,690 @@
+# ⚙️ HƯỚNG DẪN CẤU HÌNH CHI TIẾT
+
+**Tài liệu:** 11 - Config Guide  
+**Phiên bản:** 2.0  
+**Cập nhật:** 17 tháng 12, 2025  
+**Ưu tiên:** P0 (Thiết yếu)
+
+---
+
+## 📖 TỔNG QUAN
+
+Hướng dẫn này cung cấp các bước cấu hình chi tiết để tích hợp tất cả các dịch vụ AI vào dự án LMS. Từ các API keys đến environment variables, tất cả đều được nêu rõ ràng.
+
+### Phạm vi
+- ✅ ProxyPal installation & configuration
+- ✅ MegaLLM setup
+- ✅ Google AI Studio
+- ✅ Groq Cloud
+- ✅ Redis configuration
+- ✅ Environment variables
+- ✅ Database migrations
+
+---
+
+## 🚀 BƯỚC 1: CÀI ĐẶT PROXYPAL
+
+### 1.1 Tải xuống ProxyPal
+
+**Windows:**
+```powershell
+# Tải xuống từ GitHub
+$url = "https://github.com/proxypal/proxypal/releases/download/v1.0/proxypal-windows.zip"
+$output = "C:\ProxyPal\proxypal-windows.zip"
+
+New-Item -ItemType Directory -Path "C:\ProxyPal" -Force
+Invoke-WebRequest -Uri $url -OutFile $output
+Expand-Archive -Path $output -DestinationPath "C:\ProxyPal"
+
+# Thêm vào PATH
+$env:Path += ";C:\ProxyPal\bin"
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ProxyPal\bin", [EnvironmentVariableTarget]::User)
+```
+
+**macOS/Linux:**
+```bash
+# Tải xuống
+wget https://github.com/proxypal/proxypal/releases/download/v1.0/proxypal-linux.tar.gz
+tar -xzf proxypal-linux.tar.gz -C ~/proxypal
+
+# Thêm vào PATH
+echo 'export PATH="$HOME/proxypal/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### 1.2 Khởi tạo ProxyPal
+
+```bash
+# Kiểm tra cài đặt
+proxypal --version
+
+# Tạo directory cấu hình
+mkdir -p ~/.proxypal/config
+
+# Tạo file cấu hình chính
+proxypal init --interactive
+```
+
+### 1.3 Cấu hình models
+
+**File:** `~/.proxypal/config/models.yaml`
+
+```yaml
+version: 1.0
+
+providers:
+  - name: "gemini"
+    type: "google"
+    apiKey: "${GOOGLE_API_KEY}"
+    models:
+      - name: "gemini-3-pro-preview"
+        config:
+          contextWindow: 2000000
+          temperature: 0.7
+          timeout: 30000
+
+  - name: "qwen"
+    type: "qwen"
+    apiKey: "${QWEN_API_KEY}"
+    models:
+      - name: "qwen3-coder-plus"
+        config:
+          contextWindow: 32000
+          temperature: 0.5
+          timeout: 15000
+      
+      - name: "qwen3-coder-flash"
+        config:
+          contextWindow: 128000
+          temperature: 0.7
+          timeout: 10000
+
+routing:
+  # Routing strategy
+  strategies:
+    - name: "default"
+      rules:
+        - condition: "contextLength > 500000"
+          provider: "gemini"
+          model: "gemini-3-pro-preview"
+        
+        - condition: "codeQuality == true"
+          provider: "qwen"
+          model: "qwen3-coder-plus"
+        
+        - condition: "speed == high"
+          provider: "qwen"
+          model: "qwen3-coder-flash"
+        
+        - condition: "default"
+          provider: "gemini"
+          model: "gemini-3-pro-preview"
+
+cache:
+  type: "redis"
+  host: "localhost"
+  port: 6379
+  db: 2
+  ttl: 86400
+
+logging:
+  level: "info"
+  format: "json"
+  output: "file"
+  path: "~/.proxypal/logs/proxypal.log"
+```
+
+### 1.4 Khởi động ProxyPal
+
+```bash
+# Khởi động service
+proxypal start
+
+# Kiểm tra status
+proxypal status
+
+# Output expected:
+# ProxyPal Server running on http://localhost:8888
+# Models loaded: gemini-3-pro-preview, qwen3-coder-plus, qwen3-coder-flash
+# Cache: Redis connected (localhost:6379)
+```
+
+---
+
+## 🔑 BƯỚC 2: CẤU HÌNH API KEYS
+
+### 2.1 Google AI Studio (Gemini Flash)
+
+```bash
+# Truy cập https://ai.google.dev
+# 1. Click "Get API Key"
+# 2. Chọn project hoặc tạo mới
+# 3. Copy API key
+
+# Lưu vào environment
+export GOOGLE_AI_KEY="AIzaSyD..."
+```
+
+### 2.2 Groq Cloud (Llama 3)
+
+```bash
+# Truy cập https://console.groq.com
+# 1. Đăng ký hoặc đăng nhập
+# 2. Navigate to "API Keys"
+# 3. Click "Create New API Key"
+# 4. Copy và lưu
+
+export GROQ_API_KEY="gsk_..."
+```
+
+### 2.3 MegaLLM (Claude)
+
+```bash
+# Tạo 2 tài khoản MegaLLM riêng biệt (bố cục budget)
+# Account 1: Claude Sonnet 4.5
+# Account 2: Claude Opus 4.5
+
+# Account 1
+export MEGALLM_ACCOUNT1_KEY="sk-ant-api-..."
+export MEGALLM_ACCOUNT1_BUDGET=75
+
+# Account 2
+export MEGALLM_ACCOUNT2_KEY="sk-ant-api-..."
+export MEGALLM_ACCOUNT2_BUDGET=75
+```
+
+---
+
+## 📦 BƯỚC 3: CẤU HÌNH ENVIRONMENT
+
+### 3.1 Backend Environment
+
+**File:** `backend/.env.production`
+
+```bash
+# ============ NODE ============
+NODE_ENV=production
+PORT=3000
+LOG_LEVEL=info
+
+# ============ DATABASE ============
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=lms_ai
+DB_USER=postgres
+DB_PASSWORD=your-secure-password
+DB_SSL=true
+
+# ============ REDIS ============
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=redis-secure-password
+REDIS_DB=2
+REDIS_MAX_RETRIES=3
+
+# ============ PROXYPAL ============
+PROXYPAL_URL=http://localhost:8888
+PROXYPAL_TIMEOUT=30000
+PROXYPAL_RETRY_COUNT=3
+
+# ============ TIER 1: SPEED ============
+GROQ_API_KEY=gsk_...
+GOOGLE_AI_KEY=AIzaSyD...
+
+# ============ TIER 2: POWER (ProxyPal) ============
+# Configured in ProxyPal local config
+
+# ============ TIER 3: PREMIUM ============
+MEGALLM_ACCOUNT1_KEY=sk-ant-...
+MEGALLM_ACCOUNT2_KEY=sk-ant-...
+MEGALLM_ROUTING=round_robin # round_robin | sequential
+
+# ============ AI CONFIG ============
+AI_CACHE_TTL_CHAT=3600 # 1h
+AI_CACHE_TTL_QUIZ=86400 # 24h
+AI_CACHE_TTL_GRADE=604800 # 7d
+AI_CACHE_TTL_CONTENT=2592000 # 30d
+
+AI_REQUEST_TIMEOUT=60000
+AI_MAX_RETRIES=3
+AI_FALLBACK_ENABLED=true
+
+AI_BUDGET_DAILY_LIMIT=100
+AI_BUDGET_MONTHLY_LIMIT=2000
+
+# ============ FEATURES ============
+FEATURE_QUIZ_GENERATOR=true
+FEATURE_AI_TUTOR=true
+FEATURE_AI_GRADER=true
+FEATURE_DEBATE=true
+FEATURE_CONTENT_REPURPOSING=true
+FEATURE_ADAPTIVE_LEARNING=true
+
+# ============ MONITORING ============
+SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
+DATADOG_API_KEY=dd_apm_...
+
+# ============ SECURITY ============
+JWT_SECRET=your-jwt-secret-key
+JWT_EXPIRY=7d
+CORS_ORIGIN=https://yourdomain.com
+RATE_LIMIT_WINDOW=15 # minutes
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+### 3.2 Frontend Environment
+
+**File:** `frontend/.env.production`
+
+```bash
+REACT_APP_API_URL=https://api.yourdomain.com
+REACT_APP_WS_URL=wss://api.yourdomain.com
+REACT_APP_ENV=production
+REACT_APP_LOG_LEVEL=warn
+```
+
+### 3.3 Docker Environment
+
+**File:** `docker/.env`
+
+```bash
+# Docker Compose
+COMPOSE_PROJECT_NAME=lms-ai
+COMPOSE_FILE=docker-compose.prod.yml
+
+# Database
+POSTGRES_PASSWORD=db-secure-password
+POSTGRES_DB=lms_ai
+
+# Redis
+REDIS_PASSWORD=redis-secure-password
+
+# Backend
+BACKEND_PORT=3000
+BACKEND_REPLICAS=3
+
+# Frontend
+FRONTEND_PORT=80
+```
+
+---
+
+## 🗄️ BƯỚC 4: SETUP DATABASE
+
+### 4.1 Tạo database
+
+```bash
+# Kết nối đến PostgreSQL
+psql -U postgres -h localhost
+
+# Tạo database
+CREATE DATABASE lms_ai;
+CREATE USER lms_admin WITH PASSWORD 'secure-password';
+GRANT ALL PRIVILEGES ON DATABASE lms_ai TO lms_admin;
+
+# Thoát
+\q
+```
+
+### 4.2 Chạy migrations
+
+```bash
+cd backend
+
+# Install dependencies
+npm install
+
+# Tạo tables
+npm run typeorm migration:run
+
+# Verify
+npm run typeorm migration:show
+
+# Expected output:
+# ✓ CreateLearningPathTable
+# ✓ CreateDebateHistoryTable
+# ✓ CreateAIUsageTable
+# ... etc
+```
+
+### 4.3 Seed dữ liệu mẫu
+
+```bash
+# Tạo seed file
+cat > backend/scripts/seed-ai-data.ts << 'EOF'
+import { AppDataSource } from '@/database/data-source';
+
+async function seedData() {
+  await AppDataSource.initialize();
+  
+  // Seed rubrics
+  const rubricRepo = AppDataSource.getRepository('Rubric');
+  await rubricRepo.save({
+    name: 'Default Code Grading',
+    criteria: {
+      Correctness: { weight: 40, levels: 5 },
+      CodeQuality: { weight: 30, levels: 5 },
+      Performance: { weight: 20, levels: 4 },
+      Security: { weight: 10, levels: 3 }
+    }
+  });
+  
+  console.log('✓ Seed data created');
+  await AppDataSource.destroy();
+}
+
+seedData().catch(console.error);
+EOF
+
+npm run ts-node scripts/seed-ai-data.ts
+```
+
+---
+
+## 🔴 BƯỚC 5: SETUP REDIS
+
+### 5.1 Cài đặt Redis
+
+**Windows (via WSL2):**
+```bash
+# Trong WSL2
+sudo apt update
+sudo apt install redis-server
+
+# Khởi động
+redis-server
+
+# Kiểm tra
+redis-cli ping
+# Output: PONG
+```
+
+**macOS:**
+```bash
+brew install redis
+brew services start redis
+redis-cli ping
+```
+
+**Linux:**
+```bash
+sudo apt install redis-server
+sudo systemctl start redis-server
+redis-cli ping
+```
+
+### 5.2 Cấu hình Redis
+
+**File:** `/etc/redis/redis.conf` (hoặc config location)
+
+```conf
+# Redis Security
+requirepass redis-secure-password
+maxclients 10000
+
+# Memory
+maxmemory 2gb
+maxmemory-policy allkeys-lru
+
+# Persistence
+save 900 1
+save 300 10
+save 60 10000
+
+# Database selection for AI features
+# DB 0: General cache
+# DB 1: Session cache
+# DB 2: AI cache (reserved)
+# DB 3: Queue/jobs
+
+# Logging
+loglevel notice
+logfile "/var/log/redis/redis-server.log"
+```
+
+### 5.3 Kiểm tra Redis
+
+```bash
+redis-cli
+> AUTH redis-secure-password
+> PING
+> SELECT 2
+> INFO
+
+# Expected: 
+# redis_version: 7.0+
+# connected_clients: 1
+# used_memory_human: 1.5M
+```
+
+---
+
+## 🧪 BƯỚC 6: CẤU HÌNH TESTING
+
+### 6.1 Test file structure
+
+**File:** `backend/test/integration/ai.integration.spec.ts`
+
+```typescript
+import axios from 'axios';
+
+describe('AI Integration Tests', () => {
+  const API_URL = 'http://localhost:3000/api/v1';
+  let token: string;
+
+  beforeAll(async () => {
+    // Get auth token
+    const loginRes = await axios.post(`${API_URL}/auth/login`, {
+      email: 'test@example.com',
+      password: 'password'
+    });
+    token = loginRes.data.token;
+  });
+
+  it('should generate quiz', async () => {
+    const res = await axios.post(
+      `${API_URL}/ai/quiz/generate`,
+      {
+        topicId: 'topic-123',
+        questionCount: 5,
+        difficulty: 'medium'
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    expect(res.status).toBe(202);
+    expect(res.data.jobId).toBeDefined();
+  });
+
+  it('should create learning path', async () => {
+    const res = await axios.post(
+      `${API_URL}/adaptive-learning/start`,
+      {
+        topicId: 'topic-123',
+        assessmentScore: 65
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.skillLevel).toBeDefined();
+  });
+});
+```
+
+### 6.2 Chạy integration tests
+
+```bash
+cd backend
+
+# Run tests
+npm run test:integration
+
+# With coverage
+npm run test:integration -- --coverage
+
+# Watch mode
+npm run test:integration -- --watch
+```
+
+---
+
+## ✅ BƯỚC 7: VERIFICATION CHECKLIST
+
+```bash
+# 1. ProxyPal running
+curl http://localhost:8888/health
+
+# 2. Backend API running
+curl http://localhost:3000/health
+
+# 3. Redis connected
+redis-cli PING
+
+# 4. Database connected
+psql -U lms_admin -d lms_ai -c "SELECT COUNT(*) FROM learning_paths;"
+
+# 5. Test quiz generation
+curl -X POST http://localhost:3000/api/v1/ai/quiz/generate \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"topicId":"topic-1","questionCount":5}'
+
+# 6. Test chat connection
+wscat -c ws://localhost:3000/ws/ai/chat
+
+# 7. Check logs
+tail -f backend/logs/app.log
+```
+
+---
+
+## 🔐 BƯỚC 8: SECURITY HARDENING
+
+### 8.1 Bảo vệ API Keys
+
+```bash
+# Sử dụng .env.local (không commit)
+echo ".env.local" >> backend/.gitignore
+echo ".env.production.local" >> backend/.gitignore
+
+# Rotate keys monthly
+# Set calendar reminder
+```
+
+### 8.2 Rate Limiting
+
+**File:** `backend/src/middleware/rate-limit.ts`
+
+```typescript
+import rateLimit from 'express-rate-limit';
+
+export const aiQuizLimiter = rateLimit({
+  windowMs: 1 * 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 requests per hour
+  message: 'Too many quiz requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+export const aiChatLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5, // 5 messages per minute
+  skipSuccessfulRequests: false
+});
+```
+
+### 8.3 Input Validation
+
+```typescript
+import { validate } from 'class-validator';
+import { plainToClass } from 'class-transformer';
+
+export class QuizGenerationDto {
+  @IsString()
+  @Length(1, 500)
+  topicId: string;
+
+  @IsNumber()
+  @Min(1)
+  @Max(50)
+  questionCount: number;
+
+  @IsEnum(['easy', 'medium', 'hard'])
+  difficulty: string;
+}
+
+// Sử dụng
+export async function generateQuiz(req: Request, res: Response) {
+  const dto = plainToClass(QuizGenerationDto, req.body);
+  const errors = await validate(dto);
+  
+  if (errors.length > 0) {
+    return res.status(400).json(errors);
+  }
+  
+  // Process...
+}
+```
+
+---
+
+## 📊 BƯỚC 9: MONITORING SETUP
+
+### 9.1 Prometheus Metrics
+
+**File:** `backend/src/metrics/prometheus.ts`
+
+```typescript
+import { register, Counter, Histogram, Gauge } from 'prom-client';
+
+export const quizGenerationCounter = new Counter({
+  name: 'ai_quiz_generations_total',
+  help: 'Total quiz generations',
+  labelNames: ['model', 'status']
+});
+
+export const quizGenerationDuration = new Histogram({
+  name: 'ai_quiz_generation_duration_seconds',
+  help: 'Quiz generation duration',
+  buckets: [1, 5, 10, 30, 60, 120]
+});
+
+export const aiCostGauge = new Gauge({
+  name: 'ai_monthly_cost_usd',
+  help: 'Current monthly AI cost'
+});
+
+// Endpoint cho Prometheus
+app.get('/metrics', (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(register.metrics());
+});
+```
+
+### 9.2 Sentry Error Tracking
+
+```typescript
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  tracesSampleRate: 1.0
+});
+
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.errorHandler());
+```
+
+---
+
+## 📚 LIÊN QUAN
+
+- **Trước:** [10_API_DESIGN.md](10_API_DESIGN.md)
+- **Tiếp:** [12_DEPLOYMENT.md](12_DEPLOYMENT.md)
+
+---
+
+**Phiên bản:** 2.0  
+**Cập nhật lần cuối:** 17 tháng 12, 2025

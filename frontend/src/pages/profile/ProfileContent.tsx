@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/user.api';
 import { enrollmentApi, type EnrollmentStats } from '@/services/api/enrollment.api';
+import { httpClient } from '@/services/http/client';
 import { ProfileOverview } from './ProfileOverview';
 import { ActivityTab, CertificatesTab, SettingsTab } from './ProfileTabs';
 
@@ -57,7 +58,40 @@ export default function ProfilePageContent() {
         }
       } catch (err) {
         console.error('Failed to fetch enrollment stats:', err);
-        // Không hiển thị lỗi cho user, chỉ log ra console
+        // Fallback: lấy từ enrolled courses
+        try {
+          const enrolledResponse = await httpClient.get('/courses/enrolled', { params: { page: 1, limit: 1000 } });
+          const courses = enrolledResponse.data?.data?.courses || [];
+          const totalEnrollments = courses.length;
+          const completedEnrollments = courses.filter((c: any) =>
+            c.enrollment?.status === 'completed' || (c.enrollment?.progress_percentage === 100)
+          ).length;
+          const activeEnrollments = courses.filter((c: any) =>
+            c.enrollment?.status === 'active' &&
+            (c.enrollment?.progress_percentage || 0) > 0 &&
+            (c.enrollment?.progress_percentage || 0) < 100
+          ).length;
+          
+          setEnrollmentStats({
+            total_enrollments: totalEnrollments,
+            active_enrollments: activeEnrollments,
+            completed_enrollments: completedEnrollments,
+            average_progress: 0, // Không tính được từ dữ liệu này
+            average_grade: 0,
+            completion_rate: totalEnrollments > 0 ? (completedEnrollments / totalEnrollments) * 100 : 0
+          });
+        } catch (fallbackErr) {
+          console.error('Fallback also failed:', fallbackErr);
+          // Dùng giá trị mặc định nếu cả hai đều thất bại
+          setEnrollmentStats({
+            total_enrollments: 0,
+            active_enrollments: 0,
+            completed_enrollments: 0,
+            average_progress: 0,
+            average_grade: 0,
+            completion_rate: 0
+          });
+        }
       } finally {
         setIsLoadingStats(false);
       }
