@@ -86,7 +86,7 @@ const StudentOverview = ({ enrollmentStats, isLoadingStats, bio }: StudentOvervi
       {/* Recent Courses */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Khóa học gần đây</CardTitle>
+          <CardTitle>Khóa học đang học</CardTitle>
           <Link to="/my-courses">
             <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
               Xem tất cả <ArrowRight size={16} className="ml-1" />
@@ -101,37 +101,67 @@ const StudentOverview = ({ enrollmentStats, isLoadingStats, bio }: StudentOvervi
               <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Bạn chưa tham gia khóa học nào.</p>
               <Link to="/courses" className="text-blue-600 hover:underline mt-2 inline-block">
-                Khám phá khóa học ngay
+                Khám phá khóa học ngay →
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              {recentEnrollments.map((enrollment) => (
-                <div key={enrollment.id} className="flex items-center gap-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-200 shrink-0">
-                    {enrollment.course?.thumbnail_url ? (
-                      <img src={enrollment.course.thumbnail_url} alt={enrollment.course.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <BookOpen size={24} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 truncate">{enrollment.course?.title}</h4>
-                    <p className="text-sm text-gray-500 truncate">{enrollment.course?.instructor?.full_name}</p>
-                    <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
-                      <div 
-                        className="bg-blue-600 h-1.5 rounded-full" 
-                        style={{ width: `${enrollment.progress_percentage || 0}%` }}
-                      ></div>
+            <div className="space-y-3">
+              {recentEnrollments.map((enrollment) => {
+                const progress = Math.round(enrollment.progress_percentage || 0);
+                const isCompleted = progress >= 100;
+                const progressColor = isCompleted ? 'bg-green-600' : progress >= 50 ? 'bg-blue-600' : progress >= 25 ? 'bg-yellow-500' : 'bg-gray-400';
+                
+                return (
+                  <Link 
+                    key={enrollment.id} 
+                    to={`/courses/${enrollment.course_id}`}
+                    className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group bg-white"
+                  >
+                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-indigo-100 shrink-0 group-hover:scale-105 transition-transform">
+                      {enrollment.course?.thumbnail_url ? (
+                        <img
+                          src={enrollment.course.thumbnail_url}
+                          alt={enrollment.course.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null; // Ngăn vòng lặp lỗi
+                            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(enrollment.course?.title || 'Khóa học')}&size=200&background=2563EB&color=fff`;
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-blue-600">
+                          <BookOpen size={28} />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-sm font-medium text-gray-900">{Math.round(enrollment.progress_percentage || 0)}%</span>
-                  </div>
-                </div>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                        {enrollment.course?.title || 'Khóa học'}
+                      </h4>
+                      <p className="text-sm text-gray-600 truncate mt-0.5">
+                        {enrollment.course?.instructor?.full_name || 'Giảng viên'}
+                      </p>
+                      <div className="mt-3 space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600 font-medium">Tiến độ: {progress}%</span>
+                          {isCompleted && (
+                            <span className="text-green-600 font-semibold flex items-center gap-1">
+                              <Award size={14} /> Hoàn thành
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-500 ${progressColor}`}
+                            style={{ width: `${progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </CardContent>

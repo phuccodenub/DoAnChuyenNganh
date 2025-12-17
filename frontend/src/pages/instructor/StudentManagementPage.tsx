@@ -327,9 +327,11 @@ export function StudentManagementPage() {
           {students.map((student) => {
             const activityStatus = getActivityStatus(student.last_activity_at);
             const progress = student.progress_percent || 0;
+            // Use enrollment_id as unique key since one student can have multiple enrollments
+            const uniqueKey = (student as any).enrollment_id || student.id;
 
             return (
-              <Card key={student.id} className="hover:shadow-md transition-shadow">
+              <Card key={uniqueKey} className="hover:shadow-md transition-shadow">
                 <CardContent className="py-4">
                   <div className="flex items-center gap-4">
                     {/* Checkbox */}

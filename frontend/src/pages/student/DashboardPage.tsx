@@ -14,6 +14,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { useEnrolledCourses } from '@/hooks/useCoursesData';
 import { 
+  useStudentDashboardStats,
   useStudentProgressStats, 
   useStudentDailyGoal,
   useRecommendedCourses,
@@ -275,38 +276,45 @@ interface RecommendedCardProps {
   };
 }
 
-const RecommendedCard = ({ course }: RecommendedCardProps) => (
-  <Link to={`/courses/${course.id}`}>
-    <div className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1">
-      <div className="relative h-32 overflow-hidden">
-        {course.thumbnail_url ? (
-          <img 
-            src={course.thumbnail_url} 
-            alt={course.title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-            <GraduationCap className="w-8 h-8 text-gray-400" />
+const RecommendedCard = ({ course }: RecommendedCardProps) => {
+  // Chỉ render nếu course có đầy đủ thông tin cơ bản
+  if (!course || !course.id || !course.title) {
+    return null;
+  }
+
+  return (
+    <Link to={`/courses/${course.id}`}>
+      <div className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1">
+        <div className="relative h-32 overflow-hidden">
+          {course.thumbnail_url ? (
+            <img 
+              src={course.thumbnail_url} 
+              alt={course.title} 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <GraduationCap className="w-8 h-8 text-gray-400" />
+            </div>
+          )}
+          <div className="absolute top-2 right-2 px-2 py-1 bg-black/70 rounded-full text-white text-xs flex items-center gap-1">
+            <Star className="w-3 h-3 text-yellow-400" fill="currentColor" />
+            {course.rating?.toFixed(1) || '5.0'}
           </div>
-        )}
-        <div className="absolute top-2 right-2 px-2 py-1 bg-black/70 rounded-full text-white text-xs flex items-center gap-1">
-          <Star className="w-3 h-3 text-yellow-400" fill="currentColor" />
-          {course.rating?.toFixed(1) || '5.0'}
+        </div>
+        <div className="p-3">
+          <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-2 group-hover:text-indigo-600 transition-colors">
+            {course.title}
+          </h4>
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>{course.materials_count || 0} bài học</span>
+            <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-indigo-600" />
+          </div>
         </div>
       </div>
-      <div className="p-3">
-        <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-2 group-hover:text-indigo-600 transition-colors">
-          {course.title}
-        </h4>
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>{course.materials_count || 0} bài học</span>
-          <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-indigo-600" />
-        </div>
-      </div>
-    </div>
-  </Link>
-);
+    </Link>
+  );
+};
 
 // Daily Goal Widget
 const DailyGoalWidget = ({ 
@@ -463,7 +471,8 @@ export function DashboardPage() {
   const navigate = useNavigate();
   
   // API Hooks
-  const { data: coursesData, isLoading: isLoadingCourses, error: coursesError } = useEnrolledCourses({ limit: 6 });
+  const { data: dashboardStats } = useStudentDashboardStats();
+  const { data: coursesData, isLoading: isLoadingCourses, error: coursesError } = useEnrolledCourses({ page: 1, limit: 50 });
   const { data: progressStats, isLoading: isLoadingProgress } = useStudentProgressStats();
   const { data: dailyGoal, isLoading: isLoadingGoal } = useStudentDailyGoal();
   const { data: gamification, isLoading: isLoadingGamification } = useGamificationStats();
@@ -472,8 +481,17 @@ export function DashboardPage() {
   const enrolledCourses = useMemo(() => coursesData?.courses || [], [coursesData]);
   const quote = useMemo(() => getMotivationalQuote(), []);
   
-  // Calculate stats
+  // Calculate stats (ưu tiên số liệu tổng hợp từ dashboardStats)
   const stats = useMemo(() => {
+    if (dashboardStats?.data) {
+      return {
+        total: dashboardStats.data.total_enrolled_courses ?? 0,
+        inProgress: dashboardStats.data.in_progress_courses ?? 0,
+        completed: dashboardStats.data.completed_courses ?? 0,
+      };
+    }
+
+    // Fallback: tính từ danh sách courses đang load (có thể giới hạn)
     const total = enrolledCourses.length;
     const inProgress = enrolledCourses.filter((c: any) => {
       const p = c.enrollment?.progress_percentage;
@@ -482,9 +500,9 @@ export function DashboardPage() {
     const completed = enrolledCourses.filter((c: any) => 
       c.enrollment?.progress_percentage === 100
     ).length;
-    
+
     return { total, inProgress, completed };
-  }, [enrolledCourses]);
+  }, [dashboardStats, enrolledCourses]);
 
   const userName = user?.full_name?.split(' ').pop() || 'bạn';
 
@@ -642,11 +660,27 @@ export function DashboardPage() {
 
               {isLoadingRecommended ? (
                 <div className="flex justify-center py-8"><Spinner /></div>
+              ) : !recommendedCourses || recommendedCourses.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="p-8 text-center">
+                    <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 mb-2">Chưa có khóa học đề xuất</p>
+                    <p className="text-sm text-gray-400 mb-4">Hãy khám phá các khóa học mới!</p>
+                    <Link to={ROUTES.COURSES}>
+                      <Button variant="outline" size="sm">
+                        Khám phá khóa học
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {(recommendedCourses || []).slice(0, 4).map((course: any) => (
-                    <RecommendedCard key={course.id} course={course} />
-                  ))}
+                  {(recommendedCourses || [])
+                    .filter((course: any) => course && course.id && course.title) // Chỉ render courses hợp lệ
+                    .slice(0, 4)
+                    .map((course: any) => (
+                      <RecommendedCard key={course.id} course={course} />
+                    ))}
                 </div>
               )}
             </div>

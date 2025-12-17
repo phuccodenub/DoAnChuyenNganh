@@ -290,54 +290,158 @@ export class InstructorController {
         ];
       }
 
-      // Get enrollments with students
-      const { count, rows: enrollments } = await Enrollment.findAndCountAll({
-        where: { 
-          course_id: { [Op.in]: courseIds },
-          status: { [Op.ne]: 'cancelled' }
-        },
-        include: [{
-          model: User,
-          as: 'student',
-          attributes: ['id', 'first_name', 'last_name', 'email', 'avatar'],
-          where: Object.keys(userWhere).length > 0 ? userWhere : undefined,
-        }],
-        order: [['created_at', 'DESC']],
-        offset: (page - 1) * limit,
-        limit,
-        distinct: true,
-      });
+      // Get enrollments with students (filter by role='student' only)
+      const studentWhere = Object.keys(userWhere).length > 0 
+        ? { ...userWhere, role: 'student' }
+        : { role: 'student' };
 
-      const students = enrollments.map((enrollment: any) => {
-        const student = enrollment.student;
-        return {
-          id: student?.id,
-          enrollment_id: enrollment.id,
-          name: student ? `${student.first_name} ${student.last_name}`.trim() : 'Học viên',
-          email: student?.email,
-          avatar_url: student?.avatar,
-          course_id: enrollment.course_id,
-          course_title: courseMap.get(enrollment.course_id),
-          enrolled_at: enrollment.created_at,
-          progress_percent: parseFloat(enrollment.progress_percentage?.toString() || '0'),
-          status: enrollment.status,
-          last_activity_at: enrollment.last_accessed_at,
-        };
-      });
+      // If viewing a specific course, show all enrollments (one row per enrollment)
+      // If viewing all courses, deduplicate by student (one row per student)
+      if (courseId) {
+        // SPECIFIC COURSE VIEW: Show each enrollment separately
+        const { count, rows: enrollments } = await Enrollment.findAndCountAll({
+          where: { 
+            course_id: courseId,
+            status: { [Op.ne]: 'cancelled' }
+          },
+          include: [{
+            model: User,
+            as: 'student',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar', 'role'],
+            where: studentWhere,
+          }],
+          order: [['created_at', 'DESC']],
+          offset: (page - 1) * limit,
+          limit,
+          distinct: true,
+        });
 
-      res.json({
-        success: true,
-        message: 'Students retrieved successfully',
-        data: {
-          students,
-          pagination: {
-            page,
-            limit,
-            total: count,
-            totalPages: Math.ceil(count / limit)
+        const students = enrollments.map((enrollment: any) => {
+          const student = enrollment.student;
+          return {
+            id: student?.id,
+            enrollment_id: enrollment.id,
+            name: student ? `${student.first_name} ${student.last_name}`.trim() : 'Học viên',
+            email: student?.email,
+            avatar_url: student?.avatar,
+            course_id: enrollment.course_id,
+            course_title: courseMap.get(enrollment.course_id),
+            enrolled_at: enrollment.created_at,
+            progress_percent: parseFloat(enrollment.progress_percentage?.toString() || '0'),
+            status: enrollment.status,
+            last_activity_at: enrollment.last_accessed_at,
+          };
+        });
+
+        res.json({
+          success: true,
+          message: 'Students retrieved successfully',
+          data: {
+            students,
+            pagination: {
+              page,
+              limit,
+              total: count,
+              totalPages: Math.ceil(count / limit)
+            }
           }
-        }
-      });
+        });
+      } else {
+        // ALL COURSES VIEW: Deduplicate by student_id
+        // Get all enrollments first
+        const allEnrollments = await Enrollment.findAll({
+          where: { 
+            course_id: { [Op.in]: courseIds },
+            status: { [Op.ne]: 'cancelled' }
+          },
+          include: [{
+            model: User,
+            as: 'student',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'avatar', 'role'],
+            where: studentWhere,
+          }],
+          order: [['created_at', 'DESC']],
+        });
+
+        // Group by student_id and aggregate data
+        const studentMap = new Map<string, any>();
+        
+        allEnrollments.forEach((enrollment: any) => {
+          const student = enrollment.student;
+          if (!student) return;
+          
+          const studentId = student.id;
+          
+          if (!studentMap.has(studentId)) {
+            // First enrollment for this student
+            studentMap.set(studentId, {
+              id: studentId,
+              name: `${student.first_name} ${student.last_name}`.trim(),
+              email: student.email,
+              avatar_url: student.avatar,
+              courses: [courseMap.get(enrollment.course_id)].filter(Boolean),
+              enrollments: [enrollment],
+              total_progress: parseFloat(enrollment.progress_percentage?.toString() || '0'),
+              count: 1,
+              last_activity_at: enrollment.last_accessed_at,
+              enrolled_at: enrollment.created_at,
+            });
+          } else {
+            // Additional enrollment for existing student
+            const existing = studentMap.get(studentId);
+            existing.courses.push(courseMap.get(enrollment.course_id));
+            existing.enrollments.push(enrollment);
+            existing.total_progress += parseFloat(enrollment.progress_percentage?.toString() || '0');
+            existing.count += 1;
+            
+            // Update last activity to most recent
+            if (!existing.last_activity_at || 
+                (enrollment.last_accessed_at && new Date(enrollment.last_accessed_at) > new Date(existing.last_activity_at))) {
+              existing.last_activity_at = enrollment.last_accessed_at;
+            }
+            
+            // Update enrolled_at to earliest
+            if (new Date(enrollment.created_at) < new Date(existing.enrolled_at)) {
+              existing.enrolled_at = enrollment.created_at;
+            }
+          }
+        });
+
+        // Convert map to array and calculate average progress
+        const uniqueStudents = Array.from(studentMap.values()).map(student => ({
+          id: student.id,
+          enrollment_id: student.enrollments[0].id, // Use first enrollment ID for actions
+          name: student.name,
+          email: student.email,
+          avatar_url: student.avatar_url,
+          courses: student.courses,
+          enrolled_at: student.enrolled_at,
+          progress_percent: Math.round(student.total_progress / student.count),
+          last_activity_at: student.last_activity_at,
+          completed_lessons: student.enrollments.reduce((sum: number, e: any) => sum + (e.completed_lessons || 0), 0),
+          total_lessons: student.enrollments.reduce((sum: number, e: any) => sum + (e.total_lessons || 0), 0),
+        }));
+
+        // Apply pagination to deduplicated students
+        const total = uniqueStudents.length;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedStudents = uniqueStudents.slice(startIndex, endIndex);
+
+        res.json({
+          success: true,
+          message: 'Students retrieved successfully',
+          data: {
+            students: paginatedStudents,
+            pagination: {
+              page,
+              limit,
+              total,
+              totalPages: Math.ceil(total / limit)
+            }
+          }
+        });
+      }
     } catch (error) {
       logger.error('Error getting instructor students:', error);
       next(error);
