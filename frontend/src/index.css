@@ -319,3 +319,13 @@
   padding: 1rem;
   overflow: auto;
 }
+
+/* Animation cho modal chi tiết slide-in từ trái */
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

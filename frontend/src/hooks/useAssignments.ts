@@ -146,8 +146,16 @@ export function useGradeSubmission() {
     mutationFn: ({ submissionId, data }: { submissionId: string; data: { score: number; feedback?: string } }) =>
       assignmentApi.gradeSubmission(submissionId, data),
     onSuccess: () => {
-      // Invalidate all related queries
+      // Invalidate all related queries để refresh submissions
       queryClient.invalidateQueries({ queryKey: assignmentKeys.all });
+      // Invalidate cụ thể các queries pending grading
+      queryClient.invalidateQueries({ queryKey: assignmentKeys.pendingGrading() });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return Array.isArray(key) && key[0] === 'assignments' && key.includes('pending-grading');
+        }
+      });
       toast.success('Chấm điểm thành công!');
     },
     onError: (error: Error) => {

@@ -10,6 +10,8 @@ interface AiFeedbackGeneratorProps {
   assignmentId: string;
   submissionId: string;
   submissionContent: string;
+  fileUrls?: string[];
+  studentName?: string; // Tên học viên để AI sử dụng đúng
   assignmentInstructions: string;
   rubric?: any;
   maxScore?: number;
@@ -23,6 +25,7 @@ export function AiFeedbackGenerator({
   assignmentId,
   submissionId,
   submissionContent,
+  fileUrls,
   assignmentInstructions,
   rubric,
   maxScore,
@@ -43,6 +46,8 @@ export function AiFeedbackGenerator({
         assignmentId,
         submissionId,
         submissionContent,
+        fileUrls,
+        studentName,
         assignmentInstructions,
         rubric,
         maxScore,

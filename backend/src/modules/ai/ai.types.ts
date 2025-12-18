@@ -216,6 +216,8 @@ export interface GenerateFeedbackRequest {
   assignmentId: string;
   submissionId: string;
   submissionContent: string;
+  fileUrls?: string[];
+  studentName?: string; // Tên học viên để AI sử dụng trong feedback
   assignmentInstructions: string;
   rubric?: any;
   maxScore?: number;

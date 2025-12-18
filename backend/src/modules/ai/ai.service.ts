@@ -4,6 +4,9 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
+import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 import env from '../../config/env.config';
 import logger from '../../utils/logger.util';
 import { formatAiAnswer, shorten } from '../../utils/ai-format.util';
@@ -696,6 +699,118 @@ Trả về JSON format:
   }
 
   /**
+   * Helper: Download and read file content from URL
+   * Supports: text files, PDF, DOCX, XLSX, and other common formats
+   */
+  private async readFileContent(url: string): Promise<{ content: string; fileName: string; type: string } | null> {
+    try {
+      const fileName = url.split('/').pop() || 'unknown';
+      const extension = fileName.split('.').pop()?.toLowerCase() || '';
+      
+      // Text-based file extensions that can be read directly
+      const textExtensions = ['txt', 'md', 'json', 'xml', 'yaml', 'yml', 'csv', 'log',
+        'py', 'js', 'ts', 'java', 'c', 'cpp', 'h', 'cs', 'rb', 'go', 'rs', 'php',
+        'html', 'css', 'scss', 'sass', 'less', 'sql', 'sh', 'bat', 'ps1',
+        'vue', 'jsx', 'tsx', 'dart', 'swift', 'kt', 'scala', 'r', 'm', 'pl'];
+      
+      // Download file as buffer for binary files, or text for text files
+      const response = await axios.get(url, {
+        responseType: textExtensions.includes(extension) ? 'text' : 'arraybuffer',
+        timeout: 60000, // 60s timeout per file (increased for large files)
+        maxContentLength: 10 * 1024 * 1024, // 10MB max
+        validateStatus: (status) => status === 200,
+      });
+
+      let content = '';
+
+      // Handle text files
+      if (textExtensions.includes(extension)) {
+        content = typeof response.data === 'string' 
+          ? response.data 
+          : JSON.stringify(response.data);
+      }
+      // Handle PDF files
+      else if (extension === 'pdf') {
+        try {
+          // pdf-parse uses CommonJS
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const pdfParse = require('pdf-parse');
+          const pdfBuffer = Buffer.from(response.data);
+          // @ts-ignore - pdf-parse has complex types
+          const pdfData = await pdfParse(pdfBuffer);
+          content = pdfData.text || '';
+          logger.info(`[AIService] Successfully extracted text from PDF: ${fileName}`);
+        } catch (pdfError: any) {
+          logger.error(`[AIService] Error parsing PDF ${fileName}:`, pdfError.message);
+          content = `[PDF file: ${fileName} - Could not extract text content]`;
+        }
+      }
+      // Handle DOCX files
+      else if (extension === 'docx' || extension === 'doc') {
+        try {
+          const docxBuffer = Buffer.from(response.data);
+          const result = await mammoth.extractRawText({ buffer: docxBuffer });
+          content = result.value;
+          if (result.messages.length > 0) {
+            logger.warn(`[AIService] DOCX extraction warnings for ${fileName}:`, result.messages);
+          }
+          logger.info(`[AIService] Successfully extracted text from DOCX: ${fileName}`);
+        } catch (docxError: any) {
+          logger.error(`[AIService] Error parsing DOCX ${fileName}:`, docxError.message);
+          content = `[DOCX file: ${fileName} - Could not extract text content]`;
+        }
+      }
+      // Handle Excel files (XLSX, XLS)
+      else if (extension === 'xlsx' || extension === 'xls') {
+        try {
+          const excelBuffer = Buffer.from(response.data);
+          const workbook = XLSX.read(excelBuffer, { type: 'buffer' });
+          
+          // Extract text from all sheets
+          const sheetContents: string[] = [];
+          workbook.SheetNames.forEach((sheetName) => {
+            const worksheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_csv(worksheet);
+            sheetContents.push(`Sheet: ${sheetName}\n${sheetData}`);
+          });
+          
+          content = sheetContents.join('\n\n---\n\n');
+          logger.info(`[AIService] Successfully extracted text from Excel: ${fileName}`);
+        } catch (excelError: any) {
+          logger.error(`[AIService] Error parsing Excel ${fileName}:`, excelError.message);
+          content = `[Excel file: ${fileName} - Could not extract text content]`;
+        }
+      }
+      // Handle PPTX files (PowerPoint) - basic text extraction
+      else if (extension === 'pptx' || extension === 'ppt') {
+        // Note: Full PPTX parsing requires more complex libraries
+        // For now, we'll indicate the file type
+        content = `[PowerPoint file: ${fileName} - Text extraction not yet implemented for this format]`;
+        logger.info(`[AIService] PPTX file detected but not parsed: ${fileName}`);
+      }
+      // Handle image files
+      else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg'].includes(extension)) {
+        content = `[Image file: ${fileName} - Cannot extract text from image. Consider using OCR if needed.]`;
+        logger.info(`[AIService] Image file detected: ${fileName}`);
+      }
+      // Unknown file types
+      else {
+        content = `[File: ${fileName} (${extension}) - Format not supported for text extraction]`;
+        logger.info(`[AIService] Unsupported file type: ${extension} for ${fileName}`);
+      }
+      
+      return {
+        content: this.truncate(content, 10000), // Limit to 10000 chars per file (increased for PDF/DOCX)
+        fileName,
+        type: extension,
+      };
+    } catch (error: any) {
+      logger.error(`[AIService] Error reading file from ${url}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
    * Generate feedback for assignment submission
    */
   async generateFeedback(request: GenerateFeedbackRequest): Promise<GenerateFeedbackResponse> {
@@ -704,7 +819,58 @@ Trả về JSON format:
     }
 
     try {
-      const prompt = `Bạn là giảng viên chấm bài. Đánh giá bài nộp sau và tạo feedback chi tiết:
+      // Đọc nội dung từ các file nếu có
+      let fileContents = '';
+      if (request.fileUrls && request.fileUrls.length > 0) {
+        logger.info(`[AIService] Reading ${request.fileUrls.length} file(s) for feedback generation`);
+        
+        const fileResults = await Promise.allSettled(
+          request.fileUrls.map(url => this.readFileContent(url))
+        );
+
+        const validFiles: Array<{ content: string; fileName: string; type: string }> = [];
+        fileResults.forEach((result, idx) => {
+          if (result.status === 'fulfilled' && result.value) {
+            validFiles.push(result.value);
+          } else {
+            logger.warn(`[AIService] Failed to read file ${request.fileUrls![idx]}`);
+          }
+        });
+
+        if (validFiles.length > 0) {
+          fileContents = `\n\n=== NỘI DUNG CÁC FILE ĐÍNH KÈM (${validFiles.length} file) ===\n\n`;
+          validFiles.forEach((file, idx) => {
+            fileContents += `\n--- File ${idx + 1}: ${file.fileName} (Loại: ${file.type}) ---\n`;
+            fileContents += `${file.content}\n`;
+            fileContents += `--- Kết thúc File ${idx + 1} ---\n\n`;
+          });
+          fileContents += `=== KẾT THÚC NỘI DUNG FILE ===\n\n`;
+          
+          logger.info(`[AIService] Successfully read ${validFiles.length} file(s) for feedback. Files: ${validFiles.map(f => f.fileName).join(', ')}`);
+        } else {
+          // Nếu không đọc được file nào, vẫn thông báo có file
+          const fileNames = request.fileUrls.map((url) => {
+            const fileName = url.split('/').pop() || 'unknown';
+            return fileName;
+          }).join(', ');
+          
+          fileContents = `\n\n=== THÔNG TIN FILE ĐÍNH KÈM ===\n`;
+          fileContents += `Học viên đã nộp ${request.fileUrls.length} file đính kèm, nhưng không thể đọc được nội dung tự động.\n`;
+          fileContents += `Các file: ${fileNames}\n`;
+          fileContents += `Vui lòng xem xét các file này khi đánh giá bài nộp.\n`;
+          fileContents += `=== KẾT THÚC THÔNG TIN FILE ===\n\n`;
+          
+          logger.warn(`[AIService] Could not read any files from ${request.fileUrls.length} URLs provided`);
+        }
+      } else {
+        logger.info(`[AIService] No file URLs provided for feedback generation`);
+      }
+
+      const studentNameInfo = request.studentName 
+        ? `\nHọc viên nộp bài: ${request.studentName}\nLƯU Ý QUAN TRỌNG: Bạn PHẢI sử dụng tên "${request.studentName}" khi xưng hô với học viên trong feedback, KHÔNG được lấy tên từ nội dung bài nộp. Nội dung bài nộp có thể chứa tên khác (như "Admin Chidi") nhưng đó KHÔNG phải tên học viên. Tên học viên chính xác là "${request.studentName}".\n`
+        : '';
+
+      const prompt = `Bạn là giảng viên chấm bài. Đánh giá bài nộp sau và tạo feedback chi tiết:${studentNameInfo}
 
 Yêu cầu bài tập:
 ${request.assignmentInstructions}
@@ -712,14 +878,23 @@ ${request.assignmentInstructions}
 ${request.rubric ? `Rubric: ${JSON.stringify(request.rubric)}` : ''}
 ${request.maxScore ? `Điểm tối đa: ${request.maxScore}` : ''}
 
-Bài nộp của học viên:
+=== NỘI DUNG VĂN BẢN BÀI NỘP ===
 ${this.truncate(request.submissionContent, 3000)}
+${fileContents}
+
+QUAN TRỌNG: 
+1. Bạn cần đánh giá CẢ nội dung văn bản VÀ nội dung trong các file đính kèm (nếu có). 
+2. Nếu có file đính kèm, bạn PHẢI nhận xét về nội dung trong file đó, không chỉ nội dung văn bản.
+3. ${request.studentName ? `Khi xưng hô với học viên, bạn PHẢI dùng tên "${request.studentName}", KHÔNG được lấy tên từ nội dung bài nộp.` : ''}
 
 Yêu cầu:
 - Đánh giá bài nộp một cách công bằng và xây dựng
-- Liệt kê điểm mạnh (2-3 điểm)
-- Liệt kê điểm cần cải thiện (2-3 điểm)
-- Đưa ra feedback chi tiết, cụ thể
+- Đánh giá CẢ nội dung văn bản VÀ nội dung file đính kèm (nếu có)
+- Nếu có file đính kèm, PHẢI nhận xét cụ thể về nội dung trong file đó
+- ${request.studentName ? `Sử dụng tên "${request.studentName}" khi xưng hô, KHÔNG dùng tên từ nội dung bài nộp` : ''}
+- Liệt kê điểm mạnh (2-3 điểm) - bao gồm cả từ văn bản và file
+- Liệt kê điểm cần cải thiện (2-3 điểm) - bao gồm cả từ văn bản và file
+- Đưa ra feedback chi tiết, cụ thể cho từng phần
 - ${request.maxScore ? `Đề xuất điểm số (0-${request.maxScore})` : ''}
 - Đề xuất grade (A/B/C/D/F) nếu có
 
@@ -742,7 +917,7 @@ Trả về JSON format:
       const result = await this.model.generateContent(prompt, {
         generationConfig: {
           temperature: 0.5,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048, // Increased for more detailed feedback
         },
       });
 
