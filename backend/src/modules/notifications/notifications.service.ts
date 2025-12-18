@@ -3,6 +3,7 @@ import { CreateNotificationDto, QueryNotificationsDto, BulkNotificationDto, Bulk
 import { NotificationInstance } from '../../types/model.types';
 import { ApiError } from '../../errors';
 import { getNotificationGateway, NotificationPayload } from './notifications.gateway';
+import logger from '../../utils/logger.util';
 
 export class NotificationsService {
   private repo: NotificationsRepository;
@@ -62,7 +63,30 @@ export class NotificationsService {
     }
 
     // Emit real-time notification
-    const payload = this.buildPayload(notification);
+    // Get sender info if senderId is provided
+    let senderInfo: { id: string; first_name: string; last_name: string; avatar?: string } | null = null;
+    if (senderId) {
+      try {
+        const { User } = await import('../../models');
+        const sender = await User.findByPk(senderId, {
+          attributes: ['id', 'first_name', 'last_name', 'avatar_url'],
+          raw: true
+        });
+        if (sender) {
+          senderInfo = {
+            id: (sender as any).id,
+            first_name: (sender as any).first_name,
+            last_name: (sender as any).last_name,
+            avatar: (sender as any).avatar_url || undefined
+          };
+        }
+      } catch (error) {
+        logger.warn(`Failed to fetch sender info for notification: ${error}`);
+      }
+    }
+    
+    const payload = this.buildPayload(notification, senderInfo);
+    logger.info(`[NotificationsService] Emitting notification ${notification.id} to ${recipient_ids.length} recipients`);
     this.emitToRecipients(payload, recipient_ids, dto.is_broadcast ?? false);
 
     return notification;

@@ -291,11 +291,19 @@ export function SubmissionsTab({
         if (selectedSubmission) {
             const updatedSubmission = submissions.find(s => s.id === selectedSubmission.id);
             if (updatedSubmission) {
+                // Convert score to number để so sánh chính xác
+                const currentScore = typeof selectedSubmission.score === 'number' 
+                    ? selectedSubmission.score 
+                    : (selectedSubmission.score ? parseFloat(String(selectedSubmission.score)) : 0);
+                const newScore = typeof updatedSubmission.score === 'number' 
+                    ? updatedSubmission.score 
+                    : (updatedSubmission.score ? parseFloat(String(updatedSubmission.score)) : 0);
+                
                 // Chỉ cập nhật nếu có thay đổi để tránh loop
                 if (updatedSubmission.feedback !== selectedSubmission.feedback || 
-                    updatedSubmission.score !== selectedSubmission.score) {
+                    Math.abs(currentScore - newScore) > 0.01) { // So sánh số với tolerance nhỏ
                     setSelectedSubmission(updatedSubmission);
-                    setGradingScore(updatedSubmission.score || 0);
+                    setGradingScore(newScore);
                     setGradingFeedback(updatedSubmission.feedback || '');
                 }
             }
@@ -359,8 +367,13 @@ export function SubmissionsTab({
         // Đảm bảo load feedback đã lưu (kể cả khi là empty string)
         const feedbackToLoad = submission.feedback ?? '';
         
+        // Convert score to number để đảm bảo chính xác
+        const scoreValue = typeof submission.score === 'number' 
+            ? submission.score 
+            : (submission.score ? parseFloat(String(submission.score)) : 0);
+        
         setSelectedSubmission(submission);
-        setGradingScore(submission.score || 0);
+        setGradingScore(scoreValue);
         setGradingFeedback(feedbackToLoad); // Load feedback đã lưu
         setShowGradingModal(true);
     };

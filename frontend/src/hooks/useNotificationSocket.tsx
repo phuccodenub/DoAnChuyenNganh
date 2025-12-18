@@ -1,10 +1,24 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { 
+  Bell, 
+  Award, 
+  FileText, 
+  MessageSquare, 
+  BookOpen, 
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  Trophy,
+  GraduationCap,
+  X
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore.enhanced';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { socketService } from '@/services/socketService';
+import { notificationApi } from '@/services/api/notifications.api';
 
 /**
  * Real-time Notifications via WebSocket (Socket.IO)
@@ -129,7 +143,14 @@ export function useNotificationSocket(enabled = true) {
 
       // New notification received
       const onNewNotification = (notification: NotificationPayload) => {
-        console.log('[Socket] New notification:', notification);
+        console.log('[Socket] ✅ New notification received:', {
+          id: notification.id,
+          type: notification.notification_type,
+          title: notification.title,
+          message: notification.message?.substring(0, 50),
+          priority: notification.priority,
+          link_url: notification.link_url
+        });
         
         // Invalidate notifications query to refetch
         qc.invalidateQueries({
@@ -139,15 +160,10 @@ export function useNotificationSocket(enabled = true) {
           queryKey: QUERY_KEYS.notifications.unreadCount,
         });
         
-        // Show toast notification
-        const toastIcon = getNotificationIcon(notification.notification_type);
-        toast(notification.title, {
-          duration: 5000,
-          icon: toastIcon,
-          style: {
-            borderLeft: `4px solid ${getPriorityColor(notification.priority)}`,
-          },
-        });
+        // Show enhanced toast notification
+        console.log('[Socket] Showing toast notification...');
+        showNotificationToast(notification, qc);
+        console.log('[Socket] Toast notification shown');
       };
 
       // Unread count updated
@@ -325,35 +341,268 @@ export function useNotificationSocket(enabled = true) {
 }
 
 /**
- * Get icon emoji based on notification type
+ * Get notification icon component based on type
  */
-function getNotificationIcon(type: string): string {
-  const icons: Record<string, string> = {
-    course: '📚',
-    assignment: '📝',
-    quiz: '❓',
-    grade: '🎯',
-    announcement: '📢',
-    achievement: '🏆',
-    certificate: '🎓',
-    message: '💬',
-    system: 'ℹ️',
-    reminder: '⏰',
+function getNotificationIcon(type: string): React.ReactNode {
+  const iconClass = "w-5 h-5";
+  const icons: Record<string, React.ReactNode> = {
+    course: <BookOpen className={iconClass} />,
+    assignment: <FileText className={iconClass} />,
+    quiz: <MessageSquare className={iconClass} />,
+    grade: <Award className={iconClass} />,
+    grade_posted: <Award className={iconClass} />,
+    announcement: <Bell className={iconClass} />,
+    achievement: <Trophy className={iconClass} />,
+    certificate: <GraduationCap className={iconClass} />,
+    message: <MessageSquare className={iconClass} />,
+    new_message: <MessageSquare className={iconClass} />,
+    system: <Info className={iconClass} />,
+    reminder: <AlertCircle className={iconClass} />,
+    course_update: <BookOpen className={iconClass} />,
+    assignment_due: <AlertCircle className={iconClass} />,
   };
-  return icons[type] || '🔔';
+  return icons[type] || <Bell className={iconClass} />;
 }
 
 /**
- * Get color based on priority
+ * Get color based on priority (softer, more professional)
  */
 function getPriorityColor(priority?: string): string {
   const colors: Record<string, string> = {
-    urgent: '#ef4444', // red
-    high: '#f97316', // orange
-    normal: '#3b82f6', // blue
-    low: '#6b7280', // gray
+    urgent: '#dc2626', // red-600 (softer than before)
+    high: '#ea580c', // orange-600
+    normal: '#2563eb', // blue-600
+    low: '#64748b', // slate-500
   };
   return colors[priority || 'normal'] || colors.normal;
+}
+
+/**
+ * Get background color based on priority (subtle gradient)
+ */
+function getPriorityBgColor(priority?: string): string {
+  const colors: Record<string, string> = {
+    urgent: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', // red gradient
+    high: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', // orange gradient
+    normal: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', // blue gradient
+    low: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', // gray gradient
+  };
+  return colors[priority || 'normal'] || colors.normal;
+}
+
+/**
+ * Get icon color based on priority
+ */
+function getIconColor(priority?: string): string {
+  const colors: Record<string, string> = {
+    urgent: '#dc2626', // red-600
+    high: '#ea580c', // orange-600
+    normal: '#2563eb', // blue-600
+    low: '#64748b', // slate-500
+  };
+  return colors[priority || 'normal'] || colors.normal;
+}
+
+/**
+ * Play notification sound (optional)
+ */
+function playNotificationSound(priority?: string) {
+  try {
+    // Chỉ phát sound cho urgent và high priority
+    if (priority === 'urgent' || priority === 'high') {
+      // Tạo audio context để phát sound
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    }
+  } catch (error) {
+    // Ignore sound errors (browser may block autoplay)
+    console.debug('Could not play notification sound:', error);
+  }
+}
+
+/**
+ * Show enhanced toast notification with full features
+ */
+function showNotificationToast(
+  notification: NotificationPayload,
+  queryClient: ReturnType<typeof import('@tanstack/react-query').useQueryClient>
+) {
+  console.log('[showNotificationToast] Creating toast for notification:', notification.id);
+  
+  const toastIcon = getNotificationIcon(notification.notification_type || notification.category || 'system');
+  const priorityColor = getPriorityColor(notification.priority);
+  const priorityBg = getPriorityBgColor(notification.priority);
+  
+  // Play sound for urgent/high priority
+  playNotificationSound(notification.priority);
+  
+  console.log('[showNotificationToast] Toast config:', {
+    icon: toastIcon,
+    priority: notification.priority,
+    duration: notification.priority === 'urgent' ? 10000 : notification.priority === 'high' ? 8000 : 6000
+  });
+  
+  const iconColor = getIconColor(notification.priority);
+  
+  toast(
+    (t) => (
+      <div 
+        className="relative flex flex-col gap-3 cursor-pointer group"
+        onClick={() => {
+          // Mark as read when clicked
+          notificationApi.markAsRead(notification.id).catch(() => {
+            // Silently fail if mark as read fails
+          });
+          
+          toast.dismiss(t.id);
+          
+          // Navigate to link if available
+          if (notification.link_url) {
+            if (window.location.pathname !== notification.link_url) {
+              setTimeout(() => {
+                window.location.href = notification.link_url!;
+              }, 100);
+            }
+          }
+        }}
+      >
+        {/* Close button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toast.dismiss(t.id);
+          }}
+          className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+          aria-label="Đóng"
+        >
+          <X className="w-3.5 h-3.5 text-gray-400" />
+        </button>
+
+        {/* Main content */}
+        <div className="flex items-start gap-3 pr-6">
+          {/* Icon with gradient background */}
+          <div 
+            className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center shadow-sm"
+            style={{ 
+              background: priorityBg,
+            }}
+          >
+            <div style={{ color: iconColor }}>
+              {toastIcon}
+            </div>
+          </div>
+          
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Title and priority badge */}
+            <div className="flex items-start gap-2 mb-1.5">
+              <h4 className="font-semibold text-gray-900 text-sm leading-snug flex-1">
+                {notification.title}
+              </h4>
+              {notification.priority === 'urgent' && (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 shadow-sm whitespace-nowrap">
+                  KHẨN
+                </span>
+              )}
+              {notification.priority === 'high' && (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold text-white bg-gradient-to-r from-orange-500 to-orange-600 shadow-sm whitespace-nowrap">
+                  QUAN TRỌNG
+                </span>
+              )}
+            </div>
+            
+            {/* Message */}
+            <p className="text-gray-700 text-xs leading-relaxed line-clamp-2 mb-2">
+              {notification.message}
+            </p>
+            
+            {/* Sender info */}
+            {notification.sender && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-[8px] text-gray-600 font-medium">
+                    {notification.sender.first_name?.[0] || 'U'}
+                  </span>
+                </div>
+                <p className="text-gray-500 text-[10px]">
+                  {notification.sender.first_name} {notification.sender.last_name}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+          {notification.link_url && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toast.dismiss(t.id);
+                setTimeout(() => {
+                  window.location.href = notification.link_url!;
+                }, 100);
+              }}
+              className="flex-1 px-3 py-2 text-xs font-medium text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+              style={{
+                background: `linear-gradient(135deg, ${priorityColor} 0%, ${priorityColor}dd 100%)`,
+              }}
+            >
+              Xem chi tiết
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              notificationApi.markAsRead(notification.id)
+                .then(() => {
+                  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all });
+                  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.unreadCount });
+                  toast.dismiss(t.id);
+                })
+                .catch(() => {
+                  toast.dismiss(t.id);
+                });
+            }}
+            className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+          >
+            Đánh dấu đã đọc
+          </button>
+        </div>
+      </div>
+    ),
+    {
+      duration: notification.priority === 'urgent' ? 10000 : notification.priority === 'high' ? 8000 : 6000,
+      style: {
+        borderLeft: `3px solid ${priorityColor}`,
+        padding: '16px',
+        minWidth: '380px',
+        maxWidth: '420px',
+        backgroundColor: '#ffffff',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        borderRadius: '12px',
+      },
+      className: 'notification-toast',
+      position: 'top-right',
+      ariaProps: {
+        role: 'alert',
+        'aria-live': notification.priority === 'urgent' ? 'assertive' : 'polite',
+      },
+    }
+  );
 }
 
 /**

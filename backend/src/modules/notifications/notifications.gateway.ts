@@ -243,18 +243,35 @@ export class NotificationGateway {
    */
   public sendToUser(userId: string, notification: NotificationPayload): void {
     const userRoom = this.getUserRoom(userId);
+    const isOnline = this.isUserOnline(userId);
+    const onlineSockets = this.userSockets.get(userId)?.size || 0;
+    
+    logger.info(`[NotificationGateway] Sending notification to user ${userId}:`, {
+      room: userRoom,
+      isOnline,
+      onlineSockets,
+      notificationId: notification.id,
+      title: notification.title
+    });
+    
     this.io.to(userRoom).emit(NotificationSocketEvents.NEW_NOTIFICATION, notification);
-    logger.debug(`Sent notification to user ${userId}: ${notification.title}`);
+    
+    if (isOnline) {
+      logger.info(`[NotificationGateway] ✅ Notification "${notification.title}" sent to user ${userId} (${onlineSockets} socket(s))`);
+    } else {
+      logger.warn(`[NotificationGateway] ⚠️ User ${userId} is not online - notification will be delivered when they reconnect`);
+    }
   }
 
   /**
    * Gửi notification real-time đến nhiều users
    */
   public sendToUsers(userIds: string[], notification: NotificationPayload): void {
+    logger.info(`[NotificationGateway] Sending notification "${notification.title}" to ${userIds.length} users: ${userIds.join(', ')}`);
     for (const userId of userIds) {
       this.sendToUser(userId, notification);
     }
-    logger.info(`Sent notification to ${userIds.length} users: ${notification.title}`);
+    logger.info(`[NotificationGateway] ✅ Sent notification to ${userIds.length} users: ${notification.title}`);
   }
 
   /**
