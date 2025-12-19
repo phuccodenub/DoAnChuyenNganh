@@ -138,6 +138,20 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
             </>
           )}
         </Button>
+        
+        {/* Hiển thị preview nội dung sẽ được dùng để generate */}
+        {courseContent && courseContent.length > 0 && (
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-xs font-medium text-gray-700 mb-2">
+              Nội dung sẽ được dùng để tạo quiz:
+            </p>
+            <div className="text-xs text-gray-600 max-h-32 overflow-y-auto">
+              {courseContent.length > 500 
+                ? `${courseContent.substring(0, 500)}... (${courseContent.length} ký tự)` 
+                : courseContent}
+            </div>
+          </div>
+        )}
 
         {generatedQuestions.length > 0 && (
           <div className="space-y-3 mt-4">

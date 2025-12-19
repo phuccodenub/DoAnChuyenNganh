@@ -611,10 +611,13 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
         contentRef.current.innerHTML = html;
         
         // Wrap code blocks với header và body structure
-        const preElements = contentRef.current.querySelectorAll('pre');
+        // Chỉ select các pre chưa được wrap (không nằm trong .code-block-body)
+        const preElements = contentRef.current.querySelectorAll('pre:not(.code-block-body pre)');
         preElements.forEach((pre) => {
-          // Kiểm tra xem đã được wrap chưa
-          if (pre.parentElement?.classList.contains('code-block-wrapper')) {
+          // Kiểm tra xem đã được wrap chưa - check cả parent và grandparent
+          if (pre.parentElement?.classList.contains('code-block-wrapper') || 
+              pre.parentElement?.classList.contains('code-block-body') ||
+              pre.closest('.code-block-wrapper')) {
             return;
           }
 
@@ -676,6 +679,10 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
           const langLabel = document.createElement('span');
           langLabel.className = 'code-block-lang';
           langLabel.textContent = language || 'code';
+          // Thêm class để style khác khi không có ngôn ngữ
+          if (!language) {
+            langLabel.classList.add('code-block-lang-unknown');
+          }
           
           // Copy button
           const copyBtn = document.createElement('button');

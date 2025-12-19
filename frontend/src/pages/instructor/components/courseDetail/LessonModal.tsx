@@ -405,6 +405,10 @@ export function LessonModal({
             const langLabel = document.createElement('span');
             langLabel.className = 'code-block-lang';
             langLabel.textContent = language || 'code';
+            // Thêm class để style khác khi không có ngôn ngữ
+            if (!language) {
+                langLabel.classList.add('code-block-lang-unknown');
+            }
             
             // Copy button
             const copyBtn = document.createElement('button');
@@ -918,30 +922,40 @@ export function LessonModal({
                 setShowFloatingToolbar(false);
                 return;
             }
-            
+        
             const range = selection.getRangeAt(0);
             const selectedText = range.toString().trim();
-            
-            // Chỉ hiển thị nếu có text được chọn và selection nằm trong editor
-            if (selectedText && editor.contains(range.commonAncestorContainer)) {
-                try {
-                    const rect = range.getBoundingClientRect();
-                    const editorRect = editor.getBoundingClientRect();
-                    
-                    // Tính toán vị trí floating toolbar (phía trên selection)
-                    const top = rect.top + window.scrollY - 50; // 50px phía trên
-                    const left = rect.left + window.scrollX + (rect.width / 2) - 100; // Giữa selection, offset 100px để center toolbar
-                    
-                    setFloatingToolbarPosition({ top, left });
-                    setShowFloatingToolbar(true);
-                } catch (e) {
-                    // Nếu không lấy được rect, ẩn toolbar
-                    setShowFloatingToolbar(false);
-                }
-            } else {
+        
+            if (!selectedText || !editor.contains(range.commonAncestorContainer)) {
+                setShowFloatingToolbar(false);
+                return;
+            }
+        
+            try {
+                const rects = range.getClientRects();
+                if (!rects.length) return;
+        
+                const rect = rects[0];
+                const editorRect = editor.getBoundingClientRect();
+        
+                const toolbarHeight = 40;
+                const gap = 8;
+        
+                // ✅ TỌA ĐỘ TƯƠNG ĐỐI TRONG EDITOR
+                const top =
+                    rect.top - editorRect.top - toolbarHeight - gap;
+        
+                const left =
+                    rect.left - editorRect.left + rect.width / 2;
+        
+                setFloatingToolbarPosition({ top, left });
+                setShowFloatingToolbar(true);
+            } catch (err) {
                 setShowFloatingToolbar(false);
             }
         };
+        
+        
         
         // Listen to selection changes
         document.addEventListener('selectionchange', handleSelectionChange);

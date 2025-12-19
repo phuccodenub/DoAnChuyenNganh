@@ -7,8 +7,8 @@ import { quizApi, type Question, type UpdateQuizData, type CreateQuestionData } 
 import toast from 'react-hot-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useInstructorQuizQuestions, useDeleteQuestion, useInstructorQuiz, useUpdateQuiz, useDeleteQuiz } from '@/hooks/useInstructorQuiz';
-import { useCourseSections } from '@/hooks/useInstructorCourse';
 import { AiQuizGenerator } from '@/components/instructor/AiQuizGenerator';
+import { lessonApi } from '@/services/api/lesson.api';
 import { CreateQuestionModal } from './CreateQuestionModal';
 
 interface ManageQuizModalProps {
@@ -57,19 +57,88 @@ export function ManageQuizModal({
     }
   }
 
-  // Fetch sections để lấy nội dung section nếu quiz thuộc section
-  const courseId = quiz?.course_id;
-  const shouldFetchSections = !!courseId && !!quiz?.section_id;
-  const { data: sectionsResponse } = useCourseSections(shouldFetchSections ? courseId : '');
+  // Xác định quiz thuộc section hay course level
+  const isSectionLevel = !!quiz?.section_id;
+  const isCourseLevel = !!quiz?.course_id && !quiz?.section_id;
+
+  // Fetch section trực tiếp nếu quiz thuộc section
+  const { data: sectionData } = useQuery({
+    queryKey: ['section', quiz?.section_id],
+    queryFn: () => lessonApi.getSection(quiz!.section_id!),
+    enabled: isSectionLevel && isOpen,
+    staleTime: 5 * 60 * 1000, // Cache 5 phút
+  });
   
-  // Tìm section tương ứng với quiz
-  const section = useMemo(() => {
-    if (!quiz?.section_id || !sectionsResponse?.data) return null;
-    const sections = Array.isArray(sectionsResponse.data) 
-      ? sectionsResponse.data 
-      : (sectionsResponse.data as any)?.data || [];
-    return sections.find((s: any) => s.id === quiz.section_id) || null;
-  }, [quiz?.section_id, sectionsResponse]);
+  const section = sectionData || null;
+
+  // Fetch tất cả sections nếu quiz thuộc course level
+  // Lưu ý: Instructor cần includeUnpublished=true để thấy tất cả sections (kể cả chưa publish)
+  const { data: courseSectionsData, isLoading: isLoadingCourseSections, error: courseSectionsError } = useQuery({
+    queryKey: ['course-sections', quiz?.course_id, 'instructor'],
+    queryFn: () => lessonApi.getCourseSections(quiz!.course_id!, true), // includeUnpublished=true cho instructor
+    enabled: isCourseLevel && isOpen && !!quiz?.course_id,
+    staleTime: 5 * 60 * 1000, // Cache 5 phút
+  });
+
+  const courseSections = Array.isArray(courseSectionsData) ? courseSectionsData : [];
+  
+  // Debug log để kiểm tra
+  useEffect(() => {
+    if (isOpen && isCourseLevel) {
+      console.log('[ManageQuizModal] Course Sections Debug:', {
+        courseId: quiz?.course_id,
+        isCourseLevel,
+        courseSectionsData,
+        courseSections,
+        courseSectionsLength: courseSections.length,
+        isLoadingCourseSections,
+        courseSectionsError,
+        firstSection: courseSections[0],
+        allSections: courseSections,
+      });
+    }
+  }, [isOpen, isCourseLevel, quiz?.course_id, courseSectionsData, courseSections, isLoadingCourseSections, courseSectionsError]);
+
+  // Fetch full lesson content từ API
+  // - Nếu section level: fetch lessons của section đó
+  // - Nếu course level: fetch lessons của tất cả sections
+  const { data: lessonsWithContent = [], isLoading: isLoadingLessons } = useQuery({
+    queryKey: ['lessons-content', section?.id, quiz?.course_id, isSectionLevel ? 'section' : 'course'],
+    queryFn: async () => {
+      let allLessons: any[] = [];
+
+      if (isSectionLevel && section?.lessons) {
+        // Section level: chỉ fetch lessons của section đó
+        allLessons = section.lessons;
+      } else if (isCourseLevel && courseSections.length > 0) {
+        // Course level: collect lessons từ tất cả sections
+        courseSections.forEach((sec: any) => {
+          if (sec.lessons && Array.isArray(sec.lessons)) {
+            allLessons.push(...sec.lessons);
+          }
+        });
+      }
+
+      if (allLessons.length === 0) return [];
+
+      // Fetch song song tất cả lessons để tối ưu performance
+      const lessonPromises = allLessons.map((lesson: any) => 
+        lessonApi.getLesson(lesson.id).catch((err) => {
+          console.error(`[ManageQuizModal] Error fetching lesson ${lesson.id}:`, err);
+          return null;
+        })
+      );
+      
+      const fetchedLessons = await Promise.all(lessonPromises);
+      return fetchedLessons.filter((l): l is any => l !== null);
+    },
+    enabled: isOpen && (
+      (isSectionLevel && !!section?.lessons && section.lessons.length > 0) ||
+      (isCourseLevel && courseSections.length > 0)
+    ),
+    staleTime: 10 * 60 * 1000, // Cache 10 phút - không fetch lại nếu đã có
+    gcTime: 30 * 60 * 1000, // Giữ cache 30 phút
+  });
 
   // Debug log để kiểm tra data
   useEffect(() => {
@@ -80,13 +149,25 @@ export function ManageQuizModal({
         quizId,
         hasQuiz: !!quiz,
         quizTitle: quiz?.title,
+        courseId: quiz?.course_id,
+        sectionId: quiz?.section_id,
         duration_minutes: quiz?.duration_minutes,
         passing_score: quiz?.passing_score,
         max_attempts: quiz?.max_attempts,
         is_published: quiz?.is_published,
       });
+      
+      console.log('[ManageQuizModal] Section data:', {
+        section,
+        sectionId: quiz?.section_id,
+        hasSection: !!section,
+        sectionTitle: section?.title,
+        lessonsCount: section?.lessons?.length || 0,
+        isLoadingLessons,
+        lessonsWithContentCount: lessonsWithContent.length
+      });
     }
-  }, [isOpen, quizData, quiz, quizId]);
+  }, [isOpen, quizData, quiz, quizId, section, isLoadingLessons, lessonsWithContent]);
   
   // Đảm bảo questions luôn là array
   // Xử lý cả trường hợp response là array trực tiếp hoặc nested trong object
@@ -101,67 +182,189 @@ export function ManageQuizModal({
     }
   }
   
+  
+  // Helper function để extract text từ lesson content
+  const extractLessonText = (content: string, maxLength: number = 3000): string => {
+    if (!content) return '';
+    
+    let textContent = content
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Loại bỏ script
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Loại bỏ style
+      .replace(/<[^>]+>/g, ' ') // Loại bỏ HTML tags, thay bằng space
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    if (textContent && textContent.length > 0) {
+      return textContent.length > maxLength 
+        ? textContent.substring(0, maxLength) + '...' 
+        : textContent;
+    }
+    return '';
+  };
+
   // Chuẩn bị nội dung nguồn cho AI Quiz Generator: 
   // - Nếu quiz thuộc section: dùng nội dung section + lessons
+  // - Nếu quiz thuộc course level: dùng nội dung tất cả sections + lessons
   // - Nếu không: dùng quiz title + description + câu hỏi hiện có
   const aiSourceContent = useMemo(() => {
     const parts: string[] = [];
     
-    // Nếu quiz thuộc section, ưu tiên dùng nội dung section
-    if (section) {
+    // Trường hợp 1: Quiz thuộc section (section level)
+    if (isSectionLevel && section) {
       parts.push(`# ${section.title || 'Chương'}`);
       if (section.description) {
         parts.push(`## Mô tả chương\n${section.description}`);
       }
       
-      // Thêm nội dung từ các lessons trong section
-      if (section.lessons && section.lessons.length > 0) {
-        parts.push('## Nội dung bài học trong chương');
-        section.lessons
+      // Sử dụng lessons với full content từ API (nếu có), fallback về section.lessons
+      const lessonsToUse = lessonsWithContent.length > 0 
+        ? lessonsWithContent 
+        : (section.lessons || []);
+      
+      if (lessonsToUse.length > 0) {
+        parts.push('\n## Nội dung bài học trong chương');
+        lessonsToUse
           .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
           .forEach((lesson: any, idx: number) => {
-            parts.push(`### Bài ${idx + 1}: ${lesson.title || 'Chưa có tiêu đề'}`);
+            parts.push(`\n### Bài ${idx + 1}: ${lesson.title || 'Chưa có tiêu đề'}`);
             if (lesson.description) {
               parts.push(`**Mô tả:** ${lesson.description}`);
             }
-            // Thêm nội dung lesson nếu có (text, document, hoặc description của video/link)
-            if (lesson.content) {
-              // Loại bỏ HTML tags để lấy text thuần
-              const textContent = lesson.content
-                .replace(/<[^>]*>/g, '')
-                .replace(/&nbsp;/g, ' ')
-                .trim();
-              if (textContent && textContent.length > 0) {
-                // Giới hạn độ dài để tránh prompt quá dài
-                const maxLength = 500;
-                const truncated = textContent.length > maxLength 
-                  ? textContent.substring(0, maxLength) + '...' 
-                  : textContent;
-                parts.push(`**Nội dung:** ${truncated}`);
-              }
+            
+            const textContent = extractLessonText(lesson.content);
+            if (textContent) {
+              parts.push(`**Nội dung:**\n${textContent}`);
             }
           });
+      } else {
+        parts.push('\n⚠️ Chương này chưa có bài học nào. Vui lòng thêm bài học trước khi tạo quiz.');
       }
-    } else {
-      // Fallback: dùng quiz info nếu không có section
-      if (quiz?.title) {
-        parts.push(`# ${quiz.title}`);
-      }
+    } 
+    // Trường hợp 2: Quiz thuộc course level (không có section_id)
+    else if (isCourseLevel) {
+      parts.push(`# ${quiz?.title || 'Quiz Khóa Học'}`);
       if (quiz?.description) {
-        parts.push(quiz.description);
+        parts.push(`## Mô tả quiz\n${quiz.description}`);
+      }
+      
+      // Nếu đang loading sections, hiển thị message
+      if (isLoadingCourseSections) {
+        parts.push('\n⚠️ Đang tải nội dung khóa học...');
+      } 
+      // Nếu đã có sections
+      else if (courseSections.length > 0) {
+        parts.push('\n## Nội dung khóa học (tất cả các chương)');
+        
+        // Duyệt qua tất cả sections và lessons
+        courseSections
+          .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+          .forEach((sec: any, secIdx: number) => {
+            parts.push(`\n### Chương ${secIdx + 1}: ${sec.title || 'Chưa có tiêu đề'}`);
+            if (sec.description) {
+              parts.push(`**Mô tả chương:** ${sec.description}`);
+            }
+            
+            // Lấy lessons từ lessonsWithContent (đã fetch đầy đủ) hoặc từ section
+            // Ưu tiên dùng lessonsWithContent vì đã có full content, nếu không có thì dùng sec.lessons
+            let sectionLessons: any[] = [];
+            if (lessonsWithContent.length > 0) {
+              // Filter lessons theo section_id
+              sectionLessons = lessonsWithContent.filter((l: any) => {
+                // Check cả section_id và section.id (có thể là string hoặc number)
+                return String(l.section_id) === String(sec.id) || 
+                       String(l.section?.id) === String(sec.id) ||
+                       (l.section && String(l.section) === String(sec.id));
+              });
+            }
+            
+            // Fallback về sec.lessons nếu không có trong lessonsWithContent
+            if (sectionLessons.length === 0 && sec.lessons && sec.lessons.length > 0) {
+              sectionLessons = sec.lessons;
+            }
+            
+            if (sectionLessons.length > 0) {
+              sectionLessons
+                .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+                .forEach((lesson: any, lessonIdx: number) => {
+                  parts.push(`\n#### Bài ${lessonIdx + 1}: ${lesson.title || 'Chưa có tiêu đề'}`);
+                  if (lesson.description) {
+                    parts.push(`**Mô tả:** ${lesson.description}`);
+                  }
+                  
+                  // Extract content từ lesson
+                  // Nếu lesson từ lessonsWithContent thì đã có full content
+                  // Nếu lesson từ sec.lessons thì có thể chỉ có metadata, nhưng vẫn thử extract
+                  const textContent = extractLessonText(lesson.content, 2000); // Giảm xuống 2000 cho course level vì có nhiều lessons
+                  if (textContent) {
+                    parts.push(`**Nội dung:**\n${textContent}`);
+                  } else if (lesson.content_type) {
+                    // Nếu không có content text nhưng có content_type, thêm thông tin
+                    parts.push(`**Loại nội dung:** ${lesson.content_type}`);
+                  }
+                });
+            } else {
+              parts.push(`\n⚠️ Chương này chưa có bài học nào.`);
+            }
+          });
+        
+        // Thêm thông tin debug nếu không có lessons
+        if (lessonsWithContent.length === 0 && !isLoadingLessons) {
+          parts.push(`\n\n⚠️ Lưu ý: Chưa tải được nội dung đầy đủ của các bài học. Đang sử dụng metadata từ sections.`);
+        }
+      } 
+      // Nếu không có sections
+      else {
+        parts.push('\n⚠️ Khóa học này chưa có chương nào. Vui lòng thêm chương và bài học trước khi tạo quiz.');
+      }
+    } 
+    // Trường hợp 3: Fallback - không có section hoặc course
+    else {
+      parts.push(`# ${quiz?.title || 'Quiz'}`);
+      if (quiz?.description) {
+        parts.push(`## Mô tả\n${quiz.description}`);
+      } else {
+        parts.push('\n⚠️ Quiz này không thuộc chương hoặc khóa học nào. Vui lòng liên kết quiz với một chương hoặc khóa học để AI có thể tạo câu hỏi dựa trên nội dung bài học.');
       }
     }
     
     // Thêm câu hỏi hiện có (nếu có) để AI tránh trùng lặp
     if (questions.length > 0) {
-      parts.push('\n## Câu hỏi hiện có trong quiz (để tham khảo, tránh trùng lặp)');
+      parts.push('\n\n## Câu hỏi hiện có trong quiz (để tham khảo, tránh trùng lặp)');
       questions.forEach((q, idx) => {
         parts.push(`### Câu ${idx + 1}: ${q.question_text}`);
       });
     }
     
-    return parts.join('\n\n');
-  }, [quiz, section, questions]);
+    const finalContent = parts.join('\n\n');
+    
+    // Debug log
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[ManageQuizModal] AI Source Content:', {
+        isSectionLevel,
+        isCourseLevel,
+        hasSection: !!section,
+        sectionTitle: section?.title,
+        sectionId: section?.id,
+        courseId: quiz?.course_id,
+        sectionIdFromQuiz: quiz?.section_id,
+        courseSectionsCount: courseSections.length,
+        isLoadingCourseSections,
+        lessonsCount: section?.lessons?.length || 0,
+        lessonsWithContentCount: lessonsWithContent.length,
+        isLoadingLessons,
+        contentLength: finalContent.length,
+        preview: finalContent.substring(0, 1000), // Tăng preview length để debug
+        fullContent: finalContent // Log full content để debug
+      });
+    }
+    
+    return finalContent;
+  }, [quiz, section, courseSections, questions, lessonsWithContent, isLoadingLessons, isLoadingCourseSections, isSectionLevel, isCourseLevel]);
   
   // Tính tổng điểm từ các câu hỏi hiện có, hoặc sử dụng totalPoints từ props
   // Nếu có quiz data, có thể lấy từ đó, hoặc tính từ tổng điểm các câu hỏi

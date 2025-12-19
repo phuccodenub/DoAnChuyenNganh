@@ -504,6 +504,12 @@
   font-weight: 500;
 }
 
+/* Màu sáng hơn cho header khi không xác định được ngôn ngữ */
+.code-block-lang-unknown {
+  color: #e5e7eb !important; /* Light gray - nổi bật trên nền dark */
+  font-weight: 600 !important;
+}
+
 /* Copy button trong header */
 .code-block-copy-btn {
   display: flex;
@@ -814,6 +820,12 @@
   word-wrap: normal;
   word-break: normal;
   min-width: 0;
+  color: #f0f0f0; /* Sáng hơn - từ #e0e0e0 lên #f0f0f0 để nổi bật hơn */
+}
+
+/* Đảm bảo code không có language class vẫn có màu sáng */
+.code-block-body pre code:not([class*="language-"]) {
+  color: #f5f5f5 !important; /* Màu trắng sáng cho code không có syntax highlighting */
 }
 
 /* Ẩn language label trong body - chỉ hiển thị ở header */
@@ -853,7 +865,12 @@
 
 /* Prism.js syntax highlighting styles */
 .lesson-content pre code[class*="language-"] {
-  color: #e0e0e0;
+  color: #f0f0f0; /* Sáng hơn - từ #e0e0e0 lên #f0f0f0 */
+}
+
+/* Đảm bảo code không có language class vẫn có màu sáng */
+.lesson-content pre:not(.code-block-body pre) code:not([class*="language-"]) {
+  color: #f5f5f5 !important; /* Màu trắng sáng cho code không có syntax highlighting */
 }
 
 .lesson-content pre code .token.comment,
@@ -1033,6 +1050,12 @@
   font-weight: 500 !important;
 }
 
+/* Màu sáng hơn cho header khi không xác định được ngôn ngữ trong editor */
+[contentEditable="true"] .code-block-lang-unknown {
+  color: #e5e7eb !important; /* Light gray - nổi bật trên nền dark */
+  font-weight: 600 !important;
+}
+
 [contentEditable="true"] .code-block-copy-btn {
   display: flex !important;
   align-items: center !important;
@@ -1117,7 +1140,12 @@
   word-wrap: normal !important;
   word-break: normal !important;
   min-width: 0 !important;
-  color: #e0e0e0 !important;
+  color: #f0f0f0 !important; /* Sáng hơn - từ #e0e0e0 lên #f0f0f0 */
+}
+
+/* Đảm bảo code không có language class vẫn có màu sáng trong editor */
+[contentEditable="true"] .code-block-body pre code:not([class*="language-"]) {
+  color: #f5f5f5 !important; /* Màu trắng sáng cho code không có syntax highlighting */
 }
 
 /* Ẩn language label trong body của editor */

@@ -284,9 +284,9 @@ export const lessonApi = {
    * Get all sections for a course
    * GET /course-content/courses/:courseId/sections
    */
-  getCourseSections: async (courseId: string): Promise<Section[]> => {
+  getCourseSections: async (courseId: string, includeUnpublished: boolean = false): Promise<Section[]> => {
     const response = await apiClient.get<ApiResponse<Section[]>>(
-      `${COURSE_CONTENT_PREFIX}/courses/${courseId}/sections`
+      `${COURSE_CONTENT_PREFIX}/courses/${courseId}/sections${includeUnpublished ? '?include_unpublished=true' : ''}`
     );
     return response.data.data;
   },
