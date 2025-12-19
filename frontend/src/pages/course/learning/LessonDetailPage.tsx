@@ -160,7 +160,7 @@ function convertStructuredDataToTables(html: string): string {
       tableHtml += '<tr>';
       row.forEach(cell => {
         // Preserve code formatting và các formatting khác
-        let cellContent = cell
+        const cellContent = cell
           .replace(/`([^`]+)`/g, '<code>$1</code>')
           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
           .replace(/\*([^*]+)\*/g, '<em>$1</em>');
@@ -420,7 +420,7 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
       
       // Tìm tất cả code blocks (```...```)
       const codeBlockRegex = /```([\w-]*)\n([\s\S]*?)```/g;
-      let normalized = text;
+      const normalized = text;
       let match;
       
       while ((match = codeBlockRegex.exec(text)) !== null) {

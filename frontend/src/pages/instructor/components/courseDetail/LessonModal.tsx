@@ -248,7 +248,7 @@ export function LessonModal({
                 tableHtml += '<tr>';
                 row.forEach(cell => {
                     // Preserve code formatting và các formatting khác
-                    let cellContent = cell
+                    const cellContent = cell
                         .replace(/`([^`]+)`/g, '<code>$1</code>')
                         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
                         .replace(/\*([^*]+)\*/g, '<em>$1</em>');
@@ -1005,15 +1005,15 @@ export function LessonModal({
         if (!code || !code.trim()) return code;
         
         // Normalize tabs thành 3 spaces
-        let normalized = code.replace(/\t/g, '   '); // 1 tab = 3 spaces
+        const normalized = code.replace(/\t/g, '   '); // 1 tab = 3 spaces
         
         const lines = normalized.split('\n');
-        let formatted: string[] = [];
+        const formatted: string[] = [];
         let indentLevel = 0;
         const indentSize = 3; // 1 tab = 3 spaces
         
         for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
+            const line = lines[i];
             
             // Preserve empty lines
             if (!line.trim()) {
@@ -1060,7 +1060,7 @@ export function LessonModal({
         const selectedText = range.toString();
         
         // Detect language tự động từ code (nếu có text được chọn)
-        let detectedLang = selectedText ? detectLanguage(selectedText) : '';
+        const detectedLang = selectedText ? detectLanguage(selectedText) : '';
         
         // Hỏi ngôn ngữ (có thể skip để dùng auto-detect)
         const languageInput = prompt(
@@ -1142,7 +1142,7 @@ export function LessonModal({
         const formatted = formatCode(selectedText);
         
         if (formatted === selectedText) {
-            toast.info('Code đã được format đúng');
+            toast.success('Code đã được format đúng');
             return;
         }
         
