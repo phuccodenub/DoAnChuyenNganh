@@ -41,8 +41,16 @@ import {
 export class AIService {
   private genAI: GoogleGenerativeAI | null = null;
   private model: any = null;
+  private useGroq: boolean = false;
 
   constructor() {
+    // Initialize Groq first (priority)
+    if (env.ai.groq.apiKey) {
+      this.useGroq = true;
+      logger.info(`[AIService] Groq API configured (Model: ${env.ai.groq.model})`);
+    }
+
+    // Initialize Gemini as fallback
     if (env.ai.gemini.apiKey) {
       try {
         this.genAI = new GoogleGenerativeAI(env.ai.gemini.apiKey);
@@ -53,9 +61,148 @@ export class AIService {
       } catch (error) {
         logger.error('[AIService] Failed to initialize Gemini API:', error);
       }
-    } else {
-      logger.warn('[AIService] Gemini API key not configured - AI features will be disabled');
     }
+
+    if (!this.useGroq && !this.model) {
+      logger.warn('[AIService] No AI providers configured - AI features will be disabled');
+    }
+  }
+
+  /**
+   * Call Groq API
+   */
+  private async callGroq(prompt: string, options?: { temperature?: number; maxTokens?: number }): Promise<ChatResponse> {
+    if (!env.ai.groq.apiKey) {
+      throw new Error('Groq API key not configured');
+    }
+
+    try {
+      const startTime = Date.now();
+      const apiKeyPreview = env.ai.groq.apiKey.substring(0, 10) + '...';
+      
+      logger.info('[AIService] 📤 Sending request to Groq API...', {
+        model: env.ai.groq.model,
+        apiKeyPreview,
+        promptLength: prompt.length,
+        maxTokens: options?.maxTokens ?? env.ai.groq.maxTokens,
+      });
+      
+      const response = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: env.ai.groq.model,
+          messages: [
+            { role: 'user', content: prompt }
+          ],
+          temperature: options?.temperature ?? env.ai.groq.temperature,
+          max_tokens: options?.maxTokens ?? env.ai.groq.maxTokens,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${env.ai.groq.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 60000,
+        }
+      );
+
+      const duration = Date.now() - startTime;
+      logger.info(`[AIService] ✅ Groq API request completed in ${duration}ms`, {
+        status: response.status,
+        model: env.ai.groq.model,
+        responseLength: response.data.choices[0]?.message?.content?.length || 0,
+        usage: response.data.usage,
+      });
+
+      const content = response.data.choices[0]?.message?.content || '';
+      const usage = response.data.usage;
+
+      return {
+        response: formatAiAnswer(content),
+        usage: usage ? {
+          promptTokens: usage.prompt_tokens,
+          completionTokens: usage.completion_tokens,
+          totalTokens: usage.total_tokens,
+        } : undefined,
+      };
+    } catch (error: any) {
+      logger.error('[AIService] ❌ Groq API error:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        apiKeyConfigured: !!env.ai.groq.apiKey,
+        apiKeyLength: env.ai.groq.apiKey?.length || 0,
+      });
+      throw new Error(`Groq API error: ${error.response?.data?.error?.message || error.message}`);
+    }
+  }
+
+  /**
+   * Helper: Call AI với Groq fallback to Gemini
+   */
+  private async callAIWithFallback(
+    prompt: string, 
+    options?: { temperature?: number; maxTokens?: number },
+    geminiMaxTokens?: number
+  ): Promise<ChatResponse> {
+    // Try Groq first (if available)
+    if (this.useGroq) {
+      try {
+        logger.info('[AIService] Attempting Groq API call...', {
+          promptLength: prompt.length,
+          model: env.ai.groq.model,
+          temperature: options?.temperature ?? env.ai.groq.temperature,
+        });
+        const maxTokens = options?.maxTokens ?? Math.min(env.ai.groq.maxTokens, 2048);
+        const result = await this.callGroq(prompt, {
+          temperature: options?.temperature ?? env.ai.groq.temperature,
+          maxTokens: maxTokens,
+        });
+        logger.info('[AIService] ✅ Groq API call successful');
+        return result;
+      } catch (groqError: any) {
+        logger.warn('[AIService] ❌ Groq failed, falling back to Gemini:', {
+          error: groqError.message,
+          errorType: groqError.constructor?.name,
+          stack: groqError.stack?.substring(0, 200),
+        });
+        // Fall through to Gemini
+      }
+    } else {
+      logger.info('[AIService] Groq not available, using Gemini directly');
+    }
+
+    // Fallback to Gemini
+    if (!this.model) {
+      throw new Error('All AI providers failed. Please check your API keys.');
+    }
+
+    const maxTokens = geminiMaxTokens ?? Math.min(env.ai.gemini.maxTokens, options?.maxTokens ?? 8192);
+    const result = await this.model.generateContent(prompt, {
+      generationConfig: {
+        temperature: options?.temperature ?? env.ai.gemini.temperature,
+        maxOutputTokens: maxTokens,
+      },
+    });
+
+    const response = result.response;
+    const text = formatAiAnswer(response.text());
+    let usage: any = undefined;
+    if (response && typeof (response as any).usageMetadata === 'function') {
+      usage = (response as any).usageMetadata();
+    } else if (response && (response as any).usageMetadata) {
+      usage = (response as any).usageMetadata;
+    }
+
+    return {
+      response: text,
+      usage: usage ? {
+        promptTokens: usage.promptTokenCount,
+        completionTokens: usage.candidatesTokenCount,
+        totalTokens: usage.totalTokenCount,
+      } : undefined,
+    };
   }
 
   private truncate(text: string, maxLength: number) {
@@ -105,10 +252,11 @@ export class AIService {
 
   /**
    * Lesson-aware chat (RAG-lite)
+   * Uses Groq first, falls back to Gemini
    */
   async chatWithLessonContext(request: LessonChatRequest): Promise<ChatResponse> {
-    if (!this.model) {
-      throw new Error('AI service is not available. Please configure GEMINI_API_KEY.');
+    if (!this.useGroq && !this.model) {
+      throw new Error('AI service is not available. Please configure GROQ_API_KEY or GEMINI_API_KEY.');
     }
 
     const contextText = this.buildLessonContext(request.lesson);
@@ -135,50 +283,36 @@ export class AIService {
     prompt += '\nCâu hỏi:\n';
     prompt += request.message;
 
-    const maxTokens = Math.min(env.ai.gemini.maxTokens, 512);
-    const attempts = 3;
-    const delays = [300, 800, 1600];
-
-    for (let i = 0; i < attempts; i++) {
-      try {
-        const result = await this.model.generateContent(prompt, {
-          generationConfig: {
-            temperature: request.options?.temperature ?? env.ai.gemini.temperature,
-            maxOutputTokens: request.options?.maxTokens ?? maxTokens,
-          },
-        });
-
-        const response = result.response;
-        const text = formatAiAnswer(response.text());
-        let usage: any = undefined;
-        if (response && typeof (response as any).usageMetadata === 'function') {
-          usage = (response as any).usageMetadata();
-        } else if (response && (response as any).usageMetadata) {
-          usage = (response as any).usageMetadata;
+    // Use helper với retry logic cho Gemini
+    try {
+      return await this.callAIWithFallback(prompt, {
+        temperature: request.options?.temperature,
+        maxTokens: request.options?.maxTokens ?? Math.min(env.ai.gemini.maxTokens, 512),
+      }, 512);
+    } catch (error: any) {
+      // Retry logic chỉ cho Gemini (Groq đã fail ở callAIWithFallback)
+      const status = (error as any)?.status || (error as any)?.response?.status;
+      if (status === 429 || status === 503) {
+        const attempts = 3;
+        const delays = [300, 800, 1600];
+        
+        for (let i = 0; i < attempts; i++) {
+          try {
+            await new Promise((resolve) => setTimeout(resolve, delays[i] ?? 1200));
+            return await this.callAIWithFallback(prompt, {
+              temperature: request.options?.temperature,
+              maxTokens: request.options?.maxTokens ?? Math.min(env.ai.gemini.maxTokens, 512),
+            }, 512);
+          } catch (retryError) {
+            if (i === attempts - 1) {
+              logger.error('[AIService] Chat error after retries:', retryError);
+              throw new ApiError('AI đang quá tải, vui lòng thử lại sau.', 503);
+            }
+          }
         }
-
-        return {
-          response: text,
-          usage: usage
-            ? {
-                promptTokens: usage.promptTokenCount,
-                completionTokens: usage.candidatesTokenCount,
-                totalTokens: usage.totalTokenCount,
-              }
-            : undefined,
-        };
-      } catch (error) {
-        const status = (error as any)?.status || (error as any)?.response?.status;
-        if (i < attempts - 1 && (status === 429 || status === 503)) {
-          const delay = delays[i] ?? 1200;
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
-        }
-        this.mapGeminiError(error);
       }
+      throw error;
     }
-
-    throw new ApiError('AI đang quá tải, vui lòng thử lại sau.', 503);
   }
 
   /**
@@ -250,15 +384,15 @@ export class AIService {
   }
 
   /**
-   * Chat with AI assistant
+   * Chat with AI assistant (Groq first, fallback to Gemini)
    */
   async chat(request: ChatRequest): Promise<ChatResponse> {
-    if (!this.model) {
-      throw new Error('AI service is not available. Please configure GEMINI_API_KEY.');
+    if (!this.useGroq && !this.model) {
+      throw new Error('AI service is not available. Please configure GROQ_API_KEY or GEMINI_API_KEY.');
     }
 
     try {
-      // Build instruction + context as a single prompt to avoid invalid system_instruction
+      // Build instruction + context as a single prompt
       let prompt = 'Bạn là một trợ lý AI cho hệ thống học tập trực tuyến (LMS). ';
       prompt += 'Trả lời ngắn gọn, rõ ràng, hữu ích cho học viên.\n';
 
@@ -285,89 +419,58 @@ export class AIService {
       prompt += '\nCâu hỏi hiện tại:\n';
       prompt += request.message;
 
-      const maxTokens = Math.min(env.ai.gemini.maxTokens, 512);
-      const attempts = 3;
-      const delays = [300, 800, 1600];
-
-      for (let i = 0; i < attempts; i++) {
-        try {
-          const result = await this.model.generateContent(prompt, {
-            generationConfig: {
-              temperature: request.options?.temperature ?? env.ai.gemini.temperature,
-              maxOutputTokens: request.options?.maxTokens ?? maxTokens,
-            },
-          });
-
-          const response = result.response;
-          const text = formatAiAnswer(response.text());
-          let usage: any = undefined;
-          if (response && typeof (response as any).usageMetadata === 'function') {
-            usage = (response as any).usageMetadata();
-          } else if (response && (response as any).usageMetadata) {
-            usage = (response as any).usageMetadata;
+      // Use helper với retry logic cho Gemini
+      try {
+        return await this.callAIWithFallback(prompt, {
+          temperature: request.options?.temperature,
+          maxTokens: request.options?.maxTokens ?? Math.min(env.ai.gemini.maxTokens, 512),
+        }, 512);
+      } catch (error: any) {
+        // Retry logic chỉ cho Gemini (Groq đã fail ở callAIWithFallback)
+        const status = (error as any)?.status || (error as any)?.response?.status;
+        if (status === 429 || status === 503) {
+          const attempts = 3;
+          const delays = [300, 800, 1600];
+          
+          for (let i = 0; i < attempts; i++) {
+            try {
+              await new Promise((resolve) => setTimeout(resolve, delays[i] ?? 1200));
+              return await this.callAIWithFallback(prompt, {
+                temperature: request.options?.temperature,
+                maxTokens: request.options?.maxTokens ?? Math.min(env.ai.gemini.maxTokens, 512),
+              }, 512);
+            } catch (retryError) {
+              if (i === attempts - 1) {
+                logger.error('[AIService] Chat error after retries:', retryError);
+                throw new ApiError('AI đang quá tải, vui lòng thử lại sau.', 503);
+              }
+            }
           }
-
-          return {
-            response: text,
-            usage: usage ? {
-              promptTokens: usage.promptTokenCount,
-              completionTokens: usage.candidatesTokenCount,
-              totalTokens: usage.totalTokenCount,
-            } : undefined,
-          };
-        } catch (error) {
-          const status = (error as any)?.status || (error as any)?.response?.status;
-          if (i < attempts - 1 && (status === 429 || status === 503)) {
-            const delay = delays[i] ?? 1200;
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            continue;
-          }
-          logger.error('[AIService] Chat error:', error);
-          this.mapGeminiError(error);
         }
+        throw error;
       }
-
-    // Nếu hết retry mà vẫn lỗi, ném lỗi quá tải
-    throw new ApiError('AI đang quá tải, vui lòng thử lại sau.', 503);
-    }
-    catch (error) {
+    } catch (error) {
       logger.error('[AIService] Chat error:', error);
       this.mapGeminiError(error);
+      throw error;
     }
   }
 
   /**
    * Generate content directly (for moderation, no conversation history needed)
+   * Uses Groq first, falls back to Gemini
    */
   async generateContent(request: { prompt: string; options?: { temperature?: number; maxTokens?: number } }): Promise<ChatResponse> {
-    if (!this.model) {
-      throw new Error('AI service is not available. Please configure GEMINI_API_KEY.');
+    if (!this.useGroq && !this.model) {
+      throw new Error('AI service is not available. Please configure GROQ_API_KEY or GEMINI_API_KEY.');
     }
 
     try {
-      // Use generateContent with simple string prompt (works with all models including gemini-2.5-flash)
-      // For @google/generative-ai SDK, use simple string format
-      const result = await this.model.generateContent(request.prompt, {
-        generationConfig: {
-          temperature: request.options?.temperature ?? env.ai.gemini.temperature,
-          maxOutputTokens: request.options?.maxTokens ?? env.ai.gemini.maxTokens,
-        },
+      // Use helper method
+      return await this.callAIWithFallback(request.prompt, {
+        temperature: request.options?.temperature,
+        maxTokens: request.options?.maxTokens,
       });
-
-      const response = result.response;
-      const text = formatAiAnswer(response.text());
-
-      // Get usage information if available
-      const usage = response.usageMetadata();
-
-      return {
-        response: text,
-        usage: usage ? {
-          promptTokens: usage.promptTokenCount,
-          completionTokens: usage.candidatesTokenCount,
-          totalTokens: usage.totalTokenCount,
-        } : undefined,
-      };
     } catch (error) {
       logger.error('[AIService] Generate content error:', error);
       this.mapGeminiError(error);
@@ -1079,48 +1182,193 @@ Trả về JSON format:
     try {
       logger.info('[AIService] Generating lesson content', { lessonTitle: request.lessonTitle });
       
-      const prompt = `Bạn là chuyên gia viết nội dung khóa học. Tạo nội dung chi tiết, đầy đủ cho bài học sau:
+      // Extract lesson number from title (e.g., "7.2", "Bài 7", "7.2. Đọc và Ghi File")
+      const lessonNumberMatch = request.lessonTitle.match(/(?:^|\.|Bài\s*)(\d+)(?:\.\d+)?/);
+      const lessonNumber = lessonNumberMatch ? parseInt(lessonNumberMatch[1], 10) : null;
+      const isAdvancedLesson = lessonNumber !== null && lessonNumber >= 5;
+      
+      const prompt = `# VAI TRÒ VÀ NGỮ CẢNH
+Bạn là chuyên gia viết nội dung khóa học trực tuyến với nhiều năm kinh nghiệm. Nhiệm vụ của bạn là tạo nội dung bài học CHI TIẾT, ĐẦY ĐỦ, có thể học ngay được (không phải outline hay summary).
 
-Tiêu đề khóa học: ${request.courseTitle}
-${request.courseDescription ? `Mô tả khóa học: ${request.courseDescription}` : ''}
-${request.sectionTitle ? `Chương: ${request.sectionTitle}` : ''}
-${request.level ? `Trình độ: ${request.level}` : ''}
+# THÔNG TIN KHÓA HỌC VÀ BÀI HỌC
+**Khóa học:** ${request.courseTitle}
+${request.courseDescription ? `**Mô tả khóa học:** ${request.courseDescription}` : ''}
+${request.sectionTitle ? `**Chương hiện tại:** ${request.sectionTitle}` : ''}
+${request.level ? `**Trình độ:** ${request.level}` : '**Trình độ:** beginner'}
+${lessonNumber !== null ? `**Số thứ tự bài học:** ${lessonNumber}${isAdvancedLesson ? ' (Bài học nâng cao - đã qua các bài cơ bản)' : ''}` : ''}
 
-Tiêu đề bài học: ${request.lessonTitle}
-Mô tả bài học: ${request.lessonDescription}
+**Bài học cần tạo:**
+- **Tiêu đề:** ${request.lessonTitle}
+- **Mô tả:** ${request.lessonDescription}
 
-Yêu cầu:
-- Viết nội dung chi tiết, đầy đủ (ít nhất 500-800 từ)
-- Format: HTML hoặc Markdown
-- Bao gồm:
-  * Giới thiệu về chủ đề
-  * Các khái niệm quan trọng (giải thích rõ ràng, dễ hiểu)
-  * Ví dụ minh họa cụ thể (nếu có)
-  * Bài tập thực hành hoặc câu hỏi tự kiểm tra (nếu phù hợp)
-  * Tóm tắt và điểm chính cần nhớ
-- Nội dung phải có thể học ngay, không chỉ là outline
-- Phù hợp với trình độ ${request.level || 'beginner'}
+# YÊU CẦU NỘI DUNG
 
-Trả về JSON format:
+## 1. Độ dài và chất lượng
+- **Tối thiểu:** ${isAdvancedLesson ? '800-1200 từ' : '500-800 từ'} (không tính code blocks)
+- **Chất lượng:** Nội dung phải đầy đủ, chi tiết, có thể học ngay được
+- **Không được:** Chỉ là outline, summary, hoặc danh sách bullet points ngắn
+- **${isAdvancedLesson ? 'QUAN TRỌNG: Bài học này là bài nâng cao, cần nội dung CHI TIẾT, KỸ THUẬT, không giới thiệu lại kiến thức cơ bản' : ''}**
+
+## 2. Format Output (QUAN TRỌNG)
+- **BẮT BUỘC:** Trả về HTML (KHÔNG phải Markdown)
+- **HTML tags:** Sử dụng các HTML tags chuẩn:
+  - Headings: <h1>, <h2>, <h3> (không dùng # ## ###)
+  - Paragraphs: <p> (không dùng dòng trống)
+  - Bold: <strong> hoặc <b> (không dùng **text**)
+  - Italic: <em> hoặc <i> (không dùng *text*)
+  - Lists: <ul><li> cho bullet, <ol><li> cho numbered (không dùng - hoặc 1.)
+  - **Code blocks (QUAN TRỌNG):** 
+    *   PHẢI dùng <pre><code class="language-xxx">code content</code></pre>
+    *   BẮT BUỘC có class="language-xxx" để hiển thị tên ngôn ngữ trên UI
+    *   Ngôn ngữ phổ biến: python, javascript, java, cpp, csharp, sql, plsql, html, css, json, bash
+    *   Tự động detect ngôn ngữ từ code content (ví dụ: Python code → class="language-python")
+    *   KHÔNG dùng \`\`\`markdown hoặc \`\`\`code
+  - Inline code: <code> (không dùng \`code\`)
+  - Links: <a href="url">text</a> (không dùng [text](url))
+  - Line breaks: <br> hoặc </p><p> (không dùng 2 spaces)
+- **Lý do:** Nội dung sẽ được hiển thị trực tiếp trong editor HTML, cần format HTML để hiển thị đúng (H1, H2, bold, code blocks với language label, etc.)
+
+## 3. Cấu trúc nội dung (BẮT BUỘC)
+${isAdvancedLesson ? `### LƯU Ý QUAN TRỌNG CHO BÀI HỌC NÂNG CAO:
+- **KHÔNG giới thiệu lại** các khái niệm cơ bản đã học ở bài trước (ví dụ: không giải thích "File là gì", "Đọc file là gì" nếu đã học ở bài trước)
+- **Đi thẳng vào nội dung:** Bắt đầu ngay với implementation, kỹ thuật, best practices
+- **Chi tiết kỹ thuật:** Đi sâu vào cách làm, edge cases, common pitfalls
+- **Ví dụ phức tạp:** Ví dụ phải thực tế, phức tạp, không chỉ demo đơn giản
+
+Nội dung PHẢI bao gồm các phần sau (BỎ QUA phần giới thiệu cơ bản):` : 'Nội dung PHẢI bao gồm các phần sau theo thứ tự:'}
+
+### ${isAdvancedLesson ? 'a) Nội dung chính (Main Content) - BẮT ĐẦU NGAY' : 'a) Giới thiệu (Introduction) - CHỈ CHO BÀI HỌC ĐẦU TIÊN'}
+${isAdvancedLesson ? `- **BẮT ĐẦU NGAY:** Đi thẳng vào nội dung kỹ thuật, không giới thiệu lại khái niệm cơ bản
+- **Giả định kiến thức:** Học viên đã biết các khái niệm cơ bản từ bài trước
+- **Tập trung vào:** Implementation chi tiết, advanced techniques, best practices
+- **Ví dụ phức tạp:** Code examples phải thực tế, có error handling, edge cases` : `- Giới thiệu ngắn gọn về chủ đề bài học (CHỈ nếu là bài đầu tiên)
+- Mục tiêu học tập rõ ràng
+- Tại sao chủ đề này quan trọng`}
+
+### ${isAdvancedLesson ? 'b) Implementation Chi Tiết' : 'b) Nội dung chính (Main Content)'}
+- **${isAdvancedLesson ? 'Implementation từng bước:' : 'Các khái niệm quan trọng:'}** ${isAdvancedLesson ? 'Giải thích CHI TIẾT từng bước implementation, không bỏ sót bất kỳ chi tiết nào' : 'Giải thích rõ ràng, dễ hiểu, có ví dụ cụ thể'}
+- **Code examples:** PHẢI có code examples đầy đủ, ${isAdvancedLesson ? 'phức tạp, có error handling, edge cases' : 'với syntax highlighting'}
+- **Giải thích từng bước:** Nếu có quy trình, giải thích từng bước một cách chi tiết
+${isAdvancedLesson ? '- **Best practices:** Đưa ra best practices, common mistakes, và cách tránh\n- **Edge cases:** Xử lý các edge cases, error scenarios\n- **Performance:** Nếu liên quan, đề cập đến performance considerations' : ''}
+
+### ${isAdvancedLesson ? 'c) Ví dụ thực hành nâng cao' : 'c) Ví dụ thực hành (Practical Examples)'}
+- Code examples: PHẢI có đầy đủ code, ${isAdvancedLesson ? 'phức tạp, thực tế, có error handling' : 'không chỉ pseudo-code'}
+- Ví dụ thực tế: Áp dụng kiến thức vào tình huống cụ thể
+- **LƯU Ý:** Code blocks phải có line breaks và indentation đúng chuẩn (4 spaces cho Python)
+${isAdvancedLesson ? '- **Real-world scenarios:** Ví dụ phải gần với tình huống thực tế trong công việc\n- **Multiple approaches:** Nếu có nhiều cách làm, so sánh ưu/nhược điểm' : ''}
+
+### ${isAdvancedLesson ? 'd) Advanced Topics & Best Practices' : 'd) Bài tập/Tự kiểm tra (Practice/Check)'}
+${isAdvancedLesson ? `- **Advanced techniques:** Các kỹ thuật nâng cao liên quan
+- **Best practices:** Best practices và anti-patterns
+- **Common pitfalls:** Các lỗi thường gặp và cách tránh
+- **Integration:** Cách tích hợp với các phần khác (nếu có)` : `- Bài tập thực hành ngắn (nếu phù hợp)
+- Câu hỏi tự kiểm tra (2-3 câu)
+- Gợi ý cách áp dụng kiến thức`}
+
+### e) Tóm tắt (Summary)
+- Tóm tắt các điểm chính cần nhớ
+- Liên kết với các bài học trước/sau (nếu có)
+${isAdvancedLesson ? '- **Key takeaways:** Những điểm quan trọng nhất cần nhớ\n- **Next steps:** Gợi ý bài học tiếp theo hoặc cách áp dụng nâng cao' : ''}
+
+## 4. Phù hợp trình độ
+- **Beginner:** Giải thích từ cơ bản, không giả định kiến thức trước, nhiều ví dụ đơn giản
+- **Intermediate:** Có thể tham chiếu kiến thức cơ bản, ví dụ phức tạp hơn
+- **Advanced:** Có thể đi sâu vào chi tiết kỹ thuật, best practices, edge cases
+
+## 5. Lưu ý đặc biệt
+- **Code formatting:** Code blocks PHẢI có line breaks và indentation đúng (không được nằm trên 1 dòng)
+- **Structured data:** Nếu có bảng dữ liệu, format dạng HTML table (<table><thead><tbody>)
+- **Không lặp lại:** Không lặp lại thông tin đã có trong mô tả bài học
+- **Tính thực tế:** Nội dung phải thực tế, có thể áp dụng ngay
+
+# OUTPUT FORMAT
+Trả về CHỈ JSON, không có text thêm:
+
+JSON format:
 {
-  "content": "Nội dung chi tiết đầy đủ của bài học (HTML hoặc markdown, ít nhất 500-800 từ)"
-}`;
+  "content": "<h2>Tiêu đề phần</h2><p>Nội dung chi tiết đầy đủ của bài học (HTML format, ít nhất ${isAdvancedLesson ? '800-1200' : '500-800'} từ, có đầy đủ các phần yêu cầu)</p>"
+}
 
-      logger.info('[AIService] Calling Gemini API for lesson content generation');
+# VÍ DỤ HTML FORMAT ĐÚNG
+
+## Ví dụ cho bài học cơ bản:
+HTML example:
+<h2>Giới thiệu</h2>
+<p>Giới thiệu về chủ đề, mục tiêu học tập.</p>
+
+<h2>Khái niệm quan trọng</h2>
+<p>Giải thích chi tiết các khái niệm.</p>
+
+<h3>Ví dụ minh họa</h3>
+<pre><code class="language-python">def example():
+    # Code đầy đủ với indentation đúng
+    pass
+</code></pre>
+
+<h2>Bài tập thực hành</h2>
+<ul>
+<li>Bài tập 1</li>
+<li>Bài tập 2</li>
+</ul>
+
+<h2>Tóm tắt</h2>
+<p>Điểm chính cần nhớ.</p>
+
+## Ví dụ cho bài học nâng cao (từ bài 5+):
+HTML example:
+<h2>Implementation Chi Tiết</h2>
+<p>Đi thẳng vào implementation, không giới thiệu lại khái niệm cơ bản.</p>
+
+<h3>Bước 1: Tên bước cụ thể</h3>
+<p>Giải thích chi tiết từng bước, có code đầy đủ.</p>
+
+<pre><code class="language-python">def advanced_example():
+    try:
+        # Code phức tạp với error handling
+        with open('file.txt', 'r') as f:
+            data = f.read()
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        logger.error(f"Error: {e}")
+</code></pre>
+
+<h3>Best Practices</h3>
+<p>Best practices cụ thể, không chỉ lý thuyết.</p>
+
+<h2>Ví dụ Thực Hành Nâng Cao</h2>
+<p>Ví dụ phức tạp, gần với tình huống thực tế.</p>
+
+# LƯU Ý CUỐI CÙNG
+${isAdvancedLesson ? `- **QUAN TRỌNG:** Đây là bài học số ${lessonNumber}, học viên đã có kiến thức cơ bản. KHÔNG giới thiệu lại khái niệm cơ bản như "File là gì", "Đọc file là gì".
+- **Tập trung vào:** Implementation chi tiết, best practices, edge cases, error handling
+- **Độ sâu:** Đi sâu vào chi tiết kỹ thuật, không chỉ surface level
+- **Ví dụ:** Phải phức tạp, thực tế, có error handling và edge cases` : `- Đây là bài học cơ bản, có thể giới thiệu khái niệm từ đầu
+- Tập trung vào giải thích rõ ràng, dễ hiểu
+- Ví dụ đơn giản, dễ theo dõi`}
+- **QUAN TRỌNG:** Trả về HTML (không phải Markdown) để hiển thị đúng trong editor
+- **QUAN TRỌNG VỀ CODE BLOCKS:** MỌI code block PHẢI có class="language-xxx" (ví dụ: class="language-python" cho Python code, class="language-sql" cho SQL code, class="language-javascript" cho JavaScript code). Điều này BẮT BUỘC để hiển thị tên ngôn ngữ trên UI của học viên và trong editor.
+
+Bắt đầu tạo nội dung ngay bây giờ:\`;`;
+
+      // Use Groq first, fallback to Gemini
+      logger.info('[AIService] Attempting to generate lesson content with AI (Groq first, then Gemini)...');
       const startTime = Date.now();
       
-      const result = await this.model.generateContent(prompt, {
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048, // Đủ cho nội dung một lesson
-        },
-      });
+      // Use callAIWithFallback để tự động dùng Groq trước
+      const aiResponse = await this.callAIWithFallback(prompt, {
+        temperature: 0.7,
+        maxTokens: 2048,
+      }, 2048);
 
       const duration = Date.now() - startTime;
-      logger.info('[AIService] Gemini API response received for lesson content', { duration: `${duration}ms` });
+      logger.info('[AIService] ✅ AI response received for lesson content', { 
+        duration: `${duration}ms`,
+        provider: this.useGroq ? 'Groq (primary)' : 'Gemini (fallback)'
+      });
 
-      const response = result.response;
-      const text = response.text();
+      // Text đã được format từ callAIWithFallback
+      const text = aiResponse.response;
 
       /**
        * Extract and normalize lesson content from raw Gemini text.

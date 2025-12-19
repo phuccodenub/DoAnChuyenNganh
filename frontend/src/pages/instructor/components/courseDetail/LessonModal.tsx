@@ -29,7 +29,10 @@ import {
     MonitorPlay, // Icon mới
     Trash2,      // Icon mới
     FileVideo,   // Icon mới
-    FileText     // Icon cho PDF
+    FileText,    // Icon cho PDF
+    MoreVertical, // Icon cho menu mở rộng
+    Sparkles,    // Icon cho prettier code
+    Copy         // Icon cho copy code
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Lesson, ContentType, contentTypeLabels } from './types';
@@ -37,7 +40,6 @@ import { lessonApi, type LessonMaterial } from '@/services/api/lesson.api';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGenerateLessonContent } from '@/hooks/useAi';
-import { Sparkles } from 'lucide-react';
 
 // Cập nhật Interface
 interface LessonFormData {
@@ -116,6 +118,13 @@ export function LessonModal({
     const [content, setContent] = useState('');
     const documentEditorRef = useRef<HTMLDivElement>(null); // Editor cho document content
     const descriptionEditorRef = useRef<HTMLDivElement>(null); // Editor cho description
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const moreMenuRef = useRef<HTMLDivElement>(null);
+    
+    // State cho floating toolbar khi bôi đen text
+    const [showFloatingToolbar, setShowFloatingToolbar] = useState(false);
+    const [floatingToolbarPosition, setFloatingToolbarPosition] = useState({ top: 0, left: 0 });
+    const floatingToolbarRef = useRef<HTMLDivElement>(null);
 
     // State cho Video
     const [videoSourceTab, setVideoSourceTab] = useState<'upload' | 'external'>('upload');
@@ -143,11 +152,656 @@ export function LessonModal({
         pdfMaterials: existingPdfMaterials
     });
 
+    // Helper: Convert structured data patterns thành HTML tables
+    const convertStructuredDataToTables = (html: string): string => {
+        // Detect pattern: các đoạn có format giống bảng
+        // Pattern: **Toán Tử:** `+=` | **Ví dụ:** `x += 5` | **Tương đương với:** `x = x + 5`
+        
+        // Tìm các đoạn có nhiều dòng với cùng pattern
+        const tableRegex = /((?:\*\*[^*]+\*\*:\s*[^|\n]+\s*\|\s*)+)/g;
+        let result = html;
+        let match;
+        
+        // Group các dòng liên tiếp có cùng pattern thành table
+        const lines = html.split('\n');
+        const tableGroups: Array<{ start: number; end: number; headers: string[]; rows: string[][] }> = [];
+        let currentGroup: { start: number; headers: string[]; rows: string[][] } | null = null;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // Detect dòng có format: **Label:** value | **Label:** value | ...
+            const parts = line.split('|').map(p => p.trim()).filter(p => p);
+            const hasTablePattern = parts.length >= 2 && parts.some(p => /\*\*[^*]+\*\*:/.test(p));
+            
+            if (hasTablePattern) {
+                // Extract headers từ dòng đầu tiên
+                if (!currentGroup) {
+                    const headers: string[] = [];
+                    parts.forEach(part => {
+                        const labelMatch = part.match(/\*\*([^*]+)\*\*:/);
+                        if (labelMatch) {
+                            headers.push(labelMatch[1].trim());
+                        }
+                    });
+                    
+                    if (headers.length > 0) {
+                        currentGroup = {
+                            start: i,
+                            headers: headers,
+                            rows: []
+                        };
+                    }
+                }
+                
+                // Extract row data
+                if (currentGroup) {
+                    const row: string[] = [];
+                    parts.forEach(part => {
+                        const valueMatch = part.match(/\*\*[^*]+\*\*:\s*(.+)/);
+                        if (valueMatch) {
+                            row.push(valueMatch[1].trim());
+                        }
+                    });
+                    
+                    if (row.length === currentGroup.headers.length) {
+                        currentGroup.rows.push(row);
+                    }
+                }
+            } else {
+                // Kết thúc group nếu có
+                if (currentGroup && currentGroup.rows.length > 0) {
+                    tableGroups.push({
+                        start: currentGroup.start,
+                        end: i - 1,
+                        headers: currentGroup.headers,
+                        rows: currentGroup.rows
+                    });
+                }
+                currentGroup = null;
+            }
+        }
+        
+        // Kết thúc group cuối cùng
+        if (currentGroup && currentGroup.rows.length > 0) {
+            tableGroups.push({
+                start: currentGroup.start,
+                end: lines.length - 1,
+                headers: currentGroup.headers,
+                rows: currentGroup.rows
+            });
+        }
+        
+        // Convert các groups thành tables (từ cuối lên để không làm lệch index)
+        for (let g = tableGroups.length - 1; g >= 0; g--) {
+            const group = tableGroups[g];
+            const { headers, rows } = group;
+            
+            // Build HTML table
+            let tableHtml = '<table><thead><tr>';
+            headers.forEach(header => {
+                tableHtml += `<th>${header}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+            
+            rows.forEach(row => {
+                tableHtml += '<tr>';
+                row.forEach(cell => {
+                    // Preserve code formatting và các formatting khác
+                    let cellContent = cell
+                        .replace(/`([^`]+)`/g, '<code>$1</code>')
+                        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    tableHtml += `<td>${cellContent}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            
+            tableHtml += '</tbody></table>';
+            
+            // Replace trong HTML (tính toán vị trí chính xác)
+            const beforeLines = lines.slice(0, group.start);
+            const afterLines = lines.slice(group.end + 1);
+            const beforeText = beforeLines.join('\n');
+            const afterText = afterLines.join('\n');
+            
+            result = beforeText + (beforeText ? '\n' : '') + tableHtml + (afterText ? '\n' : '') + afterText;
+            
+            // Update lines array để tiếp tục xử lý
+            lines.splice(group.start, group.end - group.start + 1, tableHtml);
+        }
+        
+        return result;
+    };
+
+    // Helper: Detect language từ code content
+    const detectLanguage = (code: string): string => {
+        if (!code) return '';
+        
+        const trimmed = code.trim();
+        
+        // Python - Ưu tiên cao nhất vì có thể có {} và : (dictionary)
+        if (trimmed.includes('def ') || trimmed.includes('import ') || trimmed.includes('print(') || 
+            trimmed.includes('if __name__') || trimmed.includes('lambda ') || trimmed.includes('class ') ||
+            trimmed.includes('my_dict') || trimmed.includes('dict(') || 
+            trimmed.match(/["'][\w\s]+["']\s*:/) || // Dictionary pattern: "key": value
+            trimmed.match(/\w+\s*=\s*\{.*\}/)) { // Variable assignment with {}
+            return 'python';
+        }
+        
+        // JavaScript/TypeScript
+        if (trimmed.includes('function ') || trimmed.includes('const ') || trimmed.includes('let ') || 
+            trimmed.includes('var ') || trimmed.includes('console.') || trimmed.includes('=>')) {
+            return 'javascript';
+        }
+        
+        // Java
+        if (trimmed.includes('public class') || trimmed.includes('public static') || 
+            trimmed.includes('System.out') || trimmed.includes('@Override')) {
+            return 'java';
+        }
+        
+        // C/C++
+        if (trimmed.includes('#include') || trimmed.includes('int main') || trimmed.includes('std::')) {
+            return 'cpp';
+        }
+        
+        // C#
+        if (trimmed.includes('using System') || trimmed.includes('namespace ') || trimmed.includes('public void')) {
+            return 'csharp';
+        }
+        
+        // SQL/PLSQL
+        if (trimmed.match(/^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\s+/i) || 
+            trimmed.includes('BEGIN') || trimmed.includes('END;') || trimmed.includes('DECLARE')) {
+            return 'sql';
+        }
+        
+        // HTML
+        if (trimmed.includes('<html') || trimmed.includes('<!DOCTYPE') || trimmed.match(/<[a-z]+[^>]*>/i)) {
+            return 'html';
+        }
+        
+        // CSS - Chỉ detect nếu có CSS selector pattern (không phải dictionary)
+        // CSS thường có selector như .class, #id, hoặc tag name trước {
+        if ((trimmed.includes('{') && trimmed.includes('}') && trimmed.includes(':')) &&
+            (trimmed.match(/^[.#]?\w+\s*\{/) || trimmed.match(/^\w+\s*\{/) || trimmed.includes('@media') || trimmed.includes('@keyframes'))) {
+            return 'css';
+        }
+        
+        // JSON - Nếu có { và " nhưng không phải Python/JavaScript
+        if (trimmed.trim().startsWith('{') && trimmed.includes('"') && !trimmed.includes('def ') && !trimmed.includes('function ')) {
+            return 'json';
+        }
+        
+        return '';
+    };
+
+    // Helper: Đảm bảo code blocks có class language-xxx (auto-detect nếu thiếu)
+    const ensureCodeBlockLanguage = (html: string): string => {
+        if (!html) return '';
+        
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        
+        const codeBlocks = temp.querySelectorAll('pre code');
+        codeBlocks.forEach((codeEl) => {
+            const codeElement = codeEl as HTMLElement;
+            // Kiểm tra xem đã có class language-xxx chưa
+            const hasLanguageClass = codeElement.className && /language-/.test(codeElement.className);
+            
+            if (!hasLanguageClass) {
+                // Auto-detect language từ code content
+                const codeText = codeElement.textContent || '';
+                const detectedLang = detectLanguage(codeText);
+                if (detectedLang) {
+                    codeElement.className = `language-${detectedLang}`;
+                }
+            }
+        });
+        
+        return temp.innerHTML;
+    };
+
+    // Helper: Wrap code blocks với header và body structure (giống LessonDetailPage)
+    const wrapCodeBlocksWithHeader = (container: HTMLElement) => {
+        if (!container) return;
+        
+        const preElements = container.querySelectorAll('pre:not(.code-block-body pre)');
+        preElements.forEach((pre) => {
+            // Kiểm tra xem đã được wrap chưa
+            if (pre.parentElement?.classList.contains('code-block-wrapper')) {
+                return;
+            }
+
+            const code = pre.querySelector('code');
+            if (!code) return;
+
+            const codeText = code.textContent || '';
+            
+            // Detect language
+            let language = '';
+            const existingClass = code.className.match(/language-(\w+)/);
+            if (existingClass) {
+                language = existingClass[1];
+            } else {
+                // Auto-detect language từ code content
+                const detectedLang = detectLanguage(codeText);
+                if (detectedLang) {
+                    language = detectedLang;
+                    code.className = `language-${detectedLang}`;
+                }
+            }
+
+            // Tạo wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block-wrapper';
+
+            // Tạo header
+            const header = document.createElement('div');
+            header.className = 'code-block-header';
+            
+            // Language label
+            const langLabel = document.createElement('span');
+            langLabel.className = 'code-block-lang';
+            langLabel.textContent = language || 'code';
+            
+            // Copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'code-block-copy-btn';
+            copyBtn.setAttribute('aria-label', 'Copy code');
+            copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+            
+            // Copy functionality
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(codeText);
+                    copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                }
+            });
+
+            header.appendChild(langLabel);
+            header.appendChild(copyBtn);
+
+            // Tạo body
+            const body = document.createElement('div');
+            body.className = 'code-block-body';
+            body.appendChild(pre.cloneNode(true));
+
+            // Wrap structure
+            wrapper.appendChild(header);
+            wrapper.appendChild(body);
+
+            // Replace pre với wrapper
+            pre.replaceWith(wrapper);
+        });
+    };
+
+    // Helper: Normalize HTML content để đảm bảo code blocks không bị merge với text
+    const normalizeEditorContent = (html: string): string => {
+        if (!html) return '';
+        
+        // QUAN TRỌNG: Preserve line breaks trong code blocks trước khi normalize
+        // Convert <br> trong code blocks thành \n để preserve line breaks
+        html = html.replace(
+          /<pre><code[^>]*>([\s\S]*?)<\/code><\/pre>/g,
+          (match, codeContent) => {
+            // Thay thế <br> trong code bằng \n
+            let fixedCode = codeContent
+              .replace(/<br\s*\/?>/gi, '\n')
+              .replace(/&lt;br\s*\/?&gt;/gi, '\n');
+            
+            // QUAN TRỌNG: Preserve spaces và tabs (indentation)
+            fixedCode = fixedCode.replace(/&nbsp;/g, ' ');
+            
+            // Normalize tabs thành 4 spaces (Python standard)
+            fixedCode = fixedCode.replace(/\t/g, '    ');
+            
+            // Decode HTML entities nhưng preserve \n và spaces
+            const lineBreakMarker = '___PRESERVE_LB___';
+            const spaceMarker = '___PRESERVE_SPACE___';
+            
+            // Preserve multiple consecutive spaces (indentation)
+            fixedCode = fixedCode.replace(/( {2,})/g, (match: string) => {
+              return match.split('').map(() => spaceMarker).join('');
+            });
+            
+            fixedCode = fixedCode.replace(/\n/g, lineBreakMarker);
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = fixedCode;
+            fixedCode = tempDiv.textContent || tempDiv.innerText || fixedCode;
+            
+            // Restore spaces và line breaks
+            fixedCode = fixedCode.replace(new RegExp(spaceMarker, 'g'), ' ');
+            fixedCode = fixedCode.replace(new RegExp(lineBreakMarker, 'g'), '\n');
+            
+            // Escape HTML để preserve line breaks và spaces
+            const escapeHtml = (text: string) => {
+              const div = document.createElement('div');
+              div.textContent = text;
+              return div.innerHTML;
+            };
+            
+            return `<pre><code>${escapeHtml(fixedCode)}</code></pre>`;
+          }
+        );
+        
+        // Tạo temporary div để parse HTML
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        
+        // Strategy: Tách tất cả code blocks ra khỏi paragraphs và ngược lại
+        // 1. QUAN TRỌNG: Tách các <p> tags và block elements khác ra khỏi <pre> tags (vấn đề chính)
+        const allPre = Array.from(temp.querySelectorAll('pre'));
+        allPre.forEach((pre) => {
+            // Tìm tất cả <p> tags và các block elements khác nằm trong <pre>
+            const paragraphsInPre = Array.from(pre.querySelectorAll('p'));
+            const codeElement = pre.querySelector('code');
+            
+            if (paragraphsInPre.length > 0) {
+                // Tách <pre> thành: phần code + các paragraphs bên ngoài
+                const fragment = document.createDocumentFragment();
+                
+                // Clone phần code (nếu có) - chỉ lấy phần code thực sự
+                if (codeElement) {
+                    const preClone = document.createElement('pre');
+                    // Chỉ clone phần code, không clone các <p> tags
+                    const codeClone = codeElement.cloneNode(true) as HTMLElement;
+                    // Loại bỏ các <p> tags có thể nằm trong code
+                    const pInCode = codeClone.querySelectorAll('p');
+                    pInCode.forEach((p) => {
+                        // Thay thế <p> bằng text content của nó
+                        const text = p.textContent || '';
+                        const textNode = document.createTextNode(text);
+                        p.replaceWith(textNode);
+                    });
+                    preClone.appendChild(codeClone);
+                    fragment.appendChild(preClone);
+                }
+                
+                // Tách các paragraphs ra ngoài (sau code block)
+                paragraphsInPre.forEach((p) => {
+                    // Clone paragraph nhưng loại bỏ các <code> rỗng
+                    const pClone = p.cloneNode(true) as HTMLElement;
+                    const emptyCodes = pClone.querySelectorAll('code');
+                    emptyCodes.forEach((code) => {
+                        const codeText = code.textContent || '';
+                        // Nếu code rỗng hoặc chỉ có whitespace, xóa nó
+                        if (!codeText.trim()) {
+                            code.remove();
+                        }
+                    });
+                    
+                    // Chỉ thêm paragraph nếu còn nội dung thực sự
+                    const hasContent = pClone.textContent?.trim() || pClone.querySelector('img, br, strong, em');
+                    if (hasContent) {
+                        fragment.appendChild(pClone);
+                    }
+                });
+                
+                // Thay thế <pre> bằng fragment
+                pre.replaceWith(fragment);
+            } else if (codeElement) {
+                // Nếu không có <p> trong <pre> nhưng có các block elements khác, cũng cần xử lý
+                // Đảm bảo <pre> chỉ chứa <code>
+                const children = Array.from(pre.childNodes);
+                const nonCodeElements = children.filter(node => 
+                    node.nodeType === Node.ELEMENT_NODE && 
+                    (node as Element).tagName !== 'CODE'
+                );
+                
+                if (nonCodeElements.length > 0) {
+                    // Tách các elements không phải code ra ngoài
+                    const fragment = document.createDocumentFragment();
+                    const preClone = document.createElement('pre');
+                    preClone.appendChild(codeElement.cloneNode(true) as HTMLElement);
+                    fragment.appendChild(preClone);
+                    
+                    nonCodeElements.forEach((el) => {
+                        if (el.nodeType === Node.ELEMENT_NODE) {
+                            const element = el as Element;
+                            // Nếu là block element, wrap trong <p>
+                            if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+                                fragment.appendChild(element.cloneNode(true));
+                            } else {
+                                const p = document.createElement('p');
+                                p.appendChild(element.cloneNode(true));
+                                fragment.appendChild(p);
+                            }
+                        }
+                    });
+                    
+                    pre.replaceWith(fragment);
+                }
+            }
+        });
+        
+        // 2. Tìm tất cả <pre> elements và đảm bảo chúng không nằm trong <p>
+        const allPreAfter = Array.from(temp.querySelectorAll('pre'));
+        allPreAfter.forEach((pre) => {
+            let current: HTMLElement | null = pre.parentElement;
+            // Tìm paragraph cha gần nhất
+            while (current && current !== temp && current.tagName !== 'P') {
+                current = current.parentElement;
+            }
+            
+            if (current && current.tagName === 'P') {
+                // Code block nằm trong paragraph, cần tách ra
+                const p = current;
+                const preClone = pre.cloneNode(true) as HTMLElement;
+                
+                // Tách paragraph thành: phần trước + pre + phần sau
+                const fragment = document.createDocumentFragment();
+                
+                // Phần trước pre
+                const beforeNodes: Node[] = [];
+                let node = p.firstChild;
+                while (node && node !== pre) {
+                    const next = node.nextSibling;
+                    beforeNodes.push(node.cloneNode(true));
+                    node = next;
+                }
+                
+                if (beforeNodes.length > 0) {
+                    const beforeText = beforeNodes.map(n => n.textContent || '').join('').trim();
+                    if (beforeText) {
+                        const pBefore = document.createElement('p');
+                        beforeNodes.forEach(n => pBefore.appendChild(n));
+                        fragment.appendChild(pBefore);
+                    }
+                }
+                
+                // Thêm pre
+                fragment.appendChild(preClone);
+                
+                // Phần sau pre
+                const afterNodes: Node[] = [];
+                node = pre.nextSibling;
+                while (node) {
+                    const next = node.nextSibling;
+                    afterNodes.push(node.cloneNode(true));
+                    node = next;
+                }
+                
+                if (afterNodes.length > 0) {
+                    const afterText = afterNodes.map(n => n.textContent || '').join('').trim();
+                    if (afterText) {
+                        const pAfter = document.createElement('p');
+                        afterNodes.forEach(n => pAfter.appendChild(n));
+                        fragment.appendChild(pAfter);
+                    }
+                }
+                
+                // Thay thế paragraph
+                p.replaceWith(fragment);
+            }
+        });
+        
+        // 3. Tìm các <code> elements không có <pre> wrapper và có nhiều dòng -> convert thành code block
+        const allCode = Array.from(temp.querySelectorAll('code'));
+        allCode.forEach((code) => {
+            const parent = code.parentElement;
+            const textContent = code.textContent || '';
+            const hasNewlines = textContent.includes('\n');
+            const isLongCode = textContent.length > 50;
+            
+            // Nếu code nằm trong paragraph và có vẻ là code block (nhiều dòng hoặc dài)
+            if (parent && parent.tagName === 'P' && (hasNewlines || isLongCode)) {
+                // Check xem đã có pre wrapper chưa (code không nằm trong pre)
+                const hasPreWrapper = code.closest('pre') !== null;
+                if (!hasPreWrapper) {
+                    // Tạo pre wrapper
+                    const pre = document.createElement('pre');
+                    const codeClone = code.cloneNode(true) as HTMLElement;
+                    pre.appendChild(codeClone);
+                    
+                    // Tách paragraph
+                    const p = parent;
+                    const beforeText = p.textContent?.substring(0, p.textContent.indexOf(code.textContent || '')) || '';
+                    const afterText = p.textContent?.substring(p.textContent.indexOf(code.textContent || '') + (code.textContent?.length || 0)) || '';
+                    
+                    const fragment = document.createDocumentFragment();
+                    if (beforeText.trim()) {
+                        const pBefore = document.createElement('p');
+                        pBefore.textContent = beforeText.trim();
+                        fragment.appendChild(pBefore);
+                    }
+                    fragment.appendChild(pre);
+                    if (afterText.trim()) {
+                        const pAfter = document.createElement('p');
+                        pAfter.textContent = afterText.trim();
+                        fragment.appendChild(pAfter);
+                    }
+                    
+                    p.replaceWith(fragment);
+                }
+            }
+        });
+        
+        // 4. Đảm bảo tất cả <pre> đều có <code> bên trong
+        const allPreFinal = temp.querySelectorAll('pre');
+        allPreFinal.forEach((pre) => {
+            if (!pre.querySelector('code')) {
+                const code = document.createElement('code');
+                while (pre.firstChild) {
+                    code.appendChild(pre.firstChild);
+                }
+                pre.appendChild(code);
+            }
+        });
+        
+        // 5. Loại bỏ empty paragraphs
+        const allP = temp.querySelectorAll('p');
+        allP.forEach((p) => {
+            const text = p.textContent || '';
+            if (!text.trim() && !p.querySelector('img, br, code')) {
+                p.remove();
+            }
+        });
+        
+        // 6. Loại bỏ whitespace thừa ở đầu/cuối code blocks
+        const allPreClean = temp.querySelectorAll('pre');
+        allPreClean.forEach((pre) => {
+            const code = pre.querySelector('code');
+            if (code) {
+                // Loại bỏ text nodes trống ở đầu
+                while (code.firstChild && 
+                       code.firstChild.nodeType === Node.TEXT_NODE && 
+                       !code.firstChild.textContent?.trim()) {
+                    const first = code.firstChild;
+                    if (first) code.removeChild(first);
+                }
+                // Loại bỏ <br> ở đầu
+                while (code.firstChild && code.firstChild.nodeName === 'BR') {
+                    const first = code.firstChild;
+                    if (first) code.removeChild(first);
+                }
+                // Loại bỏ text nodes trống ở cuối
+                while (code.lastChild && 
+                       code.lastChild.nodeType === Node.TEXT_NODE && 
+                       !code.lastChild.textContent?.trim()) {
+                    const last = code.lastChild;
+                    if (last) code.removeChild(last);
+                }
+                // Loại bỏ <br> ở cuối
+                while (code.lastChild && code.lastChild.nodeName === 'BR') {
+                    const last = code.lastChild;
+                    if (last) code.removeChild(last);
+                }
+            }
+        });
+        
+        return temp.innerHTML;
+    };
+
     // Helper: convert markdown/plain text -> HTML (including GFM, line breaks)
     const renderHtmlFromContent = (raw: string): string => {
         const trimmed = (raw || '').trim();
         if (!trimmed) return '';
         let html = marked.parse(trimmed, { breaks: true, gfm: true });
+        
+        // Fix: Normalize code blocks - loại bỏ leading/trailing whitespace và normalize indentation
+        html = (html as string).replace(
+          /<pre><code([^>]*)>([\s\S]*?)<\/code><\/pre>/g,
+          (match, codeAttributes, codeContent) => {
+            // Extract class="language-xxx" từ codeAttributes để preserve
+            const langMatch = codeAttributes.match(/class=["']([^"']*language-([^"'\s]+)[^"']*)["']/);
+            const langClass = langMatch ? langMatch[1] : '';
+            
+            // Fix heading tags trong code blocks (nếu có)
+            let fixedContent = codeContent
+              .replace(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/g, (_hMatch: string, hText: string) => {
+                return hText;
+              });
+            
+            // Normalize whitespace:
+            // 1. Split thành các dòng
+            const lines = fixedContent.split('\n');
+            
+            // 2. Loại bỏ leading/trailing empty lines
+            let startIdx = 0;
+            let endIdx = lines.length - 1;
+            while (startIdx < lines.length && lines[startIdx].trim() === '') startIdx++;
+            while (endIdx >= startIdx && lines[endIdx].trim() === '') endIdx--;
+            
+            if (startIdx > endIdx) {
+              const codeTag = langClass ? `<code class="${langClass}"></code>` : '<code></code>';
+              return `<pre>${codeTag}</pre>`;
+            }
+            
+            const codeLines = lines.slice(startIdx, endIdx + 1);
+            
+            // 3. Giữ nguyên code như trong DB (không normalize indentation)
+            // Chỉ normalize empty lines
+            const normalizedLines = codeLines.map((line: string) => {
+              // Nếu là dòng trống hoàn toàn, trả về empty string
+              if (line.trim() === '') return '';
+              // Giữ nguyên line với tất cả indentation
+              return line;
+            });
+            
+            fixedContent = normalizedLines.join('\n');
+            
+            // 4. Loại bỏ multiple empty lines liên tiếp
+            fixedContent = fixedContent.replace(/\n{3,}/g, '\n\n');
+            
+            // Preserve language class nếu có
+            const codeTag = langClass ? `<code class="${langClass}">` : '<code>';
+            return `<pre>${codeTag}${fixedContent}</code></pre>`;
+          }
+        );
+        
+        // Convert structured data patterns thành tables
+        html = convertStructuredDataToTables(html as string);
+        
         // Remove stray tags like </tên_gói> that AI might emit
         html = (html as string).replace(/<\/?tên_gói>/gi, '');
         return html;
@@ -182,12 +836,27 @@ export function LessonModal({
             // Set content vào editor sau khi DOM đã render
             setTimeout(() => {
                 if (lessonForm.content_type === 'document' && documentEditorRef.current) {
-                    documentEditorRef.current.innerHTML = renderHtmlFromContent(contentToLoad);
-                    console.log('[LessonModal] Set content to document editor:', contentToLoad);
+                    // Content từ DB là HTML, hiển thị trực tiếp (không cần convert markdown)
+                    // Chỉ convert nếu là markdown (có dấu hiệu markdown)
+                    const isMarkdown = /^#{1,6}\s|^\*\*|^```|^\s*[-*+]\s/.test(contentToLoad.trim());
+                    let html = isMarkdown ? renderHtmlFromContent(contentToLoad) : contentToLoad;
+                    // Đảm bảo code blocks có class language-xxx
+                    html = ensureCodeBlockLanguage(html);
+                    documentEditorRef.current.innerHTML = html;
+                    // Wrap code blocks với header/body structure
+                    wrapCodeBlocksWithHeader(documentEditorRef.current);
+                    console.log('[LessonModal] Set content to document editor:', { contentToLoad, isMarkdown, html });
                 } else if (descriptionEditorRef.current) {
                     // Dùng cho text, link, video (description)
-                    descriptionEditorRef.current.innerHTML = renderHtmlFromContent(contentToLoad || '');
-                    console.log('[LessonModal] Set content to description editor:', contentToLoad);
+                    // Content từ DB là HTML, hiển thị trực tiếp (không cần convert markdown)
+                    const isMarkdown = /^#{1,6}\s|^\*\*|^```|^\s*[-*+]\s/.test((contentToLoad || '').trim());
+                    let html = isMarkdown ? renderHtmlFromContent(contentToLoad || '') : (contentToLoad || '');
+                    // Đảm bảo code blocks có class language-xxx
+                    html = ensureCodeBlockLanguage(html);
+                    descriptionEditorRef.current.innerHTML = html;
+                    // Wrap code blocks với header/body structure
+                    wrapCodeBlocksWithHeader(descriptionEditorRef.current);
+                    console.log('[LessonModal] Set content to description editor:', { contentToLoad, isMarkdown, html });
                 }
             }, 100); // Tăng timeout để đảm bảo DOM đã render
             
@@ -199,7 +868,92 @@ export function LessonModal({
             setPdfUploadProgress(0);
             setIsUploadingPdf(false);
         }
-    }, [isOpen, lessonForm.title, lessonForm.content, lessonForm.content_type, editingLesson?.id]);
+    }, [isOpen, lessonForm.content, lessonForm.content_type, editingLesson?.id]);
+
+    // Effect: Wrap code blocks khi content thay đổi trong editor (debounced)
+    useEffect(() => {
+        if (!isOpen) return;
+        
+        const timeoutId = setTimeout(() => {
+            if (lessonForm.content_type === 'document' && documentEditorRef.current) {
+                wrapCodeBlocksWithHeader(documentEditorRef.current);
+            } else if (descriptionEditorRef.current) {
+                wrapCodeBlocksWithHeader(descriptionEditorRef.current);
+            }
+        }, 300); // Debounce 300ms
+        
+        return () => clearTimeout(timeoutId);
+    }, [content, isOpen, lessonForm.content_type]);
+    
+    // Đóng menu khi click bên ngoài
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+                setShowMoreMenu(false);
+            }
+            if (floatingToolbarRef.current && !floatingToolbarRef.current.contains(event.target as Node)) {
+                setShowFloatingToolbar(false);
+            }
+        };
+        
+        if (showMoreMenu || showFloatingToolbar) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showMoreMenu, showFloatingToolbar]);
+
+    // Effect: Hiển thị floating toolbar khi có text selection
+    useEffect(() => {
+        if (!isOpen) return;
+        
+        const editor = getCurrentEditor();
+        if (!editor) return;
+        
+        const handleSelectionChange = () => {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) {
+                setShowFloatingToolbar(false);
+                return;
+            }
+            
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString().trim();
+            
+            // Chỉ hiển thị nếu có text được chọn và selection nằm trong editor
+            if (selectedText && editor.contains(range.commonAncestorContainer)) {
+                try {
+                    const rect = range.getBoundingClientRect();
+                    const editorRect = editor.getBoundingClientRect();
+                    
+                    // Tính toán vị trí floating toolbar (phía trên selection)
+                    const top = rect.top + window.scrollY - 50; // 50px phía trên
+                    const left = rect.left + window.scrollX + (rect.width / 2) - 100; // Giữa selection, offset 100px để center toolbar
+                    
+                    setFloatingToolbarPosition({ top, left });
+                    setShowFloatingToolbar(true);
+                } catch (e) {
+                    // Nếu không lấy được rect, ẩn toolbar
+                    setShowFloatingToolbar(false);
+                }
+            } else {
+                setShowFloatingToolbar(false);
+            }
+        };
+        
+        // Listen to selection changes
+        document.addEventListener('selectionchange', handleSelectionChange);
+        editor.addEventListener('mouseup', handleSelectionChange);
+        editor.addEventListener('keyup', handleSelectionChange);
+        
+        return () => {
+            document.removeEventListener('selectionchange', handleSelectionChange);
+            editor.removeEventListener('mouseup', handleSelectionChange);
+            editor.removeEventListener('keyup', handleSelectionChange);
+        };
+    }, [isOpen, lessonForm.content_type]);
 
     if (!isOpen) return null;
 
@@ -245,7 +999,171 @@ export function LessonModal({
     const handleUnorderedList = () => execCommand('insertUnorderedList', undefined, getCurrentEditor());
     const handleOrderedList = () => execCommand('insertOrderedList', undefined, getCurrentEditor());
     const handleBlockquote = () => execCommand('formatBlock', 'blockquote', getCurrentEditor());
-    const handleCode = () => execCommand('formatBlock', 'pre', getCurrentEditor());
+    
+    // Helper: Format code với indentation chuẩn (1 tab = 3 spaces)
+    const formatCode = (code: string): string => {
+        if (!code || !code.trim()) return code;
+        
+        // Normalize tabs thành 3 spaces
+        let normalized = code.replace(/\t/g, '   '); // 1 tab = 3 spaces
+        
+        const lines = normalized.split('\n');
+        let formatted: string[] = [];
+        let indentLevel = 0;
+        const indentSize = 3; // 1 tab = 3 spaces
+        
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            
+            // Preserve empty lines
+            if (!line.trim()) {
+                formatted.push('');
+                continue;
+            }
+            
+            // Tính indent hiện tại từ leading spaces/tabs
+            const leadingWhitespace = line.match(/^(\s*)/)?.[1] || '';
+            const currentIndent = leadingWhitespace.length;
+            
+            // Loại bỏ leading whitespace để xử lý
+            const trimmedLine = line.trim();
+            
+            // Giảm indent nếu gặp closing brackets/braces
+            if (trimmedLine.match(/^[\}\)\]\]]/)) {
+                indentLevel = Math.max(0, indentLevel - 1);
+            }
+            
+            // Format line với indent mới
+            const newIndent = ' '.repeat(indentLevel * indentSize);
+            formatted.push(newIndent + trimmedLine);
+            
+            // Tăng indent nếu gặp opening brackets/braces hoặc Python keywords với :
+            if (trimmedLine.match(/[\{\(\[\[]\s*$/) || // Opening brackets ở cuối
+                (trimmedLine.match(/:\s*$/) && // Python: có : ở cuối
+                 trimmedLine.match(/^\s*(if|elif|else|for|while|def|class|try|except|finally|with|async\s+def)\s+.*:\s*$/))) {
+                indentLevel++;
+            }
+        }
+        
+        return formatted.join('\n');
+    };
+    
+    const handleCode = () => {
+        const editor = getCurrentEditor();
+        if (!editor) return;
+        
+        editor.focus();
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+        
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString();
+        
+        // Detect language tự động từ code (nếu có text được chọn)
+        let detectedLang = selectedText ? detectLanguage(selectedText) : '';
+        
+        // Hỏi ngôn ngữ (có thể skip để dùng auto-detect)
+        const languageInput = prompt(
+            `Nhập ngôn ngữ (ví dụ: python, javascript, java, sql, plsql, html, css, json, bash)\n` +
+            `Để trống để tự động detect từ code: ${detectedLang ? `(phát hiện: ${detectedLang})` : ''}`,
+            detectedLang || ''
+        );
+        
+        // Sử dụng ngôn ngữ được chọn hoặc auto-detect
+        const finalLang = languageInput?.trim() || detectedLang || '';
+        const langClass = finalLang ? ` class="language-${finalLang}"` : '';
+        
+        // Tạo code block HTML
+        const codeContent = selectedText || '// Nhập code của bạn ở đây';
+        const codeBlock = `<pre><code${langClass}>${codeContent}</code></pre>`;
+        
+        // Nếu có text được chọn, thay thế nó
+        if (selectedText) {
+            range.deleteContents();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = codeBlock;
+            const fragment = document.createDocumentFragment();
+            while (tempDiv.firstChild) {
+                fragment.appendChild(tempDiv.firstChild);
+            }
+            range.insertNode(fragment);
+        } else {
+            // Nếu không có text được chọn, chèn code block tại vị trí cursor
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = codeBlock;
+            const fragment = document.createDocumentFragment();
+            while (tempDiv.firstChild) {
+                fragment.appendChild(tempDiv.firstChild);
+            }
+            range.insertNode(fragment);
+        }
+        
+        // Đặt cursor vào trong code block
+        const codeElement = editor.querySelector('pre code:last-of-type');
+        if (codeElement) {
+            const newRange = document.createRange();
+            newRange.selectNodeContents(codeElement);
+            newRange.collapse(false); // Collapse to end
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+        }
+        
+        // Update content state
+        setContent(editor.innerHTML);
+        onFormChange({ ...lessonForm, content: editor.innerHTML });
+        
+        // Wrap code blocks với header/body structure
+        setTimeout(() => {
+            wrapCodeBlocksWithHeader(editor);
+        }, 50);
+    };
+    
+    // Prettier code: Format code đã chọn
+    const handlePrettierCode = () => {
+        const editor = getCurrentEditor();
+        if (!editor) return;
+        
+        editor.focus();
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            toast.error('Vui lòng chọn đoạn code cần format');
+            return;
+        }
+        
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString().trim();
+        
+        if (!selectedText) {
+            toast.error('Vui lòng chọn đoạn code cần format');
+            return;
+        }
+        
+        // Format code với 1 tab = 3 spaces
+        const formatted = formatCode(selectedText);
+        
+        if (formatted === selectedText) {
+            toast.info('Code đã được format đúng');
+            return;
+        }
+        
+        // Thay thế text đã chọn bằng code đã format
+        range.deleteContents();
+        const textNode = document.createTextNode(formatted);
+        range.insertNode(textNode);
+        
+        // Select formatted code
+        const newRange = document.createRange();
+        newRange.selectNodeContents(textNode);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+        
+        // Update content state
+        setContent(editor.innerHTML);
+        onFormChange({ ...lessonForm, content: editor.innerHTML });
+        
+        toast.success('Đã format code!');
+    };
+    
     const handleUndo = () => execCommand('undo', undefined, getCurrentEditor());
     const handleRedo = () => execCommand('redo', undefined, getCurrentEditor());
     const handleHeading1 = () => execCommand('formatBlock', 'h1', getCurrentEditor());
@@ -708,33 +1626,142 @@ export function LessonModal({
 
                                 {/* Document Editor */}
                                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                                    {/* Toolbar cho Document */}
-                                    <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-1 flex-wrap">
+                                    {/* Toolbar cho Document - Chỉ hiển thị các nút thường dùng nhất */}
+                                    <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-1 flex-wrap relative">
+                                        {/* Format cơ bản - Thường dùng nhất */}
                                         <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Đậm" />
                                         <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Nghiêng" />
                                         <ToolbarButton icon={<Underline className="w-4 h-4" />} onClick={handleUnderline} title="Gạch chân" />
-                                        <ToolbarButton icon={<Strikethrough className="w-4 h-4" />} onClick={handleStrikethrough} title="Gạch ngang" />
                                         <ToolbarDivider />
+                                        
+                                        {/* Headings - Thường dùng */}
                                         <ToolbarButton icon={<Heading1 className="w-4 h-4" />} onClick={handleHeading1} title="Heading 1" />
                                         <ToolbarButton icon={<Heading2 className="w-4 h-4" />} onClick={handleHeading2} title="Heading 2" />
                                         <ToolbarButton icon={<Heading3 className="w-4 h-4" />} onClick={handleHeading3} title="Heading 3" />
-                                        <ToolbarButton icon={<Type className="w-4 h-4" />} onClick={handleParagraph} title="Paragraph" />
                                         <ToolbarDivider />
-                                        <ToolbarButton icon={<AlignLeft className="w-4 h-4" />} onClick={handleAlignLeft} title="Căn trái" />
-                                        <ToolbarButton icon={<AlignCenter className="w-4 h-4" />} onClick={handleAlignCenter} title="Căn giữa" />
-                                        <ToolbarButton icon={<AlignRight className="w-4 h-4" />} onClick={handleAlignRight} title="Căn phải" />
-                                        <ToolbarButton icon={<AlignJustify className="w-4 h-4" />} onClick={handleAlignJustify} title="Căn đều" />
-                                        <ToolbarDivider />
+                                        
+                                        {/* Lists - Thường dùng */}
                                         <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Danh sách dấu đầu dòng" />
                                         <ToolbarButton icon={<ListOrdered className="w-4 h-4" />} onClick={handleOrderedList} title="Danh sách đánh số" />
                                         <ToolbarDivider />
+                                        
+                                        {/* Insert - Thường dùng */}
                                         <ToolbarButton icon={<Link className="w-4 h-4" />} onClick={handleInsertLink} title="Chèn liên kết" />
                                         <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Chèn hình ảnh" />
-                                        <ToolbarButton icon={<Code className="w-4 h-4" />} onClick={handleCode} title="Khối mã" />
-                                        <ToolbarButton icon={<Quote className="w-4 h-4" />} onClick={handleBlockquote} title="Trích dẫn" />
+                                        <ToolbarButton icon={<Code className="w-4 h-4" />} onClick={handleCode} title="Khối mã (Code Block)" />
+                                        <ToolbarButton icon={<Sparkles className="w-4 h-4" />} onClick={handlePrettierCode} title="Format code (Prettier)" />
                                         <ToolbarDivider />
+                                        
+                                        {/* Undo/Redo - Thường dùng */}
                                         <ToolbarButton icon={<Undo className="w-4 h-4" />} onClick={handleUndo} title="Hoàn tác" />
                                         <ToolbarButton icon={<Redo className="w-4 h-4" />} onClick={handleRedo} title="Làm lại" />
+                                        
+                                        {/* Menu mở rộng - Gộp các tùy chọn ít dùng */}
+                                        <ToolbarDivider />
+                                        <div className="relative">
+                                            <ToolbarButton 
+                                                icon={<MoreVertical className="w-4 h-4" />} 
+                                                onClick={() => setShowMoreMenu(!showMoreMenu)} 
+                                                title="Thêm tùy chọn" 
+                                            />
+                                            {showMoreMenu && (
+                                                <div 
+                                                    ref={moreMenuRef}
+                                                    className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] py-1"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {/* Format ít dùng */}
+                                                    <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase">Định dạng</div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleStrikethrough();
+                                                            setShowMoreMenu(false);
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                    >
+                                                        <Strikethrough className="w-4 h-4" />
+                                                        <span>Gạch ngang</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleParagraph();
+                                                            setShowMoreMenu(false);
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                    >
+                                                        <Type className="w-4 h-4" />
+                                                        <span>Đoạn văn (Paragraph)</span>
+                                                    </button>
+                                                    
+                                                    <div className="border-t border-gray-200 my-1" />
+                                                    
+                                                    {/* Căn chỉnh */}
+                                                    <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase">Căn chỉnh</div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleAlignLeft();
+                                                            setShowMoreMenu(false);
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                    >
+                                                        <AlignLeft className="w-4 h-4" />
+                                                        <span>Căn trái</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleAlignCenter();
+                                                            setShowMoreMenu(false);
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                    >
+                                                        <AlignCenter className="w-4 h-4" />
+                                                        <span>Căn giữa</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleAlignRight();
+                                                            setShowMoreMenu(false);
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                    >
+                                                        <AlignRight className="w-4 h-4" />
+                                                        <span>Căn phải</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleAlignJustify();
+                                                            setShowMoreMenu(false);
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                    >
+                                                        <AlignJustify className="w-4 h-4" />
+                                                        <span>Căn đều</span>
+                                                    </button>
+                                                    
+                                                    <div className="border-t border-gray-200 my-1" />
+                                                    
+                                                    {/* Chèn ít dùng */}
+                                                    <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase">Chèn</div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleBlockquote();
+                                                            setShowMoreMenu(false);
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                    >
+                                                        <Quote className="w-4 h-4" />
+                                                        <span>Trích dẫn</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Editor Area */}
@@ -743,7 +1770,7 @@ export function LessonModal({
                                             ref={documentEditorRef}
                                             contentEditable
                                             suppressContentEditableWarning
-                                            className="min-h-[400px] outline-none prose prose-sm max-w-none text-gray-700"
+                                            className="min-h-[400px] outline-none prose prose-sm max-w-none text-gray-700 lesson-content"
                                             data-placeholder="Nhập nội dung tài liệu chi tiết..."
                                             onInput={(e) => setContent(e.currentTarget.innerHTML)}
                                         />
@@ -793,11 +1820,21 @@ export function LessonModal({
                                                             level: courseLevel || 'beginner',
                                                         });
                                                         
-                                                        const html = renderHtmlFromContent(result.content);
+                                                        // AI trả về HTML, kiểm tra xem có phải markdown không
+                                                        // Nếu có dấu hiệu markdown (##, **, ```), convert sang HTML
+                                                        // Nếu đã là HTML (có <h1>, <p>, etc.), dùng trực tiếp
+                                                        const isMarkdown = /^#{1,6}\s|^\*\*|^```|^\s*[-*+]\s/.test(result.content.trim());
+                                                        let html = isMarkdown ? renderHtmlFromContent(result.content) : result.content;
+                                                        // Đảm bảo code blocks có class language-xxx
+                                                        html = ensureCodeBlockLanguage(html);
+                                                        
                                                         if (descriptionEditorRef.current) {
                                                             descriptionEditorRef.current.innerHTML = html;
-                                                            setContent(result.content);
-                                                            onFormChange({ ...lessonForm, content: result.content });
+                                                            // Wrap code blocks với header/body structure
+                                                            wrapCodeBlocksWithHeader(descriptionEditorRef.current);
+                                                            // Lưu HTML vào state và form (không phải markdown)
+                                                            setContent(html);
+                                                            onFormChange({ ...lessonForm, content: html });
                                                         }
                                                         
                                                         toast.success('Đã tạo nội dung bằng AI!', { id: 'generate-content' });
@@ -814,21 +1851,142 @@ export function LessonModal({
                                                 {generateLessonContent.isPending ? 'Đang tạo...' : 'Tạo bằng AI'}
                                             </button>
                                         )}
-                                        {/* Toolbar */}
-                                        <div className="flex items-center gap-1 scale-90 origin-right">
+                                        {/* Toolbar - Chỉ hiển thị các nút thường dùng nhất */}
+                                        <div className="flex items-center gap-1 flex-wrap relative">
+                                            {/* Format cơ bản - Thường dùng nhất */}
                                             <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={handleBold} title="Đậm" />
                                             <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={handleItalic} title="Nghiêng" />
                                             <ToolbarButton icon={<Underline className="w-4 h-4" />} onClick={handleUnderline} title="Gạch chân" />
                                             <ToolbarDivider />
+                                            
+                                            {/* Headings - Thường dùng */}
                                             <ToolbarButton icon={<Heading1 className="w-4 h-4" />} onClick={handleHeading1} title="Heading 1" />
                                             <ToolbarButton icon={<Heading2 className="w-4 h-4" />} onClick={handleHeading2} title="Heading 2" />
                                             <ToolbarButton icon={<Heading3 className="w-4 h-4" />} onClick={handleHeading3} title="Heading 3" />
                                             <ToolbarDivider />
-                                            <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Danh sách" />
+                                            
+                                            {/* Lists - Thường dùng */}
+                                            <ToolbarButton icon={<List className="w-4 h-4" />} onClick={handleUnorderedList} title="Danh sách dấu đầu dòng" />
                                             <ToolbarButton icon={<ListOrdered className="w-4 h-4" />} onClick={handleOrderedList} title="Danh sách đánh số" />
                                             <ToolbarDivider />
+                                            
+                                            {/* Insert - Thường dùng */}
                                             <ToolbarButton icon={<Link className="w-4 h-4" />} onClick={handleInsertLink} title="Chèn liên kết" />
                                             <ToolbarButton icon={<Image className="w-4 h-4" />} onClick={handleInsertImage} title="Chèn hình ảnh" />
+                                            <ToolbarButton icon={<Code className="w-4 h-4" />} onClick={handleCode} title="Khối mã (Code Block)" />
+                                            <ToolbarButton icon={<Sparkles className="w-4 h-4" />} onClick={handlePrettierCode} title="Format code (Prettier)" />
+                                            <ToolbarDivider />
+                                            
+                                            {/* Undo/Redo - Thường dùng */}
+                                            <ToolbarButton icon={<Undo className="w-4 h-4" />} onClick={handleUndo} title="Hoàn tác" />
+                                            <ToolbarButton icon={<Redo className="w-4 h-4" />} onClick={handleRedo} title="Làm lại" />
+                                            
+                                            {/* Menu mở rộng - Gộp các tùy chọn ít dùng */}
+                                            <ToolbarDivider />
+                                            <div className="relative">
+                                                <ToolbarButton 
+                                                    icon={<MoreVertical className="w-4 h-4" />} 
+                                                    onClick={() => setShowMoreMenu(!showMoreMenu)} 
+                                                    title="Thêm tùy chọn" 
+                                                />
+                                                {showMoreMenu && (
+                                                    <div 
+                                                        ref={moreMenuRef}
+                                                        className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] py-1"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {/* Format ít dùng */}
+                                                        <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase">Định dạng</div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleStrikethrough();
+                                                                setShowMoreMenu(false);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                        >
+                                                            <Strikethrough className="w-4 h-4" />
+                                                            <span>Gạch ngang</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleParagraph();
+                                                                setShowMoreMenu(false);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                        >
+                                                            <Type className="w-4 h-4" />
+                                                            <span>Đoạn văn (Paragraph)</span>
+                                                        </button>
+                                                        
+                                                        <div className="border-t border-gray-200 my-1" />
+                                                        
+                                                        {/* Căn chỉnh */}
+                                                        <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase">Căn chỉnh</div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleAlignLeft();
+                                                                setShowMoreMenu(false);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                        >
+                                                            <AlignLeft className="w-4 h-4" />
+                                                            <span>Căn trái</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleAlignCenter();
+                                                                setShowMoreMenu(false);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                        >
+                                                            <AlignCenter className="w-4 h-4" />
+                                                            <span>Căn giữa</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleAlignRight();
+                                                                setShowMoreMenu(false);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                        >
+                                                            <AlignRight className="w-4 h-4" />
+                                                            <span>Căn phải</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleAlignJustify();
+                                                                setShowMoreMenu(false);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                        >
+                                                            <AlignJustify className="w-4 h-4" />
+                                                            <span>Căn đều</span>
+                                                        </button>
+                                                        
+                                                        <div className="border-t border-gray-200 my-1" />
+                                                        
+                                                        {/* Chèn ít dùng */}
+                                                        <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase">Chèn</div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleBlockquote();
+                                                                setShowMoreMenu(false);
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                        >
+                                                            <Quote className="w-4 h-4" />
+                                                            <span>Trích dẫn</span>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -838,7 +1996,7 @@ export function LessonModal({
                                         ref={descriptionEditorRef}
                                         contentEditable
                                         suppressContentEditableWarning
-                                        className="min-h-[400px] p-6 outline-none prose prose-sm max-w-none text-gray-700"
+                                        className="min-h-[400px] p-6 outline-none prose prose-sm max-w-none text-gray-700 lesson-content"
                                         data-placeholder={lessonForm.content_type === 'text' ? 'Nhập nội dung bài học...' : 'Nhập mô tả về liên kết...'}
                                         onInput={(e) => setContent(e.currentTarget.innerHTML)}
                                     />
@@ -868,7 +2026,7 @@ export function LessonModal({
                                     ref={descriptionEditorRef}
                                     contentEditable
                                     suppressContentEditableWarning
-                                    className="min-h-[200px] outline-none prose prose-sm max-w-none text-gray-700"
+                                    className="min-h-[200px] outline-none prose prose-sm max-w-none text-gray-700 lesson-content"
                                     data-placeholder="Nhập chi tiết bài học, tài liệu bổ sung..."
                                     onInput={(e) => setContent(e.currentTarget.innerHTML)}
                                 />
@@ -890,11 +2048,55 @@ export function LessonModal({
                         <Button
                             onClick={() => {
                                 // Lấy content trực tiếp từ editor (không dùng state vì có thể chưa sync)
-                                const rawContent = lessonForm.content_type === 'document'
+                                // QUAN TRỌNG: Preserve line breaks trong code blocks
+                                let rawContent = lessonForm.content_type === 'document'
                                     ? (documentEditorRef.current?.innerHTML || '')
                                     : (descriptionEditorRef.current?.innerHTML || '');
                                 
-                                // Sanitize content: loại bỏ các tag rỗng như <br>, <p><br></p>, whitespace only
+                                // Preserve line breaks VÀ indentation trong code blocks
+                                rawContent = rawContent.replace(
+                                  /<pre><code[^>]*>([\s\S]*?)<\/code><\/pre>/g,
+                                  (match, codeContent) => {
+                                    // Thay thế <br> trong code bằng \n
+                                    let fixedCode = codeContent.replace(/<br\s*\/?>/gi, '\n');
+                                    
+                                    // QUAN TRỌNG: Preserve spaces và tabs (indentation)
+                                    fixedCode = fixedCode.replace(/&nbsp;/g, ' ');
+                                    
+                                    // Normalize tabs thành 4 spaces (Python standard)
+                                    fixedCode = fixedCode.replace(/\t/g, '    ');
+                                    
+                                    // Decode HTML entities nhưng preserve \n và spaces
+                                    const lineBreakMarker = '___PRESERVE_LB___';
+                                    const spaceMarker = '___PRESERVE_SPACE___';
+                                    
+                                    // Preserve multiple consecutive spaces (indentation)
+                                    fixedCode = fixedCode.replace(/( {2,})/g, (match: string) => {
+                                      return match.split('').map(() => spaceMarker).join('');
+                                    });
+                                    
+                                    fixedCode = fixedCode.replace(/\n/g, lineBreakMarker);
+                                    
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = fixedCode;
+                                    fixedCode = tempDiv.textContent || tempDiv.innerText || fixedCode;
+                                    
+                                    // Restore spaces và line breaks
+                                    fixedCode = fixedCode.replace(new RegExp(spaceMarker, 'g'), ' ');
+                                    fixedCode = fixedCode.replace(new RegExp(lineBreakMarker, 'g'), '\n');
+                                    
+                                    // Escape HTML để preserve line breaks và spaces
+                                    const escapeHtml = (text: string) => {
+                                      const div = document.createElement('div');
+                                      div.textContent = text;
+                                      return div.innerHTML;
+                                    };
+                                    
+                                    return `<pre><code>${escapeHtml(fixedCode)}</code></pre>`;
+                                  }
+                                );
+                                
+                                // Sanitize và normalize content
                                 const sanitizeContent = (html: string): string => {
                                     if (!html) return '';
                                     // Tạo temporary div để parse HTML
@@ -910,7 +2112,9 @@ export function LessonModal({
                                     return html.trim();
                                 };
                                 
-                                const contentToSave = sanitizeContent(rawContent);
+                                // Normalize content để đảm bảo code blocks không bị merge với text
+                                const normalizedContent = normalizeEditorContent(rawContent);
+                                const contentToSave = sanitizeContent(normalizedContent);
                                 
                                 console.log('[LessonModal] Saving content:', {
                                     content_type: lessonForm.content_type,
@@ -949,6 +2153,34 @@ export function LessonModal({
                     </div>
                 </div>
             </div>
+            
+            {/* Floating Toolbar - Hiển thị khi có text được chọn */}
+            {showFloatingToolbar && (
+                <div
+                    ref={floatingToolbarRef}
+                    className="fixed z-[60] bg-white border border-gray-200 rounded-lg shadow-lg p-1 flex items-center gap-1"
+                    style={{
+                        top: `${floatingToolbarPosition.top}px`,
+                        left: `${floatingToolbarPosition.left}px`,
+                        transform: 'translateX(-50%)'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <ToolbarButton icon={<Bold className="w-4 h-4" />} onClick={() => { handleBold(); setShowFloatingToolbar(false); }} title="Đậm" />
+                    <ToolbarButton icon={<Italic className="w-4 h-4" />} onClick={() => { handleItalic(); setShowFloatingToolbar(false); }} title="Nghiêng" />
+                    <ToolbarButton icon={<Underline className="w-4 h-4" />} onClick={() => { handleUnderline(); setShowFloatingToolbar(false); }} title="Gạch chân" />
+                    <ToolbarDivider />
+                    <ToolbarButton icon={<Heading1 className="w-4 h-4" />} onClick={() => { execCommand('formatBlock', 'h1', getCurrentEditor()); setShowFloatingToolbar(false); }} title="Tiêu đề 1" />
+                    <ToolbarButton icon={<Heading2 className="w-4 h-4" />} onClick={() => { execCommand('formatBlock', 'h2', getCurrentEditor()); setShowFloatingToolbar(false); }} title="Tiêu đề 2" />
+                    <ToolbarButton icon={<Heading3 className="w-4 h-4" />} onClick={() => { execCommand('formatBlock', 'h3', getCurrentEditor()); setShowFloatingToolbar(false); }} title="Tiêu đề 3" />
+                    <ToolbarDivider />
+                    <ToolbarButton icon={<List className="w-4 h-4" />} onClick={() => { handleUnorderedList(); setShowFloatingToolbar(false); }} title="Danh sách" />
+                    <ToolbarButton icon={<ListOrdered className="w-4 h-4" />} onClick={() => { handleOrderedList(); setShowFloatingToolbar(false); }} title="Danh sách có thứ tự" />
+                    <ToolbarDivider />
+                    <ToolbarButton icon={<Code className="w-4 h-4" />} onClick={() => { handleCode(); setShowFloatingToolbar(false); }} title="Khối mã" />
+                    <ToolbarButton icon={<Sparkles className="w-4 h-4" />} onClick={() => { handlePrettierCode(); setShowFloatingToolbar(false); }} title="Format code" />
+                </div>
+            )}
         </div>
     );
 }

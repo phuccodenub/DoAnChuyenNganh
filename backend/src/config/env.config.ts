@@ -150,9 +150,18 @@ export const env = {
   },
 
   // ============================================
-  // AI Configuration (Gemini)
+  // AI Configuration (Multi-Provider: Groq + Gemini)
   // ============================================
   ai: {
+    groq: {
+      apiKey: process.env.GROQ_API_KEY || '',
+      // Groq free tier: 30 requests/min, không giới hạn daily
+      // Model: llama-3.3-70b-versatile (thay thế llama-3.1-70b-versatile đã bị decommissioned)
+      // Các model khác: llama-3.1-8b-instant, mixtral-8x7b-32768
+      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+      temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
+      maxTokens: toInt(process.env.GROQ_MAX_TOKENS, 4096),
+    },
     gemini: {
       apiKey: process.env.GEMINI_API_KEY || '',
       // Free tier models: gemini-2.5-flash (recommended, latest), gemini-1.5-flash, gemini-pro
