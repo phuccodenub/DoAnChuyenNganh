@@ -30,6 +30,38 @@ export class CourseContentService {
   }
 
   // ===================================
+  // HELPER METHODS
+  // ===================================
+
+  /**
+   * Update last_content_update timestamp for a course
+   * Called when course content is modified (lessons, sections, etc.)
+   */
+  private async updateCourseLastContentUpdate(courseId: string): Promise<void> {
+    try {
+      if (!courseId) {
+        logger.warn(`[updateCourseLastContentUpdate] courseId is null/undefined`);
+        return;
+      }
+
+      const { Course } = await import('../../models');
+      const course = await (Course as any).findByPk(courseId);
+      if (course) {
+        const now = new Date();
+        await course.update({
+          last_content_update: now
+        });
+        logger.info(`[updateCourseLastContentUpdate] Successfully updated last_content_update to ${now.toISOString()} for course: ${courseId}`);
+      } else {
+        logger.warn(`[updateCourseLastContentUpdate] Course not found: ${courseId}`);
+      }
+    } catch (error) {
+      logger.error(`[updateCourseLastContentUpdate] Error updating last_content_update for course ${courseId}:`, error);
+      // Don't throw - this is not critical, but log the error
+    }
+  }
+
+  // ===================================
   // SECTION SERVICES
   // ===================================
 
@@ -46,6 +78,10 @@ data: SectionInput
       await this.verifyInstructorAccess(courseId, userId);
 
       const section = await this.repository.createSection(courseId, data) as SectionInstance;
+      
+      // Update course last_content_update khi thêm section mới
+      await this.updateCourseLastContentUpdate(courseId);
+      
       logger.info(`Section created: ${section.id} in course ${courseId}`);
       
       return section;
@@ -121,6 +157,10 @@ data: Partial<SectionInput>
       await this.verifyInstructorAccess(section.course_id, userId);
 
       const updated = await this.repository.updateSection(sectionId, data);
+      
+      // Update course last_content_update khi chỉnh section (title, description, etc.)
+      await this.updateCourseLastContentUpdate(section.course_id);
+      
       logger.info(`Section updated: ${sectionId}`);
       
       return updated;
@@ -144,6 +184,10 @@ data: Partial<SectionInput>
       await this.verifyInstructorAccess(section.course_id, userId);
 
       await this.repository.deleteSection(sectionId);
+      
+      // Update course last_content_update khi xóa section
+      await this.updateCourseLastContentUpdate(section.course_id);
+      
       logger.info(`Section deleted: ${sectionId}`);
       
       return true;
@@ -193,6 +237,10 @@ data: LessonInput
       await this.verifyInstructorAccess(section.course_id, userId);
 
       const lesson = await this.repository.createLesson(sectionId, data) as LessonInstance;
+      
+      // Update course last_content_update khi thêm lesson mới
+      await this.updateCourseLastContentUpdate(section.course_id);
+      
       logger.info(`Lesson created: ${lesson.id} in section ${sectionId}`);
       
       return lesson;
@@ -369,10 +417,39 @@ data: Partial<LessonInput>
         throw new ApiError('Lesson not found', 404);
       }
 
-      const courseId = (lesson as any).section?.course?.id;
+      // Lấy courseId từ lesson - có thể từ section.course.id hoặc section.course_id
+      let courseId = (lesson as any).section?.course?.id;
+      if (!courseId && (lesson as any).section?.course_id) {
+        courseId = (lesson as any).section.course_id;
+      }
+      // Fallback: query trực tiếp từ section nếu không có trong include
+      if (!courseId && (lesson as any).section_id) {
+        const { Section } = await import('../../models');
+        const section = await (Section as any).findByPk((lesson as any).section_id, {
+          attributes: ['course_id']
+        });
+        if (section) {
+          courseId = section.course_id;
+        }
+      }
+
+      if (!courseId) {
+        logger.error(`[updateLesson] Could not find courseId for lesson ${lessonId}`, {
+          hasSection: !!(lesson as any).section,
+          hasSectionCourse: !!(lesson as any).section?.course,
+          sectionId: (lesson as any).section_id
+        });
+        throw new ApiError('Course not found for this lesson', 404);
+      }
+
       await this.verifyInstructorAccess(courseId, userId);
 
       const updated = await this.repository.updateLesson(lessonId, data);
+      
+      // Update course last_content_update khi chỉnh lesson (content, title, description, etc.)
+      await this.updateCourseLastContentUpdate(courseId);
+      logger.info(`[updateLesson] Updated last_content_update for course ${courseId} after updating lesson ${lessonId}`);
+      
       logger.info(`Lesson updated: ${lessonId}`);
       
       return updated;
@@ -396,6 +473,12 @@ data: Partial<LessonInput>
       await this.verifyInstructorAccess(courseId, userId);
 
       await this.repository.deleteLesson(lessonId);
+      
+      // Update course last_content_update khi xóa lesson
+      if (courseId) {
+        await this.updateCourseLastContentUpdate(courseId);
+      }
+      
       logger.info(`Lesson deleted: ${lessonId}`);
       
       return true;

@@ -136,7 +136,16 @@ export const userValidation = {
           throw new Error('Maximum 10 research interests allowed');
         }
         return true;
-      })
+      }),
+    
+    // Blockchain wallet address
+    body('wallet_address')
+      .optional()
+      .isString()
+      .withMessage('Wallet address must be a string')
+      .matches(/^0x[a-fA-F0-9]{40}$/)
+      .withMessage('Wallet address must be a valid Ethereum address (0x followed by 40 hex characters)')
+      .customSanitizer((value: string) => value?.trim().toLowerCase())
   ],
 
   /**

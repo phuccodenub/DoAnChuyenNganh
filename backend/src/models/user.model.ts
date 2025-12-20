@@ -74,6 +74,13 @@ const User = sequelize.define('User', {
   bio: DataTypes.TEXT,
   avatar: DataTypes.TEXT,
   
+  // ===== BLOCKCHAIN =====
+  wallet_address: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    comment: 'Ethereum wallet address để nhận NFT certificates (optional)'
+  },
+  
   // ===== ROLES & STATUS =====
   role: {
     type: DataTypes.ENUM('student', 'instructor', 'admin', 'super_admin'),

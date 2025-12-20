@@ -45,6 +45,8 @@ import { up as extendUserActivityLogsForAdmin, down as revertExtendUserActivityL
 import { up as createSystemSettingsTable, down as dropSystemSettingsTable } from './039-create-system-settings-table';
 import { up as repairUserActivityLogsAdminColumns, down as revertRepairUserActivityLogsAdminColumns } from './040-repair-user-activity-logs-admin-columns';
 import { up as addInstructionsToAssignments, down as removeInstructionsFromAssignments } from './041-add-instructions-to-assignments';
+import { up as addBlockchainFieldsToCertificates, down as removeBlockchainFieldsFromCertificates } from './042-add-blockchain-fields-to-certificates';
+import { up as addWalletAddressToUsers, down as removeWalletAddressFromUsers } from './043-add-wallet-address-to-users';
 
 // Migration interface
 export interface Migration {
@@ -320,6 +322,18 @@ export const migrations: Migration[] = [
     description: 'Add instructions column to assignments table',
     up: addInstructionsToAssignments,
     down: removeInstructionsFromAssignments
+  },
+  {
+    version: '042',
+    description: 'Add blockchain fields to certificates table for NFT integration',
+    up: addBlockchainFieldsToCertificates,
+    down: removeBlockchainFieldsFromCertificates
+  },
+  {
+    version: '043',
+    description: 'Add wallet_address field to users table for blockchain certificate issuance',
+    up: addWalletAddressToUsers,
+    down: removeWalletAddressFromUsers
   }
 ];
 

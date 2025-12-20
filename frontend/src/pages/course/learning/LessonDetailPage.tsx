@@ -1322,10 +1322,19 @@ export function LessonDetailPage() {
       onSuccess: () => {
         toast.success('Đã đánh dấu hoàn thành bài học');
         // Refetch lesson data để cập nhật is_completed status
+        queryClient.invalidateQueries({
+          queryKey: ['lesson', lessonId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['lesson-progress', lessonId],
+        });
         if (courseId) {
           // Invalidate course content để cập nhật progress
           queryClient.invalidateQueries({
             queryKey: QUERY_KEYS.lessons.content(courseId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['course-progress', courseId],
           });
         }
       },
@@ -1480,7 +1489,7 @@ export function LessonDetailPage() {
                     <LessonContentView 
                       key={lesson.id} 
                       lesson={lesson} 
-                      onAutoComplete={undefined}
+                      onAutoComplete={handleMarkComplete}
                     />
                   ) : (
                     <div className="text-center py-8">

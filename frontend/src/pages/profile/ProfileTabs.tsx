@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { Spinner } from '@/components/ui/Spinner';
 import { useUserCertificates } from '@/hooks/useCertificateData';
 import { useAuth } from '@/hooks/useAuth';
+import { WalletConnectButton } from '../../components/wallet/WalletConnectButton';
 
 // --- CONSTANTS ---
 const ACTIVITY_TYPES = {
@@ -284,6 +285,17 @@ export const SettingsTab = ({
           maxLength={500}
         />
         <p className="text-xs text-gray-500 mt-1">{(formData.bio || '').length}/500 ký tự</p>
+      </div>
+
+      {/* Wallet Connect Section */}
+      <div className="pt-4 border-t border-gray-200">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">Kết nối ví Blockchain</h3>
+          <p className="text-xs text-gray-500">
+            Kết nối MetaMask để nhận NFT certificates khi hoàn thành khóa học
+          </p>
+        </div>
+        <WalletConnectButton key={user?.id || 'wallet'} />
       </div>
 
       <div className="flex justify-end pt-4 gap-2">
