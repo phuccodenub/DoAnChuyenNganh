@@ -45,6 +45,7 @@ import { up as extendUserActivityLogsForAdmin, down as revertExtendUserActivityL
 import { up as createSystemSettingsTable, down as dropSystemSettingsTable } from './039-create-system-settings-table';
 import { up as repairUserActivityLogsAdminColumns, down as revertRepairUserActivityLogsAdminColumns } from './040-repair-user-activity-logs-admin-columns';
 import { up as addInstructionsToAssignments, down as removeInstructionsFromAssignments } from './041-add-instructions-to-assignments';
+import { up as createAiChatHistoryTable, down as dropAiChatHistoryTable } from './042-create-ai-chat-history';
 
 // Migration interface
 export interface Migration {
@@ -320,6 +321,12 @@ export const migrations: Migration[] = [
     description: 'Add instructions column to assignments table',
     up: addInstructionsToAssignments,
     down: removeInstructionsFromAssignments
+  },
+  {
+    version: '042',
+    description: 'Create AI chat history table for AI Tutor feature',
+    up: createAiChatHistoryTable,
+    down: dropAiChatHistoryTable
   }
 ];
 

@@ -102,6 +102,13 @@ router.post('/instructor/generate-thumbnail', controller.generateThumbnail);
  */
 router.post('/instructor/generate-lesson-content', controller.generateLessonContent);
 
+/**
+ * @route   POST /ai/test-provider
+ * @desc    Test specific AI provider (for debugging)
+ * @access  Private
+ */
+router.post('/test-provider', controller.testProvider);
+
 export default router;
 
 

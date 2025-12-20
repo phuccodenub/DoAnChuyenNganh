@@ -40,13 +40,15 @@ export class AIService {
   private model: any = null;
 
   constructor() {
-    if (env.ai.gemini.apiKey) {
+    if (env.ai.gemini.apiKeys.length > 0) {
       try {
-        this.genAI = new GoogleGenerativeAI(env.ai.gemini.apiKey);
+        // Use first API key for AIService (orchestrator handles rotation)
+        this.genAI = new GoogleGenerativeAI(env.ai.gemini.apiKeys[0]);
+        // Use flash3 as default model (best quality)
         this.model = this.genAI.getGenerativeModel({ 
-          model: env.ai.gemini.model 
+          model: env.ai.gemini.models.flash3 
         });
-        logger.info(`[AIService] Gemini API initialized successfully (Model: ${env.ai.gemini.model})`);
+        logger.info(`[AIService] Gemini API initialized successfully (Model: ${env.ai.gemini.models.flash3})`);
       } catch (error) {
         logger.error('[AIService] Failed to initialize Gemini API:', error);
       }
@@ -1030,6 +1032,44 @@ Trả về JSON format:
     } catch (error) {
       logger.error('[AIService] Generate lesson content error:', error);
       this.mapGeminiError(error);
+    }
+  }
+
+  /**
+   * Test specific AI provider (for testing/debugging)
+   */
+  async testProvider(message: string, providerName: string): Promise<any> {
+    try {
+      const startTime = Date.now();
+      
+      logger.info(`[AIService] Testing provider: ${providerName}`);
+      
+      // Use AIOrchestrator directly
+      const { AIOrchestrator } = await import('./orchestrator/ai-orchestrator');
+      const orchestrator = new AIOrchestrator();
+      
+      const response = await orchestrator.generate(message, {
+        preferredProvider: providerName,
+        temperature: 0.7,
+        maxTokens: 500,
+      });
+
+      const latency = Date.now() - startTime;
+
+      return {
+        answer: response.text,
+        model: response.model || providerName,
+        latency: `${latency}ms`,
+        responseLatency: `${response.latency}ms`,
+        metadata: {
+          provider: providerName,
+          tier: response.tier,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      logger.error(`[AIService] Test provider ${providerName} error:`, error);
+      throw error;
     }
   }
 }

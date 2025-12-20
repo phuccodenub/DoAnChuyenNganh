@@ -150,20 +150,82 @@ export const env = {
   },
 
   // ============================================
-  // AI Configuration (Gemini)
+  // AI Configuration (Multi-Provider)
   // ============================================
   ai: {
+    // Google AI Studio (Free Tier - Multiple Models)
+    // Strategy: Use 4 models sequentially to maximize RPD (20 RPD each = 80 RPD total)
     gemini: {
-      apiKey: process.env.GEMINI_API_KEY || '',
-      // Free tier models: gemini-2.5-flash (recommended, latest), gemini-1.5-flash, gemini-pro
-      // gemini-2.5-flash: Latest model, optimized for free tier
-      // gemini-1.5-flash: Fast, optimized for free tier, 60 requests/min
-      // gemini-pro: Older model, still available on free tier
-      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      // Multiple API Keys for rotation (20 RPD per key per model)
+      apiKeys: [
+        process.env.GEMINI_API_KEY || '',
+        process.env.GEMINI_API_KEY_2 || '',
+        process.env.GEMINI_API_KEY_3 || '',
+      ].filter(Boolean), // Remove empty keys
+      
       temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
-      // Free tier limit: 32,000 tokens per request (input + output)
-      // Setting maxOutputTokens to 8192 to leave room for input
       maxTokens: toInt(process.env.GEMINI_MAX_TOKENS, 8192),
+      
+      // 3 Core models for LMS (20 RPD each per API key)
+      // Total capacity: 3 keys × 3 models × 20 RPD = 180 RPD
+      models: {
+        // Model 1: gemini-3-flash-preview (Best quality for code/complex tasks)
+        flash3: process.env.GOOGLE_MODEL_3_FLASH || 'gemini-3-flash-preview',
+        
+        // Model 2: gemini-2.5-flash (General purpose)
+        flash25: process.env.GOOGLE_MODEL_2_5_FLASH || 'gemini-2.5-flash',
+        
+        // Model 3: gemini-2.5-flash-lite (Lightweight, fastest for simple queries)
+        flashLite: process.env.GOOGLE_MODEL_2_5_FLASH_LITE || 'gemini-2.5-flash-lite',
+        
+        // TTS Model (separate, for text-to-speech features - counted separately)
+        flashTTS: process.env.GOOGLE_MODEL_2_5_FLASH_TTS || 'gemini-2.5-flash-preview-tts',
+      },
+    },
+    
+    // Groq API (Free Tier) - Multiple models for different tasks
+    groq: {
+      apiKey: process.env.GROQ_API_KEY || '',
+      // Default model for general tasks
+      model: process.env.GROQ_MODEL_DEFAULT || 'llama-3.3-70b-versatile',
+      // Specific models for specialized tasks
+      models: {
+        default: process.env.GROQ_MODEL_DEFAULT || 'llama-3.3-70b-versatile',
+        reasoning: process.env.GROQ_MODEL_REASONING || 'llama-3.3-70b-versatile',
+        math: process.env.GROQ_MODEL_MATH || 'qwen-3-32b',
+        vision: process.env.GROQ_MODEL_VISION || 'llama-4-scout',
+        speech: process.env.GROQ_MODEL_SPEECH || 'whisper-large-v3',
+      },
+      temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
+      maxTokens: toInt(process.env.GROQ_MAX_TOKENS, 2048),
+    },
+    
+    // ProxyPal (Local AI Gateway)
+    // IMPORTANT: Use 127.0.0.1 instead of localhost to avoid IPv6 issues in Node.js 17+
+    proxypal: {
+      baseUrl: process.env.PROXYPAL_BASE_URL || 'http://127.0.0.1:8317/v1',
+      apiKey: process.env.PROXYPAL_API_KEY || 'proxypal-local',
+      enabled: toBool(process.env.PROXYPAL_ENABLED, false),
+      timeout: toInt(process.env.PROXYPAL_TIMEOUT, 60000),
+    },
+    
+    // MegaLLM (Premium - Optional)
+    megalm: {
+      // Multiple API Keys for rotation
+      apiKeys: [
+        process.env.MEGALM_API_KEY || '',
+        process.env.MEGALM_API_KEY_2 || '',
+        process.env.MEGALM_API_KEY_3 || '',
+      ].filter(Boolean), // Remove empty keys
+      baseUrl: process.env.MEGALM_BASE_URL || 'https://api.megallm.com/v1',
+    },
+    
+    // Feature toggles
+    features: {
+      tutorEnabled: toBool(process.env.AI_TUTOR_ENABLED, true),
+      quizGeneratorEnabled: toBool(process.env.AI_QUIZ_GENERATOR_ENABLED, true),
+      graderEnabled: toBool(process.env.AI_GRADER_ENABLED, false),
+      contentRepurposingEnabled: toBool(process.env.AI_CONTENT_REPURPOSING_ENABLED, false),
     },
   },
 

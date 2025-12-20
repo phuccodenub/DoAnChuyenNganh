@@ -392,6 +392,34 @@ export class AIController {
       next(error);
     }
   };
+
+  /**
+   * Test specific AI provider (for testing/debugging)
+   * POST /ai/test-provider
+   */
+  testProvider = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { message, provider } = req.body;
+
+      if (!message || !provider) {
+        return responseUtils.sendValidationError(res, 'message and provider are required');
+      }
+
+      // Test the specific provider
+      const response = await this.aiService.testProvider(message, provider);
+      
+      return responseUtils.success(res, {
+        provider,
+        model: response.model || 'unknown',
+        latency: response.latency,
+        answer: response.answer,
+        metadata: response.metadata,
+      }, `Provider ${provider} tested successfully`);
+    } catch (error) {
+      logger.error(`[AIController] Test provider error:`, error);
+      next(error);
+    }
+  };
 }
 
 

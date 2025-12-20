@@ -30,8 +30,9 @@ import { LiveStreamGateway } from './modules/livestream/livestream.gateway';
 import { NotificationGateway, setNotificationGateway } from './modules/notifications/notifications.gateway';
 import { ConversationGateway, setConversationGateway } from './modules/conversation';
 
-// Import AI Service to check status on startup
+// Import AI Services to check status on startup
 import { AIService } from './modules/ai/ai.service';
+import { AIChatGateway } from './modules/ai/gateways/ai-chat.gateway';
 
 const PORT = process.env.PORT || 3000;
 
@@ -84,6 +85,10 @@ async function startServer() {
     const conversationGateway = new ConversationGateway(io);
     setConversationGateway(conversationGateway);
     
+    // Initialize AI Chat Gateway for AI Tutor
+    const aiChatGateway = new AIChatGateway(io);
+    logger.info('AI Chat Gateway initialized');
+    
     logger.info('Socket.IO gateways initialized');
     
     // Initialize and check AI Service status
@@ -91,7 +96,7 @@ async function startServer() {
     const aiService = new AIService();
     if (aiService.isAvailable()) {
       logger.info('✅ AI Service: Available (Gemini API connected)');
-      logger.info(`   Model: ${process.env.GEMINI_MODEL || 'gemini-1.5-flash'}`);
+      logger.info(`   Model: ${process.env.GEMINI_MODEL || 'gemini-2.5-flash'}`);
     } else {
       logger.warn('⚠️  AI Service: Not available (GEMINI_API_KEY not configured)');
       logger.warn('   To enable AI features, add GEMINI_API_KEY to your .env file');
