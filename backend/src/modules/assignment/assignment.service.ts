@@ -132,7 +132,7 @@ export class AssignmentService {
         notification_type: 'course',
         title: 'Bài tập mới',
         message: `Bài tập "${assignment.title}" đã được thêm vào khóa học "${(course as any).title}"${dueDateStr}`,
-        link_url: `/student/assignments/${assignment.id}`,
+        link_url: `/student/courses/${effectiveCourseId}/assignments/${assignment.id}`,
         priority: 'high',
         category: 'assignment',
         related_resource_type: 'assignment',
@@ -417,12 +417,114 @@ export class AssignmentService {
         }
       }
 
+      // Get student user_id before grading (to ensure we have it for notification)
+      const studentId = (submission as any).user_id;
+
       const graded = await this.repo.grade(submissionId, { ...data, graded_by: graderId });
       logger.info(`Submission graded: ${submissionId} by user ${graderId}`);
+
+      // Send notification to student about grade (in background, don't block response)
+      // Sử dụng graded object (đã có score và feedback mới) thay vì submission cũ
+      const submissionForNotification = graded || submission;
+      
+      // Đảm bảo có score và feedback từ data nếu graded không có
+      if (!submissionForNotification.score && data.score !== undefined) {
+        (submissionForNotification as any).score = data.score;
+      }
+      if (!submissionForNotification.feedback && data.feedback) {
+        (submissionForNotification as any).feedback = data.feedback;
+      }
+      
+      this.notifyStudentAboutGrade(submissionForNotification, assignment!, graderId, studentId).catch((err) => {
+        logger.error(`Error sending grade notification: ${err}`);
+      });
+
       return graded;
     } catch (error: unknown) {
       logger.error(`Error grading submission: ${error}`);
       throw error;
+    }
+  }
+
+  /**
+   * Send notification to student about their grade
+   */
+  private async notifyStudentAboutGrade(
+    submission: any,
+    assignment: any,
+    graderId: string,
+    studentId?: string
+  ): Promise<void> {
+    try {
+      // Get student user_id from submission or parameter
+      const userId = studentId || (submission as any).user_id || (submission as any).student?.id;
+      if (!userId) {
+        logger.warn(`Cannot send grade notification: No user_id found in submission ${submission.id}`);
+        return;
+      }
+
+      // Resolve course_id giống các luồng khác (hỗ trợ assignment gắn theo section)
+      const resolvedCourseId = assignment.course_id ?? await this.resolveCourseIdFromSection((assignment as any)?.section_id);
+      if (!resolvedCourseId) {
+        logger.warn(`Cannot send grade notification: No course_id found for assignment ${assignment.id}`);
+        return;
+      }
+
+      // Get course info for link
+      const { Course } = await import('../../models');
+      const course = await Course.findByPk(resolvedCourseId);
+      if (!course) {
+        logger.warn(`Cannot send grade notification: Course ${resolvedCourseId} not found`);
+        return;
+      }
+
+      // Get grader info (optional)
+      const { User } = await import('../../models');
+      const grader = await User.findByPk(graderId, {
+        attributes: ['first_name', 'last_name'],
+        raw: true
+      });
+
+      // Format score message - đảm bảo score là number
+      const scoreValue = submission.score !== undefined && submission.score !== null
+        ? Number(submission.score)
+        : null;
+      const scoreText = scoreValue !== null && !isNaN(scoreValue)
+        ? `Điểm: ${scoreValue.toFixed(2)}/${assignment.max_score}`
+        : 'Chưa có điểm số';
+
+      // Format feedback preview (first 100 chars)
+      let feedbackPreview = '';
+      if (submission.feedback) {
+        const preview = submission.feedback.length > 100
+          ? submission.feedback.substring(0, 100) + '...'
+          : submission.feedback;
+        feedbackPreview = `\n\nNhận xét: ${preview}`;
+      }
+
+      // Create notification
+      const { NotificationsService } = await import('../notifications/notifications.service');
+      const notificationService = new NotificationsService();
+
+      logger.info(`[Grade Notification] Creating notification for student ${userId}, assignment ${assignment.id}`);
+
+      const notification = await notificationService.create(graderId, {
+        notification_type: 'grade_posted',
+        title: 'Bài tập đã được chấm',
+        message: `Bài tập "${assignment.title}" của bạn đã được chấm. ${scoreText}${feedbackPreview}`,
+        link_url: `/student/courses/${resolvedCourseId}/assignments/${assignment.id}`,
+        priority: 'high',
+        category: 'grade',
+        related_resource_type: 'assignment',
+        related_resource_id: assignment.id,
+        recipient_ids: [userId],
+        is_broadcast: false
+      });
+
+      logger.info(`[Grade Notification] ✅ Notification created: ${notification.id}, sent to student ${userId} for assignment ${assignment.id}`);
+    } catch (error) {
+      logger.error(`Failed to send grade notification: ${error}`);
+      // Don't throw - this is a background task
     }
   }
 

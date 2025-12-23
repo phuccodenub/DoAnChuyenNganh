@@ -13,9 +13,25 @@ import {
   AlertCircle,
   ClipboardList,
   Bookmark,
-  BookmarkCheck
+  BookmarkCheck,
+  Copy,
+  Check
 } from 'lucide-react';
 import { marked } from 'marked';
+// Prism.js for syntax highlighting
+import Prism from 'prismjs';
+import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-c';
+import 'prismjs/components/prism-cpp';
+import 'prismjs/components/prism-csharp';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-markdown';
+import 'prismjs/components/prism-bash';
+import { MainLayout } from '@/layouts/MainLayout';
 import { PageWrapper } from '@/components/courseEditor';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -49,6 +65,128 @@ function getVideoProxyUrl(videoUrl: string): string {
   }
   // Return original URL for YouTube, Vimeo, or other sources
   return videoUrl;
+}
+
+/**
+ * Convert structured data patterns thành HTML tables
+ * Detects patterns like:
+ * - **Toán Tử:** `+=` | **Ví dụ:** `x += 5` | **Tương đương với:** `x = x + 5`
+ */
+function convertStructuredDataToTables(html: string): string {
+  // Detect pattern: các đoạn có format giống bảng
+  // Pattern: **Toán Tử:** `+=` | **Ví dụ:** `x += 5` | **Tương đương với:** `x = x + 5`
+  
+  // Group các dòng liên tiếp có cùng pattern thành table
+  const lines = html.split('\n');
+  const tableGroups: Array<{ start: number; end: number; headers: string[]; rows: string[][] }> = [];
+  let currentGroup: { start: number; headers: string[]; rows: string[][] } | null = null;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Detect dòng có format: **Label:** value | **Label:** value | ...
+    const parts = line.split('|').map(p => p.trim()).filter(p => p);
+    const hasTablePattern = parts.length >= 2 && parts.some(p => /\*\*[^*]+\*\*:/.test(p));
+    
+    if (hasTablePattern) {
+      // Extract headers từ dòng đầu tiên
+      if (!currentGroup) {
+        const headers: string[] = [];
+        parts.forEach(part => {
+          const labelMatch = part.match(/\*\*([^*]+)\*\*:/);
+          if (labelMatch) {
+            headers.push(labelMatch[1].trim());
+          }
+        });
+        
+        if (headers.length > 0) {
+          currentGroup = {
+            start: i,
+            headers: headers,
+            rows: []
+          };
+        }
+      }
+      
+      // Extract row data
+      if (currentGroup) {
+        const row: string[] = [];
+        parts.forEach(part => {
+          const valueMatch = part.match(/\*\*[^*]+\*\*:\s*(.+)/);
+          if (valueMatch) {
+            row.push(valueMatch[1].trim());
+          }
+        });
+        
+        if (row.length === currentGroup.headers.length) {
+          currentGroup.rows.push(row);
+        }
+      }
+    } else {
+      // Kết thúc group nếu có
+      if (currentGroup && currentGroup.rows.length > 0) {
+        tableGroups.push({
+          start: currentGroup.start,
+          end: i - 1,
+          headers: currentGroup.headers,
+          rows: currentGroup.rows
+        });
+      }
+      currentGroup = null;
+    }
+  }
+  
+  // Kết thúc group cuối cùng
+  if (currentGroup && currentGroup.rows.length > 0) {
+    tableGroups.push({
+      start: currentGroup.start,
+      end: lines.length - 1,
+      headers: currentGroup.headers,
+      rows: currentGroup.rows
+    });
+  }
+  
+  // Convert các groups thành tables (từ cuối lên để không làm lệch index)
+  let result = html;
+  for (let g = tableGroups.length - 1; g >= 0; g--) {
+    const group = tableGroups[g];
+    const { headers, rows } = group;
+    
+    // Build HTML table
+    let tableHtml = '<table><thead><tr>';
+    headers.forEach(header => {
+      tableHtml += `<th>${header}</th>`;
+    });
+    tableHtml += '</tr></thead><tbody>';
+    
+    rows.forEach(row => {
+      tableHtml += '<tr>';
+      row.forEach(cell => {
+        // Preserve code formatting và các formatting khác
+        const cellContent = cell
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        tableHtml += `<td>${cellContent}</td>`;
+      });
+      tableHtml += '</tr>';
+    });
+    
+    tableHtml += '</tbody></table>';
+    
+    // Replace trong HTML (tính toán vị trí chính xác)
+    const beforeLines = lines.slice(0, group.start);
+    const afterLines = lines.slice(group.end + 1);
+    const beforeText = beforeLines.join('\n');
+    const afterText = afterLines.join('\n');
+    
+    result = beforeText + (beforeText ? '\n' : '') + tableHtml + (afterText ? '\n' : '') + afterText;
+    
+    // Update lines array để tiếp tục xử lý
+    lines.splice(group.start, group.end - group.start + 1, tableHtml);
+  }
+  
+  return result;
 }
 
 /**
@@ -279,17 +417,318 @@ function LessonContentView({ lesson, onAutoComplete }: { lesson: LessonDetail; o
     const contentRef = useRef<HTMLDivElement>(null);
     const hasAutoCompletedRef = useRef(false);
     
+    // Helper: Normalize code blocks để đảm bảo comment # Ví dụ X: không bị parse thành heading
+    const normalizeCodeBlocks = (text: string): string => {
+      if (!text) return text;
+      
+      // Tìm tất cả code blocks (```...```)
+      const codeBlockRegex = /```([\w-]*)\n([\s\S]*?)```/g;
+      const normalized = text;
+      let match;
+      
+      while ((match = codeBlockRegex.exec(text)) !== null) {
+        const [fullMatch, lang, code] = match;
+        // Nếu code block có comment bắt đầu bằng # Ví dụ X: ở dòng đầu tiên
+        // Đảm bảo nó được giữ nguyên trong code block
+        const lines = code.split('\n');
+        const firstLine = lines[0]?.trim() || '';
+        
+        // Nếu dòng đầu là comment # Ví dụ X: nhưng không có trong code block đúng cách
+        // Thì không cần làm gì vì đã nằm trong code block rồi
+        // Vấn đề có thể là khi parse markdown, nó bị escape hoặc parse sai
+        // Nên ta đảm bảo code block được wrap đúng
+        if (firstLine.startsWith('# Ví dụ') && !fullMatch.includes(firstLine)) {
+          // Code block đã đúng format, không cần sửa
+          continue;
+        }
+      }
+      
+      return normalized;
+    };
+
     // Set innerHTML trực tiếp vào DOM element (hỗ trợ Markdown)
     useEffect(() => {
       if (contentRef.current && contentToRender) {
         // Clear content trước khi set để tránh hiển thị giá trị cũ
         contentRef.current.innerHTML = '';
         const raw = contentToRender.trim();
+        
+        // Normalize code blocks trước khi parse
+        const normalized = normalizeCodeBlocks(raw);
+        
         // Luôn parse qua markdown để thống nhất format (kể cả khi có sẵn HTML)
-        let html = marked.parse(raw, { breaks: true, gfm: true });
+        // QUAN TRỌNG: breaks: true để preserve line breaks trong code blocks
+        let html = marked.parse(normalized, { 
+          breaks: true, 
+          gfm: true
+        }) as string;
+        
+        // Fix: Normalize code blocks - QUAN TRỌNG: preserve line breaks
+        html = (html as string).replace(
+          /<pre><code[^>]*>([\s\S]*?)<\/code><\/pre>/g,
+          (match, codeContent) => {
+            // Debug: log để kiểm tra code content
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[LessonDetailPage] Code content before processing:', {
+                hasNewlines: codeContent.includes('\n'),
+                newlineCount: (codeContent.match(/\n/g) || []).length,
+                length: codeContent.length,
+                preview: codeContent.substring(0, 200)
+              });
+            }
+            
+            // QUAN TRỌNG: Preserve line breaks VÀ indentation (tabs/spaces) từ đầu
+            // Nếu codeContent đã có \n, giữ nguyên
+            // Nếu codeContent có <br>, convert thành \n
+            let fixedContent = codeContent
+              .replace(/<br\s*\/?>/gi, '\n')
+              .replace(/&lt;br\s*\/?&gt;/gi, '\n');
+            
+            // QUAN TRỌNG: Preserve spaces và tabs
+            // Thay thế &nbsp; bằng space thật (không phải non-breaking space)
+            // Nhưng cần preserve multiple spaces (indentation)
+            fixedContent = fixedContent.replace(/&nbsp;/g, ' ');
+            
+            // Preserve tabs: convert &nbsp;&nbsp;&nbsp;&nbsp; (4 spaces) thành tab nếu có pattern
+            // Hoặc giữ nguyên tabs nếu có \t
+            fixedContent = fixedContent.replace(/\t/g, '    '); // Normalize tabs thành 4 spaces
+            
+            // Decode HTML entities nhưng preserve \n và spaces
+            // Thay thế \n và multiple spaces tạm thời bằng markers
+            const lineBreakMarker = '___PRESERVE_LINE_BREAK___';
+            const spaceMarker = '___PRESERVE_SPACE___';
+            
+            // Preserve multiple consecutive spaces (indentation)
+            fixedContent = fixedContent.replace(/( {2,})/g, (match: string) => {
+              return match.split('').map(() => spaceMarker).join('');
+            });
+            
+            fixedContent = fixedContent.replace(/\n/g, lineBreakMarker);
+            
+            // Decode HTML entities
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = fixedContent;
+            fixedContent = tempDiv.textContent || tempDiv.innerText || fixedContent;
+            
+            // Restore line breaks và spaces
+            fixedContent = fixedContent.replace(new RegExp(spaceMarker, 'g'), ' ');
+            fixedContent = fixedContent.replace(new RegExp(lineBreakMarker, 'g'), '\n');
+            
+            // Fix heading tags trong code blocks (nếu có)
+            fixedContent = fixedContent
+              .replace(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/g, (_hMatch: string, hText: string) => {
+                return hText;
+              });
+            
+            // Nếu code không có line breaks nhưng có vẻ là multi-line code (có keywords Python)
+            // Thử restore line breaks dựa trên syntax patterns
+            if (!fixedContent.includes('\n') && fixedContent.length > 50) {
+              // Thử detect và restore line breaks dựa trên Python syntax
+              // Pattern: def, if, for, while, try, except, with thường có : và line break sau đó
+              const pythonPatterns = [
+                /(def\s+\w+\s*\([^)]*\):)([^\n]+)/g,  // def function(): code
+                /(if\s+[^:]+:)([^\n]+)/g,              // if condition: code
+                /(elif\s+[^:]+:)([^\n]+)/g,            // elif condition: code
+                /(else\s*:)([^\n]+)/g,                 // else: code
+                /(for\s+[^:]+:)([^\n]+)/g,             // for item in items: code
+                /(while\s+[^:]+:)([^\n]+)/g,           // while condition: code
+                /(try\s*:)([^\n]+)/g,                  // try: code
+                /(except\s+[^:]+:)([^\n]+)/g,          // except Error: code
+                /(with\s+[^:]+:)([^\n]+)/g,            // with open(...): code
+                /(return\s+[^\n]+)([a-z])/gi,          // return value tiếp theo là chữ thường (có thể là dòng mới)
+              ];
+              
+              let restored = fixedContent;
+              pythonPatterns.forEach(pattern => {
+                restored = restored.replace(pattern, (match: string, p1: string, p2: string) => {
+                  // Nếu p2 không phải là whitespace và không bắt đầu bằng keyword, thêm line break
+                  if (p2 && !p2.trim().match(/^(def|if|elif|else|for|while|try|except|with|return|import|from)\s/)) {
+                    return p1 + '\n    ' + p2; // Thêm indentation
+                  }
+                  return match;
+                });
+              });
+              
+              // Chỉ dùng restored nếu nó có line breaks
+              if (restored.includes('\n')) {
+                fixedContent = restored;
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[LessonDetailPage] Đã restore line breaks cho code block');
+                }
+              } else {
+                // Không thể restore, log warning
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn('[LessonDetailPage] Code block không có line breaks, không thể tự động restore');
+                }
+              }
+            }
+            
+            // Normalize whitespace:
+            // 1. Split thành các dòng - đảm bảo preserve line breaks
+            const lines = fixedContent.split(/\r?\n/);
+            
+            // 2. Loại bỏ leading/trailing empty lines
+            let startIdx = 0;
+            let endIdx = lines.length - 1;
+            while (startIdx < lines.length && lines[startIdx].trim() === '') startIdx++;
+            while (endIdx >= startIdx && lines[endIdx].trim() === '') endIdx--;
+            
+            if (startIdx > endIdx) {
+              return `<pre><code></code></pre>`;
+            }
+            
+            const codeLines = lines.slice(startIdx, endIdx + 1);
+            
+            // 3. Giữ nguyên code như trong DB - QUAN TRỌNG: preserve line breaks VÀ indentation
+            // Không normalize indentation, giữ nguyên tabs/spaces
+            const normalizedLines = codeLines.map((line: string) => {
+              if (line.trim() === '') return '';
+              // Preserve toàn bộ line bao gồm leading spaces/tabs (indentation)
+              return line;
+            });
+            
+            // Join lại với \n để preserve line breaks
+            fixedContent = normalizedLines.join('\n');
+            
+            // 4. Loại bỏ multiple empty lines liên tiếp
+            fixedContent = fixedContent.replace(/\n{3,}/g, '\n\n');
+            
+            // Escape HTML để đảm bảo code được hiển thị đúng
+            // QUAN TRỌNG: \n sẽ được CSS white-space: pre preserve
+            const escapeHtml = (text: string) => {
+              const div = document.createElement('div');
+              div.textContent = text;
+              return div.innerHTML;
+            };
+            
+            // Return với escaped HTML - \n sẽ được preserve bởi white-space: pre
+            return `<pre><code>${escapeHtml(fixedContent)}</code></pre>`;
+          }
+        );
+        
+        // Convert structured data patterns thành tables (trước khi set innerHTML)
+        html = convertStructuredDataToTables(html);
+        
         // Loại bỏ các tag lạ còn sót (ví dụ </tên_gói> do AI sinh)
-        html = (html as string).replace(/<\/?tên_gói>/gi, '');
+        html = html.replace(/<\/?tên_gói>/gi, '');
         contentRef.current.innerHTML = html;
+        
+        // Wrap code blocks với header và body structure
+        // Chỉ select các pre chưa được wrap (không nằm trong .code-block-body)
+        const preElements = contentRef.current.querySelectorAll('pre:not(.code-block-body pre)');
+        preElements.forEach((pre) => {
+          // Kiểm tra xem đã được wrap chưa - check cả parent và grandparent
+          if (pre.parentElement?.classList.contains('code-block-wrapper') || 
+              pre.parentElement?.classList.contains('code-block-body') ||
+              pre.closest('.code-block-wrapper')) {
+            return;
+          }
+
+          const code = pre.querySelector('code');
+          if (!code) return;
+
+          const codeText = code.textContent || '';
+          
+          // Detect language
+          let language = '';
+          const existingClass = code.className.match(/language-(\w+)/);
+          if (existingClass) {
+            language = existingClass[1];
+          } else {
+            // Detect language từ code content - Ưu tiên Python (có thể có {} và : trong dictionary)
+            if (codeText.includes('def ') || codeText.includes('import ') || codeText.includes('print(') || 
+                codeText.includes('if __name__') || codeText.includes('class ') || codeText.includes('lambda ') ||
+                codeText.includes('my_dict') || codeText.includes('dict(') || 
+                codeText.match(/["'][\w\s]+["']\s*:/) || // Dictionary pattern: "key": value
+                codeText.match(/\w+\s*=\s*\{.*\}/)) { // Variable assignment with {}
+              language = 'python';
+            } else if (codeText.includes('function ') || codeText.includes('const ') || codeText.includes('let ') || codeText.includes('console.')) {
+              language = 'javascript';
+            } else if (codeText.includes('public class') || codeText.includes('public static') || codeText.includes('System.out')) {
+              language = 'java';
+            } else if (codeText.includes('#include') || codeText.includes('int main')) {
+              language = 'cpp';
+            } else if (codeText.includes('using ') && codeText.includes('namespace')) {
+              language = 'cpp';
+            } else if (codeText.includes('using System') || codeText.includes('namespace ')) {
+              language = 'csharp';
+            } else if (codeText.trim().startsWith('{') && codeText.includes('"') && !codeText.includes('def ') && !codeText.includes('function ')) {
+              language = 'json';
+            } else if (codeText.includes('#!/bin/bash') || codeText.includes('#!/bin/sh')) {
+              language = 'bash';
+            } else if (codeText.match(/^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\s+/i) || 
+                       codeText.includes('BEGIN') || codeText.includes('END;') || codeText.includes('DECLARE')) {
+              language = 'sql';
+            } else if ((codeText.includes('{') && codeText.includes('}') && codeText.includes(':')) &&
+                       (codeText.match(/^[.#]?\w+\s*\{/) || codeText.match(/^\w+\s*\{/) || codeText.includes('@media') || codeText.includes('@keyframes'))) {
+              language = 'css';
+            }
+          }
+
+          // Set language class
+          if (language) {
+            code.className = `language-${language}`;
+          }
+
+          // Tạo wrapper
+          const wrapper = document.createElement('div');
+          wrapper.className = 'code-block-wrapper';
+
+          // Tạo header
+          const header = document.createElement('div');
+          header.className = 'code-block-header';
+          
+          // Language label
+          const langLabel = document.createElement('span');
+          langLabel.className = 'code-block-lang';
+          langLabel.textContent = language || 'code';
+          // Thêm class để style khác khi không có ngôn ngữ
+          if (!language) {
+            langLabel.classList.add('code-block-lang-unknown');
+          }
+          
+          // Copy button
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'code-block-copy-btn';
+          copyBtn.setAttribute('aria-label', 'Copy code');
+          copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+          
+          // Copy functionality
+          copyBtn.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(codeText);
+              copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+              copyBtn.classList.add('copied');
+              setTimeout(() => {
+                copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                copyBtn.classList.remove('copied');
+              }, 2000);
+            } catch (err) {
+              console.error('Failed to copy:', err);
+            }
+          });
+
+          header.appendChild(langLabel);
+          header.appendChild(copyBtn);
+
+          // Tạo body
+          const body = document.createElement('div');
+          body.className = 'code-block-body';
+          body.appendChild(pre.cloneNode(true));
+
+          // Wrap structure
+          wrapper.appendChild(header);
+          wrapper.appendChild(body);
+
+          // Replace pre với wrapper
+          pre.replaceWith(wrapper);
+
+          // Highlight code trong body
+          const newCode = body.querySelector('code');
+          if (newCode && language) {
+            Prism.highlightElement(newCode as HTMLElement);
+          }
+        });
       }
     }, [contentToRender]);
 
@@ -886,10 +1325,19 @@ export function LessonDetailPage() {
       onSuccess: () => {
         toast.success('Đã đánh dấu hoàn thành bài học');
         // Refetch lesson data để cập nhật is_completed status
+        queryClient.invalidateQueries({
+          queryKey: ['lesson', lessonId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['lesson-progress', lessonId],
+        });
         if (courseId) {
           // Invalidate course content để cập nhật progress
           queryClient.invalidateQueries({
             queryKey: QUERY_KEYS.lessons.content(courseId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['course-progress', courseId],
           });
         }
       },
@@ -1039,7 +1487,7 @@ export function LessonDetailPage() {
                     <LessonContentView 
                       key={lesson.id} 
                       lesson={lesson} 
-                      onAutoComplete={undefined}
+                      onAutoComplete={handleMarkComplete}
                     />
                   ) : (
                     <div className="text-center py-8">

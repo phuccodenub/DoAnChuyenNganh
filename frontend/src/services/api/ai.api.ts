@@ -125,11 +125,15 @@ export const aiApi = {
     assignmentId: string;
     submissionId: string;
     submissionContent: string;
+    fileUrls?: string[];
+    studentName?: string;
     assignmentInstructions: string;
     rubric?: any;
     maxScore?: number;
   }): Promise<any> => {
-    const res = await apiClient.post<{ data: any }>('/ai/instructor/generate-feedback', payload);
+    const res = await apiClient.post<{ data: any }>('/ai/instructor/generate-feedback', payload, {
+      timeout: 120000, // 120 seconds (2 minutes) for file reading and AI processing
+    });
     return res.data.data;
   },
 

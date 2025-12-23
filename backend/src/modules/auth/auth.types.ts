@@ -30,6 +30,7 @@ export interface UpdateProfileData {
   phone?: string;
   bio?: string;
   avatar?: string;
+  wallet_address?: string; // Ethereum wallet address for NFT certificates
 }
 
 export interface UserProfile {

@@ -355,16 +355,20 @@ export class AIController {
    */
   generateFeedback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { assignmentId, submissionId, submissionContent, assignmentInstructions, rubric, maxScore } = req.body;
+      const { assignmentId, submissionId, submissionContent, fileUrls, studentName, assignmentInstructions, rubric, maxScore } = req.body;
 
       if (!assignmentId || !submissionId || !submissionContent || !assignmentInstructions) {
         return responseUtils.sendValidationError(res, 'assignmentId, submissionId, submissionContent, and assignmentInstructions are required');
       }
 
+      logger.info(`[AIController] Generate feedback request - fileUrls: ${fileUrls ? JSON.stringify(fileUrls) : 'none'}, count: ${fileUrls?.length || 0}, studentName: ${studentName || 'none'}`);
+
       const request: GenerateFeedbackRequest = {
         assignmentId,
         submissionId,
         submissionContent,
+        fileUrls: fileUrls || [], // Ensure it's an array
+        studentName, // Tên học viên để AI sử dụng đúng
         assignmentInstructions,
         rubric,
         maxScore,

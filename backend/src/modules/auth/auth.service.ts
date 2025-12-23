@@ -354,6 +354,8 @@ export class AuthModuleService {
       // Support both 'avatar' and 'avatar_url' from frontend
       if (data.avatar !== undefined) allowedUpdates.avatar = data.avatar;
       if ((data as any).avatar_url !== undefined) allowedUpdates.avatar = (data as any).avatar_url;
+      // Blockchain wallet address
+      if (data.wallet_address !== undefined) allowedUpdates.wallet_address = data.wallet_address.toLowerCase();
 
       // Update user
       const updatedUser = await this.authRepository.update(userId, allowedUpdates);

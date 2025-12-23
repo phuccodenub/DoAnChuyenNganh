@@ -135,13 +135,18 @@ export const getGradesRoute = (courseId: string, role?: UserRole | null): string
 
 /**
  * Get the appropriate livestream management route based on role
- * Both admin and instructor can manage livestreams
+ * Both admin and instructor can manage livestreams.
+ *
+ * NOTE:
+ * - Ban đầu admin bị redirect về dashboard để tránh vào workspace instructor.
+ * - Tuy nhiên, UI quản lý livestream hiện tại chỉ tồn tại ở phía instructor.
+ * - Để admin vẫn dùng được full tính năng livestream, ta cho admin dùng chung
+ *   route `/instructor/livestream` thay vì đẩy về `/admin/dashboard`.
  */
 export const getLivestreamRoute = (role?: UserRole | null): string => {
-  // Livestream hiện tại chỉ có route instructor, cần thêm route admin nếu cần
-  // Tạm thời: Admin redirect về dashboard, instructor đi đến livestream
   if (isAdminRole(role)) {
-    return ROUTES.ADMIN.DASHBOARD;
+    // Admin dùng chung trang quản lý livestream với instructor
+    return ROUTES.INSTRUCTOR.LIVESTREAM;
   }
   return ROUTES.INSTRUCTOR.LIVESTREAM;
 };
@@ -151,7 +156,8 @@ export const getLivestreamRoute = (role?: UserRole | null): string => {
  */
 export const getLivestreamCreateRoute = (role?: UserRole | null): string => {
   if (isAdminRole(role)) {
-    return ROUTES.ADMIN.DASHBOARD;
+    // Admin dùng chung trang tạo livestream với instructor
+    return ROUTES.INSTRUCTOR.LIVESTREAM_CREATE;
   }
   return ROUTES.INSTRUCTOR.LIVESTREAM_CREATE;
 };

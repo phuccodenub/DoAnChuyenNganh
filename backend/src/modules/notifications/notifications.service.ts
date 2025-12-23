@@ -3,6 +3,7 @@ import { CreateNotificationDto, QueryNotificationsDto, BulkNotificationDto, Bulk
 import { NotificationInstance } from '../../types/model.types';
 import { ApiError } from '../../errors';
 import { getNotificationGateway, NotificationPayload } from './notifications.gateway';
+import logger from '../../utils/logger.util';
 
 export class NotificationsService {
   private repo: NotificationsRepository;
@@ -15,6 +16,13 @@ export class NotificationsService {
    * Build NotificationPayload for real-time emit
    */
   private buildPayload(notification: NotificationInstance, sender?: { id: string; first_name: string; last_name: string; avatar?: string } | null): NotificationPayload {
+    // Serialize created_at to ISO string for Socket.IO
+    const createdAt = notification.created_at instanceof Date 
+      ? notification.created_at.toISOString()
+      : typeof notification.created_at === 'string'
+        ? notification.created_at
+        : new Date().toISOString();
+    
     return {
       id: notification.id,
       notification_type: notification.notification_type,
@@ -26,7 +34,7 @@ export class NotificationsService {
       related_resource_type: notification.related_resource_type ?? undefined,
       related_resource_id: notification.related_resource_id ?? undefined,
       metadata: notification.metadata as Record<string, unknown> | undefined,
-      created_at: notification.created_at,
+      created_at: createdAt,
       sender: sender ?? null
     };
   }
@@ -62,7 +70,30 @@ export class NotificationsService {
     }
 
     // Emit real-time notification
-    const payload = this.buildPayload(notification);
+    // Get sender info if senderId is provided
+    let senderInfo: { id: string; first_name: string; last_name: string; avatar?: string } | null = null;
+    if (senderId) {
+      try {
+        const { User } = await import('../../models');
+        const sender = await User.findByPk(senderId, {
+          attributes: ['id', 'first_name', 'last_name', 'avatar_url'],
+          raw: true
+        });
+        if (sender) {
+          senderInfo = {
+            id: (sender as any).id,
+            first_name: (sender as any).first_name,
+            last_name: (sender as any).last_name,
+            avatar: (sender as any).avatar_url || undefined
+          };
+        }
+      } catch (error) {
+        logger.warn(`Failed to fetch sender info for notification: ${error}`);
+      }
+    }
+    
+    const payload = this.buildPayload(notification, senderInfo);
+    logger.info(`[NotificationsService] Emitting notification ${notification.id} to ${recipient_ids.length} recipients`);
     this.emitToRecipients(payload, recipient_ids, dto.is_broadcast ?? false);
 
     return notification;

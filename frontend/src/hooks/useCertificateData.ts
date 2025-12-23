@@ -110,6 +110,25 @@ export function useIssueCertificate() {
 }
 
 /**
+ * Issue certificate to blockchain mutation
+ */
+export function useIssueCertificateToBlockchain() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => certificateApi.issueCertificateToBlockchain(id),
+    onSuccess: (data, certificateId) => {
+      queryClient.invalidateQueries({ queryKey: ['certificates', certificateId] });
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
+      toast.success('Đã phát hành chứng chỉ lên blockchain testnet thành công!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Không thể phát hành chứng chỉ lên blockchain');
+    },
+  });
+}
+
+/**
  * Revoke certificate mutation (Admin)
  */
 export function useRevokeCertificate() {
@@ -124,6 +143,24 @@ export function useRevokeCertificate() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Không thể thu hồi chứng chỉ');
+    },
+  });
+}
+
+/**
+ * Delete certificate mutation (Admin)
+ */
+export function useDeleteCertificate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => certificateApi.deleteCertificate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
+      toast.success('Đã xóa chứng chỉ thành công');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Không thể xóa chứng chỉ');
     },
   });
 }

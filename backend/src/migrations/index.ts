@@ -45,9 +45,13 @@ import { up as extendUserActivityLogsForAdmin, down as revertExtendUserActivityL
 import { up as createSystemSettingsTable, down as dropSystemSettingsTable } from './039-create-system-settings-table';
 import { up as repairUserActivityLogsAdminColumns, down as revertRepairUserActivityLogsAdminColumns } from './040-repair-user-activity-logs-admin-columns';
 import { up as addInstructionsToAssignments, down as removeInstructionsFromAssignments } from './041-add-instructions-to-assignments';
+// AI Features migrations (from AI_IMPLEMENT branch)
 import { up as createAiChatHistoryTable, down as dropAiChatHistoryTable } from './042-create-ai-chat-history';
 import createAILessonAnalysis from './043-create-ai-lesson-analysis';
 import createAIAnalysisQueue from './044-create-ai-analysis-queue';
+// Blockchain features migrations (from dev/backend branch)
+import { up as addBlockchainFieldsToCertificates, down as removeBlockchainFieldsFromCertificates } from './045-add-blockchain-fields-to-certificates';
+import { up as addWalletAddressToUsers, down as removeWalletAddressFromUsers } from './046-add-wallet-address-to-users';
 
 // Migration interface
 export interface Migration {
@@ -324,6 +328,7 @@ export const migrations: Migration[] = [
     up: addInstructionsToAssignments,
     down: removeInstructionsFromAssignments
   },
+  // AI Features migrations
   {
     version: '042',
     description: 'Create AI chat history table for AI Tutor feature',
@@ -341,6 +346,19 @@ export const migrations: Migration[] = [
     description: 'Create AI analysis queue table for background processing',
     up: createAIAnalysisQueue.up,
     down: createAIAnalysisQueue.down
+  },
+  // Blockchain features migrations
+  {
+    version: '045',
+    description: 'Add blockchain fields to certificates table for NFT integration',
+    up: addBlockchainFieldsToCertificates,
+    down: removeBlockchainFieldsFromCertificates
+  },
+  {
+    version: '046',
+    description: 'Add wallet_address field to users table for blockchain certificate issuance',
+    up: addWalletAddressToUsers,
+    down: removeWalletAddressFromUsers
   }
 ];
 

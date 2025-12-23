@@ -59,6 +59,39 @@ const Certificate = sequelize.define('Certificate', {
     unique: true,
     comment: 'SHA-256 hash của certificate (Mock Blockchain) - Không thể fake'
   },
+  // Real Blockchain Integration (NFT)
+  blockchain_token_id: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    unique: false,
+    comment: 'NFT Token ID trên blockchain (từ smart contract)'
+  },
+  blockchain_tx_hash: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    unique: false,
+    comment: 'Transaction hash của việc issue certificate trên blockchain'
+  },
+  blockchain_network: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: 'Blockchain network (mumbai, sepolia, hardhat, etc.)'
+  },
+  blockchain_contract_address: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    comment: 'Smart contract address trên blockchain'
+  },
+  blockchain_explorer_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    comment: 'URL để view certificate trên blockchain explorer (Polygonscan, Etherscan)'
+  },
+  blockchain_opensea_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    comment: 'URL để view certificate trên OpenSea (testnet hoặc mainnet)'
+  },
   
   // ===== METADATA SNAPSHOT =====
   metadata: {

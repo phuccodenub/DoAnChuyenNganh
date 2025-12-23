@@ -75,16 +75,97 @@ export function useUpdateProgress() {
   return useMutation({
     mutationFn: ({ lessonId, data }: { lessonId: string; data: UpdateProgressPayload }) =>
       lessonApi.updateProgress(lessonId, data),
+    onMutate: async ({ lessonId, data }) => {
+      // Nếu completion_percentage = 100, thực hiện optimistic update
+      const isCompleting = data.completion_percentage === 100;
+
+      if (!isCompleting) {
+        return { previousLesson: null, previousCourseContents: [] };
+      }
+
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.lessons.detail(lessonId) });
+
+      // Snapshot previous values
+      const previousLesson = queryClient.getQueryData<LessonDetail>(QUERY_KEYS.lessons.detail(lessonId));
+
+      // Optimistically update lesson detail
+      if (previousLesson) {
+        queryClient.setQueryData<LessonDetail>(QUERY_KEYS.lessons.detail(lessonId), {
+          ...previousLesson,
+          is_completed: true,
+        });
+      }
+
+      // Optimistically update course content caches
+      const previousCourseContents: Array<{ courseId: string; data: CourseContent | undefined }> = [];
+      
+      // Tìm tất cả course content queries và cập nhật
+      queryClient.getQueryCache().findAll({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return Array.isArray(key) && key[0] === 'lessons' && key[1] === 'content' && key[2];
+        },
+      }).forEach((query) => {
+        const courseId = (query.queryKey as any[])[2] as string;
+        const previousData = queryClient.getQueryData<CourseContent>(query.queryKey);
+        
+        if (previousData) {
+          previousCourseContents.push({ courseId, data: previousData });
+          
+          // Cập nhật lesson trong sections
+          const updatedData: CourseContent = {
+            ...previousData,
+            sections: previousData.sections.map((section) => ({
+              ...section,
+              lessons: (section.lessons || []).map((lesson) =>
+                lesson.id === lessonId
+                  ? { ...lesson, is_completed: true }
+                  : lesson
+              ),
+            })),
+          };
+          
+          queryClient.setQueryData<CourseContent>(query.queryKey, updatedData);
+        }
+      });
+
+      return { previousLesson, previousCourseContents };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousLesson) {
+        queryClient.setQueryData(QUERY_KEYS.lessons.detail(variables.lessonId), context.previousLesson);
+      }
+      
+      if (context?.previousCourseContents) {
+        context.previousCourseContents.forEach(({ courseId, data }) => {
+          if (data) {
+            queryClient.setQueryData(QUERY_KEYS.lessons.content(courseId), data);
+          }
+        });
+      }
+    },
     onSuccess: (data, variables) => {
       // Invalidate lesson progress
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.lessons.progress(variables.lessonId),
       });
 
-      // Invalidate course content to update progress indicators
+      // Invalidate course content to ensure consistency (sẽ refetch nếu cần)
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.lessons.contentAll,
       });
+
+      // Invalidate course progress queries (nếu có completion_percentage = 100)
+      if (variables.data.completion_percentage === 100) {
+        queryClient.invalidateQueries({
+          predicate: (query) => {
+            const key = query.queryKey;
+            return Array.isArray(key) && key[0] === 'courses' && key[2] === 'progress';
+          },
+        });
+      }
     },
   });
 }

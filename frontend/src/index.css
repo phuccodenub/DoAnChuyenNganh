@@ -2,6 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom styles for notification toasts */
+.notification-toast {
+  @apply rounded-lg shadow-lg;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Custom scrollbar for notification panel */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -291,14 +327,90 @@
   color: #374151; /* gray-700 */
 }
 
-.lesson-content ul,
-.lesson-content ol {
-  margin: 0.75rem 0 0.75rem 1.25rem;
-  padding-left: 1.25rem;
+/* Unordered lists (ul) - Danh sách có dấu đầu dòng */
+.lesson-content ul {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+  list-style-position: outside;
 }
 
-.lesson-content li {
+.lesson-content ul li {
+  margin: 0.5rem 0;
+  padding-left: 0.5rem;
+  line-height: 1.6;
+  color: #374151; /* gray-700 */
+}
+
+/* Nested unordered lists */
+.lesson-content ul ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style-type: circle;
+}
+
+.lesson-content ul ul ul {
+  list-style-type: square;
+}
+
+/* Ordered lists (ol) - Danh sách có số thứ tự */
+.lesson-content ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style-type: decimal;
+  list-style-position: outside;
+}
+
+.lesson-content ol li {
+  margin: 0.5rem 0;
+  padding-left: 0.5rem;
+  line-height: 1.6;
+  color: #374151; /* gray-700 */
+}
+
+/* Nested ordered lists */
+.lesson-content ol ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style-type: lower-alpha;
+}
+
+.lesson-content ol ol ol {
+  list-style-type: lower-roman;
+}
+
+/* Mixed lists */
+.lesson-content ul ol,
+.lesson-content ol ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+/* Styling cho các phần tử bên trong list items */
+.lesson-content li strong {
+  font-weight: 600;
+  color: #111827; /* gray-900 */
+}
+
+.lesson-content li code {
+  background: #f4f4f5;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+}
+
+.lesson-content li p {
   margin: 0.25rem 0;
+  display: inline;
+}
+
+.lesson-content li p:first-child {
+  margin-top: 0;
+}
+
+.lesson-content li p:last-child {
+  margin-bottom: 0;
 }
 
 .lesson-content strong {
@@ -312,10 +424,856 @@
   font-size: 0.95em;
 }
 
-.lesson-content pre {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+.lesson-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  background: white;
   border-radius: 8px;
-  padding: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.lesson-content table thead {
+  background: #f8fafc;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.lesson-content table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lesson-content table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.lesson-content table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.lesson-content table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.lesson-content table code {
+  background: #f4f4f5;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+}
+
+/* Code block wrapper - Container chính */
+.code-block-wrapper {
+  background: #2d2d2d; /* Dark background cho Prism theme */
+  border: 1px solid #3d3d3d;
+  border-radius: 8px;
+  margin: 0.75rem 0;
+  overflow: hidden; /* Ẩn overflow để header không bị scroll */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Code block header - Cố định, không scroll */
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #1e1e1e; /* Darker background cho header */
+  border-bottom: 1px solid #3d3d3d;
+  flex-shrink: 0; /* Không co lại khi scroll */
+  z-index: 10;
+}
+
+/* Language label trong header */
+.code-block-lang {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  text-transform: lowercase;
+  font-weight: 500;
+}
+
+/* Màu sáng hơn cho header khi không xác định được ngôn ngữ */
+.code-block-lang-unknown {
+  color: #e5e7eb !important; /* Light gray - nổi bật trên nền dark */
+  font-weight: 600 !important;
+}
+
+/* Copy button trong header */
+.code-block-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid #3d3d3d;
+  border-radius: 4px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.code-block-copy-btn:hover {
+  background: #2d2d2d;
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+.code-block-copy-btn.copied {
+  color: #4ade80;
+  border-color: #4ade80;
+}
+
+.code-block-copy-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Code block body - Có thể scroll độc lập */
+.code-block-body {
   overflow: auto;
+  flex: 1;
+  /* Custom scrollbar cho code blocks */
+  scrollbar-width: thin;
+  scrollbar-color: #555 #2d2d2d;
+}
+
+.code-block-body::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.code-block-body::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 4px;
+}
+
+.code-block-body::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+  border: 1px solid #1e1e1e;
+}
+
+.code-block-body::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Pre element trong body - Reset styles */
+.code-block-body pre {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 1rem;
+  margin: 0;
+  overflow: visible; /* Body sẽ handle scroll */
+  position: relative;
+  text-align: left;
+  direction: ltr;
+}
+
+/* Legacy support - Giữ nguyên styles cho pre không có wrapper */
+.lesson-content pre:not(.code-block-body pre) {
+  background: #2d2d2d; /* Dark background cho Prism theme */
+  border: 1px solid #3d3d3d;
+  border-radius: 8px;
+  padding: 0; /* Reset padding để code element tự quản lý */
+  padding-top: 3rem; /* Tăng padding-top để đảm bảo có đủ chỗ cho language label (0.5rem top + ~1rem label height + 1.5rem space) */
+  padding-bottom: 1.5rem; /* Thêm padding-bottom để code không bị che bởi scrollbar */
+  padding-left: 0;
+  padding-right: 0;
+  overflow: auto;
+  margin: 0.75rem 0;
+  position: relative; /* Để đặt language label */
+  /* Đảm bảo code block có alignment chuẩn */
+  text-align: left;
+  direction: ltr;
+  /* Custom scrollbar cho code blocks */
+  scrollbar-width: thin;
+  scrollbar-color: #555 #2d2d2d;
+}
+
+/* Language label cho code block - Hiển thị tên ngôn ngữ ở góc trên trái */
+/* Đảm bảo pre có position relative để label hiển thị đúng */
+.lesson-content pre,
+.lesson-content pre code[class*="language-"],
+[contentEditable="true"] pre,
+[contentEditable="true"].lesson-content pre,
+.lesson-content [contentEditable="true"] pre {
+  position: relative !important;
+}
+
+/* Language label - Specificity cao để override các style khác */
+.lesson-content pre code[class*="language-"]::before,
+[contentEditable="true"] pre code[class*="language-"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-"]::before,
+.prose pre code[class*="language-"]::before,
+.prose.lesson-content pre code[class*="language-"]::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0.1rem !important;
+  font-size: 0.75rem !important;
+  color: #9ca3af !important;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+  text-transform: lowercase !important;
+  font-weight: 500 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Extract language name từ class="language-xxx" - Dynamic approach với !important */
+.lesson-content pre code[class*="language-python"]::before,
+[contentEditable="true"] pre code[class*="language-python"]::before,
+.prose pre code[class*="language-python"]::before { content: 'python' !important; }
+
+.lesson-content pre code[class*="language-javascript"]::before,
+[contentEditable="true"] pre code[class*="language-javascript"]::before,
+.prose pre code[class*="language-javascript"]::before { content: 'javascript' !important; }
+
+.lesson-content pre code[class*="language-typescript"]::before,
+[contentEditable="true"] pre code[class*="language-typescript"]::before,
+.prose pre code[class*="language-typescript"]::before { content: 'typescript' !important; }
+
+.lesson-content pre code[class*="language-java"]::before,
+[contentEditable="true"] pre code[class*="language-java"]::before,
+.prose pre code[class*="language-java"]::before { content: 'java' !important; }
+
+.lesson-content pre code[class*="language-cpp"]::before,
+[contentEditable="true"] pre code[class*="language-cpp"]::before,
+.prose pre code[class*="language-cpp"]::before { content: 'cpp' !important; }
+
+.lesson-content pre code[class*="language-c"]::before,
+[contentEditable="true"] pre code[class*="language-c"]::before,
+.prose pre code[class*="language-c"]::before { content: 'c' !important; }
+
+.lesson-content pre code[class*="language-csharp"]::before,
+[contentEditable="true"] pre code[class*="language-csharp"]::before,
+.prose pre code[class*="language-csharp"]::before { content: 'csharp' !important; }
+
+.lesson-content pre code[class*="language-html"]::before,
+[contentEditable="true"] pre code[class*="language-html"]::before,
+.prose pre code[class*="language-html"]::before { content: 'html' !important; }
+
+.lesson-content pre code[class*="language-css"]::before,
+[contentEditable="true"] pre code[class*="language-css"]::before,
+.prose pre code[class*="language-css"]::before { content: 'css' !important; }
+
+.lesson-content pre code[class*="language-json"]::before,
+[contentEditable="true"] pre code[class*="language-json"]::before,
+.prose pre code[class*="language-json"]::before { content: 'json' !important; }
+
+.lesson-content pre code[class*="language-bash"]::before,
+[contentEditable="true"] pre code[class*="language-bash"]::before,
+.prose pre code[class*="language-bash"]::before { content: 'bash' !important; }
+
+.lesson-content pre code[class*="language-sql"]::before,
+[contentEditable="true"] pre code[class*="language-sql"]::before,
+.prose pre code[class*="language-sql"]::before { content: 'sql' !important; }
+
+.lesson-content pre code[class*="language-plsql"]::before,
+[contentEditable="true"] pre code[class*="language-plsql"]::before,
+.prose pre code[class*="language-plsql"]::before { content: 'plsql' !important; }
+
+.lesson-content pre code[class*="language-markdown"]::before,
+[contentEditable="true"] pre code[class*="language-markdown"]::before,
+.prose pre code[class*="language-markdown"]::before { content: 'markdown' !important; }
+
+/* Language label cho editor (contentEditable) - Cải thiện selector để chắc chắn hoạt động */
+[contentEditable="true"] pre,
+[contentEditable="true"].lesson-content pre,
+.lesson-content [contentEditable="true"] pre {
+  position: relative;
+}
+
+[contentEditable="true"] pre code[class*="language-"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-"]::before {
+  content: '';
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  text-transform: lowercase;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Language labels cho editor - Tất cả các selector */
+[contentEditable="true"] pre code[class*="language-python"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-python"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-python"]::before { content: 'python'; }
+
+[contentEditable="true"] pre code[class*="language-javascript"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-javascript"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-javascript"]::before { content: 'javascript'; }
+
+[contentEditable="true"] pre code[class*="language-typescript"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-typescript"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-typescript"]::before { content: 'typescript'; }
+
+[contentEditable="true"] pre code[class*="language-java"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-java"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-java"]::before { content: 'java'; }
+
+[contentEditable="true"] pre code[class*="language-cpp"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-cpp"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-cpp"]::before { content: 'cpp'; }
+
+[contentEditable="true"] pre code[class*="language-c"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-c"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-c"]::before { content: 'c'; }
+
+[contentEditable="true"] pre code[class*="language-csharp"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-csharp"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-csharp"]::before { content: 'csharp'; }
+
+[contentEditable="true"] pre code[class*="language-html"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-html"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-html"]::before { content: 'html'; }
+
+[contentEditable="true"] pre code[class*="language-css"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-css"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-css"]::before { content: 'css'; }
+
+[contentEditable="true"] pre code[class*="language-json"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-json"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-json"]::before { content: 'json'; }
+
+[contentEditable="true"] pre code[class*="language-bash"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-bash"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-bash"]::before { content: 'bash'; }
+
+[contentEditable="true"] pre code[class*="language-sql"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-sql"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-sql"]::before { content: 'sql'; }
+
+[contentEditable="true"] pre code[class*="language-plsql"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-plsql"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-plsql"]::before { content: 'plsql'; }
+
+[contentEditable="true"] pre code[class*="language-markdown"]::before,
+[contentEditable="true"].lesson-content pre code[class*="language-markdown"]::before,
+.lesson-content [contentEditable="true"] pre code[class*="language-markdown"]::before { content: 'markdown'; }
+
+/* Custom scrollbar cho code blocks (Webkit browsers) */
+.lesson-content pre::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.lesson-content pre::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 4px;
+  margin: 0 0.5rem;
+}
+
+.lesson-content pre::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+  border: 1px solid #1e1e1e;
+}
+
+.lesson-content pre::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+.lesson-content pre::-webkit-scrollbar-corner {
+  background: #1e1e1e;
+}
+
+/* Code element trong body */
+.code-block-body pre code {
+  display: block;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre;
+  overflow-x: auto;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  tab-size: 4;
+  -moz-tab-size: 4;
+  text-align: left;
+  direction: ltr;
+  margin: 0;
+  word-wrap: normal;
+  word-break: normal;
+  min-width: 0;
+  color: #f0f0f0; /* Sáng hơn - từ #e0e0e0 lên #f0f0f0 để nổi bật hơn */
+}
+
+/* Đảm bảo code không có language class vẫn có màu sáng */
+.code-block-body pre code:not([class*="language-"]) {
+  color: #f5f5f5 !important; /* Màu trắng sáng cho code không có syntax highlighting */
+}
+
+/* Ẩn language label trong body - chỉ hiển thị ở header */
+.code-block-body pre code[class*="language-"]::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Legacy support - Code element trong pre không có wrapper */
+.lesson-content pre:not(.code-block-body pre) code {
+  display: block;
+  padding: 1rem;
+  padding-top: 1.5rem; /* Tăng padding-top để code không đè lên label (pre có padding-top: 3rem, label ở top: 0.5rem với height ~1rem, cần ít nhất 1.5rem từ top của pre) */
+  background: transparent;
+  border-radius: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  /* Preserve whitespace và indentation */
+  white-space: pre;
+  overflow-x: auto;
+  /* Font monospace để đảm bảo alignment chuẩn */
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  /* Tab size: 4 spaces (chuẩn cho Python và nhiều ngôn ngữ) */
+  tab-size: 4;
+  -moz-tab-size: 4;
+  /* Đảm bảo text alignment */
+  text-align: left;
+  direction: ltr;
+  /* Loại bỏ mọi margin/padding có thể ảnh hưởng */
+  margin: 0;
+  /* Preserve formatting */
+  word-wrap: normal;
+  word-break: normal;
+  /* Đảm bảo code không bị sát lề trái - thêm một chút space nếu cần */
+  min-width: 0;
+}
+
+/* Prism.js syntax highlighting styles */
+.lesson-content pre code[class*="language-"] {
+  color: #f0f0f0; /* Sáng hơn - từ #e0e0e0 lên #f0f0f0 */
+}
+
+/* Đảm bảo code không có language class vẫn có màu sáng */
+.lesson-content pre:not(.code-block-body pre) code:not([class*="language-"]) {
+  color: #f5f5f5 !important; /* Màu trắng sáng cho code không có syntax highlighting */
+}
+
+.lesson-content pre code .token.comment,
+.lesson-content pre code .token.prolog,
+.lesson-content pre code .token.doctype,
+.lesson-content pre code .token.cdata {
+  color: #6a9955;
+}
+
+.lesson-content pre code .token.punctuation {
+  color: #d4d4d4;
+}
+
+.lesson-content pre code .token.property,
+.lesson-content pre code .token.tag,
+.lesson-content pre code .token.boolean,
+.lesson-content pre code .token.number,
+.lesson-content pre code .token.constant,
+.lesson-content pre code .token.symbol,
+.lesson-content pre code .token.deleted {
+  color: #b5cea8;
+}
+
+.lesson-content pre code .token.selector,
+.lesson-content pre code .token.attr-name,
+.lesson-content pre code .token.string,
+.lesson-content pre code .token.char,
+.lesson-content pre code .token.builtin,
+.lesson-content pre code .token.inserted {
+  color: #ce9178;
+}
+
+.lesson-content pre code .token.operator,
+.lesson-content pre code .token.entity,
+.lesson-content pre code .token.url,
+.lesson-content pre code .language-css .token.string,
+.lesson-content pre code .style .token.string {
+  color: #d4d4d4;
+}
+
+/* Editor styles - Áp dụng cho contentEditable trong LessonModal */
+/* Đảm bảo HTML tags (h1, h2, p, strong, etc.) hiển thị đúng format trong editor */
+[contentEditable="true"].prose h1,
+[contentEditable="true"] h1 {
+  font-size: 1.75rem;
+  line-height: 1.35;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem;
+  color: #111827;
+  display: block;
+}
+
+[contentEditable="true"].prose h2,
+[contentEditable="true"] h2 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+  margin: 1.25rem 0 0.6rem;
+  color: #111827;
+  display: block;
+}
+
+[contentEditable="true"].prose h3,
+[contentEditable="true"] h3 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+  color: #1f2937;
+  display: block;
+}
+
+[contentEditable="true"].prose h4,
+[contentEditable="true"] h4 {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  font-weight: 600;
+  margin: 0.875rem 0 0.5rem;
+  color: #1f2937;
+  display: block;
+}
+
+[contentEditable="true"].prose p,
+[contentEditable="true"] p {
+  margin: 0.5rem 0;
+  color: #374151;
+  display: block;
+}
+
+[contentEditable="true"].prose strong,
+[contentEditable="true"] strong,
+[contentEditable="true"].prose b,
+[contentEditable="true"] b {
+  font-weight: 700;
+  color: #111827;
+}
+
+[contentEditable="true"].prose em,
+[contentEditable="true"] em,
+[contentEditable="true"].prose i,
+[contentEditable="true"] i {
+  font-style: italic;
+}
+
+[contentEditable="true"].prose ul,
+[contentEditable="true"] ul {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+  list-style-position: outside;
+  display: block;
+}
+
+[contentEditable="true"].prose ul li,
+[contentEditable="true"] ul li {
+  margin: 0.5rem 0;
+  padding-left: 0.5rem;
+  line-height: 1.6;
+  color: #374151;
+  display: list-item;
+}
+
+[contentEditable="true"].prose ol,
+[contentEditable="true"] ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style-type: decimal;
+  list-style-position: outside;
+  display: block;
+}
+
+[contentEditable="true"].prose ol li,
+[contentEditable="true"] ol li {
+  margin: 0.5rem 0;
+  padding-left: 0.5rem;
+  line-height: 1.6;
+  color: #374151;
+  display: list-item;
+}
+
+[contentEditable="true"].prose code,
+[contentEditable="true"] code {
+  background: #f4f4f5;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.95em;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+}
+
+/* Code blocks trong editor - Sử dụng wrapper structure giống student view */
+[contentEditable="true"] .code-block-wrapper {
+  background: #2d2d2d !important;
+  border: 1px solid #3d3d3d !important;
+  border-radius: 8px !important;
+  margin: 0.75rem 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+[contentEditable="true"] .code-block-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0.5rem 0.75rem !important;
+  background: #1e1e1e !important;
+  border-bottom: 1px solid #3d3d3d !important;
+  flex-shrink: 0 !important;
+  z-index: 10 !important;
+}
+
+[contentEditable="true"] .code-block-lang {
+  font-size: 0.75rem !important;
+  color: #9ca3af !important;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+  text-transform: lowercase !important;
+  font-weight: 500 !important;
+}
+
+/* Màu sáng hơn cho header khi không xác định được ngôn ngữ trong editor */
+[contentEditable="true"] .code-block-lang-unknown {
+  color: #e5e7eb !important; /* Light gray - nổi bật trên nền dark */
+  font-weight: 600 !important;
+}
+
+[contentEditable="true"] .code-block-copy-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 1px solid #3d3d3d !important;
+  border-radius: 4px !important;
+  color: #9ca3af !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  flex-shrink: 0 !important;
+}
+
+[contentEditable="true"] .code-block-copy-btn:hover {
+  background: #2d2d2d !important;
+  color: #e0e0e0 !important;
+  border-color: #555 !important;
+}
+
+[contentEditable="true"] .code-block-copy-btn.copied {
+  color: #4ade80 !important;
+  border-color: #4ade80 !important;
+}
+
+[contentEditable="true"] .code-block-body {
+  overflow: auto !important;
+  flex: 1 !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #555 #2d2d2d !important;
+}
+
+[contentEditable="true"] .code-block-body::-webkit-scrollbar {
+  height: 8px !important;
+  width: 8px !important;
+}
+
+[contentEditable="true"] .code-block-body::-webkit-scrollbar-track {
+  background: #1e1e1e !important;
+  border-radius: 4px !important;
+}
+
+[contentEditable="true"] .code-block-body::-webkit-scrollbar-thumb {
+  background: #555 !important;
+  border-radius: 4px !important;
+  border: 1px solid #1e1e1e !important;
+}
+
+[contentEditable="true"] .code-block-body::-webkit-scrollbar-thumb:hover {
+  background: #666 !important;
+}
+
+[contentEditable="true"] .code-block-body pre {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 1rem !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  position: relative !important;
+  text-align: left !important;
+  direction: ltr !important;
+}
+
+[contentEditable="true"] .code-block-body pre code {
+  display: block !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+  white-space: pre !important;
+  overflow-x: auto !important;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+  tab-size: 4 !important;
+  -moz-tab-size: 4 !important;
+  text-align: left !important;
+  direction: ltr !important;
+  margin: 0 !important;
+  word-wrap: normal !important;
+  word-break: normal !important;
+  min-width: 0 !important;
+  color: #f0f0f0 !important; /* Sáng hơn - từ #e0e0e0 lên #f0f0f0 */
+}
+
+/* Đảm bảo code không có language class vẫn có màu sáng trong editor */
+[contentEditable="true"] .code-block-body pre code:not([class*="language-"]) {
+  color: #f5f5f5 !important; /* Màu trắng sáng cho code không có syntax highlighting */
+}
+
+/* Ẩn language label trong body của editor */
+[contentEditable="true"] .code-block-body pre code[class*="language-"]::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Legacy support - Pre không có wrapper trong editor */
+[contentEditable="true"].prose pre:not(.code-block-body pre),
+[contentEditable="true"] pre:not(.code-block-body pre) {
+  background: #1e1e1e;
+  padding: 1rem;
+  padding-top: 2.5rem; /* Thêm padding-top để chỗ cho language label */
+  border-radius: 8px;
+  margin: 1rem 0;
+  overflow-x: auto;
+  display: block;
+  position: relative; /* Để đặt language label */
+}
+
+[contentEditable="true"].prose pre code,
+[contentEditable="true"] pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre;
+  overflow-x: auto;
+  font-family: 'Courier New', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  tab-size: 4;
+  -moz-tab-size: 4;
+  color: #e0e0e0;
+  display: block;
+}
+
+[contentEditable="true"].prose a,
+[contentEditable="true"] a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+[contentEditable="true"].prose a:hover,
+[contentEditable="true"] a:hover {
+  color: #1d4ed8;
+}
+
+[contentEditable="true"].prose blockquote,
+[contentEditable="true"] blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #6b7280;
+  font-style: italic;
+  display: block;
+}
+
+[contentEditable="true"].prose table,
+[contentEditable="true"] table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: table;
+}
+
+[contentEditable="true"].prose table thead,
+[contentEditable="true"] table thead {
+  background: #f8fafc;
+  border-bottom: 2px solid #e5e7eb;
+  display: table-header-group;
+}
+
+[contentEditable="true"].prose table th,
+[contentEditable="true"] table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.875rem;
+  display: table-cell;
+}
+
+[contentEditable="true"].prose table td,
+[contentEditable="true"] table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+  font-size: 0.875rem;
+  display: table-cell;
+}
+
+.lesson-content pre code .token.atrule,
+.lesson-content pre code .token.attr-value,
+.lesson-content pre code .token.keyword {
+  color: #569cd6;
+}
+
+.lesson-content pre code .token.function,
+.lesson-content pre code .token.class-name {
+  color: #dcdcaa;
+}
+
+.lesson-content pre code .token.regex,
+.lesson-content pre code .token.important,
+.lesson-content pre code .token.variable {
+  color: #d16969;
+}
+
+/* Đảm bảo code blocks không có leading/trailing whitespace */
+.lesson-content pre code:first-line {
+  padding-top: 0;
+}
+
+.lesson-content pre code:last-line {
+  padding-bottom: 0;
+}
+
+/* Animation cho modal chi tiết slide-in từ trái */
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }

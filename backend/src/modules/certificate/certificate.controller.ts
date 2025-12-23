@@ -252,6 +252,62 @@ export class CertificateController {
   };
 
   /**
+   * Delete certificate permanently (Admin only)
+   * DELETE /certificates/:id
+   */
+  deleteCertificate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const userRole = req.user!.role;
+
+      // Only admins can delete certificates
+      if (!['admin', 'super_admin'].includes(userRole)) {
+        return responseUtils.sendForbidden(res, 'Only admins can delete certificates');
+      }
+
+      const deleted = await this.certificateService.deleteCertificate(id);
+      if (!deleted) {
+        return responseUtils.sendError(res, 'Failed to delete certificate', 400);
+      }
+
+      return responseUtils.success(res, { id, deleted: true }, 'Certificate deleted successfully');
+    } catch (error: any) {
+      logger.error('[CertificateController] Delete certificate error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Issue certificate to blockchain (for existing certificates)
+   * POST /certificates/:id/issue-blockchain
+   */
+  issueCertificateToBlockchain = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const currentUserId = req.user!.userId;
+      const userRole = req.user!.role;
+
+      const certificate = await this.certificateService.getCertificateById(id);
+
+      // Check permissions: User can only issue their own certificates, or admin/instructor can issue any
+      if (certificate.user_id !== currentUserId && !['admin', 'super_admin', 'instructor'].includes(userRole)) {
+        return responseUtils.sendForbidden(res, 'You can only issue your own certificates to blockchain');
+      }
+
+      // Check if already issued
+      if ((certificate as any).blockchain_token_id) {
+        return responseUtils.sendError(res, 'Certificate already issued on blockchain', 400);
+      }
+
+      const updatedCertificate = await this.certificateService.issueCertificateToBlockchain(id);
+      return responseUtils.success(res, updatedCertificate, 'Certificate issued on blockchain successfully');
+    } catch (error: any) {
+      logger.error('[CertificateController] Issue certificate to blockchain error:', error);
+      next(error);
+    }
+  };
+
+  /**
    * Download certificate as PDF
    * GET /certificates/:id/download
    */

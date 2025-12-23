@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import { CertificateRepository } from './certificate.repository';
 import { pinataService } from '../../services/ipfs/pinata.service';
+import { blockchainService } from '../blockchain/blockchain.service';
 import { CreateCertificatePayload, CertificateMetadata, VerifyCertificateResponse, CertificateWithDetails } from './certificate.types';
 import User from '../../models/user.model';
 import Course from '../../models/course.model';
@@ -14,6 +15,7 @@ import logger from '../../utils/logger.util';
 import { ApiError } from '../../errors/api.error';
 import { EmailService } from '../../services/global/email.service';
 import { env } from '../../config/env.config';
+import { ethers } from 'ethers';
 
 export class CertificateService {
   private certificateRepository: CertificateRepository;
@@ -220,6 +222,56 @@ export class CertificateService {
 
     logger.info(`[CertificateService] Certificate issued: ${certificate.id} (${certificateNumber})`);
 
+    // Issue certificate on blockchain (if available)
+    // Note: For now, we'll skip if user doesn't have wallet_address
+    // In production, you might want to require users to connect wallet
+    if (blockchainService.isAvailable()) {
+      try {
+        // Get user to check for wallet address (optional field)
+        const user = await User.findByPk(user_id, {
+          attributes: ['id']
+        });
+        
+        // Check if user has wallet_address field (optional - may not exist yet)
+        const recipientAddress = (user as any)?.wallet_address;
+        
+        // For dev/test: If user doesn't have wallet, skip blockchain issuance
+        // In production, you might want to require wallet connection
+        if (recipientAddress && ethers.isAddress(recipientAddress)) {
+          // Prepare tokenURI (IPFS hash or fallback to certificate URL)
+          const tokenURI = ipfsHash ? `ipfs://${ipfsHash}` : `${env.frontendUrl || 'https://your-domain.com'}/certificates/${certificate.id}`;
+          
+          const blockchainResult = await blockchainService.issueCertificate({
+            recipientAddress,
+            courseId: course_id,
+            courseName: (metadata.course as any).title || 'Course',
+            tokenURI
+          });
+
+          // Update certificate with blockchain data
+          await (certificate as any).update({
+            blockchain_token_id: blockchainResult.tokenId,
+            blockchain_tx_hash: blockchainResult.txHash,
+            blockchain_network: blockchainService.getNetwork(),
+            blockchain_contract_address: blockchainService.getContractAddress(),
+            blockchain_explorer_url: blockchainResult.explorerUrl,
+            blockchain_opensea_url: blockchainResult.openseaUrl
+          });
+
+          logger.info(`[CertificateService] Certificate issued on blockchain: tokenId=${blockchainResult.tokenId}, txHash=${blockchainResult.txHash}`);
+        } else {
+          logger.info(`[CertificateService] User ${user_id} does not have wallet_address, certificate issued in DB only (blockchain skipped)`);
+          logger.info(`[CertificateService] To enable blockchain issuance, add wallet_address field to users table or implement wallet connection`);
+        }
+      } catch (blockchainError: any) {
+        // Don't fail certificate issuance if blockchain fails
+        logger.error('[CertificateService] Failed to issue certificate on blockchain:', blockchainError);
+        logger.warn('[CertificateService] Certificate issued in DB only, blockchain issuance failed');
+      }
+    } else {
+      logger.debug('[CertificateService] Blockchain service not available, certificate issued in DB only');
+    }
+
     // Fetch with relations
     const certificateWithDetails = await this.certificateRepository.findById(certificate.id, true);
     if (!certificateWithDetails) {
@@ -233,6 +285,82 @@ export class CertificateService {
     });
 
     return certificateWithDetails as any;
+  }
+
+  /**
+   * Issue certificate to blockchain (for existing certificates)
+   * Used to re-issue certificates that were created before blockchain integration
+   */
+  async issueCertificateToBlockchain(certificateId: string): Promise<CertificateWithDetails> {
+    const certificate = await this.certificateRepository.findById(certificateId, true);
+    if (!certificate) {
+      throw new ApiError('Certificate not found', 404);
+    }
+
+    // Check if already issued on blockchain
+    if ((certificate as any).blockchain_token_id) {
+      throw new ApiError('Certificate already issued on blockchain', 400);
+    }
+
+    // Check if blockchain service is available
+    if (!blockchainService.isAvailable()) {
+      throw new ApiError('Blockchain service is not available. Please check configuration.', 503);
+    }
+
+    // Get user to check for wallet address
+    const user = await User.findByPk(certificate.user_id, {
+      attributes: ['id', 'wallet_address']
+    });
+
+    if (!user) {
+      throw new ApiError('User not found', 404);
+    }
+
+    const recipientAddress = (user as any)?.wallet_address;
+    if (!recipientAddress || !ethers.isAddress(recipientAddress)) {
+      throw new ApiError('User does not have a valid wallet address. Please connect MetaMask wallet first.', 400);
+    }
+
+    try {
+      // Get IPFS hash if available
+      const ipfsHash = certificate.ipfs_hash;
+      
+      // Prepare tokenURI
+      const tokenURI = ipfsHash 
+        ? `ipfs://${ipfsHash}` 
+        : `${env.frontendUrl || 'https://your-domain.com'}/certificates/${certificate.id}`;
+
+      // Issue on blockchain
+      const blockchainResult = await blockchainService.issueCertificate({
+        recipientAddress,
+        courseId: certificate.course_id,
+        courseName: (certificate.metadata as any).course?.title || 'Course',
+        tokenURI
+      });
+
+      // Update certificate with blockchain data
+      await (certificate as any).update({
+        blockchain_token_id: blockchainResult.tokenId,
+        blockchain_tx_hash: blockchainResult.txHash,
+        blockchain_network: blockchainService.getNetwork(),
+        blockchain_contract_address: blockchainService.getContractAddress(),
+        blockchain_explorer_url: blockchainResult.explorerUrl,
+        blockchain_opensea_url: blockchainResult.openseaUrl
+      });
+
+      logger.info(`[CertificateService] Certificate ${certificateId} issued on blockchain: tokenId=${blockchainResult.tokenId}, txHash=${blockchainResult.txHash}`);
+
+      // Fetch updated certificate
+      const updatedCertificate = await this.certificateRepository.findById(certificateId, true);
+      if (!updatedCertificate) {
+        throw new ApiError('Failed to retrieve updated certificate', 500);
+      }
+
+      return updatedCertificate;
+    } catch (error: any) {
+      logger.error('[CertificateService] Failed to issue certificate on blockchain:', error);
+      throw new ApiError(`Failed to issue certificate on blockchain: ${error.message}`, 500);
+    }
   }
 
   /**
@@ -450,6 +578,22 @@ export class CertificateService {
    */
   async listCertificates(query: any) {
     return await this.certificateRepository.list(query);
+  }
+
+  /**
+   * Delete certificate permanently (Admin only)
+   */
+  async deleteCertificate(id: string): Promise<boolean> {
+    const certificate = await this.certificateRepository.findById(id, false);
+    if (!certificate) {
+      throw new ApiError('Certificate not found', 404);
+    }
+
+    const deleted = await this.certificateRepository.delete(id);
+    if (deleted) {
+      logger.info(`[CertificateService] Certificate ${id} deleted permanently`);
+    }
+    return deleted;
   }
 
   /**

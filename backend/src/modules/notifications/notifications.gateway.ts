@@ -32,7 +32,7 @@ export interface NotificationPayload {
   related_resource_type?: string;
   related_resource_id?: string;
   metadata?: Record<string, unknown>;
-  created_at: Date;
+  created_at: string; // ISO string for Socket.IO serialization
   sender?: {
     id: string;
     first_name: string;
@@ -100,15 +100,30 @@ export class NotificationGateway {
         tokenLength: ((socket.handshake.auth as any)?.token || '').length
       });
       
-      if (!user) {
-        // Auth đã được handle bởi middleware trong chat gateway
-        // Nếu không có user, sử dụng event-driven approach thay vì setTimeout
+      // ✅ FIX: Check user immediately and also listen for auth event
+      // This ensures we catch the user whether they're already authenticated or will be authenticated
+      const tryHandleConnection = (authUser: SocketUser) => {
+        // Prevent duplicate handling
+        if (this.socketUsers.has(socket.id)) {
+          logger.debug(`[NotificationGateway] Socket ${socket.id} already handled, skipping`);
+          return;
+        }
+        logger.info(`[NotificationGateway] Handling connection for user: ${authUser.userId}`);
+        this.handleUserConnection(socket, authUser);
+      };
+      
+      if (user) {
+        // User already authenticated (synchronous)
+        tryHandleConnection(user);
+      } else {
+        // User not yet authenticated, wait for auth event
         logger.debug(`[NotificationGateway] Socket ${socket.id} waiting for auth...`);
         
-        // Listen for custom 'authenticated' event from auth middleware
+        // Listen for custom 'notification:authenticated' event from ChatGateway
         const authHandler = (authUser: SocketUser) => {
           logger.info(`[NotificationGateway] User authenticated via event: ${authUser.userId}`);
-          this.handleUserConnection(socket, authUser);
+          socket.off('notification:authenticated', authHandler);
+          tryHandleConnection(authUser);
         };
         
         socket.once('notification:authenticated', authHandler);
@@ -119,18 +134,16 @@ export class NotificationGateway {
         });
         
         // Fallback: Check if user was attached synchronously after middleware chain
+        // Use multiple ticks to ensure we catch the user after ChatGateway processes
         process.nextTick(() => {
           const attachedUser = (socket as any).user as SocketUser | undefined;
           if (attachedUser && !this.socketUsers.has(socket.id)) {
             logger.info(`[NotificationGateway] User found on nextTick: ${attachedUser.userId}`);
             socket.off('notification:authenticated', authHandler);
-            this.handleUserConnection(socket, attachedUser);
+            tryHandleConnection(attachedUser);
           }
         });
-        return;
       }
-
-      this.handleUserConnection(socket, user);
     });
   }
 
@@ -243,18 +256,35 @@ export class NotificationGateway {
    */
   public sendToUser(userId: string, notification: NotificationPayload): void {
     const userRoom = this.getUserRoom(userId);
+    const isOnline = this.isUserOnline(userId);
+    const onlineSockets = this.userSockets.get(userId)?.size || 0;
+    
+    logger.info(`[NotificationGateway] Sending notification to user ${userId}:`, {
+      room: userRoom,
+      isOnline,
+      onlineSockets,
+      notificationId: notification.id,
+      title: notification.title
+    });
+    
     this.io.to(userRoom).emit(NotificationSocketEvents.NEW_NOTIFICATION, notification);
-    logger.debug(`Sent notification to user ${userId}: ${notification.title}`);
+    
+    if (isOnline) {
+      logger.info(`[NotificationGateway] ✅ Notification "${notification.title}" sent to user ${userId} (${onlineSockets} socket(s))`);
+    } else {
+      logger.warn(`[NotificationGateway] ⚠️ User ${userId} is not online - notification will be delivered when they reconnect`);
+    }
   }
 
   /**
    * Gửi notification real-time đến nhiều users
    */
   public sendToUsers(userIds: string[], notification: NotificationPayload): void {
+    logger.info(`[NotificationGateway] Sending notification "${notification.title}" to ${userIds.length} users: ${userIds.join(', ')}`);
     for (const userId of userIds) {
       this.sendToUser(userId, notification);
     }
-    logger.info(`Sent notification to ${userIds.length} users: ${notification.title}`);
+    logger.info(`[NotificationGateway] ✅ Sent notification to ${userIds.length} users: ${notification.title}`);
   }
 
   /**

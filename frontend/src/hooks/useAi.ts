@@ -70,6 +70,8 @@ export function useGenerateFeedback() {
     assignmentId: string;
     submissionId: string;
     submissionContent: string;
+    fileUrls?: string[];
+    studentName?: string;
     assignmentInstructions: string;
     rubric?: any;
     maxScore?: number;

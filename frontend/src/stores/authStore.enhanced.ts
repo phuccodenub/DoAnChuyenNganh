@@ -46,6 +46,9 @@ export interface User {
   address?: string;
   emergency_contact?: string;
   emergency_phone?: string;
+  
+  // Blockchain
+  wallet_address?: string; // Ethereum wallet address for NFT certificates
 }
 
 export interface Tokens {

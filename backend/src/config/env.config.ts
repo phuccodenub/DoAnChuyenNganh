@@ -150,11 +150,10 @@ export const env = {
   },
 
   // ============================================
-  // AI Configuration (Multi-Provider)
+  // AI Configuration (Multi-Provider: Groq + Gemini)
   // ============================================
   ai: {
-    // Google AI Studio (Free Tier - Multiple Models)
-    // Strategy: Use 4 models sequentially to maximize RPD (20 RPD each = 80 RPD total)
+    // Gemini (Primary for features requiring advanced reasoning)
     gemini: {
       // Multiple API Keys for rotation (20 RPD per key per model)
       apiKeys: [
@@ -184,10 +183,11 @@ export const env = {
     },
     
     // Groq API (Free Tier) - Multiple models for different tasks
+    // Groq free tier: 30 requests/min, không giới hạn daily
     groq: {
       apiKey: process.env.GROQ_API_KEY || '',
-      // Default model for general tasks
-      model: process.env.GROQ_MODEL_DEFAULT || 'llama-3.3-70b-versatile',
+      // Default model for general tasks (thay thế llama-3.1-70b-versatile đã bị decommissioned)
+      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
       // Specific models for specialized tasks
       models: {
         default: process.env.GROQ_MODEL_DEFAULT || 'llama-3.3-70b-versatile',
@@ -197,7 +197,7 @@ export const env = {
         speech: process.env.GROQ_MODEL_SPEECH || 'whisper-large-v3',
       },
       temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
-      maxTokens: toInt(process.env.GROQ_MAX_TOKENS, 2048),
+      maxTokens: toInt(process.env.GROQ_MAX_TOKENS, 4096),
     },
     
     // ProxyPal (Local AI Gateway)

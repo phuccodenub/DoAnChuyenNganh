@@ -38,6 +38,9 @@ import {
   useDeleteQuestion,
 } from '@/hooks/useInstructorQuiz';
 import { AiQuizGenerator } from '@/components/instructor';
+import { useCourseSections } from '@/hooks/useInstructorCourse';
+import { lessonApi } from '@/services/api/lesson.api';
+import { useQuery } from '@tanstack/react-query';
 
 /**
  * QuizBuilderPage - Modern Quiz Builder
@@ -95,6 +98,45 @@ export function QuizBuilderPage() {
   const [selectedQuestionId, setSelectedQuestionId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch course sections để lấy nội dung cho AI Quiz Generator
+  const { data: sectionsResponse } = useCourseSections(courseId || '');
+  
+  // Fetch full lesson content từ API (tương tự ManageQuizModal)
+  const { data: lessonsWithContent = [] } = useQuery({
+    queryKey: ['course-lessons-content', courseId],
+    queryFn: async () => {
+      if (!sectionsResponse?.data) return [];
+      
+      const sections = Array.isArray(sectionsResponse.data) 
+        ? sectionsResponse.data 
+        : (sectionsResponse.data as any)?.data || [];
+      
+      // Collect tất cả lessons từ tất cả sections
+      let allLessons: any[] = [];
+      sections.forEach((sec: any) => {
+        if (sec.lessons && Array.isArray(sec.lessons)) {
+          allLessons.push(...sec.lessons);
+        }
+      });
+      
+      if (allLessons.length === 0) return [];
+      
+      // Fetch song song tất cả lessons
+      const lessonPromises = allLessons.map((lesson: any) => 
+        lessonApi.getLesson(lesson.id).catch((err) => {
+          console.error(`[QuizBuilderPage] Error fetching lesson ${lesson.id}:`, err);
+          return null;
+        })
+      );
+      
+      const fetchedLessons = await Promise.all(lessonPromises);
+      return fetchedLessons.filter((l): l is any => l !== null);
+    },
+    enabled: !!courseId && !!sectionsResponse?.data,
+    staleTime: 10 * 60 * 1000, // Cache 10 phút
+    gcTime: 30 * 60 * 1000, // Giữ cache 30 phút
+  });
 
   // Sync data from API to local state
   useEffect(() => {
@@ -582,10 +624,94 @@ export function QuizBuilderPage() {
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-4xl mx-auto space-y-4">
               {/* AI Quiz Generator */}
-              {questions.length === 0 && (
-                <AiQuizGenerator
-                  courseContent={`Quiz: ${quizTitle}\n\nSử dụng AI để tạo câu hỏi cho quiz này.`}
-                  onQuestionsGenerated={(generatedQuestions) => {
+              {questions.length === 0 && (() => {
+                // Helper function để extract text từ lesson content
+                const extractLessonText = (content: string, maxLength: number = 2000): string => {
+                  if (!content) return '';
+                  
+                  let textContent = content
+                    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                    .replace(/<[^>]+>/g, ' ')
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&quot;/g, '"')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                  
+                  if (textContent && textContent.length > 0) {
+                    return textContent.length > maxLength 
+                      ? textContent.substring(0, maxLength) + '...' 
+                      : textContent;
+                  }
+                  return '';
+                };
+
+                // Chuẩn bị nội dung từ course sections và lessons (tương tự ManageQuizModal)
+                const buildCourseContent = () => {
+                  const parts: string[] = [];
+                  
+                  if (quizTitle) {
+                    parts.push(`# Quiz: ${quizTitle}`);
+                  }
+                  
+                  // Lấy nội dung từ sections và lessons
+                  if (sectionsResponse?.data) {
+                    const sections = Array.isArray(sectionsResponse.data) 
+                      ? sectionsResponse.data 
+                      : (sectionsResponse.data as any)?.data || [];
+                    
+                    if (sections.length > 0) {
+                      parts.push('\n## Nội dung khóa học (tất cả các chương)');
+                      sections
+                        .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+                        .forEach((section: any, secIdx: number) => {
+                          parts.push(`\n### Chương ${secIdx + 1}: ${section.title || 'Chưa có tiêu đề'}`);
+                          if (section.description) {
+                            parts.push(`**Mô tả chương:** ${section.description}`);
+                          }
+                          
+                          // Sử dụng lessons với full content từ API (nếu có), fallback về section.lessons
+                          const sectionLessons = lessonsWithContent.length > 0
+                            ? lessonsWithContent.filter((l: any) => l.section_id === section.id)
+                            : (section.lessons || []);
+                          
+                          if (sectionLessons.length > 0) {
+                            sectionLessons
+                              .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+                              .forEach((lesson: any, lessonIdx: number) => {
+                                parts.push(`\n#### Bài ${lessonIdx + 1}: ${lesson.title || 'Chưa có tiêu đề'}`);
+                                if (lesson.description) {
+                                  parts.push(`**Mô tả:** ${lesson.description}`);
+                                }
+                                
+                                const textContent = extractLessonText(lesson.content, 2000);
+                                if (textContent) {
+                                  parts.push(`**Nội dung:**\n${textContent}`);
+                                }
+                              });
+                          } else {
+                            parts.push(`\n⚠️ Chương này chưa có bài học nào.`);
+                          }
+                        });
+                    } else {
+                      parts.push('\n⚠️ Khóa học này chưa có chương nào. Vui lòng thêm chương và bài học trước khi tạo quiz.');
+                    }
+                  } else if (courseId) {
+                    parts.push('\n⚠️ Đang tải nội dung khóa học...');
+                  } else {
+                    parts.push('\n⚠️ Không tìm thấy thông tin khóa học. Vui lòng liên kết quiz với một khóa học để AI có thể tạo câu hỏi dựa trên nội dung.');
+                  }
+                  
+                  return parts.join('\n\n');
+                };
+                
+                return (
+                  <AiQuizGenerator
+                    courseContent={buildCourseContent()}
+                    onQuestionsGenerated={(generatedQuestions) => {
                     // Add generated questions to the quiz
                     generatedQuestions.forEach((q: any, idx: number) => {
                       const newQuestion: Question = {
@@ -611,8 +737,9 @@ export function QuizBuilderPage() {
                     });
                     toast.success(`Đã thêm ${generatedQuestions.length} câu hỏi từ AI`);
                   }}
-                />
-              )}
+                  />
+                );
+              })()}
 
               {/* Pro Banner */}
               {/* TODO: [LOGIC] Kiểm tra subscription của user từ API hoặc store */}
