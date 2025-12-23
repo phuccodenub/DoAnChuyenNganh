@@ -13,10 +13,11 @@ interface AiQuizGeneratorProps {
 }
 
 export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizGeneratorProps) {
-  const [numberOfQuestions, setNumberOfQuestions] = useState(5);
+  const [numberOfQuestions, setNumberOfQuestions] = useState(10);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
-  // Loại câu hỏi AI support: trắc nghiệm (nhiều phương án) & Đúng/Sai
-  const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false' >('single_choice');
+  const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false'>('single_choice');
+  const [bloomLevel, setBloomLevel] = useState<'remember' | 'understand' | 'apply' | 'analyze'>('understand');
+  const [isPremium, setIsPremium] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
 
   const generateQuiz = useMutation({
@@ -26,6 +27,8 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
       numberOfQuestions?: number;
       difficulty?: 'easy' | 'medium' | 'hard';
       questionType?: 'single_choice' | 'multiple_choice' | 'true_false';
+      bloomLevel?: 'remember' | 'understand' | 'apply' | 'analyze';
+      isPremium?: boolean;
     }) => aiApi.generateQuiz(payload),
   });
 
@@ -42,10 +45,22 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
         numberOfQuestions,
         difficulty,
         questionType,
+        bloomLevel,
+        isPremium,
       });
 
       setGeneratedQuestions(result.questions || []);
-      toast.success(`Đã tạo ${result.totalQuestions || 0} câu hỏi thành công`);
+      
+      const successMsg = result.fromCache 
+        ? `Đã tải ${result.totalQuestions || 0} câu hỏi từ cache`
+        : `Đã tạo ${result.totalQuestions || 0} câu hỏi thành công`;
+      
+      toast.success(successMsg);
+
+      if (result.metadata) {
+        const meta = result.metadata;
+        console.log(`[QuizGenerator] Model: ${meta.model}, Time: ${meta.processingTime}ms, Stages: ${meta.stages.join(' → ')}`);
+      }
 
       if (onQuestionsGenerated) {
         onQuestionsGenerated(result.questions || []);
@@ -73,7 +88,7 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Số câu hỏi
@@ -83,7 +98,7 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
               value={numberOfQuestions}
               onChange={(e) => setNumberOfQuestions(Number(e.target.value))}
               min={1}
-              max={20}
+              max={50}
               className="w-full"
             />
           </div>
@@ -112,13 +127,41 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
               onChange={(e) => setQuestionType(e.target.value as any)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {/* Hiện tại AI chỉ hỗ trợ dạng 1 đáp án đúng (single choice) và Đúng/Sai.
-                  Trắc nghiệm nhiều đáp án đúng sẽ được bổ sung sau khi mapping với QuizBuilder. */}
-              <option value="single_choice">Trắc nghiệm</option>
-              <option value="multiple_choice">Nhiều đáp án</option>
+              <option value="single_choice">Trắc nghiệm (1 đáp án)</option>
+              <option value="multiple_choice">Nhiều đáp án đúng</option>
               <option value="true_false">Đúng/Sai</option>
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mức độ tư duy
+            </label>
+            <select
+              value={bloomLevel}
+              onChange={(e) => setBloomLevel(e.target.value as any)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="remember">Ghi nhớ</option>
+              <option value="understand">Hiểu biết</option>
+              <option value="apply">Áp dụng</option>
+              <option value="analyze">Phân tích</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="isPremium"
+            checked={isPremium}
+            onChange={(e) => setIsPremium(e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="isPremium" className="text-sm text-gray-700">
+            <span className="font-medium">Chất lượng Premium</span>
+            <span className="text-gray-500 ml-2">(Cho đề thi quan trọng)</span>
+          </label>
         </div>
 
         <Button

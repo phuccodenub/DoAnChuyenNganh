@@ -11,15 +11,15 @@
 import logger from '../../../utils/logger.util';
 import AILessonAnalysis, { AILessonAnalysisAttributes } from '../models/ai-lesson-analysis.model';
 import Lesson from '../../../models/lesson.model';
-import { proxyPalHealthCheck } from './proxypal-health.service';
 import { ProxyPalProvider } from '../providers/proxypal.provider';
-import { GoogleAIProvider } from '../providers/google-ai.provider';
+import { GeminiVideoService } from './gemini-video.service';
 
 interface VideoAnalysisResult {
   transcript: string;
   keyPoints: string[];
   duration: number;
   summary: string;
+  metadata?: { provider: string; model: string };
 }
 
 interface LessonAnalysisResult {
@@ -31,8 +31,10 @@ interface LessonAnalysisResult {
 }
 
 export class LessonAnalysisService {
-  private proxyPalProvider: ProxyPalProvider;
-  private googleProvider: GoogleAIProvider;
+  private proxyPalProviders: Map<string, ProxyPalProvider>;
+  private geminiVideoService: GeminiVideoService | null = null;
+  // Priority order: Start with GPT models (more stable in ProxyPal), then Gemini as fallback
+  private readonly PROXYPAL_MODELS = ['gpt-5.2', 'gpt-5.1', 'gpt-5'];
 
   constructor() {
     // Initialize providers
@@ -40,20 +42,29 @@ export class LessonAnalysisService {
     // NOTE: If running in Docker and ProxyPal is on host, use host.docker.internal in .env
     // Default to 127.0.0.1 for local development
     const proxypalBaseUrl = process.env.PROXYPAL_BASE_URL || 'http://127.0.0.1:8317/v1';
+    const proxypalApiKey = process.env.PROXYPAL_API_KEY || 'proxypal-local';
     
-    this.proxyPalProvider = new ProxyPalProvider({
-      baseUrl: proxypalBaseUrl,
-      model: 'gemini-3-pro-preview',
-      temperature: 0.3,
-      maxTokens: 4096,
+    // Create multiple ProxyPal providers with different models for fallback
+    this.proxyPalProviders = new Map();
+    this.PROXYPAL_MODELS.forEach(model => {
+      this.proxyPalProviders.set(model, new ProxyPalProvider({
+        baseUrl: proxypalBaseUrl,
+        apiKey: proxypalApiKey,
+        model: model as any,
+        temperature: 0.3,
+        maxTokens: 4096,
+      }));
     });
 
-    this.googleProvider = new GoogleAIProvider({
-      apiKey: process.env.GEMINI_API_KEY || '',
-      model: 'gemini-2.5-flash',
-      temperature: 0.3,
-      maxTokens: 2048,
-    });
+    // Direct Gemini API for VIDEO understanding (ProxyPal chat/completions cannot attach video/file inputs)
+    try {
+      if (process.env.GEMINI_API_KEY) {
+        this.geminiVideoService = new GeminiVideoService(process.env.GEMINI_API_KEY);
+      }
+    } catch (e: any) {
+      logger.warn('[LessonAnalysis] GeminiVideoService not available:', e?.message);
+      this.geminiVideoService = null;
+    }
   }
 
   /**
@@ -75,10 +86,11 @@ export class LessonAnalysisService {
           processing_started_at: new Date(),
         });
       } else {
+        const analysisData = analysis.get({ plain: true }) as AILessonAnalysisAttributes;
         await analysis.update({
           status: 'processing',
           processing_started_at: new Date(),
-          version: analysis.version + 1,
+          version: (analysisData.version || 0) + 1,
         });
       }
 
@@ -95,7 +107,13 @@ export class LessonAnalysisService {
           videoAnalysis = await this.analyzeVideoContent(lesson.video_url);
           logger.info(`[LessonAnalysis] Video analysis completed for lesson ${lessonId}`);
         } catch (error: any) {
-          logger.warn(`[LessonAnalysis] Video analysis failed: ${error.message}`);
+          // Don't log full error object (may have circular refs from axios)
+          logger.warn('[LessonAnalysis] Video analysis failed', {
+            message: error?.message || 'Unknown error',
+            code: error?.code,
+            status: error?.response?.status,
+            lessonId
+          });
           // Continue without video analysis
         }
       }
@@ -116,9 +134,13 @@ export class LessonAnalysisService {
         videoAnalysis
       );
 
+      // Determine last used provider/model for audit
+      const lastUsedProvider = videoAnalysis?.metadata?.provider || summary.metadata.provider || contentAnalysis.metadata.provider;
+      const lastUsedModel = videoAnalysis?.metadata?.model || summary.metadata.model || contentAnalysis.metadata.model;
+
       // Update analysis record
       await analysis.update({
-        summary,
+        summary: summary.text,
         summary_language: 'vi',
         video_transcript: videoAnalysis?.transcript || null,
         video_key_points: videoAnalysis?.keyPoints || null,
@@ -128,8 +150,8 @@ export class LessonAnalysisService {
         estimated_study_time: contentAnalysis.estimatedStudyTime,
         status: 'completed',
         processing_completed_at: new Date(),
-        analyzed_by: 'proxypal',
-        model_used: 'gemini-3-pro-preview',
+        analyzed_by: lastUsedProvider,
+        model_used: lastUsedModel,
       });
 
       logger.info(`[LessonAnalysis] ✅ Full analysis completed for lesson ${lessonId}`);
@@ -185,12 +207,12 @@ export class LessonAnalysisService {
       );
 
       await analysis.update({
-        summary,
+        summary: summary.text,
         summary_language: 'vi',
         status: 'completed',
         processing_completed_at: new Date(),
-        analyzed_by: 'proxypal',
-        model_used: 'gemini-3-pro-preview',
+        analyzed_by: summary.metadata.provider,
+        model_used: summary.metadata.model,
       });
 
       logger.info(`[LessonAnalysis] ✅ Summary generated for lesson ${lessonId}`);
@@ -233,8 +255,8 @@ export class LessonAnalysisService {
         video_duration_analyzed: videoAnalysis.duration,
         status: 'completed',
         processing_completed_at: new Date(),
-        analyzed_by: 'proxypal',
-        model_used: 'gemini-3-pro-preview',
+        analyzed_by: videoAnalysis.metadata.provider,
+        model_used: videoAnalysis.metadata.model,
       });
 
       logger.info(`[LessonAnalysis] ✅ Video analyzed for lesson ${lessonId}`);
@@ -249,14 +271,8 @@ export class LessonAnalysisService {
   /**
    * Analyze video content with Gemini 3 Pro (multimodal)
    */
-  private async analyzeVideoContent(videoUrl: string): Promise<VideoAnalysisResult> {
+  private async analyzeVideoContent(videoUrl: string): Promise<VideoAnalysisResult & { metadata: { provider: string; model: string } }> {
     try {
-      // Check if ProxyPal is available
-      const proxyPalAvailable = await proxyPalHealthCheck.isAvailable();
-      if (!proxyPalAvailable) {
-        throw new Error('ProxyPal is offline, cannot analyze video');
-      }
-
       // Prepare video URL (handle R2 and YouTube)
       const processedUrl = this.prepareVideoUrl(videoUrl);
 
@@ -280,16 +296,27 @@ Format trả về dưới dạng JSON:
 }
 \`\`\``;
 
-      const response = await this.proxyPalProvider.generateContent({
+      // Primary: Direct Gemini API video understanding (supports YouTube URL / inline_data / Files API)
+      if (!this.geminiVideoService) {
+        throw new Error('GEMINI_API_KEY chưa được cấu hình để phân tích video (cần Gemini API trực tiếp).');
+      }
+
+      const model = process.env.GEMINI_VIDEO_MODEL || 'gemini-3-pro-preview';
+      const text = await this.geminiVideoService.generateWithVideo({
+        videoUrl: processedUrl,
         prompt,
         systemPrompt: 'Bạn là trợ lý AI chuyên phân tích video bài giảng. Trả lời chính xác theo format JSON được yêu cầu.',
-        maxTokens: 4096,
         temperature: 0.3,
+        maxOutputTokens: 4096,
+        model,
       });
 
+      const metadata = { provider: 'google-direct', model };
+      logger.info(`[LessonAnalysis] Video analysis completed with ${model} (direct Gemini API)`);
+
       // Parse JSON response
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : response.text;
+      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+      const jsonStr = jsonMatch ? jsonMatch[1] : text;
       const result = JSON.parse(jsonStr);
 
       return {
@@ -297,10 +324,16 @@ Format trả về dưới dạng JSON:
         keyPoints: result.keyPoints || [],
         summary: result.summary || '',
         duration: result.duration || 0,
+        metadata,
       };
 
     } catch (error: any) {
-      logger.error('[LessonAnalysis] Video analysis error:', error);
+      logger.error('[LessonAnalysis] Video analysis error', {
+        message: error?.message || 'Unknown error',
+        code: error?.code,
+        status: error?.response?.status,
+        url: videoUrl
+      });
       throw new Error(`Failed to analyze video: ${error.message}`);
     }
   }
@@ -317,6 +350,7 @@ Format trả về dưới dạng JSON:
     keyConcepts: string[];
     difficultyLevel: 'beginner' | 'intermediate' | 'advanced';
     estimatedStudyTime: number;
+    metadata: { provider: string; model: string };
   }> {
     const fullText = `
 Tiêu đề: ${title}
@@ -348,31 +382,51 @@ Trả về format:
 `;
 
     try {
-      const proxyPalAvailable = await proxyPalHealthCheck.isAvailable();
-      const provider = proxyPalAvailable ? this.proxyPalProvider : this.googleProvider;
+      // Try each ProxyPal model
+      for (const modelName of this.PROXYPAL_MODELS) {
+        const provider = this.proxyPalProviders.get(modelName)!;
+        
+        try {
+          logger.info(`[LessonAnalysis] Content analysis with ProxyPal ${modelName}`);
 
-      const response = await provider.generateContent({
-        prompt,
-        systemPrompt: 'Bạn là trợ lý AI chuyên phân tích nội dung bài học. Trả lời chính xác theo format JSON.',
-        maxTokens: 1024,
-        temperature: 0.2,
-      });
+          const response = await provider.generateContent({
+            prompt,
+            systemPrompt: 'Bạn là trợ lý AI chuyên phân tích nội dung bài học. Trả lời chính xác theo format JSON.',
+            maxTokens: 1024,
+            temperature: 0.2,
+          });
 
-      const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : response.text;
-      const result = JSON.parse(jsonStr);
 
-      return {
-        keyConcepts: result.keyConcepts || [],
-        difficultyLevel: result.difficultyLevel || 'intermediate',
-        estimatedStudyTime: result.estimatedStudyTime || 30,
-      };
+          const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/);
+          const jsonStr = jsonMatch ? jsonMatch[1] : response.text;
+          const result = JSON.parse(jsonStr);
+
+          return {
+            keyConcepts: result.keyConcepts || [],
+            difficultyLevel: result.difficultyLevel || 'intermediate',
+            estimatedStudyTime: result.estimatedStudyTime || 30,
+            metadata: { provider: 'proxypal', model: modelName },
+          };
+        } catch (modelError: any) {
+          logger.warn('[LessonAnalysis] Content analysis failed', {
+            model: modelName,
+            message: modelError?.message || 'Unknown error',
+            status: modelError?.response?.status
+          });
+          continue;
+        }
+      }
+      
+      // All models failed, return defaults
+      throw new Error('All ProxyPal models failed for content analysis');
+      
     } catch (error: any) {
       logger.warn('[LessonAnalysis] Content analysis failed, using defaults:', error.message);
       return {
         keyConcepts: [],
         difficultyLevel: 'intermediate',
         estimatedStudyTime: 30,
+        metadata: { provider: 'none', model: 'none' },
       };
     }
   }
@@ -384,8 +438,8 @@ Trả về format:
     title: string,
     content: string,
     description: string,
-    videoAnalysis?: VideoAnalysisResult
-  ): Promise<string> {
+    videoAnalysis?: VideoAnalysisResult & { metadata?: { provider: string; model: string } }
+  ): Promise<{ text: string; metadata: { provider: string; model: string } }> {
     const fullContent = `
 # ${title}
 
@@ -418,17 +472,42 @@ ${fullContent}
 Tóm tắt:`;
 
     try {
-      const proxyPalAvailable = await proxyPalHealthCheck.isAvailable();
-      const provider = proxyPalAvailable ? this.proxyPalProvider : this.googleProvider;
+      // Try each ProxyPal model in order until one succeeds
+      const errors: string[] = [];
+      
+      for (const modelName of this.PROXYPAL_MODELS) {
+        const provider = this.proxyPalProviders.get(modelName)!;
+        
+        try {
+          logger.info(`[LessonAnalysis] Attempting summary generation with ProxyPal ${modelName}`);
+          
+          const response = await provider.generateContent({
+            prompt,
+            systemPrompt: 'Bạn là trợ lý AI chuyên tạo tóm tắt bài học. Tạo tóm tắt chi tiết, dễ hiểu với markdown formatting.',
+            maxTokens: 2048,
+            temperature: 0.4,
+          });
 
-      const response = await provider.generateContent({
-        prompt,
-        systemPrompt: 'Bạn là trợ lý AI chuyên tạo tóm tắt bài học. Tạo tóm tắt chi tiết, dễ hiểu với markdown formatting.',
-        maxTokens: 2048,
-        temperature: 0.4,
-      });
-
-      return response.text;
+          logger.info(`[LessonAnalysis] ✅ Summary generated successfully with ProxyPal ${modelName}`);
+          return { text: response.text, metadata: { provider: 'proxypal', model: modelName } };
+          
+        } catch (modelError: any) {
+          const errorDetails = {
+            model: modelName,
+            message: modelError?.message || 'Unknown error',
+            status: modelError?.response?.status,
+            statusText: modelError?.response?.statusText,
+            code: modelError?.code
+          };
+          logger.warn('[LessonAnalysis] ProxyPal model failed', errorDetails);
+          errors.push(`${modelName}: ${errorDetails.message} (status: ${errorDetails.status || 'N/A'})`);
+          // Continue to next model
+        }
+      }
+      
+      // All ProxyPal models failed
+      throw new Error(`All ProxyPal models failed. Errors: ${errors.join('; ')}`);
+      
     } catch (error: any) {
       logger.error('[LessonAnalysis] Summary generation failed:', error);
       throw new Error(`Failed to generate summary: ${error.message}`);
@@ -469,19 +548,21 @@ Tóm tắt:`;
 
       let context = `# Context về bài học\n\n`;
       
-      if (analysis.summary) {
-        context += `## Tóm tắt bài học:\n${analysis.summary}\n\n`;
+      const analysisData = analysis.get({ plain: true }) as AILessonAnalysisAttributes;
+      
+      if (analysisData.summary) {
+        context += `## Tóm tắt bài học:\n${analysisData.summary}\n\n`;
       }
 
-      if (analysis.content_key_concepts && Array.isArray(analysis.content_key_concepts)) {
+      if (analysisData.content_key_concepts && Array.isArray(analysisData.content_key_concepts)) {
         context += `## Các khái niệm chính:\n`;
-        context += analysis.content_key_concepts.map((c: string) => `- ${c}`).join('\n');
+        context += analysisData.content_key_concepts.map((c: string) => `- ${c}`).join('\n');
         context += `\n\n`;
       }
 
-      if (analysis.video_key_points && Array.isArray(analysis.video_key_points)) {
+      if (analysisData.video_key_points && Array.isArray(analysisData.video_key_points)) {
         context += `## Điểm chính từ video:\n`;
-        context += analysis.video_key_points.map((p: string, idx: number) => `${idx + 1}. ${p}`).join('\n');
+        context += analysisData.video_key_points.map((p: string, idx: number) => `${idx + 1}. ${p}`).join('\n');
         context += `\n\n`;
       }
 

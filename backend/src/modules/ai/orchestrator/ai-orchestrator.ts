@@ -81,20 +81,21 @@ export class AIOrchestrator {
       const proxypalKey = process.env.PROXYPAL_API_KEY || 'proxypal-local';
       
       if (proxypalEnabled) {
-        // ProxyPal - Gemini 3 Pro (2M context, best for long-form content)
-        const proxypalGemini = new ProxyPalProvider({
+        // ProxyPal - GPT 5 (best for long-form content analysis)
+        // Note: Gemini models are blocked in ProxyPal, using GPT instead
+        const proxypalGPT = new ProxyPalProvider({
           baseUrl: proxypalUrl,
           apiKey: proxypalKey,
-          model: 'gemini-3-pro-preview',
+          model: 'gpt-5',
           temperature: 0.7,
           maxTokens: 8192,
           timeout: 60000,
         });
-        this.providers.set('proxypal-gemini', proxypalGemini);
+        this.providers.set('proxypal-gpt', proxypalGPT);
         
         // Add to fallback chain (after groq-default, before google)
-        if (!this.fallbackChain.includes('proxypal-gemini')) {
-          this.fallbackChain.push('proxypal-gemini');
+        if (!this.fallbackChain.includes('proxypal-gpt')) {
+          this.fallbackChain.push('proxypal-gpt');
         }
 
         // ProxyPal - Qwen Coder Plus (32K context, best for code review)
@@ -154,18 +155,6 @@ export class AIOrchestrator {
           });
           const providerId = index === 0 ? 'google-2.5-flash' : `google-2.5-flash-key${index + 1}`;
           this.providers.set(providerId, google25Flash);
-        });
-        
-        // Google Model 3: gemini-2.5-flash-tts (Multi-modal: audio/image)
-        googleKeys.forEach((apiKey, index) => {
-          const googleFlashTTS = new GoogleAIProvider({
-            apiKey: apiKey,
-            model: googleConfig.models.flashTTS,
-            temperature: googleConfig.temperature,
-            maxTokens: googleConfig.maxTokens,
-          });
-          const providerId = index === 0 ? 'google-2.5-flash-tts' : `google-2.5-flash-tts-key${index + 1}`;
-          this.providers.set(providerId, googleFlashTTS);
         });
         
         // Google Model 3: gemini-2.5-flash-lite (Fast simple queries)
@@ -343,12 +332,12 @@ export class AIOrchestrator {
         };
       }
       
-      // Last resort: ProxyPal Gemini Pro
-      const geminiPro = this.providers.get('proxypal-gemini');
-      if (geminiPro?.isAvailable()) {
+      // Last resort: ProxyPal GPT
+      const proxypalGpt = this.providers.get('proxypal-gpt');
+      if (proxypalGpt?.isAvailable()) {
         return {
-          provider: geminiPro,
-          reason: 'ProxyPal Gemini 3 Pro - highest reasoning',
+          provider: proxypalGpt,
+          reason: 'ProxyPal GPT - highest reasoning',
           tier: 'tier2-proxypal',
         };
       }
@@ -424,11 +413,11 @@ export class AIOrchestrator {
     }
     
     // Try ProxyPal
-    const proxypalGemini = this.providers.get('proxypal-gemini');
-    if (proxypalGemini?.isAvailable()) {
+    const proxypalGpt = this.providers.get('proxypal-gpt');
+    if (proxypalGpt?.isAvailable()) {
       return {
-        provider: proxypalGemini,
-        reason: 'Last resort: ProxyPal Gemini',
+        provider: proxypalGpt,
+        reason: 'Last resort: ProxyPal GPT',
         tier: 'tier2-proxypal',
       };
     }

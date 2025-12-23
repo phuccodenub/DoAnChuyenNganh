@@ -21,14 +21,20 @@ import {
 import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
 import { CourseContentService } from '../course-content/course-content.service';
+import { QuizGeneratorService } from './services/quiz-generator.service';
+import { AIGraderService } from './services/ai-grader.service';
 
 export class AIController {
   private aiService: AIService;
   private courseContentService: CourseContentService;
+  private quizGeneratorService: QuizGeneratorService;
+  private graderService: AIGraderService;
 
   constructor() {
     this.aiService = new AIService();
     this.courseContentService = new CourseContentService();
+    this.quizGeneratorService = new QuizGeneratorService();
+    this.graderService = new AIGraderService();
   }
 
   /**
@@ -118,27 +124,85 @@ export class AIController {
   /**
    * Generate quiz questions from course content
    * POST /ai/generate-quiz
+   * Sử dụng QuizGeneratorService với 3-stage pipeline
    */
   generateQuiz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { courseId, courseContent, numberOfQuestions, difficulty, questionType } = req.body;
+      const userId = req.user!.userId;
+      const {
+        courseId,
+        lessonId, // Add lessonId for lesson analysis context
+        content,
+        courseContent, // Backward compatibility
+        contentType,
+        numberOfQuestions,
+        difficulty,
+        questionType,
+        questionTypes,
+        topicFocus,
+        bloomLevel,
+        isPremium,
+      } = req.body;
 
-      if (!courseId || !courseContent) {
-        return responseUtils.sendValidationError(res, 'courseId and courseContent are required');
+      // Support both 'content' and 'courseContent' for backward compatibility
+      const actualContent = content || courseContent;
+
+      if (!courseId || !actualContent) {
+        return responseUtils.sendValidationError(res, 'courseId và content là bắt buộc');
       }
 
-      const quizRequest: GenerateQuizRequest = {
+      if (numberOfQuestions && (numberOfQuestions < 1 || numberOfQuestions > 50)) {
+        return responseUtils.sendValidationError(res, 'Số câu hỏi phải từ 1 đến 50');
+      }
+
+      // Prepare request for new service
+      const quizRequest = {
         courseId,
-        courseContent,
-        numberOfQuestions: numberOfQuestions || 5,
+        lessonId, // Pass lessonId to enable lesson analysis context
+        content: actualContent,
+        contentType: contentType || 'text',
+        numberOfQuestions: numberOfQuestions || 10,
         difficulty: difficulty || 'medium',
-        questionType: questionType || 'multiple_choice',
+        questionTypes: questionTypes || [questionType || 'single_choice'],
+        topicFocus,
+        bloomLevel: bloomLevel || 'understand',
+        userId,
+        // Validate isPremium: only instructor/admin can use premium features
+        isPremium: isPremium && ['instructor', 'admin', 'super_admin'].includes(req.user!.role) ? true : false,
       };
 
-      const response = await this.aiService.generateQuiz(quizRequest);
-      return responseUtils.success(res, response, 'Quiz generated successfully');
-    } catch (error) {
+      // Log warning if student tries to use premium
+      if (isPremium && req.user!.role === 'student') {
+        logger.warn(`[AIController] Student ${userId} attempted to use premium quiz generation - denied`);
+      }
+
+      logger.info(`[AIController] Generating quiz for course ${courseId}, ${quizRequest.numberOfQuestions} questions`);
+
+      const result = await this.quizGeneratorService.generate(quizRequest);
+
+      return responseUtils.success(
+        res,
+        {
+          quizId: result.quizId,
+          questions: result.questions,
+          totalQuestions: result.questions.length,
+          metadata: result.metadata,
+          fromCache: false, // TODO: Implement cache detection in response
+        },
+        'Quiz được tạo thành công'
+      );
+    } catch (error: any) {
       logger.error('[AIController] Generate quiz error:', error);
+      
+      // Provide user-friendly error messages
+      if (error.message?.includes('ProxyPal')) {
+        return responseUtils.error(res, 'Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.', 503);
+      }
+      
+      if (error.message?.includes('parse')) {
+        return responseUtils.error(res, 'Không thể xử lý nội dung. Vui lòng kiểm tra lại định dạng.', 400);
+      }
+      
       next(error);
     }
   };
@@ -417,6 +481,96 @@ export class AIController {
       }, `Provider ${provider} tested successfully`);
     } catch (error) {
       logger.error(`[AIController] Test provider error:`, error);
+      next(error);
+    }
+  };
+
+  // ==================== AI GRADER ====================
+
+  /**
+   * Chấm điểm bài code
+   * POST /ai/grader/code
+   */
+  gradeCode = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+      const { submissionId, assignmentId, code, language, rubric, courseId } = req.body;
+
+      if (!submissionId || !code || !language || !rubric || !courseId) {
+        return responseUtils.sendValidationError(
+          res,
+          'submissionId, code, language, rubric và courseId là bắt buộc'
+        );
+      }
+
+      if (!Array.isArray(rubric) || rubric.length === 0) {
+        return responseUtils.sendValidationError(res, 'Rubric phải là mảng và không được rỗng');
+      }
+
+      logger.info(`[AIController] Grading code submission ${submissionId}`);
+
+      const result = await this.graderService.gradeCode({
+        submissionId,
+        assignmentId,
+        code,
+        language,
+        rubric,
+        courseId,
+        userId,
+      });
+
+      return responseUtils.success(res, result, 'Chấm điểm code thành công');
+    } catch (error: any) {
+      logger.error('[AIController] Grade code error:', error);
+
+      if (error.message?.includes('parse')) {
+        return responseUtils.error(res, 'Không thể xử lý kết quả chấm điểm. Vui lòng thử lại.', 500);
+      }
+
+      next(error);
+    }
+  };
+
+  /**
+   * Chấm điểm bài luận
+   * POST /ai/grader/essay
+   */
+  gradeEssay = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+      const { submissionId, assignmentId, essay, topic, rubric, courseId } = req.body;
+
+      if (!submissionId || !essay || !topic || !rubric || !courseId) {
+        return responseUtils.sendValidationError(
+          res,
+          'submissionId, essay, topic, rubric và courseId là bắt buộc'
+        );
+      }
+
+      if (!Array.isArray(rubric) || rubric.length === 0) {
+        return responseUtils.sendValidationError(res, 'Rubric phải là mảng và không được rỗng');
+      }
+
+      logger.info(`[AIController] Grading essay submission ${submissionId}`);
+
+      const result = await this.graderService.gradeEssay({
+        submissionId,
+        assignmentId,
+        essay,
+        topic,
+        rubric,
+        courseId,
+        userId,
+      });
+
+      return responseUtils.success(res, result, 'Chấm điểm bài luận thành công');
+    } catch (error: any) {
+      logger.error('[AIController] Grade essay error:', error);
+
+      if (error.message?.includes('parse')) {
+        return responseUtils.error(res, 'Không thể xử lý kết quả chấm điểm. Vui lòng thử lại.', 500);
+      }
+
       next(error);
     }
   };

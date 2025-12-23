@@ -104,15 +104,31 @@ export class AIService {
 
   /**
    * Lesson-aware chat (RAG-lite)
+   * Now includes AI analysis context if available
    */
   async chatWithLessonContext(request: LessonChatRequest): Promise<ChatResponse> {
     if (!this.model) {
       throw new Error('AI service is not available. Please configure GEMINI_API_KEY.');
     }
 
+    // Try to get AI analysis for enhanced context
+    const { default: AILessonAnalysis } = await import('./models/ai-lesson-analysis.model');
+    let analysis = null;
+    try {
+      analysis = await AILessonAnalysis.findOne({
+        where: { 
+          lesson_id: request.lesson.id,
+          status: 'completed'
+        }
+      });
+    } catch (err) {
+      // Ignore analysis fetch errors, continue with basic lesson context
+      logger.warn('[AIService] Could not fetch analysis for lesson chat:', err);
+    }
+
     const contextText = this.buildLessonContext(request.lesson);
 
-    // Build prompt with context + history + formatting rules
+    // Build prompt with context + analysis (if available) + history + formatting rules
     let prompt = 'Bạn là trợ lý AI cho khóa học. Trả lời ngắn gọn, rõ ràng, hữu ích.\n';
     prompt += 'Định dạng đầu ra (markdown gọn):\n';
     prompt += '- Chỉ trả về nội dung chính, không mở đầu/kết thúc.\n';
@@ -120,8 +136,24 @@ export class AIService {
     prompt += '- Nếu hướng dẫn bước: dùng danh sách số.\n';
     prompt += '- Nếu cần code: dùng ```lang\\n...```, không thêm lời dẫn.\n';
     prompt += '- Không dùng in đậm/in nghiêng, không lặp lại câu hỏi/tiêu đề.\n';
+    
     prompt += '\nNgữ cảnh bài học:\n';
     prompt += contextText;
+
+    // Add AI analysis context if available (gives tutor better understanding)
+    if (analysis) {
+      prompt += '\n\n=== PHÂN TÍCH BÀI HỌC (để hiểu sâu hơn) ===\n';
+      if (analysis.summary) {
+        prompt += `Tóm tắt: ${analysis.summary}\n`;
+      }
+      if (analysis.content_key_concepts && analysis.content_key_concepts.length > 0) {
+        prompt += `Khái niệm chính: ${analysis.content_key_concepts.join(', ')}\n`;
+      }
+      if (analysis.content_difficulty_level) {
+        prompt += `Độ khó: ${analysis.content_difficulty_level}\n`;
+      }
+
+    }
 
     if (request.conversationHistory && request.conversationHistory.length > 0) {
       const recent = request.conversationHistory.slice(-6);

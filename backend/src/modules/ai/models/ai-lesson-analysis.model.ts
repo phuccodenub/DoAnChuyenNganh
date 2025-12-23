@@ -138,7 +138,6 @@ const AILessonAnalysis = sequelize.define(
     },
   },
   {
-    sequelize,
     tableName: 'ai_lesson_analysis',
     underscored: true,
     timestamps: true,

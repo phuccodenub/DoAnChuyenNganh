@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AI Analysis API</title>
+</head>
+<body>
+    <h1>Test AI Analysis API</h1>
+    <button onclick="testAPI()">Test GET /ai/analysis/:lessonId</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testAPI() {
+            const lessonId = '40000000-0000-0000-0000-000000000001';
+            const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+            
+            const result = document.getElementById('result');
+            result.textContent = 'Testing...\n';
+            result.textContent += `Token: ${token ? 'Found' : 'Not found'}\n`;
+            
+            try {
+                // Test 1: Direct to backend
+                result.textContent += '\n=== Test 1: Direct to backend (port 3000) ===\n';
+                const url1 = `http://localhost:3000/api/v1.3.0/ai/analysis/${lessonId}`;
+                result.textContent += `URL: ${url1}\n`;
+                
+                const res1 = await fetch(url1, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                result.textContent += `Status: ${res1.status} ${res1.statusText}\n`;
+                const data1 = await res1.json();
+                result.textContent += `Response: ${JSON.stringify(data1, null, 2)}\n`;
+                
+                // Test 2: Through Vite proxy
+                result.textContent += '\n=== Test 2: Through Vite proxy ===\n';
+                const url2 = `/api/v1.3.0/ai/analysis/${lessonId}`;
+                result.textContent += `URL: ${url2}\n`;
+                
+                const res2 = await fetch(url2, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                result.textContent += `Status: ${res2.status} ${res2.statusText}\n`;
+                const data2 = await res2.json();
+                result.textContent += `Response: ${JSON.stringify(data2, null, 2)}\n`;
+                
+            } catch (error) {
+                result.textContent += `\nError: ${error.message}\n${error.stack}`;
+            }
+        }
+    </script>
+</body>
+</html>

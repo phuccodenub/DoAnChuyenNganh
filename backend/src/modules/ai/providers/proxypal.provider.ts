@@ -9,11 +9,14 @@ import { BaseAIProvider, AIProviderConfig, AIGenerateRequest, AIGenerateResponse
 
 export interface ProxyPalConfig extends AIProviderConfig {
   baseUrl: string; // http://127.0.0.1:8317 (use IP, not localhost!)
-  model: 'gemini-3-pro-preview' | 'qwen3-coder-plus' | 'qwen3-coder-flash';
+  // Use GPT and Qwen models which are stable in ProxyPal
+  model: 'gpt-5.2' | 'gpt-5.1' | 'gpt-5' | 'qwen3-coder-plus' | 'qwen3-coder-flash';
 }
 
 export class ProxyPalProvider extends BaseAIProvider {
   private client: AxiosInstance;
+  private lastCheckTime: number = 0;
+  private checkInterval: number = 300000; // Re-check every 5 minutes (reduced from 30s)
   private available: boolean = false;
 
   constructor(config: ProxyPalConfig) {
@@ -41,19 +44,23 @@ export class ProxyPalProvider extends BaseAIProvider {
       headers,
     });
 
-    // Check availability on initialization
-    this.checkAvailability();
+    // Check availability on initialization (async, non-blocking)
+    this.checkAvailability().catch(() => {
+      // Ignore init errors - will retry on first request
+    });
   }
 
   private async checkAvailability(): Promise<void> {
     try {
       const response = await this.client.get('/v1/models', { timeout: 5000 });
       this.available = response.status === 200;
+      this.lastCheckTime = Date.now();
       if (this.available) {
         logger.info(`[ProxyPalProvider] Connected successfully - ${response.data?.data?.length || 0} models available`);
       }
     } catch (error: any) {
       this.available = false;
+      this.lastCheckTime = Date.now();
       logger.warn(`[ProxyPalProvider] Not available - ${error.message}`);
     }
   }
@@ -61,9 +68,14 @@ export class ProxyPalProvider extends BaseAIProvider {
   async generateContent(request: AIGenerateRequest): Promise<AIGenerateResponse> {
     const startTime = Date.now();
 
-    if (!this.isAvailable()) {
-      throw new Error('ProxyPal is not available. Make sure ProxyPal is running on localhost:8317');
+    // Auto-refresh availability check if stale (every 30s)
+    const now = Date.now();
+    if (now - this.lastCheckTime > this.checkInterval) {
+      await this.checkAvailability();
     }
+
+    // Note: We don't throw error if not available - let the actual API call decide
+    // This allows fallback logic to work properly even if health check fails
 
     try {
       const messages = [];
@@ -155,8 +167,9 @@ export class ProxyPalProvider extends BaseAIProvider {
       logger.error('[ProxyPalProvider] Error:', error.message);
       
       // Check if ProxyPal is down
-      if (error.code === 'ECONNREFUSED') {
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
         this.available = false;
+        this.lastCheckTime = Date.now();
         throw new Error('ProxyPal is not running. Please start ProxyPal and try again.');
       }
       

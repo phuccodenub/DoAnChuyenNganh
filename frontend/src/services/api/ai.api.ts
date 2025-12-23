@@ -39,16 +39,41 @@ export const aiApi = {
   },
 
   /**
-   * Generate quiz questions
+   * Generate quiz questions với support cho nhiều tính năng mới
    */
   generateQuiz: async (payload: {
     courseId: string;
-    courseContent: string;
+    courseContent?: string; // Backward compatibility
+    content?: string; // New field
+    contentType?: 'text' | 'video' | 'pdf';
     numberOfQuestions?: number;
     difficulty?: 'easy' | 'medium' | 'hard';
     questionType?: 'single_choice' | 'multiple_choice' | 'true_false';
-  }): Promise<any> => {
-    const res = await apiClient.post<{ data: any }>('/ai/generate-quiz', payload);
+    questionTypes?: Array<'single_choice' | 'multiple_choice' | 'true_false'>;
+    topicFocus?: string[];
+    bloomLevel?: 'remember' | 'understand' | 'apply' | 'analyze';
+    isPremium?: boolean;
+  }): Promise<{
+    quizId: string;
+    questions: any[];
+    totalQuestions: number;
+    metadata?: {
+      generatedAt: Date;
+      model: string;
+      processingTime: number;
+      tokenUsage?: {
+        input: number;
+        output: number;
+        total: number;
+      };
+      cost: number;
+      stages: string[];
+    };
+    fromCache?: boolean;
+  }> => {
+    const res = await apiClient.post<{ data: any }>('/ai/generate-quiz', payload, {
+      timeout: 90000, // 90 giây cho large content
+    });
     return res.data.data;
   },
 

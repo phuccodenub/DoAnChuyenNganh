@@ -117,14 +117,15 @@ router.use('/analytics', analyticsRoutes);
 router.use('/assignments', assignmentRoutes);
 router.use('/quizzes', quizRoutes);
 
-// AI routes (legacy + new)
-router.use('/ai', aiRoutes);
-router.use('/ai', aiRoutesV2); // New AI system routes
-
-// AI Analysis routes
+// AI Analysis routes - Register BEFORE other /ai routes to avoid route conflicts
+// More specific routes should be registered before generic ones
 import aiAnalysisRoutes from '../../../modules/ai/routes/ai-analysis.routes';
 logger.info('Registering v1 AI Analysis at /ai/analysis');
 router.use('/ai/analysis', aiAnalysisRoutes);
+
+// AI routes (legacy + new) - Register after /ai/analysis to avoid conflicts
+router.use('/ai', aiRoutes);
+router.use('/ai', aiRoutesV2); // New AI system routes
 
 // Moderation routes
 router.use('/moderation', moderationRoutes);

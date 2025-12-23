@@ -6,8 +6,7 @@
 import logger from '../../../utils/logger.util';
 import { AIOrchestrator } from '../orchestrator/ai-orchestrator';
 import { QuestionClassification } from '../orchestrator/ai-orchestrator';
-// TODO: Enable after fixing models
-// import { LessonAnalysisService } from './lesson-analysis.service';
+import { LessonAnalysisService } from './lesson-analysis.service';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -38,13 +37,11 @@ export interface ChatResponse {
 
 export class AITutorService {
   private orchestrator: AIOrchestrator;
-  // TODO: Enable after fixing models
-  // private lessonAnalysisService: LessonAnalysisService;
+  private lessonAnalysisService: LessonAnalysisService;
 
   constructor() {
     this.orchestrator = new AIOrchestrator();
-    // TODO: Enable after fixing models
-    // this.lessonAnalysisService = new LessonAnalysisService();
+    this.lessonAnalysisService = new LessonAnalysisService();
     logger.info('[AITutorService] Service initialized');
   }
 
@@ -62,17 +59,18 @@ export class AITutorService {
       // Build full prompt với context
       let fullPrompt = '';
 
-      // TODO: Enable lesson context after fixing models
       // Add lesson context if available
-      /*
       if (request.lessonId) {
-        const lessonContext = await this.lessonAnalysisService.getLessonContext(request.lessonId);
-        if (lessonContext) {
-          fullPrompt += lessonContext + '\n\n';
-          logger.info(`[AITutorService] Added lesson context (${lessonContext.length} chars)`);
+        try {
+          const lessonContext = await this.lessonAnalysisService.getLessonContext(request.lessonId);
+          if (lessonContext) {
+            fullPrompt += lessonContext + '\n\n';
+            logger.info(`[AITutorService] Added lesson context (${lessonContext.length} chars)`);
+          }
+        } catch (error: any) {
+          logger.warn(`[AITutorService] Could not fetch lesson context: ${error.message}`);
         }
       }
-      */
 
       // Add conversation history (last 6 messages)
       if (request.conversationHistory && request.conversationHistory.length > 0) {

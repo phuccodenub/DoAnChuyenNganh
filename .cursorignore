@@ -76,10 +76,10 @@ public/uploads/
 Thumbs.db
 ehthumbs.db
 
-# Environment files
-.env
-.env.*
-!.env.example
+# # Environment files
+# .env
+# .env.*
+# !.env.example
 
 # Backend specific
 backend/dist/

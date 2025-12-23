@@ -3,7 +3,8 @@
  * Shows AI-generated summary for students
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { marked } from 'marked';
 import { useAIAnalysis } from '../../hooks/useAIAnalysis';
 import { 
   Sparkles, 
@@ -19,9 +20,24 @@ interface AISummaryPanelProps {
   lessonId: string;
 }
 
+const renderMarkdownToHtml = (raw?: string | null): string => {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return '';
+  let html = marked.parse(trimmed, { breaks: true, gfm: true });
+  // Loại bỏ các tag lạ mà AI có thể sinh ra (ví dụ </tên_gói>)
+  html = (html as string).replace(/<\/?tên_gói>/gi, '');
+  return html as string;
+};
+
 export const AISummaryPanel: React.FC<AISummaryPanelProps> = ({ lessonId }) => {
-  const { analysis, queueStatus, loading } = useAIAnalysis(lessonId);
+  const { analysis, queueStatus } = useAIAnalysis(lessonId);
   const [isExpanded, setIsExpanded] = useState(true);
+
+  // Chuẩn hóa HTML summary ngay sau khi lấy data để đảm bảo hook order luôn cố định
+  const summaryHtml = useMemo(
+    () => (analysis && analysis.summary ? renderMarkdownToHtml(analysis.summary) : ''),
+    [analysis]
+  );
 
   // Check if analysis is in progress
   const isProcessing = queueStatus.some(
@@ -94,15 +110,16 @@ export const AISummaryPanel: React.FC<AISummaryPanelProps> = ({ lessonId }) => {
         {isExpanded && (
           <div className="p-4 pt-0 space-y-4">
             {/* Summary */}
-            {analysis.summary && (
+            {summaryHtml && (
               <div>
                 <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
                   <BookOpen className="h-4 w-4 mr-1.5 text-indigo-600" />
                   Summary
                 </h4>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  {analysis.summary}
-                </p>
+                <div
+                  className="prose prose-sm max-w-none text-gray-700 leading-relaxed [&>p]:mb-2"
+                  dangerouslySetInnerHTML={{ __html: summaryHtml }}
+                />
               </div>
             )}
 

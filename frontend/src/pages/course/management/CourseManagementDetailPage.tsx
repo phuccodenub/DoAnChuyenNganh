@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MainLayout } from '@/layouts/MainLayout';
 import { PageWrapper, PageHeader } from '@/components/courseEditor';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { cn } from '@/lib/utils';
@@ -42,14 +41,12 @@ export function CourseManagementDetailPage() {
 
   if (!courseId) {
     return (
-      <MainLayout showSidebar>
-        <PageWrapper>
-          <div className="text-center py-12">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600">Mã khóa học không hợp lệ</p>
-          </div>
-        </PageWrapper>
-      </MainLayout>
+      <PageWrapper>
+        <div className="text-center py-12">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">Mã khóa học không hợp lệ</p>
+        </div>
+      </PageWrapper>
     );
   }
 
@@ -63,14 +60,12 @@ export function CourseManagementDetailPage() {
   // Loading state
   if (isCourseLoading) {
     return (
-      <MainLayout showSidebar>
-        <PageWrapper>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            <span className="ml-2 text-gray-600">Đang tải khóa học...</span>
-          </div>
-        </PageWrapper>
-      </MainLayout>
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Đang tải khóa học...</span>
+        </div>
+      </PageWrapper>
     );
   }
 
@@ -85,27 +80,24 @@ export function CourseManagementDetailPage() {
 
   if (courseError || !course) {
     return (
-      <MainLayout showSidebar>
-        <PageWrapper>
-          <div className="flex flex-col items-center justify-center min-h-[400px]">
-            <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Không thể tải khóa học</h3>
-            <p className="text-gray-600 mb-4 text-center px-4">{errorMessage}</p>
-            <button
-              onClick={() => navigate(ROUTES.COURSE_MANAGEMENT)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Quay lại
-            </button>
-          </div>
-        </PageWrapper>
-      </MainLayout>
+      <PageWrapper>
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Không thể tải khóa học</h3>
+          <p className="text-gray-600 mb-4 text-center px-4">{errorMessage}</p>
+          <button
+            onClick={() => navigate(ROUTES.INSTRUCTOR.MY_COURSES)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Quay lại
+          </button>
+        </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <MainLayout showSidebar>
-      <PageWrapper>
+    <PageWrapper>
         {/* Page Header */}
         <PageHeader
           title={course.title || 'Quản lý khóa học'}
@@ -246,8 +238,7 @@ export function CourseManagementDetailPage() {
             </div>
           )}
         </Tabs>
-      </PageWrapper>
-    </MainLayout>
+    </PageWrapper>
   );
 }
 

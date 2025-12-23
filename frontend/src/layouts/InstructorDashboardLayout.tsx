@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, ReactNode } from 'react';
+import { useState, useRef, useEffect, ReactNode, useMemo } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,21 +14,33 @@ import {
   Video,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Search,
-  MessageCircle
+  MessageCircle,
+  Plus
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { ROUTES } from '@/constants/routes';
+import { ROUTES, generateRoute } from '@/constants/routes';
 import { getDashboardByRole } from '@/utils/navigation';
 import { cn } from '@/lib/utils';
 import { NotificationPanel } from '@/components/notifications/NotificationPanel';
 import { MessagePanel } from '@/components/messages/MessagePanel';
 import { SearchBar } from '@/components/layout/SearchBar';
+import { useInstructorCourses } from '@/hooks/useInstructorCourse';
+import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
+
+interface NavItemChild {
+  id: string;
+  label: string;
+  path: string;
+}
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
+  children?: NavItemChild[];
+  expandable?: boolean;
 }
 
 interface InstructorDashboardLayoutProps {
@@ -49,13 +61,32 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const autoCollapseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { navigateTo, canPerform } = useRoleBasedNavigation();
 
-  const navItems: NavItem[] = [
+  // Fetch instructor courses for the expandable menu
+  const { data: instructorCoursesData } = useInstructorCourses({});
+  const instructorCourses = useMemo(() => {
+    if (!instructorCoursesData?.data) return [];
+    const responseData = instructorCoursesData.data as any;
+    return Array.isArray(responseData) ? responseData : responseData?.data || [];
+  }, [instructorCoursesData]);
+
+  // Build course children for "Khóa học của tôi" menu
+  const courseChildren: NavItemChild[] = useMemo(() => {
+    return instructorCourses.map((course: any) => ({
+      id: `course-${course.id}`,
+      label: course.title,
+      path: generateRoute.courseManagement(course.id),
+    }));
+  }, [instructorCourses]);
+
+  const navItems: NavItem[] = useMemo(() => [
     {
       label: 'Tổng quan',
       path: ROUTES.INSTRUCTOR.DASHBOARD,
@@ -65,6 +96,8 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
       label: 'Khóa học của tôi',
       path: ROUTES.INSTRUCTOR.MY_COURSES,
       icon: <BookOpen className="w-5 h-5" />,
+      children: courseChildren,
+      expandable: true,
     },
     {
       label: 'Tin nhắn',
@@ -96,9 +129,27 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
       path: ROUTES.SETTINGS,
       icon: <Settings className="w-5 h-5" />,
     },
-  ];
+  ], [courseChildren]);
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === location.pathname) return true;
+    // Check if current path matches course management detail route
+    if (path === ROUTES.INSTRUCTOR.MY_COURSES && location.pathname.startsWith('/course-management/')) {
+      return true;
+    }
+    return false;
+  };
+
+  const isChildActive = (childPath: string) => {
+    return location.pathname === childPath;
+  };
+
+  const toggleExpand = (itemLabel: string) => {
+    if (sidebarCollapsed) return;
+    setExpandedItems((prev) =>
+      prev.includes(itemLabel) ? prev.filter((id) => id !== itemLabel) : [...prev, itemLabel]
+    );
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -149,6 +200,17 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
       }
     };
   }, [sidebarCollapsed]);
+
+  // Auto-expand "Khóa học của tôi" menu when on course-management pages
+  useEffect(() => {
+    const isOnCourseManagementPage = location.pathname.startsWith('/course-management/') || 
+                                     location.pathname === ROUTES.INSTRUCTOR.MY_COURSES ||
+                                     location.pathname === ROUTES.COURSE_MANAGEMENT;
+    
+    if (isOnCourseManagementPage && !expandedItems.includes('Khóa học của tôi')) {
+      setExpandedItems((prev) => [...prev, 'Khóa học của tôi']);
+    }
+  }, [location.pathname, expandedItems]);
 
   // Expand sidebar when clicking on a nav item
   const handleNavClick = () => {
@@ -242,36 +304,148 @@ export function InstructorDashboardLayout({ children }: InstructorDashboardLayou
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto" style={{ height: 'calc(100% - 12rem)' }}>
-          {navItems.map((item, index) => (
-            <Link
-              key={`nav-${index}-${item.path}`}
-              to={item.path}
-              className={cn(
-                'flex items-center gap-3 rounded-lg transition-all duration-200 group',
-                sidebarCollapsed ? 'px-2 py-3 justify-center' : 'px-4 py-3',
-                isActive(item.path)
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-700 hover:bg-gray-50'
-              )}
-              onClick={handleNavClick}
-              title={sidebarCollapsed ? item.label : undefined}
-            >
-              <span className={cn(
-                'transition-colors',
-                isActive(item.path) ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
-              )}>
-                {item.icon}
-              </span>
-              {!sidebarCollapsed && (
+          {navItems.map((item, index) => {
+            const hasChildren = item.expandable && item.children && item.children.length > 0;
+            const isExpanded = expandedItems.includes(item.label);
+            const isItemActive = isActive(item.path) || (hasChildren && item.children?.some(child => location.pathname === child.path));
+
+            if (hasChildren) {
+              return (
+                <div key={`nav-${index}-${item.path}`} className="mb-1">
+                  <div className={cn(
+                    'flex items-center justify-between rounded-lg transition-all duration-200 group',
+                    sidebarCollapsed ? 'px-2 py-3 justify-center' : 'px-4 py-3',
+                    isItemActive
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  )}>
+                    <Link
+                      to={item.path}
+                      className={cn(
+                        'flex items-center gap-3 flex-1',
+                        sidebarCollapsed && 'justify-center'
+                      )}
+                      onClick={handleNavClick}
+                      title={sidebarCollapsed ? item.label : undefined}
+                    >
+                      <span className={cn(
+                        'transition-colors',
+                        isItemActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
+                      )}>
+                        {item.icon}
+                      </span>
+                      {!sidebarCollapsed && (
+                        <span className={cn(
+                          'font-medium',
+                          isItemActive ? 'text-blue-600' : 'text-gray-900'
+                        )}>
+                          {item.label}
+                        </span>
+                      )}
+                    </Link>
+                    
+                    {!sidebarCollapsed && (
+                      <>
+                        {canPerform.createCourse && item.label === 'Khóa học của tôi' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigateTo.courseCreate();
+                              handleNavClick();
+                            }}
+                            className="ml-1 p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
+                            title="Tạo khóa học mới"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleExpand(item.label);
+                          }}
+                          className={cn(
+                            'p-1 rounded hover:bg-gray-200 transition-colors',
+                            isItemActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'
+                          )}
+                          aria-label={isExpanded ? 'Thu gọn' : 'Mở rộng'}
+                        >
+                          <ChevronDown className={cn('h-4 w-4 transition-transform duration-200', isExpanded ? 'rotate-180' : '')} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Children items */}
+                  {!sidebarCollapsed && isExpanded && item.children && (
+                    <div className="mt-1 ml-4 pl-4 border-l-2 border-gray-100 space-y-0.5">
+                      {item.children.length > 0 ? (
+                        item.children.map((child) => {
+                          const childIsActive = isChildActive(child.path);
+                          return (
+                            <Link
+                              key={child.id}
+                              to={child.path}
+                              onClick={handleNavClick}
+                              className={cn(
+                                'flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group',
+                                childIsActive
+                                  ? 'bg-blue-50 text-blue-600 -ml-4 pl-3'
+                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              )}
+                            >
+                              <span className={cn('text-sm font-medium', childIsActive ? 'text-blue-600' : 'text-gray-700 group-hover:text-gray-900')}>
+                                {child.label}
+                              </span>
+                            </Link>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-2 rounded-lg bg-gray-50 text-sm text-gray-500">
+                          Chưa có khóa học nào
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={`nav-${index}-${item.path}`}
+                to={item.path}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg transition-all duration-200 group',
+                  sidebarCollapsed ? 'px-2 py-3 justify-center' : 'px-4 py-3',
+                  isActive(item.path)
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-gray-700 hover:bg-gray-50'
+                )}
+                onClick={handleNavClick}
+                title={sidebarCollapsed ? item.label : undefined}
+              >
                 <span className={cn(
-                  'font-medium',
-                  isActive(item.path) ? 'text-blue-600' : 'text-gray-900'
+                  'transition-colors',
+                  isActive(item.path) ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
                 )}>
-                  {item.label}
+                  {item.icon}
                 </span>
-              )}
-            </Link>
-          ))}
+                {!sidebarCollapsed && (
+                  <span className={cn(
+                    'font-medium',
+                    isActive(item.path) ? 'text-blue-600' : 'text-gray-900'
+                  )}>
+                    {item.label}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Logout button */}

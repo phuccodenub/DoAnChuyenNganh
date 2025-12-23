@@ -27,7 +27,7 @@ class ProxyPalHealthCheckService {
     error: null,
   };
   
-  private checkInterval = 30000; // 30 seconds cache
+  private checkInterval = 300000; // 5 minutes cache (reduced from 30s to avoid log spam)
   // Use PROXYPAL_BASE_URL from .env, normalize to remove /v1 suffix (will add in API calls)
   // IMPORTANT: Use 127.0.0.1 instead of localhost to avoid IPv6 issues in Node.js 17+
   // NOTE: Do NOT replace host.docker.internal - it's needed when running in Docker to access host machine
@@ -155,7 +155,7 @@ class ProxyPalHealthCheckService {
       });
     }, this.checkInterval);
 
-    logger.info('[ProxyPalHealth] Periodic health check started (30s interval)');
+    logger.info('[ProxyPalHealth] Periodic health check started (5min interval)');
   }
 
   /**

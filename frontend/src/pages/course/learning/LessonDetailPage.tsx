@@ -16,7 +16,6 @@ import {
   BookmarkCheck
 } from 'lucide-react';
 import { marked } from 'marked';
-import { MainLayout } from '@/layouts/MainLayout';
 import { PageWrapper } from '@/components/courseEditor';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -27,6 +26,7 @@ import { DocumentViewer } from '@/components/domain/lesson/DocumentViewer';
 import { useLesson, useCourseContent, useMarkLessonComplete, useLessonProgress, useUpdateProgress, useCourseBookmarks } from '@/hooks/useLessonData';
 import { AiAssistantCard } from '@/components/domain/lesson/AiAssistantCard';
 import { AIChatPanel } from '@/components/domain/ai';
+import { AISummaryPanel } from '@/components/student/AISummaryPanel';
 import { useCourse, useCourseProgress } from '@/hooks/useCoursesData';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES, generateRoute } from '@/constants/routes';
@@ -943,42 +943,37 @@ export function LessonDetailPage() {
   // Hiển thị loading nếu đang fetch hoặc lesson không khớp với URL
   if (isLessonLoading || isContentLoading || !isLessonMatching) {
     return (
-      <MainLayout showSidebar>
-        <PageWrapper>
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Spinner size="lg" />
-            <p className="ml-4 text-gray-600">Đang tải bài học...</p>
-          </div>
-        </PageWrapper>
-      </MainLayout>
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Spinner size="lg" />
+          <p className="ml-4 text-gray-600">Đang tải bài học...</p>
+        </div>
+      </PageWrapper>
     );
   }
 
   // Hiển thị error nếu có lỗi hoặc không tìm thấy lesson
   if (lessonError || !lesson) {
     return (
-      <MainLayout showSidebar>
-        <PageWrapper>
-          <Card>
-            <CardContent className="py-12 text-center">
-              <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Không tìm thấy bài học</h2>
-              <p className="text-gray-500 mb-4">
-                Bài học này không tồn tại hoặc bạn không có quyền truy cập.
-              </p>
-              <Button onClick={() => navigate(generateRoute.courseDetail(courseId!))}>
-                Quay lại khóa học
-              </Button>
-            </CardContent>
-          </Card>
-        </PageWrapper>
-      </MainLayout>
+      <PageWrapper>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Không tìm thấy bài học</h2>
+            <p className="text-gray-500 mb-4">
+              Bài học này không tồn tại hoặc bạn không có quyền truy cập.
+            </p>
+            <Button onClick={() => navigate(generateRoute.courseDetail(courseId!))}>
+              Quay lại khóa học
+            </Button>
+          </CardContent>
+        </Card>
+      </PageWrapper>
     );
   }
 
   return (
-    <MainLayout showSidebar>
-      <PageWrapper>
+    <PageWrapper>
         <div className="max-w-8xl mx-auto">
           {/* Header với breadcrumb */}
           <div className="mb-6">
@@ -1055,7 +1050,10 @@ export function LessonDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* AI Assistant */}
+              {/* AI Summary Panel - Uses cached analysis from instructor */}
+              <AISummaryPanel lessonId={lesson.id} />
+
+              {/* AI Assistant - For chat interactions */}
               <AiAssistantCard
                 courseTitle={course?.title}
                 courseDescription={course?.description}
@@ -1175,12 +1173,11 @@ export function LessonDetailPage() {
               </div>
             </div>
           </div>
-        </div>
-      </PageWrapper>
 
-      {/* AI Chat Panel - Floating button */}
-      {isUserEnrolled && <AIChatPanel courseId={courseId} lessonId={lessonId} />}
-    </MainLayout>
+          {/* AI Chat Panel - Floating button */}
+          {isUserEnrolled && <AIChatPanel courseId={courseId} lessonId={lessonId} />}
+        </div>
+    </PageWrapper>
   );
 }
 

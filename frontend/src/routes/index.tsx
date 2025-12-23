@@ -21,6 +21,7 @@ const LiveStreamLobbyPage = lazy(() => import('@/pages/livestream/lobby/LobbyPag
 const LiveStreamSessionPage = lazy(() => import('@/pages/livestream/session/SessionPage'));
 
 // Student pages
+const StudentDashboardLayout = lazy(() => import('@/layouts/StudentDashboardLayout'));
 const StudentDashboard = lazy(() => import('@/pages/student/DashboardPage'));
 const StudentMyCoursesPage = lazy(() => import('@/pages/student/MyCoursesPage'));
 const StudentAssignmentsPage = lazy(() => import('@/pages/student/StudentAssignmentsPage'));
@@ -134,19 +135,21 @@ function AppRoutes() {
           {/* Learning routes - accessible to all authenticated users who can enroll (student, instructor, admin, super_admin) */}
           <Route element={<RoleGuard allowedRoles={['student', 'instructor', 'admin', 'super_admin']} />}>
             <Route path={ROUTES.STUDENT.LEARNING} element={<LearningPage />} />
-            <Route path={ROUTES.STUDENT.LESSON} element={<LessonDetailPage />} />
           </Route>
 
           {/* Student-only routes (dashboard, profile, etc.) */}
           <Route element={<RoleGuard allowedRoles={['student']} />}>
-            <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
-            <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentMyCoursesPage />} />
-            <Route path={ROUTES.STUDENT.ASSIGNMENTS} element={<StudentAssignmentsPage />} />
-            {/* Settings moved to universal route */}
-            <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
-            {/* Redirect old chat route to shared messages page */}
-            <Route path={ROUTES.STUDENT.CHAT} element={<Navigate to={ROUTES.SHARED.MESSAGES} replace />} />
-            {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
+            <Route element={<StudentDashboardLayout />}>
+              <Route path={ROUTES.STUDENT.DASHBOARD} element={<StudentDashboard />} />
+              <Route path={ROUTES.STUDENT.MY_COURSES} element={<StudentMyCoursesPage />} />
+              <Route path={ROUTES.STUDENT.ASSIGNMENTS} element={<StudentAssignmentsPage />} />
+              <Route path={ROUTES.STUDENT.LESSON} element={<LessonDetailPage />} />
+              {/* Settings moved to universal route */}
+              <Route path={ROUTES.STUDENT.NOTIFICATIONS} element={<NotificationsPage />} />
+              {/* Redirect old chat route to shared messages page */}
+              <Route path={ROUTES.STUDENT.CHAT} element={<Navigate to={ROUTES.SHARED.MESSAGES} replace />} />
+              {/* NOTE: PROFILE moved to universal route above - accessible to all authenticated users */}
+            </Route>
           </Route>
 
           {/* Quiz & Assignment routes: cho phép cả student + instructor xem giao diện làm bài */}
@@ -156,29 +159,9 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
           </Route>
 
-          {/* Livestream create route & course management & course editor */}
+          {/* Livestream create route & course editor */}
           {/* Cho phép instructor, admin, super_admin để admin vẫn quản lý khóa học */}
-          <Route element={<RoleGuard allowedRoles={['instructor', 'admin', 'super_admin']} />}>
-            <Route
-              path={ROUTES.COURSE_MANAGEMENT}
-              element={
-                <MainLayout>
-                  <MyCoursesPage />
-                </MainLayout>
-              }
-            />
-            <Route
-              path={ROUTES.COURSE_MANAGEMENT_DETAIL}
-              element={<CourseManagementDetailPage />}
-            />
-            <Route
-              path={ROUTES.COURSE_CREATE}
-              element={
-                <MainLayout>
-                  <CourseEditorPage />
-                </MainLayout>
-              }
-            />
+          <Route element={<RoleGuard allowedRoles={['admin', 'super_admin']} />}>
             <Route
               path={ROUTES.COURSE_CURRICULUM}
               element={<CurriculumBuilderPage />}
@@ -191,10 +174,13 @@ function AppRoutes() {
             <Route element={<InstructorDashboardLayout />}>
               <Route path={ROUTES.INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
               <Route path={ROUTES.INSTRUCTOR.MY_COURSES} element={<MyCoursesPage />} />
+              <Route path={ROUTES.COURSE_MANAGEMENT} element={<MyCoursesPage />} />
+              <Route path={ROUTES.COURSE_MANAGEMENT_DETAIL} element={<CourseManagementDetailPage />} />
+              <Route path={ROUTES.COURSE_CREATE} element={<CourseEditorPage />} />
               <Route path={ROUTES.INSTRUCTOR.COURSE_DETAIL} element={<InstructorCourseDetailPage />} />
               <Route
                 path={ROUTES.INSTRUCTOR.COURSE_EDIT}
-                element={<Navigate to={ROUTES.COURSE_MANAGEMENT} replace />}
+                element={<Navigate to={ROUTES.INSTRUCTOR.MY_COURSES} replace />}
               />
               <Route
                 path={ROUTES.INSTRUCTOR.COURSE_CREATE}
@@ -202,7 +188,7 @@ function AppRoutes() {
               />
               <Route
                 path={ROUTES.INSTRUCTOR.CURRICULUM}
-                element={<Navigate to={ROUTES.COURSE_MANAGEMENT} replace />}
+                element={<Navigate to={ROUTES.INSTRUCTOR.MY_COURSES} replace />}
               />
               <Route path={ROUTES.INSTRUCTOR.QUIZ_BUILDER} element={<QuizBuilderPage />} />
               <Route path={ROUTES.INSTRUCTOR.QUIZ_EDIT} element={<QuizBuilderPage />} />

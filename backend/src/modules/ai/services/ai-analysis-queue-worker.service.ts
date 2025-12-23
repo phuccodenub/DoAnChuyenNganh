@@ -85,25 +85,18 @@ class AIAnalysisQueueWorker {
    */
   private async processQueue(): Promise<void> {
     try {
-      // Check if ProxyPal is available
-      const proxyPalAvailable = await proxyPalHealthCheck.isAvailable();
-      
-      if (!proxyPalAvailable) {
-        logger.info('[QueueWorker] ProxyPal offline, skipping queue processing');
-        return;
-      }
-
-      // Don't process if we're at max concurrency
-      if (this.currentlyProcessing >= this.maxConcurrent) {
+      // Determine available capacity first
+      const availableSlots = this.maxConcurrent - this.currentlyProcessing;
+      if (availableSlots <= 0) {
         logger.info(`[QueueWorker] Already processing ${this.currentlyProcessing} tasks, skipping`);
         return;
       }
 
-      // Fetch pending tasks (priority order)
-      // Filter tasks where retry_count < max_retries using Sequelize.col for column comparison
-      const tasks = await AIAnalysisQueue.findAll({
+      // Fetch pending video tasks first (do not require ProxyPal)
+      const videoTasks = await AIAnalysisQueue.findAll({
         where: {
           status: 'pending',
+          task_type: 'video_analysis',
           retry_count: {
             [Op.lt]: Sequelize.col('max_retries'),
           },
@@ -113,21 +106,57 @@ class AIAnalysisQueueWorker {
           ],
         },
         order: [
-          ['priority', 'ASC'], // Lower number = higher priority
-          ['created_at', 'ASC'], // FIFO
+          ['priority', 'ASC'],
+          ['created_at', 'ASC'],
         ],
-        limit: this.maxConcurrent - this.currentlyProcessing,
+        limit: availableSlots,
       });
 
-      if (tasks.length === 0) {
-        logger.info('[QueueWorker] No pending tasks');
+      let tasksToProcess: any[] = [...videoTasks];
+      const remainingSlots = availableSlots - tasksToProcess.length;
+
+      if (remainingSlots > 0) {
+        const proxyPalAvailable = await proxyPalHealthCheck.isAvailable();
+        if (!proxyPalAvailable) {
+          if (tasksToProcess.length === 0) {
+            logger.info('[QueueWorker] ProxyPal offline, no video tasks to process');
+          } else {
+            logger.info('[QueueWorker] ProxyPal offline, processing video tasks only');
+          }
+        } else {
+          const textTasks = await AIAnalysisQueue.findAll({
+            where: {
+              status: 'pending',
+              task_type: { [Op.in]: ['full_analysis', 'summary'] },
+              retry_count: {
+                [Op.lt]: Sequelize.col('max_retries'),
+              },
+              [Op.or]: [
+                { scheduled_at: null },
+                { scheduled_at: { [Op.lte]: new Date() } },
+              ],
+            },
+            order: [
+              ['priority', 'ASC'],
+              ['created_at', 'ASC'],
+            ],
+            limit: remainingSlots,
+          });
+          tasksToProcess = tasksToProcess.concat(textTasks);
+        }
+      }
+
+      if (tasksToProcess.length === 0) {
+        logger.info('[QueueWorker] No processable tasks');
         return;
       }
 
-      logger.info(`[QueueWorker] Found ${tasks.length} pending task(s)`);
+      const textCount = tasksToProcess.filter((t: any) => t.task_type !== 'video_analysis').length;
+      const videoCount = tasksToProcess.length - textCount;
+      logger.info(`[QueueWorker] Found ${tasksToProcess.length} processable task(s) (${videoCount} video, ${textCount} text)`);
 
       // Process tasks in parallel (up to maxConcurrent)
-      const promises = tasks.map((task: any) => this.processTask(task));
+      const promises = tasksToProcess.map((task: any) => this.processTask(task));
       await Promise.allSettled(promises);
 
     } catch (error: any) {
@@ -247,7 +276,7 @@ class AIAnalysisQueueWorker {
         status: 'pending',
         scheduled_at: new Date(),
         metadata: params.metadata || {},
-      });
+      }) as any as AIAnalysisQueueAttributes;
 
       logger.info(`[QueueWorker] Queued task ${task.id} for lesson ${params.lesson_id} (type: ${params.task_type})`);
       return task;

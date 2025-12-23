@@ -5,7 +5,9 @@
 
 import { Router } from 'express';
 import { AIController } from './ai.controller';
-import { authMiddleware } from '../../middlewares/auth.middleware';
+import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
+import { UserRole } from '../../constants/roles.enum';
+
 
 const router = Router();
 const controller = new AIController();
@@ -101,6 +103,32 @@ router.post('/instructor/generate-thumbnail', controller.generateThumbnail);
  * @access  Private (Instructor/Admin only)
  */
 router.post('/instructor/generate-lesson-content', controller.generateLessonContent);
+
+// ==================== AI GRADER ====================
+
+/**
+ * @route   POST /ai/grader/code
+ * @desc    Chấm điểm bài code
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/grader/code',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.gradeCode
+);
+
+/**
+ * @route   POST /ai/grader/essay
+ * @desc    Chấm điểm bài luận
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/grader/essay',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.gradeEssay
+);
+
+// ==================== TESTING ====================
 
 /**
  * @route   POST /ai/test-provider

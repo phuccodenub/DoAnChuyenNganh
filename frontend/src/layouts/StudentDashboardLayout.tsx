@@ -1,5 +1,5 @@
 import { ReactNode, useState, useRef, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   BookOpen,
@@ -25,7 +25,7 @@ import { MessagePanel } from '@/components/messages/MessagePanel';
 import { SearchBar } from '@/components/layout/SearchBar';
 
 interface StudentDashboardLayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 const navigation = [
@@ -414,7 +414,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
 
         {/* Page content */}
         <main className="p-4 lg:p-8">
-          {children}
+          {children ?? <Outlet />}
         </main>
       </div>
     </div>

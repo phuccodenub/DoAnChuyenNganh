@@ -1005,22 +1005,19 @@ export class CourseRepository extends BaseRepository<CourseInstance> {
       let pendingGrading = 0;
       try {
         if (AssignmentSubmission) {
-          const scoreResult = await (AssignmentSubmission as any).findAll({
-            include: [{
-              model: Assignment,
-              as: 'assignment',
-              where: { course_id: courseId },
-              required: true
-            }],
-            where: {
-              score: { [Op.ne]: null }
-            },
-            attributes: [
-              [sequelize.fn('AVG', sequelize.col('score')), 'avg_score']
-            ],
-            raw: true
-          });
-          avgScore = scoreResult[0]?.avg_score ? Number(scoreResult[0].avg_score) : 0;
+          // Use raw query to avoid GROUP BY issues when aggregating with joins
+          const { QueryTypes } = await import('sequelize');
+          const [scoreResult] = await sequelize.query(`
+            SELECT AVG(assignment_submissions.score) as avg_score
+            FROM assignment_submissions
+            INNER JOIN assignments ON assignment_submissions.assignment_id = assignments.id
+            WHERE assignments.course_id = :courseId
+            AND assignment_submissions.score IS NOT NULL
+          `, {
+            replacements: { courseId },
+            type: QueryTypes.SELECT
+          }) as any[];
+          avgScore = scoreResult?.avg_score ? Number(scoreResult.avg_score) : 0;
 
           // Pending grading count
           pendingGrading = await (AssignmentSubmission as any).count({

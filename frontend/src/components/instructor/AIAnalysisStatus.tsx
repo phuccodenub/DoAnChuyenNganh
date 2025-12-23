@@ -3,7 +3,8 @@
  * Shows analysis status for instructors in lesson editor
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { marked } from 'marked';
 import { 
   useAIAnalysis, 
   useRequestAnalysis, 
@@ -21,6 +22,15 @@ interface AIAnalysisStatusProps {
   lessonId: string;
   isInstructor: boolean;
 }
+
+const renderMarkdownToHtml = (raw?: string | null): string => {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return '';
+  let html = marked.parse(trimmed, { breaks: true, gfm: true });
+  // Loại bỏ các tag lạ mà AI có thể sinh ra (ví dụ </tên_gói>)
+  html = (html as string).replace(/<\/?tên_gói>/gi, '');
+  return html as string;
+};
 
 export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({ 
   lessonId, 
@@ -80,6 +90,11 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
   const status = getStatus();
   const StatusIcon = status.icon;
 
+  const summaryHtml = useMemo(
+    () => (analysis && analysis.summary ? renderMarkdownToHtml(analysis.summary) : ''),
+    [analysis]
+  );
+
   const handleRequestAnalysis = async () => {
     const success = await requestAnalysis(false);
     if (success) {
@@ -130,21 +145,21 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
             {analysis && analysis.status === 'completed' && (
               <div className="mt-2 space-y-1 text-xs text-gray-600">
                 {analysis.summary && (
-                  <p>✓ Summary generated</p>
+                  <p>✓ Tóm tắt đã tạo</p>
                 )}
                 {analysis.video_transcript && (
-                  <p>✓ Video analyzed</p>
+                  <p>✓ Video đã phân tích</p>
                 )}
                 {analysis.content_key_concepts && analysis.content_key_concepts.length > 0 && (
-                  <p>✓ {analysis.content_key_concepts.length} key concepts extracted</p>
+                  <p>✓ {analysis.content_key_concepts.length} khái niệm chính đã trích xuất</p>
                 )}
                 {analysis.difficulty_level && (
                   <p>
-                    Difficulty: <span className="font-medium capitalize">{analysis.difficulty_level}</span>
+                    Độ khó: <span className="font-medium capitalize">{analysis.difficulty_level}</span>
                   </p>
                 )}
                 <p className="text-gray-500">
-                  Processed {new Date(analysis.processed_at!).toLocaleString()}
+                  Xử lý lúc {new Date(analysis.processed_at!).toLocaleString('vi-VN')}
                 </p>
               </div>
             )}
@@ -152,7 +167,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
             {/* Show error */}
             {analysis && analysis.status === 'failed' && analysis.error_message && (
               <p className="mt-2 text-xs text-red-600">
-                Error: {analysis.error_message}
+                Lỗi: {analysis.error_message}
               </p>
             )}
           </div>
@@ -167,7 +182,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
               className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Sparkles className="h-4 w-4 mr-1" />
-              Analyze
+              Phân tích
             </button>
           )}
 
@@ -178,7 +193,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
               className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className="h-4 w-4 mr-1" />
-              Re-analyze
+              Phân tích lại
             </button>
           )}
 
@@ -188,10 +203,98 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
             className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
+            Làm mới
           </button>
         </div>
       </div>
+
+      {/* Analysis Detail Content - Show when completed */}
+      {analysis && analysis.status === 'completed' && (
+        <div className="mt-4 space-y-4 border-t border-gray-200 pt-4">
+          {/* Summary */}
+          {summaryHtml && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">📝 Tóm tắt</h4>
+              <div
+                className="prose prose-sm max-w-none text-gray-700 leading-relaxed [&>p]:mb-2"
+                dangerouslySetInnerHTML={{ __html: summaryHtml }}
+              />
+            </div>
+          )}
+
+          {/* Key Concepts */}
+          {analysis.content_key_concepts && analysis.content_key_concepts.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">💡 Khái niệm chính</h4>
+              <ul className="space-y-1">
+                {analysis.content_key_concepts.map((concept, index) => (
+                  <li key={index} className="flex items-start text-sm text-gray-700">
+                    <span className="text-indigo-600 mr-2">•</span>
+                    <span>{concept}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Video Key Points */}
+          {analysis.video_key_points && analysis.video_key_points.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">🎥 Điểm nổi bật từ video</h4>
+              <ul className="space-y-1">
+                {analysis.video_key_points.map((point, index) => (
+                  <li key={index} className="flex items-start text-sm text-gray-700">
+                    <span className="text-purple-600 mr-2">▶</span>
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Learning Objectives */}
+          {analysis.learning_objectives && analysis.learning_objectives.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">🎯 Mục tiêu học tập</h4>
+              <ul className="space-y-1">
+                {analysis.learning_objectives.map((objective, index) => (
+                  <li key={index} className="flex items-start text-sm text-gray-700">
+                    <span className="text-green-600 mr-2">✓</span>
+                    <span>{objective}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Prerequisites */}
+          {analysis.prerequisites && analysis.prerequisites.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">📚 Kiến thức cần có</h4>
+              <div className="flex flex-wrap gap-2">
+                {analysis.prerequisites.map((prereq, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                  >
+                    {prereq}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Meta Info */}
+          <div className="flex flex-wrap gap-4 text-xs text-gray-600 pt-2 border-t border-gray-100">
+            {analysis.estimated_study_time_minutes && (
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                <span>Thời gian học: ~{analysis.estimated_study_time_minutes} phút</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

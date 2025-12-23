@@ -120,7 +120,6 @@ const AIAnalysisQueue = sequelize.define(
     },
   },
   {
-    sequelize,
     tableName: 'ai_analysis_queue',
     underscored: true,
     timestamps: true,
