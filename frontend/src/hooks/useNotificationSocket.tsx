@@ -18,7 +18,7 @@ import {
 import { useAuthStore } from '@/stores/authStore.enhanced';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { socketService } from '@/services/socketService';
-import { notificationApi } from '@/services/api/notifications.api';
+
 
 /**
  * Real-time Notifications via WebSocket (Socket.IO)
@@ -162,7 +162,8 @@ export function useNotificationSocket(enabled = true) {
         
         // Show enhanced toast notification
         console.log('[Socket] Showing toast notification...');
-        showNotificationToast(notification, qc);
+        showNotificationToast(notification);
+
         console.log('[Socket] Toast notification shown');
       };
 
@@ -436,53 +437,30 @@ function playNotificationSound(priority?: string) {
 /**
  * Show enhanced toast notification with full features
  */
-function showNotificationToast(
-  notification: NotificationPayload,
-  queryClient: ReturnType<typeof import('@tanstack/react-query').useQueryClient>
-) {
+function showNotificationToast(notification: NotificationPayload) {
   console.log('[showNotificationToast] Creating toast for notification:', notification.id);
-  
+
   const toastIcon = getNotificationIcon(notification.notification_type || notification.category || 'system');
   const priorityColor = getPriorityColor(notification.priority);
   const priorityBg = getPriorityBgColor(notification.priority);
-  
-  // Play sound for urgent/high priority
+
+  // Play sound for urgent/high priority (does not affect data logic)
   playNotificationSound(notification.priority);
-  
+
   console.log('[showNotificationToast] Toast config:', {
     icon: toastIcon,
     priority: notification.priority,
     duration: notification.priority === 'urgent' ? 10000 : notification.priority === 'high' ? 8000 : 6000
   });
-  
+
   const iconColor = getIconColor(notification.priority);
-  
+
   toast(
     (t) => (
-      <div 
-        className="relative flex flex-col gap-3 cursor-pointer group"
-        onClick={() => {
-          // Mark as read when clicked
-          notificationApi.markAsRead(notification.id).catch(() => {
-            // Silently fail if mark as read fails
-          });
-          
-          toast.dismiss(t.id);
-          
-          // Navigate to link if available
-          if (notification.link_url) {
-            if (window.location.pathname !== notification.link_url) {
-              setTimeout(() => {
-                window.location.href = notification.link_url!;
-              }, 100);
-            }
-          }
-        }}
-      >
+      <div className="relative flex flex-col gap-3 group">
         {/* Close button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={() => {
             toast.dismiss(t.id);
           }}
           className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
@@ -494,9 +472,9 @@ function showNotificationToast(
         {/* Main content */}
         <div className="flex items-start gap-3 pr-6">
           {/* Icon with gradient background */}
-          <div 
+          <div
             className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center shadow-sm"
-            style={{ 
+            style={{
               background: priorityBg,
             }}
           >
@@ -504,7 +482,7 @@ function showNotificationToast(
               {toastIcon}
             </div>
           </div>
-          
+
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Title and priority badge */}
@@ -523,12 +501,12 @@ function showNotificationToast(
                 </span>
               )}
             </div>
-            
+
             {/* Message */}
             <p className="text-gray-700 text-xs leading-relaxed line-clamp-2 mb-2">
               {notification.message}
             </p>
-            
+
             {/* Sender info */}
             {notification.sender && (
               <div className="flex items-center gap-1.5 mt-1.5">
@@ -543,44 +521,6 @@ function showNotificationToast(
               </div>
             )}
           </div>
-        </div>
-        
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-          {notification.link_url && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toast.dismiss(t.id);
-                setTimeout(() => {
-                  window.location.href = notification.link_url!;
-                }, 100);
-              }}
-              className="flex-1 px-3 py-2 text-xs font-medium text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
-              style={{
-                background: `linear-gradient(135deg, ${priorityColor} 0%, ${priorityColor}dd 100%)`,
-              }}
-            >
-              Xem chi tiết
-            </button>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              notificationApi.markAsRead(notification.id)
-                .then(() => {
-                  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.all });
-                  queryClient.invalidateQueries({ queryKey: QUERY_KEYS.notifications.unreadCount });
-                  toast.dismiss(t.id);
-                })
-                .catch(() => {
-                  toast.dismiss(t.id);
-                });
-            }}
-            className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-          >
-            Đánh dấu đã đọc
-          </button>
         </div>
       </div>
     ),
@@ -604,6 +544,7 @@ function showNotificationToast(
     }
   );
 }
+
 
 /**
  * Hook for sending typing indicators

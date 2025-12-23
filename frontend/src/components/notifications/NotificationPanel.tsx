@@ -6,6 +6,8 @@ import { NotificationList } from './NotificationList';
 import { Notification, ApiNotification, transformNotification } from './types';
 import { useNotifications, useMarkNotificationAsRead, useMarkAllNotificationsAsRead, useUnreadNotificationCount } from '@/hooks/useNotifications';
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
+import { resolveNotificationLink } from '@/utils/notificationLinks';
+
 
 export const NotificationPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,13 +56,15 @@ export const NotificationPanel: React.FC = () => {
     if (!notification.isRead) {
       markAsRead(notification.id);
     }
-    
+
     // Navigate if has link
-    if (notification.linkUrl) {
+    const targetLink = resolveNotificationLink(notification);
+    if (targetLink) {
       setIsOpen(false);
-      navigate(notification.linkUrl);
+      navigate(targetLink);
     }
   };
+
 
   const handleViewAll = () => {
     setIsOpen(false);

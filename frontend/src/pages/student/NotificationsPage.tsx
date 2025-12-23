@@ -33,6 +33,8 @@ import {
 import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
 import Spinner from '@/components/ui/Spinner';
+import { resolveNotificationLink } from '@/utils/notificationLinks';
+
 
 const ITEMS_PER_PAGE = 20;
 
@@ -113,15 +115,16 @@ export default function NotificationsPage() {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    // Mark as read if unread
     if (!notification.is_read) {
       markAsRead(notification.id);
     }
-    // Navigate if has link
-    if (notification.link_url) {
-      navigate(notification.link_url);
+
+    const targetLink = resolveNotificationLink(notification);
+    if (targetLink) {
+      navigate(targetLink);
     }
   };
+
 
   const handlePageChange = (newPage: number) => {
     setOffset((newPage - 1) * ITEMS_PER_PAGE);
