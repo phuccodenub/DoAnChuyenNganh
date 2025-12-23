@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "proxypal": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "ProxyPal (local)",
+      "options": {
+        "baseURL": "http://localhost:8317/v1"
+      },
+      "models": {
+        "gemini-3-pro-preview": { "name": "GEMINI 3 PRO (via ProxyPal)" },
+        "gpt-5.2": { "name": "GPT 5.2 (via ProxyPal)" }
+      }
+    }
+  }
+}

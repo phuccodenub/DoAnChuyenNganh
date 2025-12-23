@@ -226,10 +226,10 @@ export const studentApi = {
         const courses = enrolledResponse.data?.data?.courses || [];
         let totalLessons = 0;
         let completedLessons = 0;
-        let totalAssignments = 0;
-        let completedAssignments = 0;
-        let totalQuizzes = 0;
-        let completedQuizzes = 0;
+        const totalAssignments = 0;
+        const completedAssignments = 0;
+        const totalQuizzes = 0;
+        const completedQuizzes = 0;
         
         // Tính toán từ các khóa học đã đăng ký
         for (const course of courses) {

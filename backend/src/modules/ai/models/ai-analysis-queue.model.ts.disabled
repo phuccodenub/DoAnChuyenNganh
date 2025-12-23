@@ -1,0 +1,149 @@
+/**
+ * AI Analysis Queue Model
+ * 
+ * Manages queue for AI analysis tasks
+ */
+
+import { Model, DataTypes, Optional } from 'sequelize';
+import sequelize from '../config/db';
+
+interface AIAnalysisQueueAttributes {
+  id: string;
+  lesson_id: string;
+  task_type: 'summary' | 'video_analysis' | 'full_analysis';
+  priority: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  retry_count: number;
+  max_retries: number;
+  error_message: string | null;
+  error_stack: string | null;
+  scheduled_at: Date | null;
+  processing_started_at: Date | null;
+  processed_at: Date | null;
+  created_by: string | null;
+  metadata: any | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface AIAnalysisQueueCreationAttributes
+  extends Optional<
+    AIAnalysisQueueAttributes,
+    | 'id'
+    | 'priority'
+    | 'status'
+    | 'retry_count'
+    | 'max_retries'
+    | 'error_message'
+    | 'error_stack'
+    | 'scheduled_at'
+    | 'processing_started_at'
+    | 'processed_at'
+    | 'created_by'
+    | 'metadata'
+    | 'created_at'
+    | 'updated_at'
+  > {}
+
+class AIAnalysisQueue
+  extends Model<AIAnalysisQueueAttributes, AIAnalysisQueueCreationAttributes>
+  implements AIAnalysisQueueAttributes
+{
+  public id!: string;
+  public lesson_id!: string;
+  public task_type!: 'summary' | 'video_analysis' | 'full_analysis';
+  public priority!: number;
+  public status!: 'pending' | 'processing' | 'completed' | 'failed';
+  public retry_count!: number;
+  public max_retries!: number;
+  public error_message!: string | null;
+  public error_stack!: string | null;
+  public scheduled_at!: Date | null;
+  public processing_started_at!: Date | null;
+  public processed_at!: Date | null;
+  public created_by!: string | null;
+  public metadata!: any | null;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+AIAnalysisQueue.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    lesson_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    task_type: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+    priority: {
+      type: DataTypes.INTEGER,
+      defaultValue: 5,
+    },
+    status: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'pending',
+    },
+    retry_count: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    max_retries: {
+      type: DataTypes.INTEGER,
+      defaultValue: 3,
+    },
+    error_message: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    error_stack: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    scheduled_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    processing_started_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    processed_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    metadata: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+  {
+    sequelize,
+    tableName: 'ai_analysis_queue',
+    underscored: true,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+  }
+);
+
+export default AIAnalysisQueue;
+export { AIAnalysisQueueAttributes, AIAnalysisQueueCreationAttributes };

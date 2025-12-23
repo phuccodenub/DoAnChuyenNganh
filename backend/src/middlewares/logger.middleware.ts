@@ -5,27 +5,40 @@ import logger from '@utils/logger.util';
 export const loggerMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const start = Date.now();
   
+  // Skip logging for health check endpoints to reduce noise
+  // Check originalUrl (full path from client perspective)
+  const url = req.originalUrl || req.url || '';
+  const isHealthCheck = url === '/health' || 
+                        url.startsWith('/health') || 
+                        url === '/ping' || 
+                        url.startsWith('/ping') ||
+                        url.includes('/api/health');
+  
   // Log request - use originalUrl to capture full path including query strings
-  logger.info('Incoming request', {
-    method: req.method,
-    url: req.originalUrl || req.url,
-    ip: req.ip,
-    userAgent: req.get('User-Agent'),
-    timestamp: new Date().toISOString()
-  });
+  if (!isHealthCheck) {
+    logger.info('Incoming request', {
+      method: req.method,
+      url: req.originalUrl || req.url,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      timestamp: new Date().toISOString()
+    });
+  }
 
   // Override res.end to log response
   const originalEnd = res.end;
   res.end = function(chunk?: any, encoding?: any) {
     const duration = Date.now() - start;
     
-    logger.info('Request completed', {
-      method: req.method,
-      url: req.originalUrl || req.url,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      ip: req.ip
-    });
+    if (!isHealthCheck) {
+      logger.info('Request completed', {
+        method: req.method,
+        url: req.originalUrl || req.url,
+        statusCode: res.statusCode,
+        duration: `${duration}ms`,
+        ip: req.ip
+      });
+    }
 
     return originalEnd.call(this, chunk, encoding);
   };

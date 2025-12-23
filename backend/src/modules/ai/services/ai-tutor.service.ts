@@ -6,6 +6,8 @@
 import logger from '../../../utils/logger.util';
 import { AIOrchestrator } from '../orchestrator/ai-orchestrator';
 import { QuestionClassification } from '../orchestrator/ai-orchestrator';
+// TODO: Enable after fixing models
+// import { LessonAnalysisService } from './lesson-analysis.service';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -36,9 +38,13 @@ export interface ChatResponse {
 
 export class AITutorService {
   private orchestrator: AIOrchestrator;
+  // TODO: Enable after fixing models
+  // private lessonAnalysisService: LessonAnalysisService;
 
   constructor() {
     this.orchestrator = new AIOrchestrator();
+    // TODO: Enable after fixing models
+    // this.lessonAnalysisService = new LessonAnalysisService();
     logger.info('[AITutorService] Service initialized');
   }
 
@@ -51,10 +57,22 @@ export class AITutorService {
   ): Promise<ChatResponse> {
     try {
       // Build system prompt
-      const systemPrompt = this.buildSystemPrompt(request);
+      const systemPrompt = await this.buildSystemPrompt(request);
 
       // Build full prompt với context
       let fullPrompt = '';
+
+      // TODO: Enable lesson context after fixing models
+      // Add lesson context if available
+      /*
+      if (request.lessonId) {
+        const lessonContext = await this.lessonAnalysisService.getLessonContext(request.lessonId);
+        if (lessonContext) {
+          fullPrompt += lessonContext + '\n\n';
+          logger.info(`[AITutorService] Added lesson context (${lessonContext.length} chars)`);
+        }
+      }
+      */
 
       // Add conversation history (last 6 messages)
       if (request.conversationHistory && request.conversationHistory.length > 0) {
@@ -105,7 +123,7 @@ export class AITutorService {
   /**
    * Build system prompt dựa trên context
    */
-  private buildSystemPrompt(request: ChatRequest): string {
+  private async buildSystemPrompt(request: ChatRequest): Promise<string> {
     let prompt = 'Bạn là trợ giảng AI thông minh và thân thiện cho nền tảng học trực tuyến.\n\n';
     
     prompt += 'QUY TẮC TRẢLỜI:\n';

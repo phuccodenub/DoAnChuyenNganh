@@ -46,9 +46,9 @@ services:
       dockerfile: docker/dockerfiles/backend.dev.Dockerfile
     image: lms-backend-dev:latest
     restart: unless-stopped
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
+    # DNS: Removed custom DNS servers to allow Docker Desktop's internal resolver
+    # to handle host.docker.internal correctly. Docker Desktop automatically provides
+    # host.docker.internal resolution on Windows/Mac.
     env_file:
       - ../../../backend/.env
     environment:

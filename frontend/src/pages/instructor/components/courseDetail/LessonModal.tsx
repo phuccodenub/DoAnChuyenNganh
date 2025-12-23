@@ -38,6 +38,7 @@ import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGenerateLessonContent } from '@/hooks/useAi';
 import { Sparkles } from 'lucide-react';
+import { AIAnalysisStatus } from '@/components/instructor/AIAnalysisStatus';
 
 // Cập nhật Interface
 interface LessonFormData {
@@ -132,16 +133,6 @@ export function LessonModal({
     const existingPdfMaterials = editingLesson?.materials?.filter(m => 
         m.file_type === 'application/pdf' || m.file_extension === '.pdf'
     ) || [];
-    
-    // Debug log để kiểm tra materials
-    console.log('[LessonModal] Existing PDF materials:', {
-        hasEditingLesson: !!editingLesson,
-        hasMaterials: !!editingLesson?.materials,
-        materialsCount: editingLesson?.materials?.length || 0,
-        pdfMaterialsCount: existingPdfMaterials.length,
-        allMaterials: editingLesson?.materials,
-        pdfMaterials: existingPdfMaterials
-    });
 
     // Helper: convert markdown/plain text -> HTML (including GFM, line breaks)
     const renderHtmlFromContent = (raw: string): string => {
@@ -169,25 +160,13 @@ export function LessonModal({
                 pdfInputRef.current.value = '';
             }
             
-            // Debug log
-            console.log('[LessonModal] Loading content:', {
-                lessonFormContent: lessonForm.content,
-                editingLessonContent: (editingLesson as any)?.content,
-                contentToLoad,
-                content_type: lessonForm.content_type,
-                editingLessonId: editingLesson?.id,
-                existingMaterials: editingLesson?.materials?.length || 0
-            });
-            
             // Set content vào editor sau khi DOM đã render
             setTimeout(() => {
                 if (lessonForm.content_type === 'document' && documentEditorRef.current) {
                     documentEditorRef.current.innerHTML = renderHtmlFromContent(contentToLoad);
-                    console.log('[LessonModal] Set content to document editor:', contentToLoad);
                 } else if (descriptionEditorRef.current) {
                     // Dùng cho text, link, video (description)
                     descriptionEditorRef.current.innerHTML = renderHtmlFromContent(contentToLoad || '');
-                    console.log('[LessonModal] Set content to description editor:', contentToLoad);
                 }
             }, 100); // Tăng timeout để đảm bảo DOM đã render
             
@@ -474,6 +453,16 @@ export function LessonModal({
                             />
                         </div>
                     </div>
+
+                    {/* AI ANALYSIS STATUS - Chỉ hiển thị khi đang edit lesson (đã có id) */}
+                    {editingLesson?.id && (
+                        <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200">
+                            <AIAnalysisStatus 
+                                lessonId={editingLesson.id} 
+                                isInstructor={true}
+                            />
+                        </div>
+                    )}
 
                     {/* 2. VIDEO ATTACHMENT SECTION - Chỉ hiển thị khi content_type là 'video' */}
                     {lessonForm.content_type === 'video' && (
@@ -911,17 +900,6 @@ export function LessonModal({
                                 };
                                 
                                 const contentToSave = sanitizeContent(rawContent);
-                                
-                                console.log('[LessonModal] Saving content:', {
-                                    content_type: lessonForm.content_type,
-                                    rawContentLength: rawContent.length,
-                                    contentLength: contentToSave.length,
-                                    contentPreview: contentToSave.substring(0, 100),
-                                    hasDocumentEditor: !!documentEditorRef.current,
-                                    hasDescriptionEditor: !!descriptionEditorRef.current,
-                                    documentEditorHTML: documentEditorRef.current?.innerHTML?.substring(0, 50),
-                                    descriptionEditorHTML: descriptionEditorRef.current?.innerHTML?.substring(0, 50)
-                                });
                                 
                                 // Update form với content từ editor
                                 // Với document type, nếu không có content nhưng đã upload PDF, vẫn cho phép save

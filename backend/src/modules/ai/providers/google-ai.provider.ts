@@ -14,6 +14,7 @@ export interface GoogleAIConfig extends Omit<AIProviderConfig, 'apiKey'> {
 export class GoogleAIProvider extends BaseAIProvider {
   private genAI: GoogleGenerativeAI;
   private model: any;
+  private static instanceCount = 0; // Track số lượng instances để tránh log lặp
 
   constructor(config: GoogleAIConfig) {
     super('Google AI', {
@@ -28,7 +29,11 @@ export class GoogleAIProvider extends BaseAIProvider {
     this.genAI = new GoogleGenerativeAI(config.apiKey);
     this.model = this.genAI.getGenerativeModel({ model: this.config.model });
 
-    logger.info(`[GoogleAIProvider] Initialized with model: ${this.config.model}`);
+    GoogleAIProvider.instanceCount++;
+    // Chỉ log lần đầu tiên để tránh spam (orchestrator tạo nhiều instances)
+    if (GoogleAIProvider.instanceCount <= 1) {
+      logger.info(`[GoogleAIProvider] Initialized with model: ${this.config.model}`);
+    }
   }
 
   async generateContent(request: AIGenerateRequest): Promise<AIGenerateResponse> {

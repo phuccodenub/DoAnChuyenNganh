@@ -32,6 +32,7 @@ export class ProxyPalProvider extends BaseAIProvider {
     let baseUrl = config.baseUrl || 'http://127.0.0.1:8317';
     baseUrl = baseUrl.replace(/\/v1\/?$/, ''); // Remove /v1 suffix to avoid duplication
     // Use 127.0.0.1 instead of localhost to avoid IPv6 issues in Node.js 17+
+    // NOTE: Do NOT replace host.docker.internal - it's needed when running in Docker to access host machine
     baseUrl = baseUrl.replace('localhost', '127.0.0.1');
     
     this.client = axios.create({

@@ -1,6 +1,7 @@
 import { DataTypes, Model } from 'sequelize';
 import { LessonAttributes, LessonCreationAttributes, LessonInstance } from '../types/model.types';
 import { exportModel, addInstanceMethods, addStaticMethods, getModelSequelize } from '../utils/model-extension.util';
+import { afterLessonCreate, afterLessonUpdate, beforeLessonDelete } from '../hooks/lesson.hooks';
 
 const sequelize = getModelSequelize();
 
@@ -97,6 +98,42 @@ const Lesson = sequelize.define('Lesson', {
   tableName: 'lessons',
   timestamps: true,
   underscored: true,
+  hooks: {
+    afterCreate: async (lesson: any) => {
+      await afterLessonCreate({
+        id: lesson.id,
+        title: lesson.title,
+        content: lesson.content,
+        video_url: lesson.video_url
+      });
+    },
+    afterUpdate: async (lesson: any) => {
+      const changes = lesson.changed() || [];
+      const changedFields: Partial<{ content: string; video_url: string }> = {};
+      
+      if (changes.includes('content')) {
+        changedFields.content = lesson.content;
+      }
+      if (changes.includes('video_url')) {
+        changedFields.video_url = lesson.video_url;
+      }
+
+      if (Object.keys(changedFields).length > 0) {
+        await afterLessonUpdate(
+          {
+            id: lesson.id,
+            title: lesson.title,
+            content: lesson.content,
+            video_url: lesson.video_url
+          },
+          changedFields
+        );
+      }
+    },
+    beforeDestroy: async (lesson: any) => {
+      await beforeLessonDelete(lesson.id);
+    }
+  },
   indexes: [
     {
       fields: ['section_id']

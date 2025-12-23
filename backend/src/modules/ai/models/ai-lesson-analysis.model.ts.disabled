@@ -1,0 +1,171 @@
+/**
+ * AI Lesson Analysis Model
+ * 
+ * Stores AI analysis results for lessons
+ */
+
+import { Model, DataTypes, Optional } from 'sequelize';
+import sequelize from '../config/db';
+
+interface AILessonAnalysisAttributes {
+  id: string;
+  lesson_id: string;
+  summary: string | null;
+  summary_language: string;
+  video_transcript: string | null;
+  video_key_points: any | null;
+  video_duration_analyzed: number | null;
+  content_key_concepts: any | null;
+  content_difficulty_level: string | null;
+  estimated_study_time: number | null;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  processing_started_at: Date | null;
+  processing_completed_at: Date | null;
+  version: number;
+  analyzed_by: string | null;
+  model_used: string | null;
+  error_message: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface AILessonAnalysisCreationAttributes
+  extends Optional<
+    AILessonAnalysisAttributes,
+    | 'id'
+    | 'summary'
+    | 'summary_language'
+    | 'video_transcript'
+    | 'video_key_points'
+    | 'video_duration_analyzed'
+    | 'content_key_concepts'
+    | 'content_difficulty_level'
+    | 'estimated_study_time'
+    | 'status'
+    | 'processing_started_at'
+    | 'processing_completed_at'
+    | 'version'
+    | 'analyzed_by'
+    | 'model_used'
+    | 'error_message'
+    | 'created_at'
+    | 'updated_at'
+  > {}
+
+class AILessonAnalysis
+  extends Model<AILessonAnalysisAttributes, AILessonAnalysisCreationAttributes>
+  implements AILessonAnalysisAttributes
+{
+  public id!: string;
+  public lesson_id!: string;
+  public summary!: string | null;
+  public summary_language!: string;
+  public video_transcript!: string | null;
+  public video_key_points!: any | null;
+  public video_duration_analyzed!: number | null;
+  public content_key_concepts!: any | null;
+  public content_difficulty_level!: string | null;
+  public estimated_study_time!: number | null;
+  public status!: 'pending' | 'processing' | 'completed' | 'failed';
+  public processing_started_at!: Date | null;
+  public processing_completed_at!: Date | null;
+  public version!: number;
+  public analyzed_by!: string | null;
+  public model_used!: string | null;
+  public error_message!: string | null;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+AILessonAnalysis.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    lesson_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    summary: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    summary_language: {
+      type: DataTypes.STRING(10),
+      defaultValue: 'vi',
+    },
+    video_transcript: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    video_key_points: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    video_duration_analyzed: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    content_key_concepts: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    content_difficulty_level: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    estimated_study_time: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    status: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'pending',
+    },
+    processing_started_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    processing_completed_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    version: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1,
+    },
+    analyzed_by: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+    },
+    model_used: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    error_message: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+  {
+    sequelize,
+    tableName: 'ai_lesson_analysis',
+    underscored: true,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+  }
+);
+
+export default AILessonAnalysis;
+export { AILessonAnalysisAttributes, AILessonAnalysisCreationAttributes };

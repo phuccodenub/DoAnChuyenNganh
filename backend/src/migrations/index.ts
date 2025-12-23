@@ -46,6 +46,8 @@ import { up as createSystemSettingsTable, down as dropSystemSettingsTable } from
 import { up as repairUserActivityLogsAdminColumns, down as revertRepairUserActivityLogsAdminColumns } from './040-repair-user-activity-logs-admin-columns';
 import { up as addInstructionsToAssignments, down as removeInstructionsFromAssignments } from './041-add-instructions-to-assignments';
 import { up as createAiChatHistoryTable, down as dropAiChatHistoryTable } from './042-create-ai-chat-history';
+import createAILessonAnalysis from './043-create-ai-lesson-analysis';
+import createAIAnalysisQueue from './044-create-ai-analysis-queue';
 
 // Migration interface
 export interface Migration {
@@ -327,6 +329,18 @@ export const migrations: Migration[] = [
     description: 'Create AI chat history table for AI Tutor feature',
     up: createAiChatHistoryTable,
     down: dropAiChatHistoryTable
+  },
+  {
+    version: '043',
+    description: 'Create AI lesson analysis table for lesson context and summaries',
+    up: createAILessonAnalysis.up,
+    down: createAILessonAnalysis.down
+  },
+  {
+    version: '044',
+    description: 'Create AI analysis queue table for background processing',
+    up: createAIAnalysisQueue.up,
+    down: createAIAnalysisQueue.down
   }
 ];
 

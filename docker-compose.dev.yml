@@ -78,7 +78,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 60s
       retries: 5
       start_period: 60s
     volumes:
@@ -90,6 +90,9 @@ services:
       - ./backend/logs:/app/logs
       # Mount startup script
       - ./docker/scripts/start-backend-dev.sh:/app/start-backend-dev.sh:ro
+    extra_hosts:
+      # Ensure host.docker.internal resolves to host machine IP (for ProxyPal connection)
+      - "host.docker.internal:host-gateway"
     command: ["/bin/sh", "/app/start-backend-dev.sh"]
     networks:
       - lms-dev

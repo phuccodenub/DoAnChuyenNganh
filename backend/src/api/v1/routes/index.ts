@@ -121,6 +121,11 @@ router.use('/quizzes', quizRoutes);
 router.use('/ai', aiRoutes);
 router.use('/ai', aiRoutesV2); // New AI system routes
 
+// AI Analysis routes
+import aiAnalysisRoutes from '../../../modules/ai/routes/ai-analysis.routes';
+logger.info('Registering v1 AI Analysis at /ai/analysis');
+router.use('/ai/analysis', aiAnalysisRoutes);
+
 // Moderation routes
 router.use('/moderation', moderationRoutes);
 

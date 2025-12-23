@@ -34,6 +34,8 @@ export { default as CourseChatReadStatus } from './course-chat-read-status.model
 export { default as CoursePrerequisite } from './course-prerequisite.model';
 export { default as SystemSetting } from './system-setting.model';
 export { default as AIChatHistory } from './ai-chat-history.model';
+export { default as AILessonAnalysis } from '../modules/ai/models/ai-lesson-analysis.model';
+export { default as AIAnalysisQueue } from '../modules/ai/models/ai-analysis-queue.model';
 
 // Import models for associations
 import User from './user.model';
@@ -56,14 +58,23 @@ import DirectMessage from './direct-message.model';
 import Certificate from './certificate.model';
 import CourseChatReadStatus from './course-chat-read-status.model';
 import CoursePrerequisite from './course-prerequisite.model';
+import AILessonAnalysis from '../modules/ai/models/ai-lesson-analysis.model';
+import AIAnalysisQueue from '../modules/ai/models/ai-analysis-queue.model';
 
 // Define associations
 const models: { [key: string]: any } = { 
   User, Course, Enrollment, Lesson, ChatMessage, 
   Section, LessonMaterial, LessonProgress, Notification, NotificationRecipient,
   Quiz, QuizQuestion, QuizAttempt, QuizAnswer, QuizOption,
-  Conversation, DirectMessage, Certificate, CourseChatReadStatus, CoursePrerequisite
+  Conversation, DirectMessage, Certificate, CourseChatReadStatus, CoursePrerequisite,
+  AILessonAnalysis, AIAnalysisQueue
 };
+
+// Define explicit associations for AI models
+Lesson.hasOne(AILessonAnalysis, { foreignKey: 'lesson_id', as: 'aiAnalysis' });
+AILessonAnalysis.belongsTo(Lesson, { foreignKey: 'lesson_id', as: 'lesson' });
+Lesson.hasMany(AIAnalysisQueue, { foreignKey: 'lesson_id', as: 'analysisQueue' });
+AIAnalysisQueue.belongsTo(Lesson, { foreignKey: 'lesson_id', as: 'lesson' });
 
 // Call associate methods
 Object.keys(models).forEach((modelName: string) => {

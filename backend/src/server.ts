@@ -33,6 +33,8 @@ import { ConversationGateway, setConversationGateway } from './modules/conversat
 // Import AI Services to check status on startup
 import { AIService } from './modules/ai/ai.service';
 import { AIChatGateway } from './modules/ai/gateways/ai-chat.gateway';
+import { AIAnalysisQueueService } from './modules/ai/services/ai-analysis-queue-worker.service';
+import { proxyPalHealthCheck } from './modules/ai/services/proxypal-health.service';
 
 const PORT = process.env.PORT || 3000;
 
@@ -103,6 +105,23 @@ async function startServer() {
       logger.warn('   Get your API key at: https://aistudio.google.com/');
     }
     
+    // Initialize ProxyPal Health Check
+    logger.info('Initializing ProxyPal Health Check...');
+    const proxyPalStatus = await proxyPalHealthCheck.checkStatus();
+    if (proxyPalStatus.isOnline) {
+      logger.info('✅ ProxyPal: Available (Local AI processing enabled)');
+      logger.info(`   URL: ${process.env.PROXYPAL_BASE_URL || 'http://127.0.0.1:8317/v1'}`);
+      logger.info(`   Models available: ${proxyPalStatus.availableModels.length}`);
+    } else {
+      logger.warn('⚠️  ProxyPal: Not available (video analysis disabled)');
+      logger.warn('   To enable video analysis, start ProxyPal server');
+    }
+    
+    // Start AI Analysis Queue Worker
+    logger.info('Starting AI Analysis Queue Worker...');
+    AIAnalysisQueueService.start();
+    logger.info('✅ AI Analysis Queue Worker started (processing every 1 minute)');
+    
     // Start HTTP server (this will also start Socket.IO)
     httpServer.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
@@ -119,11 +138,21 @@ async function startServer() {
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  
+  // Stop queue worker
+  AIAnalysisQueueService.stop();
+  logger.info('AI Analysis Queue Worker stopped');
+  
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
+  
+  // Stop queue worker
+  AIAnalysisQueueService.stop();
+  logger.info('AI Analysis Queue Worker stopped');
+  
   process.exit(0);
 });
 

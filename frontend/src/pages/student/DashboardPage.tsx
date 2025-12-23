@@ -483,11 +483,11 @@ export function DashboardPage() {
   
   // Calculate stats (ưu tiên số liệu tổng hợp từ dashboardStats)
   const stats = useMemo(() => {
-    if (dashboardStats?.data) {
+    if (dashboardStats) {
       return {
-        total: dashboardStats.data.total_enrolled_courses ?? 0,
-        inProgress: dashboardStats.data.in_progress_courses ?? 0,
-        completed: dashboardStats.data.completed_courses ?? 0,
+        total: dashboardStats.total_enrolled_courses ?? 0,
+        inProgress: dashboardStats.in_progress_courses ?? 0,
+        completed: dashboardStats.completed_courses ?? 0,
       };
     }
 

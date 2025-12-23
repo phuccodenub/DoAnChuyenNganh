@@ -26,6 +26,7 @@ import { CurriculumTree } from '@/components/domain/lesson/CurriculumTree';
 import { DocumentViewer } from '@/components/domain/lesson/DocumentViewer';
 import { useLesson, useCourseContent, useMarkLessonComplete, useLessonProgress, useUpdateProgress, useCourseBookmarks } from '@/hooks/useLessonData';
 import { AiAssistantCard } from '@/components/domain/lesson/AiAssistantCard';
+import { AIChatPanel } from '@/components/domain/ai';
 import { useCourse, useCourseProgress } from '@/hooks/useCoursesData';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES, generateRoute } from '@/constants/routes';
@@ -1176,6 +1177,9 @@ export function LessonDetailPage() {
           </div>
         </div>
       </PageWrapper>
+
+      {/* AI Chat Panel - Floating button */}
+      {isUserEnrolled && <AIChatPanel courseId={courseId} lessonId={lessonId} />}
     </MainLayout>
   );
 }
