@@ -187,7 +187,7 @@ export function ManageQuizModal({
   const extractLessonText = (content: string, maxLength: number = 3000): string => {
     if (!content) return '';
     
-    let textContent = content
+    const textContent = content
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Loại bỏ script
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Loại bỏ style
       .replace(/<[^>]+>/g, ' ') // Loại bỏ HTML tags, thay bằng space

@@ -8,6 +8,7 @@ import { useSession, useUpdateSession } from '@/hooks/useLivestream';
 import { useIceServers } from '@/hooks/useIceServers';
 import { useLivestreamSocket } from '@/hooks/useLivestreamSocket';
 import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
+import { ROUTES } from '@/constants/routes';
 import {
   StudioPanel,
   HostChatPanel,

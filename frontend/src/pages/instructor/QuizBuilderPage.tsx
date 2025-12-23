@@ -113,7 +113,7 @@ export function QuizBuilderPage() {
         : (sectionsResponse.data as any)?.data || [];
       
       // Collect tất cả lessons từ tất cả sections
-      let allLessons: any[] = [];
+      const allLessons: any[] = [];
       sections.forEach((sec: any) => {
         if (sec.lessons && Array.isArray(sec.lessons)) {
           allLessons.push(...sec.lessons);
@@ -629,7 +629,7 @@ export function QuizBuilderPage() {
                 const extractLessonText = (content: string, maxLength: number = 2000): string => {
                   if (!content) return '';
                   
-                  let textContent = content
+                  const textContent = content
                     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
                     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
                     .replace(/<[^>]+>/g, ' ')

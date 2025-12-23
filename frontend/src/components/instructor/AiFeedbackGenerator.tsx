@@ -42,6 +42,7 @@ export function AiFeedbackGenerator({
 
   const handleGenerateFeedback = async () => {
     try {
+      const studentName = ''; // TODO: Get from submission data
       const result = await generateFeedback.mutateAsync({
         assignmentId,
         submissionId,

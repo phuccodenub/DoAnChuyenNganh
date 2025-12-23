@@ -5,9 +5,14 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
+import { spawn } from 'child_process';
+import fs from 'fs';
 import mammoth from 'mammoth';
-import * as XLSX from 'xlsx';
+import os from 'os';
+import path from 'path';
+import ExcelJS from 'exceljs';
 import env from '../../config/env.config';
+
 import logger from '../../utils/logger.util';
 import { formatAiAnswer, shorten } from '../../utils/ai-format.util';
 import { ApiError } from '../../errors/api.error';
@@ -897,20 +902,28 @@ Trả về JSON format:
           content = `[DOCX file: ${fileName} - Could not extract text content]`;
         }
       }
-      // Handle Excel files (XLSX, XLS)
+      // Handle Excel files (XLSX only)
       else if (extension === 'xlsx' || extension === 'xls') {
         try {
           const excelBuffer = Buffer.from(response.data);
-          const workbook = XLSX.read(excelBuffer, { type: 'buffer' });
-          
-          // Extract text from all sheets
+          const xlsxBuffer = extension === 'xls' ? await this.convertXlsToXlsx(excelBuffer) : excelBuffer;
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(xlsxBuffer);
+
           const sheetContents: string[] = [];
-          workbook.SheetNames.forEach((sheetName) => {
-            const worksheet = workbook.Sheets[sheetName];
-            const sheetData = XLSX.utils.sheet_to_csv(worksheet);
-            sheetContents.push(`Sheet: ${sheetName}\n${sheetData}`);
+          workbook.worksheets.forEach((worksheet) => {
+            const rows: string[] = [];
+            worksheet.eachRow((row) => {
+              const values = row.values as Array<string | number | boolean | null | undefined>;
+              const line = values
+                .slice(1)
+                .map((value) => (value === null || value === undefined ? '' : String(value)))
+                .join(',');
+              if (line.trim()) rows.push(line);
+            });
+            sheetContents.push(`Sheet: ${worksheet.name}\n${rows.join('\n')}`);
           });
-          
+
           content = sheetContents.join('\n\n---\n\n');
           logger.info(`[AIService] Successfully extracted text from Excel: ${fileName}`);
         } catch (excelError: any) {
@@ -918,6 +931,7 @@ Trả về JSON format:
           content = `[Excel file: ${fileName} - Could not extract text content]`;
         }
       }
+
       // Handle PPTX files (PowerPoint) - basic text extraction
       else if (extension === 'pptx' || extension === 'ppt') {
         // Note: Full PPTX parsing requires more complex libraries
@@ -947,10 +961,50 @@ Trả về JSON format:
     }
   }
 
+  private async convertXlsToXlsx(xlsBuffer: Buffer): Promise<Buffer> {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lms-xls-'));
+    const inputPath = path.join(tmpDir, `input-${Date.now()}.xls`);
+    const outputPath = path.join(tmpDir, `output-${Date.now()}.xlsx`);
+
+    try {
+      fs.writeFileSync(inputPath, xlsBuffer);
+      await this.runLibreOfficeConvert(inputPath, tmpDir);
+      return fs.readFileSync(outputPath);
+    } finally {
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+  }
+
+  private async runLibreOfficeConvert(inputPath: string, outputDir: string): Promise<void> {
+    const command = process.platform === 'win32' ? 'soffice' : 'soffice';
+    const args = ['--headless', '--convert-to', 'xlsx', '--outdir', outputDir, inputPath];
+
+    await new Promise<void>((resolve, reject) => {
+      const proc = spawn(command, args, { stdio: 'ignore' });
+      proc.on('error', reject);
+      proc.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`LibreOffice convert failed with code ${code}`));
+          return;
+        }
+        resolve();
+      });
+    });
+
+    if (!fs.existsSync(outputDir)) {
+      throw new Error('LibreOffice output directory missing after conversion');
+    }
+  }
+
   /**
    * Generate feedback for assignment submission
    */
   async generateFeedback(request: GenerateFeedbackRequest): Promise<GenerateFeedbackResponse> {
+
     if (!this.model) {
       throw new Error('AI service is not available. Please configure GEMINI_API_KEY.');
     }

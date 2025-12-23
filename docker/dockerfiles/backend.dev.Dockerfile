@@ -7,7 +7,8 @@ WORKDIR /app
 ENV NODE_ENV=development
 
 # Chỉ cài tools hệ thống cần thiết (curl cho healthcheck, pg-client cho DB scripts)
-RUN apk add --no-cache curl postgresql-client
+RUN apk add --no-cache curl postgresql-client libreoffice
+
 
 # KHÔNG copy node_modules hay cài npm install ở đây
 # Vì docker-compose đã mount volume: ../../../backend:/app

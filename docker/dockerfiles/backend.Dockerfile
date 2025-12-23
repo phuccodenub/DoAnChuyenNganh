@@ -6,7 +6,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Toolchain for packages that need native builds (sqlite3, bcrypt, etc.)
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ libreoffice
+
 
 # Install all dependencies (prod + dev) for building
 COPY backend/package*.json ./
@@ -26,7 +27,8 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # curl is needed for container healthcheck
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl libreoffice
+
 
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--require module-alias/register"

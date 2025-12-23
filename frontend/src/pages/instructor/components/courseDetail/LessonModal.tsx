@@ -821,12 +821,6 @@ export function LessonModal({
             // Set content vào editor sau khi DOM đã render
             setTimeout(() => {
                 if (lessonForm.content_type === 'document' && documentEditorRef.current) {
-<<<<<<< HEAD
-                    documentEditorRef.current.innerHTML = renderHtmlFromContent(contentToLoad);
-                } else if (descriptionEditorRef.current) {
-                    // Dùng cho text, link, video (description)
-                    descriptionEditorRef.current.innerHTML = renderHtmlFromContent(contentToLoad || '');
-=======
                     // Content từ DB là HTML, hiển thị trực tiếp (không cần convert markdown)
                     // Chỉ convert nếu là markdown (có dấu hiệu markdown)
                     const isMarkdown = /^#{1,6}\s|^\*\*|^```|^\s*[-*+]\s/.test(contentToLoad.trim());
@@ -848,7 +842,6 @@ export function LessonModal({
                     // Wrap code blocks với header/body structure
                     wrapCodeBlocksWithHeader(descriptionEditorRef.current);
                     console.log('[LessonModal] Set content to description editor:', { contentToLoad, isMarkdown, html });
->>>>>>> origin/dev/backend
                 }
             }, 100); // Tăng timeout để đảm bảo DOM đã render
             
