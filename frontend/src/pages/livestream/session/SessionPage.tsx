@@ -235,10 +235,10 @@ export function LiveStreamSessionPage() {
     onCommentBlocked: isHost ? handleCommentBlocked : undefined, // Only for host
   });
 
-  // Calculate elapsed time for live session
+  // Calculate elapsed time for live session (hiển thị cho cả host & viewer)
   const [elapsedTime, setElapsedTime] = useState('00:00');
   useEffect(() => {
-    if (!isHost || !session || session.status !== 'live' || !session.actual_start) {
+    if (!session || session.status !== 'live' || !session.actual_start) {
       return;
     }
     const startTime = new Date(session.actual_start).getTime();
@@ -343,7 +343,8 @@ export function LiveStreamSessionPage() {
         } as any,
       });
       alert('Đã kết thúc livestream!');
-      navigateTo.livestream();
+      // Sau khi kết thúc, điều hướng về hub chung /livestream cho tất cả role
+      navigate(ROUTES.LIVESTREAM.HUB);
     } catch (error) {
       console.error('End session error:', error);
       alert('Có lỗi khi kết thúc livestream');
@@ -648,41 +649,48 @@ export function LiveStreamSessionPage() {
                   recentReactions={recentChatReactions}
                 />
                 
-                {/* Overlay: Host info + LIVE badge + Viewer count (left) - All in one row */}
+                {/* Overlay: Host info + LIVE badge + Viewer count (trái) + Thời lượng livestream (phải) */}
                 {isLive && (
-                  <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
-                    {/* Host Avatar + Name */}
-                    {hostInfo && (
-                      <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2 py-1.5 rounded-lg shadow-lg">
-                        {hostInfo.avatar ? (
-                          <img 
-                            src={hostInfo.avatar} 
-                            alt={hostInfo.name}
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
-                            {getInitials(hostInfo.name)}
-                          </div>
-                        )}
-                        <span className="text-white text-xs font-medium">{hostInfo.name}</span>
-                      </div>
-                    )}
-                    
-                    {/* LIVE + Viewer count */}
-                    <div className="inline-flex items-stretch text-white text-xs font-semibold shadow-lg">
-                      <span className="flex items-center gap-1 bg-red-600 px-2 py-1 rounded-l">
-                        <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                        LIVE
-                      </span>
-                      {viewerCount !== undefined && (
-                        <div className="flex items-center gap-1 bg-black/60 px-2 py-1 rounded-r">
-                          <Eye className="w-4 h-4" />
-                          <span>{viewerCount ?? 0}</span>
+                  <>
+                    <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
+                      {/* Host Avatar + Name */}
+                      {hostInfo && (
+                        <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2 py-1.5 rounded-lg shadow-lg">
+                          {hostInfo.avatar ? (
+                            <img 
+                              src={hostInfo.avatar} 
+                              alt={hostInfo.name}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
+                              {getInitials(hostInfo.name)}
+                            </div>
+                          )}
+                          <span className="text-white text-xs font-medium">{hostInfo.name}</span>
                         </div>
                       )}
+                      
+                      {/* LIVE + Viewer count */}
+                      <div className="inline-flex items-stretch text-white text-xs font-semibold shadow-lg">
+                        <span className="flex items-center gap-1 bg-red-600 px-2 py-1 rounded-l">
+                          <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                          LIVE
+                        </span>
+                        {viewerCount !== undefined && (
+                          <div className="flex items-center gap-1 bg-black/60 px-2 py-1 rounded-r">
+                            <Eye className="w-4 h-4" />
+                            <span>{viewerCount ?? 0}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Thời lượng livestream (góc phải trên) */}
+                    <div className="absolute top-3 right-3 z-20 bg-black/60 text-white text-xs font-semibold px-2 py-1 rounded shadow-lg">
+                      {elapsedTime}
+                    </div>
+                  </>
                 )}
               </div>
             </div>

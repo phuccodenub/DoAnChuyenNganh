@@ -139,7 +139,8 @@ export const notificationApi = {
    * Mark all notifications as read
    */
   async markAllAsRead(): Promise<{ success: boolean; message: string }> {
-    const response = await httpClient.put('/notifications/me/mark-all-read');
+    // Backend route sử dụng POST /notifications/me/mark-all-read
+    const response = await httpClient.post('/notifications/me/mark-all-read');
     return response.data;
   },
 

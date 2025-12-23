@@ -463,11 +463,18 @@ export class AssignmentService {
         return;
       }
 
+      // Resolve course_id giống các luồng khác (hỗ trợ assignment gắn theo section)
+      const resolvedCourseId = assignment.course_id ?? await this.resolveCourseIdFromSection((assignment as any)?.section_id);
+      if (!resolvedCourseId) {
+        logger.warn(`Cannot send grade notification: No course_id found for assignment ${assignment.id}`);
+        return;
+      }
+
       // Get course info for link
       const { Course } = await import('../../models');
-      const course = await Course.findByPk(assignment.course_id);
+      const course = await Course.findByPk(resolvedCourseId);
       if (!course) {
-        logger.warn(`Cannot send grade notification: Course ${assignment.course_id} not found`);
+        logger.warn(`Cannot send grade notification: Course ${resolvedCourseId} not found`);
         return;
       }
 
@@ -505,7 +512,7 @@ export class AssignmentService {
         notification_type: 'grade_posted',
         title: 'Bài tập đã được chấm',
         message: `Bài tập "${assignment.title}" của bạn đã được chấm. ${scoreText}${feedbackPreview}`,
-        link_url: `/student/courses/${assignment.course_id}/assignments/${assignment.id}`,
+        link_url: `/student/courses/${resolvedCourseId}/assignments/${assignment.id}`,
         priority: 'high',
         category: 'grade',
         related_resource_type: 'assignment',

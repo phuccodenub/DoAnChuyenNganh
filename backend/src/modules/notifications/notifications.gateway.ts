@@ -32,7 +32,7 @@ export interface NotificationPayload {
   related_resource_type?: string;
   related_resource_id?: string;
   metadata?: Record<string, unknown>;
-  created_at: Date;
+  created_at: string; // ISO string for Socket.IO serialization
   sender?: {
     id: string;
     first_name: string;
@@ -100,15 +100,30 @@ export class NotificationGateway {
         tokenLength: ((socket.handshake.auth as any)?.token || '').length
       });
       
-      if (!user) {
-        // Auth đã được handle bởi middleware trong chat gateway
-        // Nếu không có user, sử dụng event-driven approach thay vì setTimeout
+      // ✅ FIX: Check user immediately and also listen for auth event
+      // This ensures we catch the user whether they're already authenticated or will be authenticated
+      const tryHandleConnection = (authUser: SocketUser) => {
+        // Prevent duplicate handling
+        if (this.socketUsers.has(socket.id)) {
+          logger.debug(`[NotificationGateway] Socket ${socket.id} already handled, skipping`);
+          return;
+        }
+        logger.info(`[NotificationGateway] Handling connection for user: ${authUser.userId}`);
+        this.handleUserConnection(socket, authUser);
+      };
+      
+      if (user) {
+        // User already authenticated (synchronous)
+        tryHandleConnection(user);
+      } else {
+        // User not yet authenticated, wait for auth event
         logger.debug(`[NotificationGateway] Socket ${socket.id} waiting for auth...`);
         
-        // Listen for custom 'authenticated' event from auth middleware
+        // Listen for custom 'notification:authenticated' event from ChatGateway
         const authHandler = (authUser: SocketUser) => {
           logger.info(`[NotificationGateway] User authenticated via event: ${authUser.userId}`);
-          this.handleUserConnection(socket, authUser);
+          socket.off('notification:authenticated', authHandler);
+          tryHandleConnection(authUser);
         };
         
         socket.once('notification:authenticated', authHandler);
@@ -119,18 +134,16 @@ export class NotificationGateway {
         });
         
         // Fallback: Check if user was attached synchronously after middleware chain
+        // Use multiple ticks to ensure we catch the user after ChatGateway processes
         process.nextTick(() => {
           const attachedUser = (socket as any).user as SocketUser | undefined;
           if (attachedUser && !this.socketUsers.has(socket.id)) {
             logger.info(`[NotificationGateway] User found on nextTick: ${attachedUser.userId}`);
             socket.off('notification:authenticated', authHandler);
-            this.handleUserConnection(socket, attachedUser);
+            tryHandleConnection(attachedUser);
           }
         });
-        return;
       }
-
-      this.handleUserConnection(socket, user);
     });
   }
 

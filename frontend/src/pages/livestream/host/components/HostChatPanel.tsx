@@ -340,11 +340,28 @@ export function HostChatPanel({
                     : (isDark ? 'hover:bg-[#3c3d3e]' : 'hover:bg-gray-50')
                 )}
               >
-                <div className={cn('w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-medium text-sm', isDark ? 'bg-[#4285f4]' : 'bg-blue-500')}>
-                  <span className="text-white">
-                    {msg.sender_name.charAt(0).toUpperCase()}
-                  </span>
+                {/* Avatar hiển thị đúng avatar của user nếu có, fallback sang chữ cái đầu */}
+                <div className="flex-shrink-0">
+                  {msg.sender_avatar ? (
+                    <img
+                      src={msg.sender_avatar}
+                      alt={msg.sender_name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm',
+                        isDark ? 'bg-[#4285f4]' : 'bg-blue-500'
+                      )}
+                    >
+                      <span className="text-white">
+                        {msg.sender_name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <p className={cn('text-sm font-medium', isDark ? 'text-white' : 'text-gray-900')}>{msg.sender_name}</p>

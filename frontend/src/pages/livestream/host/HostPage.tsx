@@ -104,7 +104,8 @@ export function LiveStreamHostPage() {
         } as any,
       });
       alert('Đã kết thúc livestream!');
-      navigateTo.livestream();
+      // Sau khi kết thúc, điều hướng về hub chung /livestream
+      navigate(ROUTES.LIVESTREAM.HUB);
     } catch (error) {
       console.error('End session error:', error);
       alert('Có lỗi khi kết thúc livestream');

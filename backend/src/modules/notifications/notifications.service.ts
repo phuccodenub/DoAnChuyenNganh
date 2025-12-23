@@ -16,6 +16,13 @@ export class NotificationsService {
    * Build NotificationPayload for real-time emit
    */
   private buildPayload(notification: NotificationInstance, sender?: { id: string; first_name: string; last_name: string; avatar?: string } | null): NotificationPayload {
+    // Serialize created_at to ISO string for Socket.IO
+    const createdAt = notification.created_at instanceof Date 
+      ? notification.created_at.toISOString()
+      : typeof notification.created_at === 'string'
+        ? notification.created_at
+        : new Date().toISOString();
+    
     return {
       id: notification.id,
       notification_type: notification.notification_type,
@@ -27,7 +34,7 @@ export class NotificationsService {
       related_resource_type: notification.related_resource_type ?? undefined,
       related_resource_id: notification.related_resource_id ?? undefined,
       metadata: notification.metadata as Record<string, unknown> | undefined,
-      created_at: notification.created_at,
+      created_at: createdAt,
       sender: sender ?? null
     };
   }
