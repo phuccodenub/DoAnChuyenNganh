@@ -289,6 +289,10 @@ public/uploads/
 *.bak
 *.backup
 *.old
+*.sql
+*_dump.sql
+*_data_only.sql
+
 
 # Project certificate files
 *.pem
