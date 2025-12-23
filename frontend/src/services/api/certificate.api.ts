@@ -175,6 +175,21 @@ export const certificateApi = {
   },
 
   /**
+   * Issue certificate to blockchain (for existing certificates)
+   */
+  issueCertificateToBlockchain: async (id: string): Promise<Certificate> => {
+    const response = await apiClient.post(`/certificates/${id}/issue-blockchain`);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Delete certificate permanently (Admin only)
+   */
+  deleteCertificate: async (id: string): Promise<void> => {
+    await apiClient.delete(`/certificates/${id}`);
+  },
+
+  /**
    * Download certificate as PDF
    */
   downloadCertificatePDF: async (id: string): Promise<Blob> => {

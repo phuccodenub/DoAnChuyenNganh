@@ -282,14 +282,37 @@ export class BlockchainService {
 
   /**
    * Get OpenSea URL for NFT
+   * Note: OpenSea has discontinued testnet support, so for testnets we return explorer URL instead
    */
   getOpenSeaUrl(contractAddress: string, tokenId: string): string {
+    // OpenSea đã ngừng hỗ trợ testnet, nên dùng blockchain explorer cho testnet
     if (this.network === 'mumbai') {
-      return `https://testnets.opensea.io/assets/mumbai/${contractAddress}/${tokenId}`;
+      // Return Polygonscan NFT page instead
+      return `https://mumbai.polygonscan.com/token/${contractAddress}?a=${tokenId}`;
     } else if (this.network === 'amoy') {
-      return `https://testnets.opensea.io/assets/amoy/${contractAddress}/${tokenId}`;
+      // Return Polygonscan NFT page instead
+      return `https://amoy.polygonscan.com/token/${contractAddress}?a=${tokenId}`;
     } else if (this.network === 'sepolia') {
-      return `https://testnets.opensea.io/assets/sepolia/${contractAddress}/${tokenId}`;
+      // Return Etherscan NFT token page (better format for viewing NFT)
+      // Format: https://sepolia.etherscan.io/token/{contractAddress}?a={tokenId}
+      return `https://sepolia.etherscan.io/token/${contractAddress}?a=${tokenId}`;
+    } else {
+      // For mainnet, still return OpenSea URL (if needed in future)
+      // For now, return explorer URL
+      return `#${contractAddress}/${tokenId}`; // Local network
+    }
+  }
+
+  /**
+   * Get blockchain explorer NFT URL (recommended for testnets)
+   */
+  getExplorerNftUrl(contractAddress: string, tokenId: string): string {
+    if (this.network === 'mumbai') {
+      return `https://mumbai.polygonscan.com/token/${contractAddress}?a=${tokenId}`;
+    } else if (this.network === 'amoy') {
+      return `https://amoy.polygonscan.com/token/${contractAddress}?a=${tokenId}`;
+    } else if (this.network === 'sepolia') {
+      return `https://sepolia.etherscan.io/token/${contractAddress}?a=${tokenId}`;
     } else {
       return `#${contractAddress}/${tokenId}`; // Local network
     }

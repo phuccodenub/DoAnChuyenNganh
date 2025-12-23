@@ -84,6 +84,42 @@ export class CertificatePDFService {
   }
 
   /**
+   * Format date chuẩn: DD tháng MM, YYYY (tiếng Việt)
+   */
+  private formatDateFull(date: string | Date): string {
+    const d = new Date(date);
+    const day = d.getDate();
+    const monthNames = ['tháng 1', 'tháng 2', 'tháng 3', 'tháng 4', 'tháng 5', 'tháng 6',
+      'tháng 7', 'tháng 8', 'tháng 9', 'tháng 10', 'tháng 11', 'tháng 12'];
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month}, ${year}`;
+  }
+
+  /**
+   * Format date ngắn: DD/MM/YYYY
+   */
+  private formatDate(date: string | Date): string {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  /**
+   * Format certificate number chuẩn (đảm bảo format CERT-YYYYMMDD-XXXXX)
+   */
+  private formatCertificateNumber(certNumber: string): string {
+    if (!certNumber) return '';
+    // Đảm bảo format đúng: CERT-YYYYMMDD-XXXXX
+    if (/^CERT-\d{8}-[A-Z0-9]{5}$/.test(certNumber)) {
+      return certNumber;
+    }
+    return certNumber;
+  }
+
+  /**
    * Generate HTML template for certificate
    */
   private generateCertificateHTML(certificate: CertificateWithDetails): string {
@@ -92,20 +128,31 @@ export class CertificatePDFService {
     const courseTitle = this.removeVietnameseDiacritics(metadata.course.title);
     const instructorName = this.removeVietnameseDiacritics(metadata.course.instructor.name);
     
-    const completionDate = new Date(metadata.completion.date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    // Format date chuẩn: DD tháng MM, YYYY
+    const completionDate = this.formatDateFull(metadata.completion.date);
+    const issuedDate = this.formatDateFull(issued_at);
     
-    const issuedDate = new Date(issued_at).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    // Format certificate number chuẩn
+    const formattedCertNumber = this.formatCertificateNumber(certificate_number);
     
     const grade = metadata.completion.grade;
-    const verificationUrl = `${env.frontendUrl}/certificates/verify?hash=${certificate.certificate_hash}`;
+    
+    // Sử dụng blockchain explorer URL nếu có blockchain info, nếu không thì dùng verification URL
+    let verificationUrl: string;
+    const certData = certificate as any;
+    if (certData.blockchain_token_id && certData.blockchain_contract_address && certData.blockchain_network === 'sepolia') {
+      // Dùng Etherscan Sepolia URL
+      verificationUrl = `https://sepolia.etherscan.io/token/${certData.blockchain_contract_address}?a=${certData.blockchain_token_id}`;
+    } else if (certData.blockchain_token_id && certData.blockchain_contract_address && certData.blockchain_network === 'mumbai') {
+      // Dùng Polygonscan Mumbai URL
+      verificationUrl = `https://mumbai.polygonscan.com/token/${certData.blockchain_contract_address}?a=${certData.blockchain_token_id}`;
+    } else if (certData.blockchain_token_id && certData.blockchain_contract_address && certData.blockchain_network === 'amoy') {
+      // Dùng Polygonscan Amoy URL
+      verificationUrl = `https://amoy.polygonscan.com/token/${certData.blockchain_contract_address}?a=${certData.blockchain_token_id}`;
+    } else {
+      // Fallback về verification URL cũ
+      verificationUrl = `${env.frontendUrl}/certificates/verify?hash=${certificate.certificate_hash}`;
+    }
     
     return `
 <!DOCTYPE html>
@@ -250,11 +297,12 @@ export class CertificatePDFService {
       text-align: center;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       position: relative;
       z-index: 1;
       padding: 0 20mm;
-      margin-bottom: 5mm;
+      min-height: 120mm;
+      max-height: 120mm;
     }
     
     .presented-to {
@@ -270,36 +318,56 @@ export class CertificatePDFService {
       font-size: 42px;
       font-weight: 700;
       color: #1a202c;
-      margin: 8mm 0;
+      margin: 6mm 0 4mm 0;
       line-height: 1.2;
-      padding-bottom: 3mm;
+      padding-bottom: 2mm;
       letter-spacing: 2px;
+      min-height: 15mm;
+      max-height: 15mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .recognition-text {
-      font-size: 13px;
+      font-size: 12px;
       color: #2d3748;
-      line-height: 1.6;
-      margin: 6mm 0;
+      line-height: 1.5;
+      margin: 4mm 0;
       font-weight: 400;
       max-width: 150mm;
       margin-left: auto;
       margin-right: auto;
+      min-height: 12mm;
+      max-height: 12mm;
+      overflow: hidden;
     }
     
     .course-info {
-      margin: 7mm 0;
-      padding: 7mm 12mm;
+      margin: 5mm 0;
+      padding: 5mm 12mm;
       position: relative;
+      min-height: 30mm;
+      max-height: 35mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow: visible;
     }
     
     .course-title {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 700;
       color: #1a202c;
-      margin-bottom: 6mm;
-      line-height: 1.3;
+      margin-bottom: 4mm;
+      line-height: 1.2;
       letter-spacing: 1px;
+      overflow: visible;
+      display: block;
+      word-break: break-word;
+      min-height: 8mm;
+      max-height: 20mm;
+      text-align: center;
     }
     
     .course-details {
@@ -308,7 +376,9 @@ export class CertificatePDFService {
       gap: 20mm;
       font-size: 12px;
       color: #4a5568;
-      margin-top: 5mm;
+      margin-top: 2mm;
+      height: 10mm;
+      flex-shrink: 0;
     }
     
     .detail-item {
@@ -331,10 +401,12 @@ export class CertificatePDFService {
     }
     
     .completion-info {
-      margin: 7mm 0;
+      margin: 0;
       display: flex;
       justify-content: center;
       gap: 15mm;
+      height: 12mm;
+      align-items: center;
     }
     
     .info-box {
@@ -395,10 +467,13 @@ export class CertificatePDFService {
     
     .certificate-footer {
       text-align: center;
-      margin-top: 6mm;
-      padding-top: 4mm;
-      position: relative;
+      position: absolute;
+      bottom: 20mm;
+      left: 18mm;
+      right: 18mm;
       z-index: 1;
+      padding: 0;
+      height: 20mm;
     }
     
     .certificate-number {
@@ -509,10 +584,11 @@ export class CertificatePDFService {
     
     <div class="certificate-footer">
       <div class="certificate-number">
-        CERTIFICATE NO. <span class="certificate-number-value">${certificate_number}</span>
+        CERTIFICATE NO. <span class="certificate-number-value">${formattedCertNumber}</span>
       </div>
       <div class="verification-info">
-        <p>Verification URL:</p>
+        <p>Issued Date: ${issuedDate}</p>
+        <p style="margin-top: 2mm;">Verification URL:</p>
         <p class="verification-url">${verificationUrl}</p>
       </div>
     </div>

@@ -263,5 +263,15 @@ export class CertificateRepository {
     }
     return await Certificate.count({ where });
   }
+
+  /**
+   * Delete certificate permanently
+   */
+  async delete(id: string): Promise<boolean> {
+    const affectedRows = await Certificate.destroy({
+      where: { id },
+    });
+    return affectedRows > 0;
+  }
 }
 

@@ -4,10 +4,10 @@
  */
 
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useCertificate, useRevokeCertificate } from '@/hooks/useCertificateData';
+import { useCertificate, useRevokeCertificate, useIssueCertificateToBlockchain, useDeleteCertificate } from '@/hooks/useCertificateData';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/routes';
-import { Award, Download, Share2, CheckCircle2, Calendar, User, BookOpen, GraduationCap, Hash, Ban } from 'lucide-react';
+import { Award, Download, Share2, CheckCircle2, Calendar, User, BookOpen, GraduationCap, Hash, Ban, ExternalLink, Link as LinkIcon, Zap, Trash2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -21,10 +21,16 @@ export default function CertificateDetailPage() {
   const { user } = useAuth();
   const { data: certificate, isLoading, error, refetch } = useCertificate(id || '');
   const { mutate: revokeCertificate, isPending: isRevoking } = useRevokeCertificate();
+  const { mutate: issueToBlockchain, isPending: isIssuingToBlockchain } = useIssueCertificateToBlockchain();
+  const { mutate: deleteCertificate, isPending: isDeleting } = useDeleteCertificate();
   const [showRevokeModal, setShowRevokeModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [revokeReason, setRevokeReason] = useState('');
   
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isOwner = certificate && user && certificate.user_id === user.id;
+  const hasBlockchain = certificate && (certificate as any).blockchain_token_id;
+  const canIssueToBlockchain = !hasBlockchain && (isOwner || isAdmin);
 
   if (isLoading) {
     return (
@@ -55,6 +61,43 @@ export default function CertificateDetailPage() {
       'expired': 'Đã hết hạn',
     };
     return statusMap[status] || status;
+  };
+
+  // Format date chuẩn: DD/MM/YYYY
+  const formatDate = (date: string | Date): string => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Format date đầy đủ: DD tháng MM, YYYY
+  const formatDateFull = (date: string | Date): string => {
+    const d = new Date(date);
+    const day = d.getDate();
+    const monthNames = ['tháng 1', 'tháng 2', 'tháng 3', 'tháng 4', 'tháng 5', 'tháng 6',
+      'tháng 7', 'tháng 8', 'tháng 9', 'tháng 10', 'tháng 11', 'tháng 12'];
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month}, ${year}`;
+  };
+
+  // Format hash để hiển thị (first 10 + ... + last 10)
+  const formatHash = (hash: string, showLength: number = 10): string => {
+    if (!hash || hash.length <= showLength * 2 + 3) return hash;
+    return `${hash.substring(0, showLength)}...${hash.substring(hash.length - showLength)}`;
+  };
+
+  // Format certificate number chuẩn (đảm bảo format CERT-YYYYMMDD-XXXXX)
+  const formatCertificateNumber = (certNumber: string): string => {
+    // Đảm bảo format đúng: CERT-YYYYMMDD-XXXXX
+    if (!certNumber) return '';
+    // Nếu đã đúng format thì giữ nguyên
+    if (/^CERT-\d{8}-[A-Z0-9]{5}$/.test(certNumber)) {
+      return certNumber;
+    }
+    return certNumber;
   };
 
   const handleDownload = async () => {
@@ -163,11 +206,7 @@ export default function CertificateDetailPage() {
                 <div className="text-center">
                   <p className="text-sm text-gray-500 mb-1">Ngày hoàn thành</p>
                   <p className="font-semibold text-gray-900">
-                    {new Date(certificate.metadata.completion.date).toLocaleDateString('vi-VN', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {formatDateFull(certificate.metadata.completion.date)}
                   </p>
                 </div>
                 {certificate.metadata.completion.grade && (
@@ -183,31 +222,81 @@ export default function CertificateDetailPage() {
               {/* Certificate Number */}
               <div className="text-center pt-6 border-t border-gray-200">
                 <p className="text-xs text-gray-500 mb-2">Số chứng chỉ</p>
-                <p className="font-mono text-sm text-gray-700">
-                  {certificate.certificate_number}
+                <p className="font-mono text-sm text-gray-700 font-semibold">
+                  {formatCertificateNumber(certificate.certificate_number)}
                 </p>
               </div>
             </Card>
 
             {/* Actions */}
-            <div className="mt-6 flex gap-4">
-              <Button onClick={handleDownload} className="flex-1">
+            <div className="mt-6 flex flex-wrap gap-4">
+              <Button onClick={handleDownload} className="flex-1 min-w-[120px]">
                 <Download className="w-4 h-4 mr-2" />
                 Tải PDF
               </Button>
-              <Button onClick={handleShare} variant="outline" className="flex-1">
+              <Button onClick={handleShare} variant="outline" className="flex-1 min-w-[120px]">
                 <Share2 className="w-4 h-4 mr-2" />
                 Chia sẻ
               </Button>
-              {isAdmin && certificate.status === 'active' && (
+              {canIssueToBlockchain && (
                 <Button 
-                  onClick={() => setShowRevokeModal(true)} 
-                  variant="outline" 
-                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                  onClick={() => {
+                    if (id) {
+                      issueToBlockchain(id, {
+                        onSuccess: () => {
+                          refetch();
+                        }
+                      });
+                    }
+                  }}
+                  disabled={isIssuingToBlockchain}
+                  variant="outline"
+                  className="flex-1 min-w-[180px] border-blue-300 text-blue-600 hover:bg-blue-50"
                 >
-                  <Ban className="w-4 h-4 mr-2" />
-                  Thu hồi
+                  {isIssuingToBlockchain ? (
+                    <>
+                      <span className="animate-spin mr-2">⏳</span>
+                      Đang phát hành...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Phát hành lên Blockchain
+                    </>
+                  )}
                 </Button>
+              )}
+              {isAdmin && (
+                <>
+                  {certificate.status === 'active' && (
+                    <Button 
+                      onClick={() => setShowRevokeModal(true)} 
+                      variant="outline" 
+                      className="flex-1 min-w-[120px] border-red-300 text-red-600 hover:bg-red-50"
+                    >
+                      <Ban className="w-4 h-4 mr-2" />
+                      Thu hồi
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={() => setShowDeleteModal(true)} 
+                    variant="outline" 
+                    className="flex-1 min-w-[120px] border-red-500 text-red-700 hover:bg-red-50"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <span className="animate-spin mr-2">⏳</span>
+                        Đang xóa...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Xóa vĩnh viễn
+                      </>
+                    )}
+                  </Button>
+                </>
               )}
             </div>
             
@@ -264,6 +353,57 @@ export default function CertificateDetailPage() {
                       disabled={isRevoking}
                     >
                       {isRevoking ? 'Đang thu hồi...' : 'Thu hồi'}
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Delete Modal */}
+            {showDeleteModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <Card className="p-6 max-w-md w-full mx-4">
+                  <h3 className="text-lg font-semibold mb-4 text-red-600">Xóa chứng chỉ vĩnh viễn</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Bạn có chắc chắn muốn xóa chứng chỉ này? Hành động này <strong>KHÔNG THỂ hoàn tác</strong> và sẽ xóa vĩnh viễn khỏi hệ thống.
+                  </p>
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-xs text-red-700">
+                      <strong>Lưu ý:</strong> Chứng chỉ sẽ bị xóa hoàn toàn, bao gồm cả dữ liệu blockchain (nếu có). Sau khi xóa, bạn có thể hoàn thành khóa học lại để tạo chứng chỉ mới với blockchain testnet.
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        setShowDeleteModal(false);
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Hủy
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (id) {
+                          deleteCertificate(id, {
+                            onSuccess: () => {
+                              setShowDeleteModal(false);
+                              // Navigate to profile certificates tab after deletion
+                              setTimeout(() => {
+                                navigate('/profile?tab=certificates');
+                              }, 1000);
+                            },
+                            onError: (error: any) => {
+                              toast.error(error.response?.data?.message || 'Không thể xóa chứng chỉ');
+                            },
+                          });
+                        }
+                      }}
+                      variant="outline"
+                      className="flex-1 border-red-500 text-red-700 hover:bg-red-50"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
                     </Button>
                   </div>
                 </Card>
@@ -335,6 +475,94 @@ export default function CertificateDetailPage() {
                     {certificate.ipfs_hash}
                   </a>
                 </div>
+                
+                {/* Blockchain Info */}
+                {(certificate as any).blockchain_token_id ? (
+                  <>
+                    <div className="pt-3 border-t border-gray-200">
+                      <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                        <LinkIcon className="w-3 h-3" />
+                        Blockchain Testnet (NFT)
+                      </p>
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Token ID</p>
+                          <p className="text-xs font-mono text-gray-700">
+                            #{(certificate as any).blockchain_token_id}
+                          </p>
+                        </div>
+                        {(certificate as any).blockchain_network && (
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Network</p>
+                            <p className="text-xs font-medium text-gray-700 capitalize">
+                              {(certificate as any).blockchain_network}
+                            </p>
+                          </div>
+                        )}
+                        {(certificate as any).blockchain_tx_hash && (
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
+                            <a
+                              href={(certificate as any).blockchain_explorer_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-mono text-blue-600 hover:text-blue-700 break-all flex items-center gap-1"
+                              title="Xem transaction trên blockchain explorer"
+                            >
+                              {formatHash((certificate as any).blockchain_tx_hash, 10)}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
+                        {(certificate as any).blockchain_contract_address && (
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Contract Address</p>
+                            <a
+                              href={`https://sepolia.etherscan.io/address/${(certificate as any).blockchain_contract_address}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-mono text-blue-600 hover:text-blue-700 break-all flex items-center gap-1"
+                              title="Xem smart contract trên blockchain explorer"
+                            >
+                              {formatHash((certificate as any).blockchain_contract_address, 8)}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
+                        {(certificate as any).blockchain_opensea_url && (
+                          <div>
+                            <a
+                              href={(certificate as any).blockchain_opensea_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                            >
+                              {((certificate as any).blockchain_network === 'sepolia' || 
+                                (certificate as any).blockchain_network === 'mumbai' || 
+                                (certificate as any).blockchain_network === 'amoy') 
+                                ? 'Xem trên Blockchain Explorer' 
+                                : 'Xem trên OpenSea'}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                            <p className="text-xs text-gray-400 mt-1 italic">
+                              {((certificate as any).blockchain_network === 'sepolia' || 
+                                (certificate as any).blockchain_network === 'mumbai' || 
+                                (certificate as any).blockchain_network === 'amoy') 
+                                && 'OpenSea đã ngừng hỗ trợ testnet. Dùng blockchain explorer để xem NFT.'}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Blockchain</p>
+                    <p className="text-xs text-gray-400 italic">
+                      Chứng chỉ chưa được phát hành lên blockchain. Kết nối ví MetaMask trong Profile để nhận NFT khi hoàn thành khóa học.
+                    </p>
+                  </div>
+                )}
               </div>
             </Card>
           </div>
