@@ -183,6 +183,56 @@ export const aiApi = {
     const res = await apiClient.post<{ data: { prompt: string; suggestions?: string[] } }>('/ai/instructor/generate-thumbnail', payload);
     return res.data.data;
   },
+
+  /**
+   * AI Grader - code submission
+   */
+  gradeCode: async (payload: {
+    submissionId: string;
+    assignmentId: string;
+    courseId: string;
+    code: string;
+    language: string;
+    rubric: Array<{ name: string; description: string; points: number }>;
+  }): Promise<any> => {
+    const res = await apiClient.post<{ data: any }>('/ai/grader/code', payload, {
+      timeout: 120000,
+    });
+    return res.data.data;
+  },
+
+  /**
+   * AI Grader - essay submission
+   */
+  gradeEssay: async (payload: {
+    submissionId: string;
+    assignmentId: string;
+    courseId: string;
+    essay: string;
+    topic: string;
+    rubric: Array<{ name: string; description: string; points: number }>;
+  }): Promise<any> => {
+    const res = await apiClient.post<{ data: any }>('/ai/grader/essay', payload, {
+      timeout: 120000,
+    });
+    return res.data.data;
+  },
+
+  /**
+   * AI Grader - assignment submission (text/file/both)
+   */
+  gradeAssignment: async (payload: {
+    submissionId: string;
+    assignmentId: string;
+    courseId: string;
+    rubric: Array<{ name: string; description: string; points: number }>;
+  }): Promise<any> => {
+    const res = await apiClient.post<{ data: any }>('/ai/grader/assignment', payload, {
+      timeout: 120000,
+    });
+    return res.data.data;
+  },
 };
+
 
 

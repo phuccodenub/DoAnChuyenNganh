@@ -52,6 +52,9 @@ import createAIAnalysisQueue from './044-create-ai-analysis-queue';
 // Blockchain features migrations (from dev/backend branch)
 import { up as addBlockchainFieldsToCertificates, down as removeBlockchainFieldsFromCertificates } from './045-add-blockchain-fields-to-certificates';
 import { up as addWalletAddressToUsers, down as removeWalletAddressFromUsers } from './046-add-wallet-address-to-users';
+import { up as addAiGraderColumns, down as removeAiGraderColumns } from './047-add-ai-grader-columns';
+import { up as addRubricToAssignments, down as removeRubricFromAssignments } from './048-add-rubric-to-assignments';
+
 
 // Migration interface
 export interface Migration {
@@ -356,11 +359,24 @@ export const migrations: Migration[] = [
   },
   {
     version: '046',
-    description: 'Add wallet_address field to users table for blockchain certificate issuance',
+    description: 'Add wallet address to users',
     up: addWalletAddressToUsers,
     down: removeWalletAddressFromUsers
+  },
+  {
+    version: '047',
+    description: 'Add AI grader columns to assignment submissions',
+    up: addAiGraderColumns,
+    down: removeAiGraderColumns
+  },
+  {
+    version: '048',
+    description: 'Add rubric to assignments',
+    up: addRubricToAssignments,
+    down: removeRubricFromAssignments
   }
 ];
+
 
 // Migration management class
 export class MigrationManager {

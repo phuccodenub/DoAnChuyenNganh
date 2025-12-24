@@ -24,4 +24,3 @@ export const down = async (queryInterface: QueryInterface): Promise<void> => {
   await queryInterface.removeIndex('users', 'idx_users_wallet_address');
   await queryInterface.removeColumn('users', 'wallet_address');
 };
-

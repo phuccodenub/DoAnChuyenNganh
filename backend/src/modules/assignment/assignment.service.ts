@@ -60,10 +60,12 @@ export class AssignmentService {
       // Nếu có section_id thì course_id = null, ngược lại
       const createData = {
         ...dto,
+        rubric: dto.rubric || undefined,
         course_id: dto.section_id ? null : (dto.course_id ?? null),
         section_id: dto.section_id ?? null,
         due_date: dto.due_date === null ? undefined : (dto.due_date ? new Date(dto.due_date) : undefined)
       } as any;
+
       
       const assignment = await this.repo.createAssignment(createData);
       logger.info(`Assignment created: ${assignment.id} by user ${userId}`);
@@ -189,6 +191,10 @@ export class AssignmentService {
         due_date: data.due_date === null ? undefined : (data.due_date ? new Date(data.due_date) : undefined)
       };
 
+      if (data.rubric) {
+        updateData.rubric = data.rubric;
+      }
+
       // Xử lý course_id và section_id - XOR logic
       if (data.course_id !== undefined || data.section_id !== undefined) {
         if (data.section_id) {
@@ -210,6 +216,7 @@ export class AssignmentService {
       throw error;
     }
   }
+
 
   async deleteAssignment(assignmentId: string, userId: string) {
     try {
@@ -445,6 +452,61 @@ export class AssignmentService {
       throw error;
     }
   }
+
+  async saveAiGrading(
+    submissionId: string,
+    userId: string,
+    data: { aiResult: any; rubric: any[]; overwriteScore: boolean }
+  ) {
+    try {
+      const submission = await this.repo.getSubmissionById(submissionId) as any;
+      if (!submission) {
+        throw new ApiError('Submission not found', 404);
+      }
+
+      const assignment = submission.assignment || await this.repo.getAssignmentById(submission.assignment_id);
+      if (!assignment) {
+        throw new ApiError('Assignment not found', 404);
+      }
+      await this.verifyInstructorAccess(assignment.course_id, userId, (assignment as any)?.section_id);
+
+      const previousHistory = Array.isArray(submission.ai_grader_history) ? submission.ai_grader_history : [];
+      const historyEntry = {
+        savedAt: new Date().toISOString(),
+        aiResult: data.aiResult,
+        rubric: data.rubric,
+        savedBy: userId,
+      };
+
+      const updatedData: any = {
+        ai_grader_last: data.aiResult,
+        ai_grader_rubric: data.rubric,
+        ai_grader_history: [...previousHistory, historyEntry],
+      };
+
+      if (data.overwriteScore) {
+        updatedData.score = data.aiResult?.score ?? submission.score;
+        updatedData.feedback = data.aiResult?.feedback ?? submission.feedback;
+      }
+
+      await (submission as any).update(updatedData);
+
+      if (data.overwriteScore) {
+        const graded = await this.repo.grade(submissionId, {
+          score: updatedData.score,
+          feedback: updatedData.feedback,
+          graded_by: userId,
+        });
+        return graded;
+      }
+
+      return submission;
+    } catch (error: unknown) {
+      logger.error(`Error saving AI grading: ${error}`);
+      throw error;
+    }
+  }
+
 
   /**
    * Send notification to student about their grade

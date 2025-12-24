@@ -10,7 +10,9 @@ export interface CreateAssignmentDto {
   is_published?: boolean;
   is_practice?: boolean; // true = Practice Assignment, false = Graded Assignment
   instructions?: string;
+  rubric?: Array<{ name: string; description?: string; points: number }>;
 }
+
 
 export interface UpdateAssignmentDto {
   course_id?: string;
@@ -24,7 +26,9 @@ export interface UpdateAssignmentDto {
   is_published?: boolean;
   is_practice?: boolean; // true = Practice Assignment, false = Graded Assignment
   instructions?: string;
+  rubric?: Array<{ name: string; description?: string; points: number }>;
 }
+
 
 export interface SubmitAssignmentDto {
   submission_text?: string;

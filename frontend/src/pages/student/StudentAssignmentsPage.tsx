@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
-import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -71,8 +70,7 @@ export default function StudentAssignmentsPage() {
   };
 
   return (
-    <StudentDashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="max-w-6xl mx-auto space-y-8 pb-12">
         
         {/* 1. Header & Stats */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -219,6 +217,5 @@ export default function StudentAssignmentsPage() {
         </div>
 
       </div>
-    </StudentDashboardLayout>
   );
 }

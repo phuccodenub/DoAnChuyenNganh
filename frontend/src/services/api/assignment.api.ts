@@ -11,6 +11,7 @@ export interface Assignment {
   title: string;
   description: string;
   instructions: string | null;
+  rubric?: Array<{ name: string; description?: string; points: number }>;
   max_score: number; // Backend uses max_score (DECIMAL 5,2)
   due_date: string | null;
   allow_late_submission: boolean;
@@ -21,10 +22,8 @@ export interface Assignment {
   is_practice: boolean; // true = Practice Assignment, false = Graded Assignment
   created_at: string;
   updated_at: string;
-  _count?: {
-    submissions: number;
-  };
 }
+
 
 export interface Submission {
   id: string;
@@ -36,6 +35,9 @@ export interface Submission {
   status: 'submitted' | 'graded' | 'late' | 'draft';
   score: number | null;
   feedback: string | null;
+  ai_grader_last?: any;
+  ai_grader_history?: any;
+  ai_grader_rubric?: any;
   graded_at: string | null;
   graded_by?: {
     id: string;
@@ -45,6 +47,7 @@ export interface Submission {
   created_at: string;
   updated_at: string;
 }
+
 
 export interface SubmitAssignmentPayload {
   assignment_id: string;
@@ -165,12 +168,13 @@ export const assignmentApi = {
   /**
    * Get submission by ID
    */
-  getSubmissionById: async (submissionId: string): Promise<Submission> => {
-    const response = await apiClient.get<Submission>(
-      `/submissions/${submissionId}`
+  getSubmissionById: async (submissionId: string): Promise<SubmissionWithStudent> => {
+    const response = await apiClient.get<{ data: SubmissionWithStudent }>(
+      `/assignments/submissions/${submissionId}`
     );
-    return response.data;
+    return response.data.data || (response.data as any);
   },
+
 
   /**
    * Update submission (draft)
@@ -316,6 +320,21 @@ export const assignmentApi = {
   },
 
   /**
+   * Save AI grading result
+   */
+  saveAiGrading: async (
+    submissionId: string,
+    data: { aiResult: any; rubric: any[]; overwriteScore: boolean }
+  ): Promise<Submission> => {
+    const response = await apiClient.post<{ data: Submission }>(
+      `/assignments/submissions/${submissionId}/ai-grading`,
+      data
+    );
+    return response.data.data || response.data;
+  },
+
+
+  /**
    * Create assignment (instructor)
    */
   createAssignment: async (data: CreateAssignmentPayload): Promise<Assignment> => {
@@ -359,11 +378,13 @@ export interface SubmissionWithStudent extends Submission {
     title: string;
     max_score: number;
     due_date: string | null;
+    rubric?: any;
     course?: {
       id: string;
       title: string;
     };
   };
+
 }
 
 export interface CreateAssignmentPayload {
@@ -373,10 +394,12 @@ export interface CreateAssignmentPayload {
   description?: string;
   instructions?: string;
   max_score: number;
+  rubric?: Array<{ name: string; description?: string; points: number }>;
   due_date?: string;
   allow_late_submission?: boolean;
   submission_type?: 'text' | 'file' | 'both';
   is_published?: boolean;
 }
+
 
 export default assignmentApi;

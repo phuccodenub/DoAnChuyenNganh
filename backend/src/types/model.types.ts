@@ -221,9 +221,11 @@ export interface AssignmentAttributes {
   is_published: boolean;
   is_practice: boolean; // true = Practice Assignment, false = Graded Assignment
   instructions?: string;
+  rubric?: any;
   created_at: Date;
   updated_at: Date;
 }
+
 
 export interface AssignmentCreationAttributes extends Optional<AssignmentAttributes, 'id' | 'created_at' | 'updated_at' | 'max_score' | 'allow_late_submission' | 'is_published' | 'is_practice' | 'instructions' | 'description'> {}
 
@@ -243,9 +245,13 @@ export interface AssignmentSubmissionAttributes {
   submitted_at: Date;
   score?: number;
   feedback?: string;
+  ai_grader_last?: any;
+  ai_grader_history?: any;
+  ai_grader_rubric?: any;
   graded_by?: string;
   graded_at?: Date;
   status: 'submitted' | 'graded' | 'returned';
+
   is_late: boolean;
   created_at: Date;
   updated_at: Date;

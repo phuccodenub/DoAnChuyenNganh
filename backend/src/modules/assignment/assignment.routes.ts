@@ -85,6 +85,18 @@ router.put(
 );
 
 /**
+ * @route   POST /api/assignments/submissions/:submissionId/ai-grading
+ * @desc    Save AI grader result
+ * @access  Instructor, Admin
+ */
+router.post(
+  '/submissions/:submissionId/ai-grading',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
+  controller.saveAiGrading
+);
+
+
+/**
  * @route   GET /api/assignments/course/:courseId
  * @desc    Get all assignments for a course
  * @access  Instructor, Admin, Enrolled Students

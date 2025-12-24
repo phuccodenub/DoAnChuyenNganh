@@ -128,7 +128,19 @@ router.post(
   controller.gradeEssay
 );
 
+/**
+ * @route   POST /ai/grader/assignment
+ * @desc    Chấm điểm assignment (text/file/both)
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/grader/assignment',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.gradeAssignment
+);
+
 // ==================== TESTING ====================
+
 
 /**
  * @route   POST /ai/test-provider

@@ -24,6 +24,7 @@ import { CourseContentService } from '../course-content/course-content.service';
 import { QuizGeneratorService } from './services/quiz-generator.service';
 import { AIGraderService } from './services/ai-grader.service';
 
+
 export class AIController {
   private aiService: AIService;
   private courseContentService: CourseContentService;
@@ -35,7 +36,7 @@ export class AIController {
     this.courseContentService = new CourseContentService();
     this.quizGeneratorService = new QuizGeneratorService();
     this.graderService = new AIGraderService();
-  }
+}
 
   /**
    * Chat with AI assistant
@@ -513,6 +514,8 @@ export class AIController {
 
       logger.info(`[AIController] Grading code submission ${submissionId}`);
 
+      const context = await this.graderService.getAssignmentContext(assignmentId, courseId);
+
       const result = await this.graderService.gradeCode({
         submissionId,
         assignmentId,
@@ -521,6 +524,7 @@ export class AIController {
         rubric,
         courseId,
         userId,
+        context,
       });
 
       return responseUtils.success(res, result, 'Chấm điểm code thành công');
@@ -534,6 +538,7 @@ export class AIController {
       next(error);
     }
   };
+
 
   /**
    * Chấm điểm bài luận
@@ -557,6 +562,8 @@ export class AIController {
 
       logger.info(`[AIController] Grading essay submission ${submissionId}`);
 
+      const context = await this.graderService.getAssignmentContext(assignmentId, courseId);
+
       const result = await this.graderService.gradeEssay({
         submissionId,
         assignmentId,
@@ -565,6 +572,7 @@ export class AIController {
         rubric,
         courseId,
         userId,
+        context,
       });
 
       return responseUtils.success(res, result, 'Chấm điểm bài luận thành công');
@@ -578,7 +586,56 @@ export class AIController {
       next(error);
     }
   };
+
+  /**
+   * Chấm điểm assignment (text/file/both)
+   * POST /ai/grader/assignment
+   */
+  gradeAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+      const { submissionId, assignmentId, rubric, courseId } = req.body;
+
+      if (!submissionId || !assignmentId || !rubric || !courseId) {
+        return responseUtils.sendValidationError(
+          res,
+          'submissionId, assignmentId, rubric và courseId là bắt buộc'
+        );
+      }
+
+      if (!Array.isArray(rubric) || rubric.length === 0) {
+        return responseUtils.sendValidationError(res, 'Rubric phải là mảng và không được rỗng');
+      }
+
+      logger.info(`[AIController] Grading assignment submission ${submissionId}`);
+
+      const gradingRequest = await this.graderService.buildAssignmentGradeRequest({
+        submissionId,
+        assignmentId,
+        rubric,
+        courseId,
+        userId,
+      });
+
+      const hasText = Boolean(gradingRequest.submissionText && gradingRequest.submissionText.trim());
+      const hasFiles = Boolean(gradingRequest.fileUrls && gradingRequest.fileUrls.length > 0);
+
+      if (!hasText && !hasFiles) {
+        return responseUtils.sendValidationError(res, 'Bài nộp không có nội dung để chấm');
+      }
+
+      const result = await this.graderService.gradeAssignment(gradingRequest);
+
+      return responseUtils.success(res, result, 'Chấm điểm assignment thành công');
+    } catch (error: any) {
+      logger.error('[AIController] Grade assignment error:', error);
+
+      if (error.message?.includes('parse')) {
+        return responseUtils.error(res, 'Không thể xử lý kết quả chấm điểm. Vui lòng thử lại.', 500);
+      }
+
+      next(error);
+    }
+  };
 }
-
-
 

@@ -20,6 +20,11 @@ export const assignmentSchemas = {
     title: z.string().min(1, 'Title is required').max(255, 'Title too long'),
     description: z.string().optional(),
     instructions: z.string().optional(),
+    rubric: z.array(z.object({
+      name: z.string().min(1),
+      description: z.string().optional(),
+      points: z.number().min(0)
+    })).optional(),
     course_id: z.string().min(1, 'Course ID is required').optional().nullable(),
     section_id: z.string().min(1).optional().nullable(),
     due_date: z.string().optional().transform((val) => {
@@ -54,11 +59,17 @@ export const assignmentSchemas = {
     path: ['course_id'],
   }),
 
+
   // Update assignment schema
   updateAssignment: z.object({
     title: z.string().min(1, 'Title is required').max(255, 'Title too long').optional(),
     description: z.string().optional(),
     instructions: z.string().optional(),
+    rubric: z.array(z.object({
+      name: z.string().min(1),
+      description: z.string().optional(),
+      points: z.number().min(0)
+    })).optional(),
     course_id: z.string().min(1, 'Course ID is required').optional().nullable(),
     section_id: z.string().min(1).optional().nullable(),
     due_date: z.string().optional().transform((val) => {

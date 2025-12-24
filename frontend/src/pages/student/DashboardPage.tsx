@@ -7,7 +7,6 @@ import {
   Calendar, CheckCircle2, ArrowRight, Zap, GraduationCap,
   BarChart3, Medal
 } from 'lucide-react';
-import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
@@ -507,8 +506,7 @@ export function DashboardPage() {
   const userName = user?.full_name?.split(' ').pop() || 'bạn';
 
   return (
-    <StudentDashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-8 pb-12">
+    <div className="max-w-7xl mx-auto space-y-8 pb-12">
         
         {/* === WELCOME BANNER === */}
         <WelcomeBanner userName={userName} quote={quote} />
@@ -744,7 +742,6 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
-    </StudentDashboardLayout>
   );
 }
 

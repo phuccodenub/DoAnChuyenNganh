@@ -32,11 +32,27 @@ const AssignmentSubmission = sequelize.define('AssignmentSubmission', {
   },
   score: DataTypes.DECIMAL(5, 2),
   feedback: DataTypes.TEXT,
+  ai_grader_last: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Latest AI grader result payload'
+  },
+  ai_grader_history: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'AI grader history entries'
+  },
+  ai_grader_rubric: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    comment: 'Last rubric used by AI grader'
+  },
   graded_by: {
     type: DataTypes.UUID,
     references: { model: 'users', key: 'id' }
   },
   graded_at: DataTypes.DATE,
+
   status: {
     type: DataTypes.ENUM('submitted', 'graded', 'returned'),
     defaultValue: 'submitted'

@@ -71,5 +71,3 @@ export const down = async (queryInterface: QueryInterface): Promise<void> => {
   await queryInterface.removeColumn('certificates', 'blockchain_explorer_url');
   await queryInterface.removeColumn('certificates', 'blockchain_opensea_url');
 };
-
-

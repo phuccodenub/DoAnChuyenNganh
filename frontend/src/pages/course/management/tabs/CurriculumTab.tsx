@@ -424,7 +424,8 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
               title: assignmentTitle.trim(),
               description: assignmentDescription.trim() || undefined,
               instructions: assignmentInstructions.trim() || undefined,
-              max_score: assignmentMaxScore || 100,
+            max_score: Number(assignmentMaxScore) || 100,
+
             submission_type: assignmentSubmissionType || 'text',
             allow_late_submission: assignmentAllowLate,
             due_date: assignmentDueDate ? assignmentDueDate : undefined,
@@ -440,7 +441,8 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
           title: assignmentTitle.trim(),
           description: assignmentDescription.trim() || undefined,
           instructions: assignmentInstructions.trim() || undefined,
-          max_score: assignmentMaxScore || 100,
+          max_score: Number(assignmentMaxScore) || 100,
+
           submission_type: assignmentSubmissionType || 'text', // Đảm bảo luôn có giá trị
           allow_late_submission: assignmentAllowLate,
           due_date: assignmentDueDate ? assignmentDueDate : undefined,

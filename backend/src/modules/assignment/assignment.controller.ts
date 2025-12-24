@@ -135,10 +135,15 @@ export class AssignmentController {
       // Nhưng chỉ nếu họ là instructor của course này
       // Nếu không phải instructor của course, chỉ cho xem published (giống quiz)
       const isInstructorOrAdmin = ['instructor', 'admin', 'super_admin'].includes(userRole);
+      const isAdmin = ['admin', 'super_admin'].includes(userRole);
       
       // Kiểm tra xem user có phải instructor của course không
       let includeUnpublished = false;
-      if (isInstructorOrAdmin && userId) {
+      let requesterId: string | undefined = userId;
+      if (isAdmin) {
+        includeUnpublished = true;
+        requesterId = undefined;
+      } else if (isInstructorOrAdmin && userId) {
         const isInstructor = await this.assignmentService.isCourseInstructor(courseId, userId);
         if (isInstructor) {
           includeUnpublished = true;
@@ -148,7 +153,8 @@ export class AssignmentController {
         }
       }
       
-      const assignments = await this.assignmentService.getCourseAssignments(courseId, userId, includeUnpublished);
+      const assignments = await this.assignmentService.getCourseAssignments(courseId, requesterId, includeUnpublished);
+
 
       res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
         success: true,
@@ -340,6 +346,37 @@ export class AssignmentController {
       next(error);
     }
   };
+
+  /**
+   * Save AI grader result to submission
+   */
+  saveAiGrading = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { submissionId } = req.params;
+      const userId = (req as any).user?.userId as string;
+      const { aiResult, rubric, overwriteScore } = req.body;
+
+      if (!aiResult || !rubric || !Array.isArray(rubric) || rubric.length === 0) {
+        throw new ApiError('aiResult and rubric are required', RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST);
+      }
+
+      const updated = await this.assignmentService.saveAiGrading(submissionId, userId, {
+        aiResult,
+        rubric,
+        overwriteScore: !!overwriteScore
+      });
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'AI grading saved successfully',
+        data: updated
+      });
+    } catch (error) {
+      logger.error('Error in saveAiGrading controller:', error);
+      next(error);
+    }
+  };
+
 
   // ===================================
   // GRADING

@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
-import { StudentDashboardLayout } from '@/layouts/StudentDashboardLayout';
 import { useStudentEnrolledCourses, useInProgressCourses } from '@/hooks/useStudentData';
 import { generateRoute } from '@/constants/routes';
 
@@ -71,8 +70,7 @@ export function MyCoursesPage() {
   }, [allCourses, activeStatus, searchQuery]);
 
   return (
-    <StudentDashboardLayout>
-      <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
         <div className="max-w-7xl mx-auto space-y-10">
 
           {/* --- SECTION 1: TIẾP TỤC HỌC --- */}
@@ -289,7 +287,6 @@ export function MyCoursesPage() {
 
         </div>
       </div>
-    </StudentDashboardLayout>
   );
 }
 
