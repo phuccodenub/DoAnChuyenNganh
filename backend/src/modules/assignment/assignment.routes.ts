@@ -104,6 +104,14 @@ router.post(
 router.get('/course/:courseId', controller.getCourseAssignments);
 
 /**
+ * @route   GET /api/assignments/course/:courseId/completion-status
+ * @desc    Get assignment completion status for current user
+ * @access  Authenticated
+ */
+router.get('/course/:courseId/completion-status', controller.getCompletionStatus);
+
+
+/**
  * @route   GET /api/assignments/course/:courseId/stats
  * @desc    Get assignment statistics for a course (for instructor dashboard)
  * @access  Instructor, Admin

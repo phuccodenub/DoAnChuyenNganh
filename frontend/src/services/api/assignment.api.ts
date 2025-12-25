@@ -79,11 +79,19 @@ export const assignmentApi = {
    * Get all assignments for a course
    */
   getAssignments: async (courseId: string): Promise<Assignment[]> => {
-    const response = await apiClient.get<Assignment[]>(
-      `/courses/${courseId}/assignments`
+    const response = await apiClient.get<{ success: boolean; message: string; data: Assignment[] }>(
+      `/assignments/course/${courseId}`
     );
-    return response.data;
+    return response.data?.data || (response.data as any);
   },
+
+  getCompletionStatus: async (courseId: string): Promise<{ completed_assignment_ids: string[] }> => {
+    const response = await apiClient.get<{ success: boolean; message: string; data: { completed_assignment_ids: string[] } }>(
+      `/assignments/course/${courseId}/completion-status`
+    );
+    return response.data?.data || (response.data as any);
+  },
+
 
   /**
    * Submit assignment

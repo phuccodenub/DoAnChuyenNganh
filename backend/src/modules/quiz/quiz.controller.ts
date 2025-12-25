@@ -392,6 +392,35 @@ export class QuizController {
   }
 
   /**
+   * Get quiz completion status for a course (current user)
+   */
+  async getCompletionStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { course_id } = req.query;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+
+      if (!userId) {
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
+      }
+
+      if (!course_id) {
+        throw new ApiError('Course ID is required', RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST);
+      }
+
+      const status = await this.quizService.getCourseCompletionStatus(String(course_id), userId);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Quiz completion status retrieved successfully',
+        data: status
+      });
+    } catch (error) {
+      logger.error('Error in getCompletionStatus controller:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Get quiz attempts for a specific student (Instructor only)
    */
   async getStudentQuizAttempts(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -419,6 +448,7 @@ export class QuizController {
       next(error);
     }
   }
+
 
   /**
    * Get current/active quiz attempt for a quiz by current user

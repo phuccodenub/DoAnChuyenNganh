@@ -487,7 +487,41 @@ export class QuizRepository {
       }
     });
   }
+
+  async getCompletedQuizIdsForCourse(courseId: string, userId: string): Promise<string[]> {
+    const { default: Quiz } = await import('../../models/quiz.model');
+    const sequelize = (QuizAttempt as any).sequelize!;
+    const passingScore = sequelize.fn('COALESCE', sequelize.col('quiz.passing_score'), 70);
+
+    const rows = await (QuizAttempt as any).findAll({
+      attributes: ['quiz_id'],
+      include: [
+        {
+          model: Quiz,
+          as: 'quiz',
+          attributes: [],
+          required: true,
+          where: {
+            course_id: courseId,
+            is_published: true,
+            is_practice: false,
+          },
+        }
+      ],
+      where: {
+        user_id: userId,
+        submitted_at: { [Op.not]: null },
+        score: { [Op.not]: null },
+        [Op.and]: [sequelize.where(sequelize.col('QuizAttempt.score'), Op.gte, passingScore)],
+      },
+      group: ['quiz_id'],
+      raw: true,
+    });
+
+    return rows.map((row: any) => row.quiz_id);
+  }
 }
+
 
 
 

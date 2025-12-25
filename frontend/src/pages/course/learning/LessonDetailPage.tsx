@@ -1041,7 +1041,7 @@ export function LessonDetailPage() {
     queryFn: async () => {
       try {
         const res = await quizApi.getQuizzes({ course_id: courseId!, status: 'published' });
-      const list = Array.isArray(res?.data) ? res.data : [];
+        const list = Array.isArray(res?.data) ? res.data : [];
         return list.filter((q: any) => q.is_published);
       } catch (error: any) {
         // Nếu lỗi 401/403 (chưa đăng nhập hoặc không có quyền), trả về mảng rỗng
@@ -1052,7 +1052,7 @@ export function LessonDetailPage() {
         throw error;
       }
     },
-    enabled: !!courseId,
+    enabled: !!courseId && isAuthenticated,
     staleTime: 60 * 1000,
   });
 
@@ -1060,8 +1060,12 @@ export function LessonDetailPage() {
     queryKey: ['all-assignments', courseId],
     queryFn: async () => {
       try {
-      const res = await assignmentApi.getCourseAssignments(courseId!);
-      const list = Array.isArray((res as any)?.data) ? (res as any).data : Array.isArray(res) ? res : [];
+        const res = await assignmentApi.getAssignments(courseId!);
+        const list = Array.isArray((res as any)?.data)
+          ? (res as any).data
+          : Array.isArray(res)
+            ? res
+            : [];
         return list.filter((a: any) => a.is_published);
       } catch (error: any) {
         // Nếu lỗi 401/403 (chưa đăng nhập hoặc không có quyền), trả về mảng rỗng
@@ -1072,35 +1076,38 @@ export function LessonDetailPage() {
         throw error;
       }
     },
-    enabled: !!courseId,
+    enabled: !!courseId && isAuthenticated,
     staleTime: 60 * 1000,
   });
 
+  const hasLessonLink = (item: { lesson_id?: string | null }) =>
+    Boolean(item.lesson_id && String(item.lesson_id).trim());
+
   // Filter course-level và section-level quizzes/assignments
   const courseLevelQuizzes = (allQuizzes || []).filter((q: any) => {
-    const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
+    if (hasLessonLink(q)) return false;
     const hasSectionId = q.section_id != null && q.section_id !== '';
     const hasCourseId = q.course_id != null && q.course_id !== '';
-    return !hasLessonId && !hasSectionId && hasCourseId;
+    return !hasSectionId && hasCourseId;
   });
 
   const sectionLevelQuizzes = (allQuizzes || []).filter((q: any) => {
-    const hasLessonId = q.lesson_id != null && q.lesson_id !== '';
+    if (hasLessonLink(q)) return false;
     const hasSectionId = q.section_id != null && q.section_id !== '';
-    return !hasLessonId && hasSectionId;
+    return hasSectionId;
   });
 
   const courseLevelAssignments = (allAssignments || []).filter((a: any) => {
-    const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
+    if (hasLessonLink(a)) return false;
     const hasSectionId = a.section_id != null && a.section_id !== '';
     const hasCourseId = a.course_id != null && a.course_id !== '';
-    return !hasLessonId && !hasSectionId && hasCourseId;
+    return !hasSectionId && hasCourseId;
   });
 
   const sectionLevelAssignments = (allAssignments || []).filter((a: any) => {
-    const hasLessonId = a.lesson_id != null && a.lesson_id !== '';
+    if (hasLessonLink(a)) return false;
     const hasSectionId = a.section_id != null && a.section_id !== '';
-    return !hasLessonId && hasSectionId;
+    return hasSectionId;
   });
 
   // lessonApi.getLesson đã unwrap data rồi (return response.data.data), nên lessonData là LessonDetail trực tiếp
@@ -1126,81 +1133,24 @@ export function LessonDetailPage() {
     ? courseContent.sections 
     : (course?.sections ?? []);
 
-  // Fetch quiz attempts và assignment submissions để biết quiz/assignment nào đã hoàn thành
-  const { data: quizAttempts } = useQuery({
-    queryKey: ['quiz-attempts-for-completion', courseId, isUserEnrolled],
+  // Fetch completion status cho quizzes/assignments (batch)
+  const { data: quizCompletionStatus } = useQuery({
+    queryKey: ['quiz-completion-status', courseId, isUserEnrolled],
     queryFn: async () => {
-      if (!isUserEnrolled || !allQuizzes || allQuizzes.length === 0) return [];
-      
-      const nonPracticeQuizzes = allQuizzes.filter((q: any) => !q.is_practice);
-      if (nonPracticeQuizzes.length === 0) return [];
-      
-      try {
-        const attempts = await Promise.all(
-          nonPracticeQuizzes.map(async (quiz: any) => {
-            try {
-              const studentAttempts = await quizApi.getAttempts(quiz.id);
-              // Lấy attempt mới nhất có submitted_at
-              const submittedAttempts = studentAttempts.filter(
-                (a: any) => a.submitted_at != null
-              );
-              if (submittedAttempts.length === 0) return null;
-              
-              // Sắp xếp theo submitted_at DESC và lấy attempt mới nhất
-              const latestAttempt = submittedAttempts.sort(
-                (a: any, b: any) => 
-                  new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime()
-              )[0];
-              
-              return { quiz_id: quiz.id, attempt: latestAttempt };
-            } catch (error: any) {
-              if (error?.response?.status === 401 || error?.response?.status === 403) {
-                return null;
-              }
-              return null;
-            }
-          })
-        );
-        return attempts.filter(Boolean);
-      } catch (error) {
-        return [];
-      }
+      if (!isUserEnrolled) return { completed_quiz_ids: [] };
+      return quizApi.getCompletionStatus(courseId!);
     },
-    enabled: !!isUserEnrolled && !!allQuizzes && allQuizzes.length > 0,
+    enabled: !!isUserEnrolled && !!courseId,
     staleTime: 60 * 1000,
   });
 
-  // Fetch assignment submissions
-  const { data: assignmentSubmissions } = useQuery({
-    queryKey: ['assignment-submissions-for-completion', courseId, isUserEnrolled],
+  const { data: assignmentCompletionStatus } = useQuery({
+    queryKey: ['assignment-completion-status', courseId, isUserEnrolled],
     queryFn: async () => {
-      if (!isUserEnrolled || !allAssignments || allAssignments.length === 0) return [];
-      
-      const nonPracticeAssignments = allAssignments.filter((a: any) => !a.is_practice);
-      if (nonPracticeAssignments.length === 0) return [];
-      
-      try {
-        const submissions = await Promise.all(
-          nonPracticeAssignments.map(async (assignment: any) => {
-            try {
-              const submission = await assignmentApi.getSubmission(assignment.id);
-              return submission && submission.submitted_at 
-                ? { assignment_id: assignment.id, submission } 
-                : null;
-            } catch (error: any) {
-              if (error?.response?.status === 401 || error?.response?.status === 403 || error?.response?.status === 404) {
-                return null;
-              }
-              return null;
-            }
-          })
-        );
-        return submissions.filter(Boolean);
-      } catch (error) {
-        return [];
-      }
+      if (!isUserEnrolled) return { completed_assignment_ids: [] };
+      return assignmentApi.getCompletionStatus(courseId!);
     },
-    enabled: !!isUserEnrolled && !!allAssignments && allAssignments.length > 0,
+    enabled: !!isUserEnrolled && !!courseId,
     staleTime: 60 * 1000,
   });
 
@@ -1212,11 +1162,11 @@ export function LessonDetailPage() {
   );
 
   const completedQuizIds = new Set(
-    (quizAttempts || []).map((item: any) => item.quiz_id)
+    quizCompletionStatus?.completed_quiz_ids || []
   );
 
   const completedAssignmentIds = new Set(
-    (assignmentSubmissions || []).map((item: any) => item.assignment_id)
+    assignmentCompletionStatus?.completed_assignment_ids || []
   );
 
   // Merge section-level quizzes và assignments vào sections và thêm completion status

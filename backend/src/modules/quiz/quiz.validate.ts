@@ -10,6 +10,12 @@ export const quizSchemas = {
     status: z.enum(['draft', 'published', 'archived']).optional()
   }),
 
+  // Completion status query schema
+  completionStatusQuery: z.object({
+    course_id: z.string().min(1, 'Course ID is required')
+  }),
+
+
   // Quiz ID parameter schema
   quizId: z.object({
     id: z.string().min(1, 'Quiz ID is required')

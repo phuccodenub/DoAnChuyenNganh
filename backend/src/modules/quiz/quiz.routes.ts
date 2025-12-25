@@ -13,12 +13,20 @@ router.use(authMiddleware);
 
 // ===== QUIZ MANAGEMENT ROUTES =====
 
+// Get quiz completion status for a course (current user)
+router.get(
+  '/completion-status',
+  validateQuery(quizSchemas.completionStatusQuery),
+  (req: Request, res: Response, next: NextFunction) => quizController.getCompletionStatus(req, res, next)
+);
+
 // Get all quizzes (All authenticated users)
 router.get(
   '/',
   validateQuery(quizSchemas.quizQuery),
   (req: Request, res: Response, next: NextFunction) => quizController.getAllQuizzes(req, res, next)
 );
+
 
 // Get quiz by ID (All authenticated users)
 router.get(

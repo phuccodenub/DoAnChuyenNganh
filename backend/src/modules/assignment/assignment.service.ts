@@ -253,6 +253,12 @@ export class AssignmentService {
     }
   }
 
+  async getCourseCompletionStatus(courseId: string, userId: string) {
+    const completedAssignmentIds = await this.repo.getCompletedAssignmentIdsForCourse(courseId, userId);
+    return { completed_assignment_ids: completedAssignmentIds };
+  }
+
+
   // ===================================
   // SUBMISSION MANAGEMENT
   // ===================================

@@ -114,6 +114,32 @@ export class AssignmentRepository {
     });
   }
 
+  async getCompletedAssignmentIdsForCourse(courseId: string, userId: string): Promise<string[]> {
+    const rows = await this.AssignmentSubmissionModel.findAll({
+      attributes: ['assignment_id'],
+      include: [
+        {
+          model: Assignment,
+          as: 'assignment',
+          attributes: [],
+          required: true,
+          where: {
+            course_id: courseId,
+            is_published: true,
+          },
+        }
+      ],
+      where: {
+        user_id: userId,
+        submitted_at: { [Op.not]: null },
+      },
+      group: ['assignment_id'],
+      raw: true,
+    });
+
+    return rows.map((row: any) => row.assignment_id);
+  }
+
   async updateSubmission(submissionId: string, data: Partial<AssignmentSubmissionAttributes>): Promise<AssignmentSubmissionInstance | null> {
     await this.AssignmentSubmissionModel.update(
       { ...data, submitted_at: new Date() },

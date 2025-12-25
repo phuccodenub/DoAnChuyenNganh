@@ -536,6 +536,22 @@ export class QuizService {
             };
           }
 
+          const hasSelectedOption = Boolean(answer.selected_option_id);
+          const hasSelectedOptions = Array.isArray(answer.selected_options) && answer.selected_options.length > 0;
+          const hasAnswer = question.question_type === 'multiple_choice' ? hasSelectedOptions : hasSelectedOption;
+
+          if (!hasAnswer) {
+            unanswered++;
+            return {
+              ...question,
+              is_correct: false,
+              student_answer: null,
+              correct_answer: this.formatCorrectAnswer(question),
+              points: parseFloat(question.points) || 0,
+              explanation: question.explanation || null,
+            };
+          }
+
           const isCorrect = await this.isAnswerCorrect(question, answer);
           if (isCorrect) {
             correctAnswers++;
@@ -732,7 +748,13 @@ export class QuizService {
     }
   }
 
+  async getCourseCompletionStatus(courseId: string, userId: string) {
+    const completedQuizIds = await this.repo.getCompletedQuizIdsForCourse(courseId, userId);
+    return { completed_quiz_ids: completedQuizIds };
+  }
+
   async deleteStudentQuizAttempts(quizId: string, studentId: string, instructorId: string) {
+
     try {
       const quiz = await this.repo.getQuizById(quizId);
       if (!quiz) {
@@ -888,6 +910,7 @@ export class QuizService {
   }
 
   private shuffleArray<T>(array: T[]): T[] {
+
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

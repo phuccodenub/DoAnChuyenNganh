@@ -326,6 +326,15 @@ export const quizApi = {
     return response.data?.data || response.data;
   },
 
+  getCompletionStatus: async (courseId: string): Promise<{ completed_quiz_ids: string[] }> => {
+    const response = await apiClient.get<{ success: boolean; message: string; data: { completed_quiz_ids: string[] } }>(
+      '/quizzes/completion-status',
+      { params: { course_id: courseId } }
+    );
+    return response.data?.data || (response.data as any);
+  },
+
+
   /**
    * Create a new quiz (Instructor only)
    */

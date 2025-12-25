@@ -168,6 +168,31 @@ export class AssignmentController {
   };
 
   /**
+   * Get assignment completion status for a course (current user)
+   */
+  getCompletionStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseId } = req.params;
+      const userId = (req as any).user?.userId as string;
+
+      if (!userId) {
+        throw new ApiError('User not authenticated', RESPONSE_CONSTANTS.STATUS_CODE.UNAUTHORIZED);
+      }
+
+      const status = await this.assignmentService.getCourseCompletionStatus(courseId, userId);
+
+      res.status(RESPONSE_CONSTANTS.STATUS_CODE.SUCCESS).json({
+        success: true,
+        message: 'Assignment completion status retrieved successfully',
+        data: status
+      });
+    } catch (error) {
+      logger.error('Error in getCompletionStatus controller:', error);
+      next(error);
+    }
+  };
+
+  /**
    * Get assignment statistics for a course (instructor dashboard)
    */
   getCourseAssignmentStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -187,6 +212,7 @@ export class AssignmentController {
       next(error);
     }
   };
+
 
   // ===================================
   // SUBMISSIONS
