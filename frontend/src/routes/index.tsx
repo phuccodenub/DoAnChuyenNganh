@@ -161,7 +161,7 @@ function AppRoutes() {
 
           {/* Livestream create route & course editor */}
           {/* Cho phép instructor, admin, super_admin để admin vẫn quản lý khóa học */}
-          <Route element={<RoleGuard allowedRoles={['admin', 'super_admin']} />}>
+          <Route element={<RoleGuard allowedRoles={['instructor', 'admin', 'super_admin']} />}>
             <Route
               path={ROUTES.COURSE_CURRICULUM}
               element={<CurriculumBuilderPage />}
