@@ -330,8 +330,9 @@ export class QuizRepository {
   }
 
   async updateAttemptScore(attemptId: string, score: number) {
+    // Score là phần trăm (0-100), max_score luôn là 100
     return await QuizAttempt.update(
-      { score },
+      { score, max_score: 100 },
       { where: { id: attemptId } }
     );
   }

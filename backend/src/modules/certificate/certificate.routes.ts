@@ -12,6 +12,7 @@ const certificateController = new CertificateController();
 
 // Public routes (no authentication required)
 router.get('/verify/:hash', certificateController.verifyCertificate);
+router.get('/recent', certificateController.getRecentCertificates);
 
 // Protected routes (authentication required)
 router.use(authMiddleware);

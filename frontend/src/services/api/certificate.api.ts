@@ -145,6 +145,14 @@ export const certificateApi = {
   },
 
   /**
+   * Get recent certificates (Public - no auth required)
+   */
+  getRecentCertificates: async (limit: number = 3): Promise<Certificate[]> => {
+    const response = await apiClient.get(`/certificates/recent?limit=${limit}`);
+    return response.data?.data || response.data || [];
+  },
+
+  /**
    * List all certificates (Admin only)
    */
   listCertificates: async (filters?: {

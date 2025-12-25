@@ -9,6 +9,10 @@ import {
   Lock,
   FileCheck
 } from 'lucide-react'
+import { useRecentCertificates } from '@/hooks/useCertificateData'
+import { Spinner } from '@/components/ui/Spinner'
+import { format } from 'date-fns'
+import { vi } from 'date-fns/locale/vi'
 
 export function BlockchainCertificatesSection() {
   const benefits = [
@@ -34,29 +38,8 @@ export function BlockchainCertificatesSection() {
     },
   ]
 
-  const recentCertificates = [
-    {
-      id: 1,
-      studentName: 'Nguyễn Văn A',
-      courseName: 'Lập trình Web Full Stack',
-      issuedDate: '15/11/2025',
-      txHash: '0x1234...5678',
-    },
-    {
-      id: 2,
-      studentName: 'Trần Thị B',
-      courseName: 'Python Data Science',
-      issuedDate: '14/11/2025',
-      txHash: '0xabcd...efgh',
-    },
-    {
-      id: 3,
-      studentName: 'Lê Văn C',
-      courseName: 'Blockchain Development',
-      issuedDate: '13/11/2025',
-      txHash: '0x9876...5432',
-    },
-  ]
+  // Fetch recent certificates từ API
+  const { data: recentCertificates, isLoading } = useRecentCertificates(3)
 
   return (
     <section className="py-16 bg-gradient-to-br from-gray-900 via-gray-800 to-indigo-900 text-white relative overflow-hidden">
@@ -109,28 +92,55 @@ export function BlockchainCertificatesSection() {
               <Award className="w-5 h-5 text-yellow-400" />
               <h3 className="text-xl font-bold">Chứng chỉ mới nhất</h3>
             </div>
-            <div className="space-y-4">
-              {recentCertificates.map((cert) => (
-                <div
-                  key={cert.id}
-                  className="flex items-start gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
-                >
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <CheckCircle2 className="w-6 h-6 text-white" />
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Spinner size="md" />
+              </div>
+            ) : !recentCertificates || recentCertificates.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <p>Chưa có chứng chỉ nào được cấp</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentCertificates.map((cert) => {
+                  const studentName = cert.user 
+                    ? `${cert.user.first_name || ''} ${cert.user.last_name || ''}`.trim() || cert.metadata?.student?.name || 'Học viên'
+                    : cert.metadata?.student?.name || 'Học viên'
+                  
+                  const courseName = cert.course?.title || cert.metadata?.course?.title || 'Khóa học'
+                  
+                  const issuedDate = cert.issued_at 
+                    ? format(new Date(cert.issued_at), 'dd/MM/yyyy', { locale: vi })
+                    : cert.metadata?.certificate?.issuedAt
+                      ? format(new Date(cert.metadata.certificate.issuedAt), 'dd/MM/yyyy', { locale: vi })
+                      : 'N/A'
+                  
+                  const txHash = cert.certificate_hash || cert.metadata?.certificate?.hash || 'N/A'
+                  const displayHash = txHash.length > 12 ? `${txHash.slice(0, 6)}...${txHash.slice(-6)}` : txHash
+                  
+                  return (
+                    <div
+                      key={cert.id}
+                      className="flex items-start gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
+                          <CheckCircle2 className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-white mb-1 line-clamp-1">{studentName}</p>
+                        <p className="text-sm text-gray-300 mb-1 line-clamp-1">{courseName}</p>
+                        <div className="flex items-center gap-4 text-xs text-gray-400">
+                          <span>{issuedDate}</span>
+                          <span className="font-mono truncate">{displayHash}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white mb-1">{cert.studentName}</p>
-                    <p className="text-sm text-gray-300 mb-1">{cert.courseName}</p>
-                    <div className="flex items-center gap-4 text-xs text-gray-400">
-                      <span>{cert.issuedDate}</span>
-                      <span className="font-mono truncate">{cert.txHash}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  )
+                })}
+              </div>
+            )}
             <Link
               to={ROUTES.CERTIFICATES}
               className="mt-6 inline-flex items-center gap-2 text-indigo-300 hover:text-indigo-200 text-sm font-medium"

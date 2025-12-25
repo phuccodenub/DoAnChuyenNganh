@@ -574,6 +574,14 @@ export class CertificateService {
   }
 
   /**
+   * Get recent certificates (Public - no auth required)
+   */
+  async getRecentCertificates(limit: number = 3) {
+    const certificates = await this.certificateRepository.findRecent(limit);
+    return certificates;
+  }
+
+  /**
    * List certificates with filters
    */
   async listCertificates(query: any) {

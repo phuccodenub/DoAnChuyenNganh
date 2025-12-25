@@ -11,7 +11,30 @@ export function useCourses(filters?: CourseFilters) {
     queryKey: QUERY_KEYS.courses.list(filters),
     queryFn: async () => {
       const response = await courseApi.getAll(filters);
-      return response.data;
+      // response.data = { success, message, data: { courses, pagination } } hoặc { success, message, data: Course[] }
+      // Khi có pagination (có limit/page), trả về { courses, pagination }
+      // Khi không có pagination, trả về Course[] trực tiếp
+      const responseData = response.data;
+      
+      // Nếu có nested data property, lấy data.data
+      if (responseData.data) {
+        // Nếu data.data là array (không có pagination)
+        if (Array.isArray(responseData.data)) {
+          return responseData.data;
+        }
+        // Nếu data.data là object có courses (có pagination)
+        if (responseData.data.courses) {
+          return responseData.data;
+        }
+      }
+      
+      // Nếu response.data là array trực tiếp (không có wrapper)
+      if (Array.isArray(responseData)) {
+        return responseData;
+      }
+      
+      // Fallback: trả về responseData
+      return responseData;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

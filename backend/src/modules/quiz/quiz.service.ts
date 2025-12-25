@@ -816,12 +816,24 @@ export class QuizService {
   }
 
   private async calculateScore(attemptId: string): Promise<number> {
+    // Lấy attempt để biết quiz_id
+    const attempt = await this.repo.getAttemptById(attemptId);
+    if (!attempt) {
+      throw new Error('Quiz attempt not found');
+    }
+
+    // Lấy tổng số câu hỏi trong quiz (không phải số câu đã trả lời)
+    const totalQuestions = await this.repo.countQuestions(attempt.quiz_id);
+    if (totalQuestions === 0) {
+      return 0;
+    }
+
+    // Lấy tất cả answers đã submit
     const answers = await this.repo.getAttemptAnswers(attemptId);
     let correctAnswers = 0;
-    let totalQuestions = 0;
 
+    // Tính số câu đúng từ các answers đã submit
     for (const answer of answers) {
-      totalQuestions++;
       const question = await this.repo.getQuestionById(answer.question_id);
       
       if (question?.question_type === 'single_choice') {
@@ -848,7 +860,9 @@ export class QuizService {
       }
     }
 
-    return totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    // Tính điểm dựa trên tổng số câu hỏi (không phải số câu đã trả lời)
+    // Câu chưa trả lời được tính là sai (0 điểm)
+    return Math.round((correctAnswers / totalQuestions) * 100);
   }
 
   private shuffleArray<T>(array: T[]): T[] {

@@ -1,16 +1,89 @@
-import { useState } from 'react'
-import { ArrowRight, Star } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { skillTabs, courseCatalog } from '../data'
-import type { CourseCard } from '../types'
+import { useCourses } from '@/hooks/useCoursesData'
+import { useCategories } from '@/hooks/useCategories'
+import { Spinner } from '@/components/ui/Spinner'
+import { CourseCard } from '@/components/domain/course/CourseCard'
+import type { Course } from '@/services/api/course.api'
 
 interface DiscoverCoursesProps {
   onSecondaryCta: () => void
 }
 
 export function DiscoverCourses({ onSecondaryCta }: DiscoverCoursesProps) {
-  const [activeTab, setActiveTab] = useState(skillTabs[0].value)
-  const filteredCourses = courseCatalog.filter((course) => course.category === activeTab)
+  // Fetch categories từ API
+  const { data: categories, isLoading: categoriesLoading } = useCategories()
+  
+  // Tạo tabs từ categories, nếu không có thì dùng default tabs
+  const defaultTabs = [
+    { label: 'Sản phẩm & Thiết kế', value: 'design', id: null },
+    { label: 'Dữ liệu & AI', value: 'data', id: null },
+    { label: 'Kinh doanh & Quản lý', value: 'business', id: null },
+    { label: 'Công nghệ', value: 'technology', id: null }
+  ]
+  
+  const tabs = useMemo(() => {
+    if (categories && categories.length > 0) {
+      // Lấy 4 categories đầu tiên hoặc tất cả nếu ít hơn 4
+      return categories.slice(0, 4).map((cat) => ({
+        label: cat.name,
+        value: cat.slug || cat.id,
+        id: cat.id
+      }))
+    }
+    return defaultTabs
+  }, [categories])
+  
+  const [activeTab, setActiveTab] = useState<string | null>(null)
+  
+  // Update activeTab khi tabs thay đổi (khi categories load xong)
+  useEffect(() => {
+    if (tabs.length > 0 && !activeTab) {
+      setActiveTab(tabs[0].id || tabs[0].value || null)
+    }
+  }, [tabs, activeTab])
+  
+  // Tìm active tab để lấy ID
+  const activeTabData = useMemo(() => {
+    if (!activeTab) return null
+    return tabs.find(tab => tab.id === activeTab || tab.value === activeTab)
+  }, [tabs, activeTab])
+  
+  const activeCategoryId = activeTabData?.id
+  
+  // Fetch courses với filter theo category_id nếu có
+  const { data, isLoading: coursesLoading, error } = useCourses({
+    limit: 3,
+    category_id: activeCategoryId || undefined,
+  })
+  
+  // Lấy courses từ response - xử lý type-safe
+  let courses: Course[] = []
+  if (data) {
+    // Case 1: data là array trực tiếp
+    if (Array.isArray(data)) {
+      courses = data
+    }
+    // Case 2: data có property courses (object với courses và pagination)
+    else if ('courses' in data && Array.isArray(data.courses)) {
+      courses = data.courses
+    }
+    // Case 3: data có nested data property (CourseListResponse structure)
+    else if ('data' in data && data.data) {
+      const nestedData = data.data
+      if (Array.isArray(nestedData)) {
+        courses = nestedData
+      } else if (nestedData && typeof nestedData === 'object' && 'courses' in nestedData && Array.isArray(nestedData.courses)) {
+        courses = nestedData.courses
+      }
+    }
+  }
+  
+  // Filtered courses (đã được filter ở API nếu có category_id)
+  const filteredCourses = courses
+  
+  const isLoading = categoriesLoading || coursesLoading
 
   return (
     <section id="catalog" className="bg-white py-20">
@@ -23,13 +96,13 @@ export function DiscoverCourses({ onSecondaryCta }: DiscoverCoursesProps) {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
-          {skillTabs.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.value}
               type="button"
-              onClick={() => setActiveTab(tab.value)}
+              onClick={() => setActiveTab(tab.id || tab.value)}
               className={`rounded-full border px-5 py-2 text-sm font-semibold transition ${
-                activeTab === tab.value
+                activeTab === (tab.id || tab.value)
                   ? 'border-green-400 bg-white text-green-600 shadow-[0_12px_24px_-20px_rgba(79,192,229,0.65)]'
                   : 'border-transparent bg-slate-100 text-slate-500 hover:border-slate-200 hover:bg-slate-50'
               }`}
@@ -39,52 +112,32 @@ export function DiscoverCourses({ onSecondaryCta }: DiscoverCoursesProps) {
           ))}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCourses.map((course) => (
-            <div
-              key={course.id}
-              className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_-32px_rgba(15,23,42,0.45)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-35px_rgba(79,70,229,0.55)]"
-            >
-              <div className="relative overflow-hidden">
-                <div
-                  className="aspect-[4/3] w-full bg-cover bg-center transition duration-500 group-hover:scale-105"
-                  style={{ backgroundImage: `url('${course.thumbnail}')` }}
-                />
-              </div>
-              <div className="flex flex-1 flex-col gap-3 px-6 pb-6 pt-6">
-                <span className="inline-flex w-fit items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-500">
-                  Best Seller
-                </span>
-                <h3 className="text-[1.1rem] font-semibold leading-tight text-slate-900">{course.title}</h3>
-                <p className="text-sm text-slate-500">{course.description}</p>
-                <div className="flex items-center gap-1 text-sm">
-                  {[...Array(5)].map((_, index) => (
-                    <Star key={`${course.id}-star-${index}`} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                  <span className="ml-1 font-semibold text-slate-700">{course.rating.toFixed(1)}</span>
-                  <span className="text-slate-400">({course.students.toLocaleString()} học viên)</span>
-                </div>
-                <div className="mt-auto flex items-center justify-between pt-4 text-sm font-semibold text-slate-700">
-                  <span className="text-lg font-semibold text-slate-900">{course.price}</span>
-                  <button
-                    type="button"
-                    onClick={onSecondaryCta}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-white transition hover:bg-green-600"
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={onSecondaryCta}
-                  className="mt-2 w-fit text-sm font-semibold text-green-600 transition hover:text-green-700"
-                >
-                  Xem chi tiết
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="flex justify-center py-12">
+            <p className="text-slate-500">Không thể tải dữ liệu khóa học. Vui lòng thử lại sau.</p>
+          </div>
+        ) : filteredCourses.length === 0 ? (
+          <div className="flex justify-center py-12">
+            <p className="text-slate-500">Chưa có khóa học nào trong danh mục này.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredCourses.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                rating={course.rating || 4.5}
+                totalRatings={course.total_ratings || course._count?.enrollments || 0}
+                originalPrice={course.discount_price ? course.price : undefined}
+                isBestseller={course.is_featured || false}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="flex justify-center">
           <Button

@@ -116,7 +116,41 @@ export class UserAdminController {
         return responseUtils.sendValidationError(res, 'Invalid user id');
       }
 
-      const user = await this.userService.updateUserInfo(req.params.id, req.body);
+      const updateData = { ...req.body };
+      
+      logger.debug('Admin update user request', {
+        userId: req.params.id,
+        hasPassword: !!updateData.password,
+        updateFields: Object.keys(updateData)
+      });
+      
+      // Map plain password -> password_hash with strong hashing (same as createUser)
+      // Also increment token_version to invalidate old tokens when password changes
+      if (updateData.password) {
+        try {
+          // Get current user to access token_version
+          const currentUser = await this.userService.getUserById(req.params.id);
+          if (!currentUser) {
+            return responseUtils.sendNotFound(res, 'User not found');
+          }
+
+          // Hash new password
+          updateData.password_hash = await hashUtils.password.hashPassword(updateData.password);
+          delete updateData.password;
+          
+          // Increment token_version to invalidate old tokens (security best practice)
+          updateData.token_version = (currentUser.token_version || 1) + 1;
+          
+          logger.info('Admin updating user password, incrementing token_version', {
+            userId: req.params.id,
+            newTokenVersion: updateData.token_version
+          });
+        } catch (e) {
+          return responseUtils.sendError(res, 'Password hashing failed', RESPONSE_CONSTANTS.STATUS_CODE.BAD_REQUEST);
+        }
+      }
+
+      const user = await this.userService.updateUserInfo(req.params.id, updateData);
       if (!user) {
         return responseUtils.sendNotFound(res, 'User not found');
       }

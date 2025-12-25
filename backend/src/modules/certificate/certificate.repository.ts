@@ -158,6 +158,35 @@ export class CertificateRepository {
   }
 
   /**
+   * Find recent certificates (Public)
+   */
+  async findRecent(limit: number = 3): Promise<CertificateInstance[]> {
+    const { Op } = await import('sequelize');
+    
+    const certificates = await Certificate.findAll({
+      where: {
+        status: 'active',
+      },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'first_name', 'last_name', 'email'],
+        },
+        {
+          model: Course,
+          as: 'course',
+          attributes: ['id', 'title', 'description'],
+        },
+      ],
+      order: [['issued_at', 'DESC']],
+      limit,
+    });
+
+    return certificates;
+  }
+
+  /**
    * Find certificates by course ID
    */
   async findByCourseId(courseId: string, options?: { status?: string; limit?: number; offset?: number }): Promise<CertificateInstance[]> {
