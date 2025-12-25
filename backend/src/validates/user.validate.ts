@@ -88,7 +88,9 @@ export const userValidation = {
     phone: baseValidation.phone,
     bio: baseValidation.bio,
     avatar: baseValidation.url,
-    status: z.enum(['active', 'inactive', 'suspended', 'pending']).optional()
+    status: z.enum(['active', 'inactive', 'suspended', 'pending']).optional(),
+    // Allow admin to update password (will be hashed in controller)
+    password: baseValidation.password.optional()
   }),
   
   // Change password schema

@@ -74,6 +74,17 @@ export function useCourseCertificates(courseId: string, options?: {
 }
 
 /**
+ * Get recent certificates (Public - no auth required)
+ */
+export function useRecentCertificates(limit: number = 3) {
+  return useQuery({
+    queryKey: ['certificates', 'recent', limit],
+    queryFn: () => certificateApi.getRecentCertificates(limit),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
  * List all certificates (Admin)
  */
 export function useCertificates(filters?: {

@@ -1,12 +1,57 @@
-import { ArrowRight, Star } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { resources } from '../data'
+import { useCourses } from '@/hooks/useCoursesData'
+import { Spinner } from '@/components/ui/Spinner'
+import { CourseCard } from '@/components/domain/course/CourseCard'
+import type { Course } from '@/services/api/course.api'
 
 interface ResourcesProps {
   onSecondaryCta: () => void
 }
 
 export function Resources({ onSecondaryCta }: ResourcesProps) {
+  // Fetch courses từ API - lấy 4 courses đầu tiên
+  // Thử lấy published trước, nếu không có thì lấy tất cả
+  const { data, isLoading, error } = useCourses({
+    limit: 4,
+    // Không filter status để lấy tất cả courses (có thể có hoặc không có published)
+    // status: 'published'
+  })
+
+  // Lấy courses từ response - xử lý nhiều trường hợp response structure
+  let courses: Course[] = []
+  if (data) {
+    // Case 1: data là array trực tiếp (khi không có pagination)
+    if (Array.isArray(data)) {
+      courses = data
+    }
+    // Case 2: data có structure { courses: Course[], pagination: {...} }
+    else if (data.courses && Array.isArray(data.courses)) {
+      courses = data.courses
+    }
+    // Case 3: data có structure { success, message, data: { courses, pagination } }
+    else if (data.data) {
+      if (Array.isArray(data.data)) {
+        courses = data.data
+      } else if (data.data.courses && Array.isArray(data.data.courses)) {
+        courses = data.data.courses
+      }
+    }
+  }
+  
+  // Debug log để kiểm tra (có thể comment lại sau)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Resources] Data structure:', { 
+      data, 
+      coursesLength: courses.length,
+      isLoading,
+      error: error?.message 
+    })
+  }
+  
+  // Lấy 4 courses đầu tiên để hiển thị
+  const displayCourses = courses.slice(0, 4)
+
   return (
     <section id="resources" className="bg-slate-50 py-20">
       <div className="mx-auto max-w-6xl space-y-10 px-4">
@@ -17,49 +62,34 @@ export function Resources({ onSecondaryCta }: ResourcesProps) {
             Chúng tôi tin rằng GekLearn phải truy cập được cho tất cả các công ty, không quan trọng kích thước của họ.
           </p>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {resources.map((item) => (
-            <div
-              key={item.title}
-              className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_55px_-28px_rgba(15,23,42,0.35)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_25px_65px_-35px_rgba(79,192,229,0.35)]"
-            >
-              <div className="relative overflow-hidden bg-slate-100">
-                <img
-                  src={item.thumbnail}
-                  alt={item.title}
-                  className="h-48 w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-              </div>
-              <div className="flex flex-1 flex-col gap-3 px-5 pb-6 pt-5">
-                <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-500">
-                    {item.type}
-                  </span>
-                  <div className="flex items-center gap-1 text-sm font-semibold text-slate-700">
-                    {item.rating}
-                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  </div>
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
-                <p className="text-sm text-slate-500">{item.description}</p>
-                <div className="mt-auto space-y-3 pt-2">
-                  <span className="text-xl font-bold text-green-500">{item.price}</span>
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <img
-                      src={item.authorAvatar}
-                      alt={item.author}
-                      className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
-                    />
-                    <div className="leading-tight">
-                      <p className="text-xs text-slate-400">Viết bởi</p>
-                      <p className="text-sm font-semibold text-slate-700">{item.author}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="flex justify-center py-12">
+            <p className="text-slate-500">Không thể tải dữ liệu khóa học. Vui lòng thử lại sau.</p>
+          </div>
+        ) : displayCourses.length === 0 ? (
+          <div className="flex justify-center py-12">
+            <p className="text-slate-500">Chưa có khóa học nào.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {displayCourses.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                rating={course.rating || 4.5}
+                totalRatings={course.total_ratings || course._count?.enrollments || 0}
+                originalPrice={course.discount_price ? course.price : undefined}
+                isBestseller={course.is_featured || false}
+              />
+            ))}
+          </div>
+        )}
+
         <div className="flex justify-center">
           <Button
             variant="outline"

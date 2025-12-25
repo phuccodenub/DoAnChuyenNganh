@@ -193,6 +193,23 @@ export class CertificateController {
   };
 
   /**
+   * Get recent certificates (Public)
+   * GET /certificates/recent
+   */
+  getRecentCertificates = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : 3;
+
+      const certificates = await this.certificateService.getRecentCertificates(limit);
+
+      return responseUtils.success(res, certificates, 'Recent certificates retrieved successfully');
+    } catch (error) {
+      logger.error('[CertificateController] Get recent certificates error:', error);
+      next(error);
+    }
+  };
+
+  /**
    * List certificates with filters
    * GET /certificates
    */
