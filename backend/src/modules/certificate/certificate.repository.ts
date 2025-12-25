@@ -161,9 +161,8 @@ export class CertificateRepository {
    * Find recent certificates (Public)
    */
   async findRecent(limit: number = 3): Promise<CertificateInstance[]> {
-    const { Op } = await import('sequelize');
-    
     const certificates = await Certificate.findAll({
+
       where: {
         status: 'active',
       },

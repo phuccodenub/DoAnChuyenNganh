@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { useCourses } from '@/hooks/useCoursesData'
+import { extractCourses, useCourses } from '@/hooks/useCoursesData'
+
 import { useCategories } from '@/hooks/useCategories'
 import { Spinner } from '@/components/ui/Spinner'
 import { CourseCard } from '@/components/domain/course/CourseCard'
@@ -58,30 +59,9 @@ export function DiscoverCourses({ onSecondaryCta }: DiscoverCoursesProps) {
     category_id: activeCategoryId || undefined,
   })
   
-  // Lấy courses từ response - xử lý type-safe
-  let courses: Course[] = []
-  if (data) {
-    // Case 1: data là array trực tiếp
-    if (Array.isArray(data)) {
-      courses = data
-    }
-    // Case 2: data có property courses (object với courses và pagination)
-    else if ('courses' in data && Array.isArray(data.courses)) {
-      courses = data.courses
-    }
-    // Case 3: data có nested data property (CourseListResponse structure)
-    else if ('data' in data && data.data) {
-      const nestedData = data.data
-      if (Array.isArray(nestedData)) {
-        courses = nestedData
-      } else if (nestedData && typeof nestedData === 'object' && 'courses' in nestedData && Array.isArray(nestedData.courses)) {
-        courses = nestedData.courses
-      }
-    }
-  }
-  
-  // Filtered courses (đã được filter ở API nếu có category_id)
+  const courses = extractCourses(data)
   const filteredCourses = courses
+
   
   const isLoading = categoriesLoading || coursesLoading
 

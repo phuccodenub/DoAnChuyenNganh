@@ -832,26 +832,47 @@ export class QuizService {
     const answers = await this.repo.getAttemptAnswers(attemptId);
     let correctAnswers = 0;
 
+    // Prefetch questions để tránh N+1
+    const questionIds = Array.from(new Set(answers.map(answer => answer.question_id)));
+    const questionEntries = await Promise.all(
+      questionIds.map(async (questionId) => [questionId, await this.repo.getQuestionById(questionId)] as const)
+    );
+    const questionById = new Map(questionEntries);
+
     // Tính số câu đúng từ các answers đã submit
     for (const answer of answers) {
-      const question = await this.repo.getQuestionById(answer.question_id);
+      const question = questionById.get(answer.question_id);
+      if (!question) {
+        continue;
+      }
       
-      if (question?.question_type === 'single_choice') {
-        const selectedOption = await this.repo.getOptionById(answer.selected_option_id!);
+      if (question.question_type === 'single_choice') {
+        if (!answer.selected_option_id) {
+          continue;
+        }
+        const selectedOption = await this.repo.getOptionById(answer.selected_option_id);
         if (selectedOption?.is_correct) {
           correctAnswers++;
         }
-      } else if (question?.question_type === 'multiple_choice') {
+      } else if (question.question_type === 'multiple_choice') {
         const selectedIds = Array.isArray(answer.selected_options) ? answer.selected_options : [];
+        if (!selectedIds.length) {
+          continue;
+        }
         const selectedOptions = await this.repo.getOptionsByIds(selectedIds);
         const correctOptions = await this.repo.getCorrectOptions(question.id);
-        if (selectedOptions.length === correctOptions.length &&
-            selectedOptions.every(opt => correctOptions.some(correct => correct.id === opt.id))) {
+        if (
+          selectedOptions.length === correctOptions.length &&
+          selectedOptions.every(opt => correctOptions.some(correct => correct.id === opt.id))
+        ) {
           correctAnswers++;
         }
-      } else if (question?.question_type === 'true_false') {
+      } else if (question.question_type === 'true_false') {
+        if (!answer.selected_option_id) {
+          continue;
+        }
         const correctOptions = await this.repo.getCorrectOptions(question.id);
-        const selected = answer.selected_option_id ? await this.repo.getOptionById(answer.selected_option_id) : null;
+        const selected = await this.repo.getOptionById(answer.selected_option_id);
         const correctText = correctOptions[0]?.option_text?.toLowerCase();
         const selectedText = selected?.option_text?.toLowerCase();
         if (correctText && selectedText && correctText === selectedText) {
@@ -859,6 +880,7 @@ export class QuizService {
         }
       }
     }
+
 
     // Tính điểm dựa trên tổng số câu hỏi (không phải số câu đã trả lời)
     // Câu chưa trả lời được tính là sai (0 điểm)

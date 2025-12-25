@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { useCourses } from '@/hooks/useCoursesData'
+import { extractCourses, useCourses } from '@/hooks/useCoursesData'
+
 import { Spinner } from '@/components/ui/Spinner'
 import { CourseCard } from '@/components/domain/course/CourseCard'
 import type { Course } from '@/services/api/course.api'
@@ -18,39 +19,9 @@ export function Resources({ onSecondaryCta }: ResourcesProps) {
     // status: 'published'
   })
 
-  // Lấy courses từ response - xử lý nhiều trường hợp response structure
-  let courses: Course[] = []
-  if (data) {
-    // Case 1: data là array trực tiếp (khi không có pagination)
-    if (Array.isArray(data)) {
-      courses = data
-    }
-    // Case 2: data có structure { courses: Course[], pagination: {...} }
-    else if (data.courses && Array.isArray(data.courses)) {
-      courses = data.courses
-    }
-    // Case 3: data có structure { success, message, data: { courses, pagination } }
-    else if (data.data) {
-      if (Array.isArray(data.data)) {
-        courses = data.data
-      } else if (data.data.courses && Array.isArray(data.data.courses)) {
-        courses = data.data.courses
-      }
-    }
-  }
-  
-  // Debug log để kiểm tra (có thể comment lại sau)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Resources] Data structure:', { 
-      data, 
-      coursesLength: courses.length,
-      isLoading,
-      error: error?.message 
-    })
-  }
-  
-  // Lấy 4 courses đầu tiên để hiển thị
+  const courses = extractCourses(data)
   const displayCourses = courses.slice(0, 4)
+
 
   return (
     <section id="resources" className="bg-slate-50 py-20">

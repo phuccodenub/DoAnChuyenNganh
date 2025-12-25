@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { courseApi, CourseFilters, CreateCoursePayload, UpdateCoursePayload } from '@/services/api/course.api';
+import { courseApi, CourseFilters, CreateCoursePayload, UpdateCoursePayload, Course } from '@/services/api/course.api';
+
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import toast from 'react-hot-toast';
 
@@ -11,34 +12,39 @@ export function useCourses(filters?: CourseFilters) {
     queryKey: QUERY_KEYS.courses.list(filters),
     queryFn: async () => {
       const response = await courseApi.getAll(filters);
-      // response.data = { success, message, data: { courses, pagination } } hoặc { success, message, data: Course[] }
-      // Khi có pagination (có limit/page), trả về { courses, pagination }
-      // Khi không có pagination, trả về Course[] trực tiếp
-      const responseData = response.data;
-      
-      // Nếu có nested data property, lấy data.data
-      if (responseData.data) {
-        // Nếu data.data là array (không có pagination)
-        if (Array.isArray(responseData.data)) {
-          return responseData.data;
-        }
-        // Nếu data.data là object có courses (có pagination)
-        if (responseData.data.courses) {
-          return responseData.data;
-        }
-      }
-      
-      // Nếu response.data là array trực tiếp (không có wrapper)
-      if (Array.isArray(responseData)) {
-        return responseData;
-      }
-      
-      // Fallback: trả về responseData
-      return responseData;
+      return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
+
+export function extractCourses(data: unknown): Course[] {
+  if (!data) {
+    return [];
+  }
+  if (Array.isArray(data)) {
+    return data as Course[];
+  }
+  if (typeof data !== 'object') {
+    return [];
+  }
+  const record = data as Record<string, unknown>;
+  if (Array.isArray(record.courses)) {
+    return record.courses as Course[];
+  }
+  const nested = record.data as Record<string, unknown> | undefined;
+  if (!nested) {
+    return [];
+  }
+  if (Array.isArray(nested)) {
+    return nested as Course[];
+  }
+  if (Array.isArray(nested.courses)) {
+    return nested.courses as Course[];
+  }
+  return [];
+}
+
 
 /**
  * Hook lấy chi tiết course
