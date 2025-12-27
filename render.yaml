@@ -15,12 +15,14 @@ services:
         value: 3000
       - key: LOG_LEVEL
         value: info
-      # Database - Sử dụng Render PostgreSQL
+      # Database - Link với PostgreSQL đã tạo thủ công
+      # LƯU Ý: Tạo PostgreSQL database thủ công trước, sau đó link ở đây
       - key: DATABASE_URL
         fromDatabase:
           name: lms-postgres
           property: connectionString
-      # Redis - Sử dụng Render Redis
+      # Redis - Link với Redis đã tạo thủ công
+      # LƯU Ý: Tạo Redis thủ công trước, sau đó link ở đây
       - key: REDIS_URL
         fromService:
           name: lms-redis
@@ -33,14 +35,14 @@ services:
         value: 24h
       - key: JWT_REFRESH_EXPIRES_IN
         value: 7d
-      # CORS - Cập nhật với domain của bạn
+      # CORS - Cập nhật với domain của bạn sau khi deploy
       - key: CORS_ALLOWED_ORIGINS
-        value: https://your-frontend-domain.onrender.com,http://localhost:3000
+        value: http://localhost:3000,http://localhost:5173
       - key: FRONTEND_URL
-        value: https://your-frontend-domain.onrender.com
-      # AI Configuration (optional)
+        value: http://localhost:3000
+      # AI Configuration (optional - set manually in dashboard)
       - key: GEMINI_API_KEY
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: AI_TUTOR_ENABLED
@@ -61,16 +63,9 @@ services:
       - key: ENABLE_OTLP
         value: "false"
 
-  # PostgreSQL Database
-  - type: pg
-    name: lms-postgres
-    plan: free  # free cho test (90 ngày), starter cho production
-    databaseName: lms_db
-    databaseUser: lms_user
-
-  # Redis Cache
-  - type: redis
-    name: lms-redis
-    plan: free  # free cho test, starter cho production
-    maxmemoryPolicy: allkeys-lru
+# LƯU Ý: Render Blueprint không hỗ trợ tạo PostgreSQL và Redis tự động
+# Bạn cần tạo thủ công trước:
+# 1. Dashboard → New → PostgreSQL → Tạo database tên "lms-postgres"
+# 2. Dashboard → New → Redis → Tạo Redis tên "lms-redis"
+# 3. Sau đó deploy Blueprint này, nó sẽ tự động link với database và Redis đã tạo
 
