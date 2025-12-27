@@ -53,7 +53,6 @@ function getSocketUrl(): string {
   }
   
   // In production, this should not happen if VITE_WS_URL is set
-  const env: any = (import.meta as any).env || {};
   if (env.PROD) {
     console.error('[useAIChat] VITE_WS_URL not set in production!');
     return '';
