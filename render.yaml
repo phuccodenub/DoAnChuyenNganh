@@ -34,30 +34,146 @@ services:
         value: 24h
       - key: JWT_REFRESH_EXPIRES_IN
         value: 7d
-      # CORS - Cập nhật với domain của bạn sau khi deploy
+      # JWT Additional Configuration
+      - key: JWT_ISSUER
+        value: lms-backend
+      - key: JWT_AUDIENCE
+        value: lms-frontend
+      # CORS Configuration - Cập nhật với domain của bạn sau khi deploy
       - key: CORS_ALLOWED_ORIGINS
         value: http://localhost:3000,http://localhost:5173
+      - key: CORS_ALLOWED_METHODS
+        value: GET,POST,PUT,PATCH,DELETE,OPTIONS
+      - key: CORS_ALLOWED_HEADERS
+        value: Content-Type,Authorization,X-Requested-With
+      - key: CORS_ALLOW_CREDENTIALS
+        value: "true"
       - key: FRONTEND_URL
         value: http://localhost:3000
+      # File Upload Configuration
+      - key: MAX_FILE_SIZE
+        value: "10485760"  # 10MB
+      - key: UPLOAD_PATH
+        value: ./uploads
+      - key: PUBLIC_URL
+        sync: false  # Set manually: https://your-service.onrender.com
+      - key: STORAGE_TYPE
+        value: local  # local | google_cloud | aws_s3 | azure_blob
+      # Rate Limiting Configuration
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"  # 15 minutes
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+      # Cache Configuration
+      - key: CACHE_TTL_SHORT
+        value: "300"  # 5 minutes
+      - key: CACHE_TTL_MEDIUM
+        value: "1800"  # 30 minutes
+      - key: CACHE_TTL_LONG
+        value: "3600"  # 1 hour
+      # Security Configuration
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      - key: PASSWORD_MIN_LENGTH
+        value: "8"
+      - key: PASSWORD_MAX_LENGTH
+        value: "128"
+      - key: SESSION_SECRET
+        generateValue: true  # Render tự động generate
+      - key: SESSION_MAX_AGE
+        value: "86400000"  # 24 hours
+      # Monitoring Configuration
+      - key: HEALTH_CHECK_TIMEOUT
+        value: "5000"
+      - key: HEALTH_CHECK_INTERVAL
+        value: "30000"
+      - key: METRICS_ENABLED
+        value: "true"
+      - key: METRICS_PORT
+        value: "9090"
+      # OpenTelemetry (disable for free tier)
+      - key: ENABLE_OTLP
+        value: "false"
+      - key: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+        value: http://localhost:4318/v1/traces
+      # API Versioning
+      - key: DEFAULT_API_VERSION
+        value: v1.3.0
+      - key: SUPPORTED_API_VERSIONS
+        value: v1.0.0,v1.1.0,v1.2.0,v2.0.0
+      # Development/Production Flags
+      - key: DEBUG
+        value: "false"
+      - key: VERBOSE_LOGGING
+        value: "false"
+      - key: HOT_RELOAD
+        value: "false"
+      # Email Configuration (optional - set manually if needed)
+      - key: MAIL_HOST
+        sync: false  # Set manually: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_SECURE
+        value: "false"
+      - key: MAIL_USER
+        sync: false  # Set manually if needed
+      - key: MAIL_PASS
+        sync: false  # Set manually if needed
+      - key: MAIL_FROM
+        value: LMS System <noreply@lms.com>
       # AI Configuration (optional - set manually in dashboard)
       - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_TEMPERATURE
+        value: "0.7"
+      - key: GEMINI_MAX_TOKENS
+        value: "8192"
       - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL_DEFAULT
+        value: llama-3.3-70b-versatile
+      - key: GROQ_TEMPERATURE
+        value: "0.7"
+      - key: GROQ_MAX_TOKENS
+        value: "2048"
       - key: AI_TUTOR_ENABLED
         value: "true"
       - key: AI_QUIZ_GENERATOR_ENABLED
         value: "true"
       - key: AI_GRADER_ENABLED
         value: "false"
-      # Disable features không cần thiết trên Render
+      - key: AI_CONTENT_REPURPOSING_ENABLED
+        value: "false"
+      # ProxyPal (Local AI - disable on Render)
+      - key: PROXYPAL_ENABLED
+        value: "false"
+      # Google Drive (optional - set manually if needed)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      # Cloud Storage (optional - set manually if needed)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Livestream Configuration (optional - set manually if needed)
+      - key: HLS_BASE_URL
+        sync: false
+      - key: RTMP_SERVER_URL
+        sync: false
+      - key: RTMP_CONTROL_URL
+        sync: false
+      # Feature Flags
       - key: DISABLE_CACHE
         value: "false"
       - key: DISABLE_RATE_LIMIT
         value: "false"
       - key: DISABLE_METRICS
-        value: "false"
-      - key: ENABLE_OTLP
         value: "false"
 
 # LƯU Ý: Render Blueprint không hỗ trợ tạo PostgreSQL và Redis tự động
