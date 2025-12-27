@@ -3,10 +3,12 @@ services:
   - type: web
     name: lms-frontend
     env: static
-    buildCommand: cd frontend && NPM_CONFIG_PRODUCTION=false npm install && npm run build
+    buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
     # Render sẽ tự động serve files từ dist folder
     envVars:
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"  # Force install devDependencies (needed for @types/node)
       # Vite build-time variables (cần set trước khi build)
       - key: VITE_API_URL
         value: https://lms-backend-2lsw.onrender.com/api
