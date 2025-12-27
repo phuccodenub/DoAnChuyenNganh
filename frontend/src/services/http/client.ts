@@ -36,6 +36,12 @@ const getBaseURL = (): string => {
 
 const baseURL = getBaseURL();
 
+// Log baseURL in development to help debug
+if (typeof window !== 'undefined' && (import.meta as any).env?.DEV) {
+  console.log('[HTTP Client] Base URL:', baseURL);
+  console.log('[HTTP Client] VITE_API_URL:', (import.meta as any).env?.VITE_API_URL);
+}
+
 
 export const httpClient: AxiosInstance = axios.create({
   baseURL,
