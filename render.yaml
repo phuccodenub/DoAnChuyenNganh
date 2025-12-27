@@ -1,7 +1,8 @@
 services:
   # Frontend Static Site
-  - type: static_site
+  - type: web
     name: lms-frontend
+    env: static
     region: singapore
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
