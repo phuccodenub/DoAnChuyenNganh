@@ -1,110 +1,88 @@
-# ⚡ Quick Start: Deploy Lên Render
+# 🚀 Quick Start - Deploy trong 10 Phút
 
-## 🎯 Tóm Tắt Nhanh
+## ⚡ Tóm Tắt Nhanh
 
-### Bước 1: Giải Quyết Quyền Truy Cập Repo
-
-**Khuyến nghị: Fork repo về tài khoản của bạn**
-
-```bash
-# 1. Fork repo trên GitHub (click nút Fork)
-# 2. Clone repo đã fork
-git clone https://github.com/YOUR_USERNAME/DoAnChuyenNganh.git
-cd DoAnChuyenNganh
-
-# 3. Checkout nhánh dev/backend
-git checkout dev/backend
-
-# 4. Thêm upstream để sync với repo gốc (optional)
-git remote add upstream https://github.com/ORIGINAL_OWNER/DoAnChuyenNganh.git
-```
-
-### Bước 2: Push Code Lên Repo
-
-```bash
-# Đảm bảo đã commit tất cả thay đổi
-git add .
-git commit -m "Add Render deployment config"
-git push origin dev/backend
-```
-
-### Bước 3: Tạo Services Trên Render
-
-1. **Đăng ký/Đăng nhập Render:** https://render.com
-2. **Kết nối GitHub:** Dashboard → Settings → Connected Accounts
-
-### Bước 4: Deploy Tự Động Với render.yaml
-
-1. **Tạo Blueprint:**
-   - Dashboard → New → Blueprint
-   - Chọn repo của bạn
-   - Chọn nhánh: `dev/backend`
-   - Click **Apply**
-
-2. **Render sẽ tự động:**
-   - ✅ Tạo PostgreSQL database
-   - ✅ Tạo Redis cache
-   - ✅ Deploy backend service
-   - ✅ Link các services
-
-### Bước 5: Cấu Hình Environment Variables
-
-Vào Backend Service → Environment → Thêm các biến:
-
-**Bắt buộc:**
-```env
-JWT_SECRET=<generate random 32+ characters>
-CORS_ALLOWED_ORIGINS=https://your-frontend.onrender.com
-FRONTEND_URL=https://your-frontend.onrender.com
-```
-
-**Tùy chọn (AI):**
-```env
-GEMINI_API_KEY=your-key
-GROQ_API_KEY=your-key
-AI_TUTOR_ENABLED=true
-```
-
-### Bước 6: Chạy Migrations
-
-Vào Backend Service → Shell:
-
-```bash
-cd backend
-npm run migrate
-```
-
-### Bước 7: Kiểm Tra
-
-1. **Health Check:**
-   ```
-   https://your-service.onrender.com/health
-   ```
-
-2. **API Docs:**
-   ```
-   https://your-service.onrender.com/api-docs
-   ```
+1. **Setup Supabase** → Lấy `DATABASE_URL`
+2. **Setup Upstash** → Lấy `REDIS_URL`
+3. **Deploy Backend** → Set env vars → Lấy backend URL
+4. **Deploy Frontend** → Set `VITE_API_URL` → Lấy frontend URL
+5. **Update CORS** → Kết nối FE và BE
 
 ---
 
-## 📋 Checklist Nhanh
+## 📝 Step-by-Step (Rút Gọn)
 
-- [ ] Fork repo về tài khoản của bạn
-- [ ] Push code lên repo
-- [ ] Tạo tài khoản Render
-- [ ] Deploy với Blueprint (render.yaml)
-- [ ] Cấu hình JWT_SECRET và CORS
-- [ ] Chạy migrations
-- [ ] Test API
+### 1️⃣ Supabase (2 phút)
+
+```
+1. Vào https://app.supabase.com → New Project
+2. Settings → Database → Connection string (URI)
+3. Copy: postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres
+```
+
+### 2️⃣ Upstash (2 phút)
+
+```
+1. Vào https://console.upstash.com → Create Database
+2. Details → TCP tab → Copy connection string
+3. Copy: rediss://default:[PASSWORD]@[ENDPOINT]:6379
+```
+
+### 3️⃣ Render - Deploy Backend (3 phút)
+
+```
+1. Render Dashboard → New → Blueprint
+2. Connect repo → Chọn branch: dev/backend
+3. Vào lms-backend → Environment → Set:
+   - DATABASE_URL = [từ Supabase]
+   - REDIS_URL = [từ Upstash]
+   - PUBLIC_URL = http://localhost:3000 (tạm thời)
+4. Save → Đợi deploy xong
+5. Copy Backend URL: https://lms-backend-xxxx.onrender.com
+6. Update PUBLIC_URL = Backend URL → Save
+```
+
+### 4️⃣ Render - Deploy Frontend (2 phút)
+
+```
+1. Vào lms-frontend → Environment → Set:
+   - VITE_API_URL = https://lms-backend-xxxx.onrender.com/api
+   - VITE_WS_URL = https://lms-backend-xxxx.onrender.com
+   - VITE_SOCKET_URL = https://lms-backend-xxxx.onrender.com
+2. Save → Đợi build xong
+3. Copy Frontend URL: https://lms-frontend-xxxx.onrender.com
+```
+
+### 5️⃣ Kết Nối FE và BE (1 phút)
+
+```
+1. Vào lms-backend → Environment → Update:
+   - CORS_ALLOWED_ORIGINS = https://lms-frontend-xxxx.onrender.com,http://localhost:3000
+   - FRONTEND_URL = https://lms-frontend-xxxx.onrender.com
+2. Save → Done!
+```
 
 ---
 
-## 🆘 Gặp Vấn Đề?
+## ✅ Test
 
-Xem hướng dẫn chi tiết: [RENDER_DEPLOY_GUIDE.md](./RENDER_DEPLOY_GUIDE.md)
+- Backend: `https://lms-backend-xxxx.onrender.com/health`
+- Frontend: `https://lms-frontend-xxxx.onrender.com`
+- API: Mở DevTools → Network → Kiểm tra API calls
 
 ---
 
-**Thời gian ước tính:** 15-30 phút
+## 🐛 Lỗi Thường Gặp
 
+| Lỗi | Giải Pháp |
+|-----|-----------|
+| `DATABASE_URL is required` | Set `DATABASE_URL` trong backend env |
+| `Redis connection failed` | Set `REDIS_URL` với format `rediss://...` |
+| CORS error | Thêm frontend URL vào `CORS_ALLOWED_ORIGINS` |
+| Frontend không build | Set `VITE_API_URL` trước khi build |
+
+---
+
+## 📚 Chi Tiết
+
+Xem `DEPLOY_CHECKLIST.md` để có hướng dẫn đầy đủ và troubleshooting.
