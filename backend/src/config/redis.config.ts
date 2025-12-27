@@ -2,18 +2,27 @@ import { createClient } from 'redis';
 import logger from '@utils/logger.util';
 
 // Get Redis configuration from environment variables
+// Prefer REDIS_URL if provided, otherwise use REDIS_HOST and REDIS_PORT
+const redisUrl = process.env.REDIS_URL;
 const redisHost = process.env.REDIS_HOST || 'localhost';
 const redisPort = parseInt(process.env.REDIS_PORT || '6379');
 
-// Redis client configuration - use host/port directly instead of URL
-const redisClient = createClient({
-  socket: {
-    host: redisHost,
-    port: redisPort,
-    reconnectStrategy: (retries) => Math.min(retries * 50, 1000),
-    family: 4 // Force IPv4
-  }
-});
+// Redis client configuration - use URL if provided, otherwise use host/port
+const redisClient = redisUrl 
+  ? createClient({
+      url: redisUrl,
+      socket: {
+        reconnectStrategy: (retries) => Math.min(retries * 50, 1000),
+      }
+    })
+  : createClient({
+      socket: {
+        host: redisHost,
+        port: redisPort,
+        reconnectStrategy: (retries) => Math.min(retries * 50, 1000),
+        family: 4 // Force IPv4
+      }
+    });
 
 // Redis connection events
 redisClient.on('connect', () => {
