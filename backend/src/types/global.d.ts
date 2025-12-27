@@ -6,6 +6,7 @@
 declare module 'nodemailer' {
   export interface Transporter {
     sendMail(mailOptions: any): Promise<any>;
+    verify(): Promise<boolean>;
   }
   
   interface Nodemailer {
@@ -71,10 +72,15 @@ declare module 'multer' {
 
   export type FileFilterCallback = (error: Error | null, acceptFile: boolean) => void;
 
-  const multer: Multer & {
+  interface MulterWithTypes extends Multer {
     MulterError: typeof MulterError;
-  };
+  }
+  
+  const multer: MulterWithTypes;
   export default multer;
+  
+  // Export types as properties for namespace-like access
+  export { File, FileFilterCallback, MulterError };
 }
 
 declare module 'zxcvbn' {

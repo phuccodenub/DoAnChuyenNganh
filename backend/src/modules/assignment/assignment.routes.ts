@@ -4,7 +4,7 @@ import { assignmentSchemas } from './assignment.validate';
 import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middleware';
 import { validateBody, validateQuery, validateParams } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 
 const router = Router();
 const controller = new AssignmentController();
@@ -15,7 +15,7 @@ const assignmentUpload = multer({
   limits: {
     fileSize: 50 * 1024 * 1024 // 50MB max
   },
-  fileFilter: (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     // Allow common document and archive types
     const allowedExtensions = [
       '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',

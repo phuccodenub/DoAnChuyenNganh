@@ -6,7 +6,7 @@ import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middlewar
 import { validate, validateRequest } from '../../middlewares/validate.middleware';
 import { UserRole } from '../../constants/roles.enum';
 import { uploadMiddleware } from '../files/upload.middleware';
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 import { FILE_CATEGORIES } from '../files/files.types';
 
 const router = Router();
@@ -153,7 +153,7 @@ const materialUpload = (() => {
   
   return multer({
     storage,
-    fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
       const category = (req.body as any)?.category || 'DOCUMENT';
       const categoryConfig = FILE_CATEGORIES[category.toUpperCase() as keyof typeof FILE_CATEGORIES];
       
