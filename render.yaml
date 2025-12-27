@@ -62,7 +62,7 @@ services:
         value: "false"
 
   # PostgreSQL Database
-  - type: pspg
+  - type: pg
     name: lms-postgres
     plan: free  # free cho test (90 ngày), starter cho production
     databaseName: lms_db
