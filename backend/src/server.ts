@@ -188,8 +188,9 @@ async function startServer() {
     logger.info('✅ AI Analysis Queue Worker started (processing every 1 minute)');
     
     // Start HTTP server (this will also start Socket.IO)
-    console.log(`[STARTUP] Starting HTTP server on port ${PORT}...`);
-    httpServer.listen(PORT, '0.0.0.0', () => {
+    const portNumber = typeof PORT === 'string' ? parseInt(PORT, 10) : PORT;
+    console.log(`[STARTUP] Starting HTTP server on port ${portNumber}...`);
+    httpServer.listen(portNumber, '0.0.0.0', () => {
       console.log(`[STARTUP] 🚀 Server running on port ${PORT}`);
       console.log(`[STARTUP] Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`[STARTUP] 📡 Socket.IO available at ws://0.0.0.0:${PORT}/socket.io`);
