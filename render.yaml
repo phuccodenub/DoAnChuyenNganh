@@ -8,15 +8,18 @@ services:
     # Render sẽ tự động serve files từ dist folder
     envVars:
       # Vite build-time variables (cần set trước khi build)
+      # Set giá trị tạm thời để build được, sau đó update với backend URL thật
       - key: VITE_API_URL
-        sync: false  # Set manually: https://lms-backend-xxxx.onrender.com/api
-        # Sau khi deploy backend, copy URL và thêm /api
+        value: http://localhost:3000/api  # Tạm thời, update sau khi có backend URL
+        # Sau khi deploy backend, update thành: https://lms-backend-xxxx.onrender.com/api
       - key: VITE_WS_URL
-        sync: false  # Set manually: https://lms-backend-xxxx.onrender.com
+        value: http://localhost:3000  # Tạm thời, update sau khi có backend URL
         # URL của backend cho WebSocket (Socket.IO)
+        # Sau khi deploy backend, update thành: https://lms-backend-xxxx.onrender.com
       - key: VITE_SOCKET_URL
-        sync: false  # Set manually: https://lms-backend-xxxx.onrender.com
+        value: http://localhost:3000  # Tạm thời, update sau khi có backend URL
         # Alias cho VITE_WS_URL
+        # Sau khi deploy backend, update thành: https://lms-backend-xxxx.onrender.com
       - key: VITE_APP_NAME
         value: LMS Platform
       - key: NODE_ENV
