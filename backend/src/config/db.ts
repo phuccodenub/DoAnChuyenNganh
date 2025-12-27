@@ -26,14 +26,26 @@ export function getSequelize(): Sequelize {
     }
 
     // Prefer DATABASE_URL if provided; fallback to discrete DB_* variables
+    // Pool configuration optimized for external databases (Supabase, etc.)
+    // - max: Maximum number of connections in pool (increased for production)
+    // - min: Minimum number of connections to maintain
+    // - acquire: Maximum time (ms) to wait for a connection from pool
+    // - idle: Maximum time (ms) a connection can be idle before being released
+    // - evict: Interval to check for idle connections
+    const poolMax = parseInt(process.env.DB_POOL_MAX || '10', 10);
+    const poolMin = parseInt(process.env.DB_POOL_MIN || '2', 10);
+    const poolAcquire = parseInt(process.env.DB_POOL_ACQUIRE || '60000', 10); // 60s
+    const poolIdle = parseInt(process.env.DB_POOL_IDLE || '30000', 10); // 30s
+    
     const baseOptions = {
       dialect: 'postgres',
       logging: false,
       pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
+        max: poolMax,
+        min: poolMin,
+        acquire: poolAcquire,
+        idle: poolIdle,
+        evict: 10000, // Check for idle connections every 10s
       },
       define: {
         underscored: true,
@@ -41,7 +53,28 @@ export function getSequelize(): Sequelize {
         timestamps: true,
         paranoid: false
       },
-      timezone: '+00:00'
+      timezone: '+00:00',
+      // Add connection retry for production
+      retry: {
+        max: 3,
+        match: [
+          /ETIMEDOUT/,
+          /EHOSTUNREACH/,
+          /ECONNRESET/,
+          /ECONNREFUSED/,
+          /ETIMEDOUT/,
+          /ESOCKETTIMEDOUT/,
+          /EHOSTUNREACH/,
+          /EPIPE/,
+          /EAI_AGAIN/,
+          /SequelizeConnectionError/,
+          /SequelizeConnectionRefusedError/,
+          /SequelizeHostNotFoundError/,
+          /SequelizeHostNotReachableError/,
+          /SequelizeInvalidConnectionError/,
+          /SequelizeConnectionTimedOutError/
+        ]
+      }
     };
 
     const databaseUrl = process.env.DATABASE_URL;
@@ -102,6 +135,27 @@ export async function connectDatabase(retries = 3, delay = 5000): Promise<void> 
       ]);
       
       console.log('Database connection has been established successfully');
+      
+      // Log pool configuration
+      const poolConfig = (db as any).config?.pool || {};
+      console.log(`[DB] Connection pool configured: max=${poolConfig.max}, min=${poolConfig.min}, acquire=${poolConfig.acquire}ms, idle=${poolConfig.idle}ms`);
+      
+      // Monitor pool status periodically (only in production)
+      if (process.env.NODE_ENV === 'production') {
+        setInterval(() => {
+          const pool = (db as any).connectionManager?.pool;
+          if (pool) {
+            const poolSize = pool.size || 0;
+            const available = pool.available || 0;
+            const waiting = pool.waiting || 0;
+            const using = poolSize - available;
+            
+            if (waiting > 0 || using >= poolConfig.max * 0.8) {
+              console.warn(`[DB] Pool status: size=${poolSize}, using=${using}, available=${available}, waiting=${waiting}`);
+            }
+          }
+        }, 30000); // Check every 30s
+      }
       
       // Setup model associations before sync
       const { setupAssociations } = await import('../models/associations');
