@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { MediaController } from './media.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 
 const router = Router();
 const mediaController = new MediaController();
@@ -19,7 +19,7 @@ const imageUpload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB for images
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -34,7 +34,7 @@ const videoUpload = multer({
   limits: {
     fileSize: 500 * 1024 * 1024, // 500MB for videos
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);

@@ -71,12 +71,12 @@ export class FilesService {
       }
 
       const fileInfo: UploadedFileInfo = {
-        filename: file.filename,
-        originalName: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-        path: file.path,
-        url: this.generateFileUrl(options.folder, file.filename),
+        filename: file.filename || '',
+        originalName: file.originalname || '',
+        mimetype: file.mimetype || '',
+        size: file.size || 0,
+        path: file.path || '',
+        url: this.generateFileUrl(options.folder, file.filename || ''),
         uploadedBy: options.userId,
         uploadedAt: new Date()
       };

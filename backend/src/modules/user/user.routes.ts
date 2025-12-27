@@ -7,7 +7,7 @@ import { authMiddleware, authorizeRoles } from '../../middlewares/auth.middlewar
 import { UserRole } from '../../constants/roles.enum';
 import { validateBody, validateQuery } from '../../middlewares/validate.middleware';
 import { userValidation as userSchemas } from '../../validates/user.validate';
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 
 const router = Router();
 const userModuleController = new UserModuleController();
@@ -20,7 +20,7 @@ const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
