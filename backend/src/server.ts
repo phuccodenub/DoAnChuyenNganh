@@ -77,24 +77,39 @@ async function startServer() {
     ErrorHandler.setupGlobalHandlers();
     console.log('[STARTUP] ✅ Error handlers setup complete');
     
-    // Connect to database with timeout
+    // Connect to database with retry logic
     console.log('[STARTUP] Connecting to database...');
     logger.info('Connecting to database...');
-    try {
-      await Promise.race([
-        connectDatabase(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Database connection timeout after 30s')), 30000)
-        )
-      ]);
-      console.log('[STARTUP] ✅ Database connected successfully');
-      logger.info('✅ Database connected successfully');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.warn('[STARTUP] ⚠️  Database connection failed:', errorMessage);
-      logger.warn('⚠️  Database connection failed:', { message: errorMessage });
-      // Don't throw - allow app to start and retry connection later
-      // throw error;
+    
+    // Check if DATABASE_URL is set
+    if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim().length === 0) {
+      console.error('[STARTUP] ❌ DATABASE_URL is not set! Please configure it in environment variables.');
+      logger.error('DATABASE_URL is not set!');
+      // Don't throw - allow app to start but database operations will fail
+    } else {
+      try {
+        // connectDatabase() now has built-in retry logic (3 attempts with exponential backoff)
+        await Promise.race([
+          connectDatabase(3, 5000), // 3 retries, 5s initial delay
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Database connection timeout after 60s')), 60000)
+          )
+        ]);
+        console.log('[STARTUP] ✅ Database connected successfully');
+        logger.info('✅ Database connected successfully');
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorCode = (error as any)?.parent?.code || (error as any)?.code || 'UNKNOWN';
+        console.error('[STARTUP] ❌ Database connection failed after all retries:', errorMessage);
+        console.error(`[STARTUP] Error code: ${errorCode}`);
+        logger.error('Database connection failed after all retries:', { 
+          message: errorMessage,
+          code: errorCode
+        });
+        // Don't throw - allow app to start and retry connection later
+        // This allows the server to start even if database is temporarily unavailable
+        // Database operations will fail with clear error messages
+      }
     }
     
     // Connect to Redis (allow disabling in local dev/tests)

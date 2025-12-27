@@ -76,57 +76,93 @@ export function getSequelize(): Sequelize {
   return sequelize;
 }
 
-export async function connectDatabase(): Promise<void> {
-  try {
-    const db = getSequelize();
-    await db.authenticate();
-    console.log('Database connection has been established successfully');
-    
-    // Setup model associations before sync
-    const { setupAssociations } = await import('../models/associations');
-    setupAssociations();
-    console.log('✅ Model associations setup completed');
-    
-    const { setupExtendedAssociations } = await import('../models/associations-extended');
-    setupExtendedAssociations();
-    console.log('✅ Extended model associations setup completed');
-    
-    // Sync database - always sync in development to ensure tables exist
-    // In production, use migrations instead
-    // Note: On Supabase, tables may be owned by different users, so we disable
-    // index creation during sync to avoid permission errors. Indexes should be
-    // managed via migrations.
-    if (process.env.NODE_ENV !== 'production') {
-      const databaseUrl = process.env.DATABASE_URL;
-      const isExternalDb = !!(databaseUrl && databaseUrl.trim().length > 0);
+export async function connectDatabase(retries = 3, delay = 5000): Promise<void> {
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  // Log database URL (masked for security)
+  if (databaseUrl) {
+    const maskedUrl = databaseUrl.replace(/:[^:@]+@/, ':****@');
+    console.log(`[DB] Attempting to connect to database: ${maskedUrl.substring(0, 50)}...`);
+  } else {
+    console.warn('[DB] ⚠️  DATABASE_URL is not set! Using fallback configuration.');
+  }
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const db = getSequelize();
+      
+      // Set connection timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database authentication timeout after 10s')), 10000);
+      });
+      
+      await Promise.race([
+        db.authenticate(),
+        timeoutPromise
+      ]);
+      
+      console.log('Database connection has been established successfully');
+      
+      // Setup model associations before sync
+      const { setupAssociations } = await import('../models/associations');
+      setupAssociations();
+      console.log('✅ Model associations setup completed');
+      
+      const { setupExtendedAssociations } = await import('../models/associations-extended');
+      setupExtendedAssociations();
+      console.log('✅ Extended model associations setup completed');
+      
+      // Sync database - always sync in development to ensure tables exist
+      // In production, use migrations instead
+      // Note: On Supabase, tables may be owned by different users, so we disable
+      // index creation during sync to avoid permission errors. Indexes should be
+      // managed via migrations.
+      if (process.env.NODE_ENV !== 'production') {
+        const isExternalDb = !!(databaseUrl && databaseUrl.trim().length > 0);
 
-      // For local Postgres (no DATABASE_URL), prefer running migrations to keep schema in sync.
-      if (!isExternalDb) {
-        const MigrationMod = await import('../migrations');
-        const migrator = new MigrationMod.MigrationManager(db);
-        await migrator.migrate();
-      }
-      // Using force: false prevents dropping tables
-      // Using alter: false (implicit) prevents schema modifications
-      // Sequelize may still try to create missing indexes, which can fail on Supabase
-      // if the connected user doesn't own the table. We handle this gracefully.
-      try {
-        await db.sync({ force: false });
-        console.log('Database models synchronized');
-      } catch (syncError: any) {
-        // Error code 42501 = insufficient privilege (e.g., not owner of table)
-        // This typically happens with indexes on Supabase when tables are owned by a different user
-        if (syncError?.parent?.code === '42501') {
-          console.log('⚠️ Some database sync operations skipped due to permissions (this is normal on Supabase)');
-          console.log('   Tables exist, indexes should be managed via migrations');
-        } else {
-          throw syncError;
+        // For local Postgres (no DATABASE_URL), prefer running migrations to keep schema in sync.
+        if (!isExternalDb) {
+          const MigrationMod = await import('../migrations');
+          const migrator = new MigrationMod.MigrationManager(db);
+          await migrator.migrate();
+        }
+        // Using force: false prevents dropping tables
+        // Using alter: false (implicit) prevents schema modifications
+        // Sequelize may still try to create missing indexes, which can fail on Supabase
+        // if the connected user doesn't own the table. We handle this gracefully.
+        try {
+          await db.sync({ force: false });
+          console.log('Database models synchronized');
+        } catch (syncError: any) {
+          // Error code 42501 = insufficient privilege (e.g., not owner of table)
+          // This typically happens with indexes on Supabase when tables are owned by a different user
+          if (syncError?.parent?.code === '42501') {
+            console.log('⚠️ Some database sync operations skipped due to permissions (this is normal on Supabase)');
+            console.log('   Tables exist, indexes should be managed via migrations');
+          } else {
+            throw syncError;
+          }
         }
       }
+      
+      return; // Success, exit function
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorCode = (error as any)?.parent?.code || (error as any)?.code || 'UNKNOWN';
+      
+      console.error(`[DB] Connection attempt ${attempt}/${retries} failed:`, errorMessage);
+      console.error(`[DB] Error code: ${errorCode}`);
+      
+      if (attempt < retries) {
+        console.log(`[DB] Retrying in ${delay / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        // Exponential backoff
+        delay *= 1.5;
+      } else {
+        console.error('[DB] ❌ All connection attempts failed. Server will start but database operations will fail.');
+        throw error;
+      }
     }
-  } catch (error: unknown) {
-    console.error('Unable to connect to the database:', error);
-    throw error;
   }
 }
 
