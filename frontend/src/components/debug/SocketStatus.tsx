@@ -17,7 +17,9 @@ export function SocketStatus() {
   const socketUrl =
     env.VITE_WS_URL ||
     env.VITE_SOCKET_URL ||
-    (env.DEV && typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    (env.DEV && typeof window !== 'undefined' 
+      ? window.location.origin 
+      : (env.VITE_WS_URL || env.VITE_SOCKET_URL || ''));
 
   useEffect(() => {
     // Chỉ hiển thị trong development

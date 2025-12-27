@@ -36,10 +36,14 @@ const getBaseURL = (): string => {
 
 const baseURL = getBaseURL();
 
-// Log baseURL in development to help debug
-if (typeof window !== 'undefined' && (import.meta as any).env?.DEV) {
+// Log baseURL to help debug (always log in production to see what's being used)
+if (typeof window !== 'undefined') {
+  const env = (import.meta as any).env || {};
   console.log('[HTTP Client] Base URL:', baseURL);
-  console.log('[HTTP Client] VITE_API_URL:', (import.meta as any).env?.VITE_API_URL);
+  console.log('[HTTP Client] VITE_API_URL:', env.VITE_API_URL);
+  console.log('[HTTP Client] PROD:', env.PROD);
+  console.log('[HTTP Client] DEV:', env.DEV);
+  console.log('[HTTP Client] MODE:', env.MODE);
 }
 
 
