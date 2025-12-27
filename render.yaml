@@ -1,11 +1,11 @@
 services:
-  # Frontend Static Site
+  # Frontend Web Service (with SPA routing support)
   - type: web
     name: lms-frontend
-    env: static
+    env: node
     buildCommand: cd frontend && npm install --include=dev && npm run build
-    staticPublishPath: ./frontend/dist
-    # Render sẽ tự động serve files từ dist folder
+    startCommand: cd frontend && node server.js
+    # SPA routing: server.js sẽ serve index.html cho tất cả routes
     envVars:
       - key: NPM_CONFIG_PRODUCTION
         value: "false"  # Force install devDependencies (needed for @types/node)
