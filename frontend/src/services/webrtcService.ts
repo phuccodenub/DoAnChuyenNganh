@@ -746,7 +746,7 @@ class WebRTCService {
       const peer = this.registerPeer(participant.userId, peerConnection);
 
       // Nếu mình đang publish (host), tạo offer cho tất cả participants
-      // Nếu mình không publish (viewer), chỉ chờ nhận offer từ host
+      // Nếu mình không publish (viewer), tạo offer đến host (nếu host có sendMedia)
       if (this.isPublishing) {
         console.log(`[WebRTCService] Host: Creating offer for new participant ${participant.userId}`);
         // Delay một chút để đảm bảo peer connection đã sẵn sàng
@@ -754,10 +754,13 @@ class WebRTCService {
           this.createOffer(peer.userId);
         }, 100);
       } else {
-        // Viewer: Nếu participant mới join là host (có sendMedia), viewer nên tạo offer đến host
-        // Hoặc chờ host gửi offer (tùy vào implementation)
+        // Viewer: Nếu participant mới join là host (có sendMedia), viewer tạo offer đến host
+        // Điều này đảm bảo viewer có thể nhận stream từ host ngay cả khi host không tự động gửi offer
         if (participant.sendMedia) {
-          console.log(`[WebRTCService] Viewer: New participant ${participant.userId} is host, waiting for offer from host`);
+          console.log(`[WebRTCService] Viewer: New participant ${participant.userId} is host, creating offer to host`);
+          setTimeout(() => {
+            this.createOffer(peer.userId);
+          }, 100);
         } else {
           console.log(`[WebRTCService] Viewer: Waiting for offer from ${participant.userId}`);
         }
@@ -819,7 +822,7 @@ class WebRTCService {
         const peer = this.registerPeer(participant.userId, peerConnection);
 
         // Nếu mình đang publish (host), tạo offer cho tất cả participants
-        // Nếu mình không publish (viewer), chỉ chờ nhận offer từ host
+        // Nếu mình không publish (viewer), tạo offer đến host (nếu host có sendMedia)
         if (this.isPublishing) {
           console.log(`[WebRTCService] Host: Creating offer for existing participant ${participant.userId}`);
           // Delay một chút để đảm bảo peer connection đã sẵn sàng
@@ -827,9 +830,13 @@ class WebRTCService {
             this.createOffer(peer.userId);
           }, 100);
         } else {
-          // Viewer: Nếu participant là host (có sendMedia), viewer nên chờ host gửi offer
+          // Viewer: Nếu participant là host (có sendMedia), viewer tạo offer đến host
+          // Điều này đảm bảo viewer có thể nhận stream từ host ngay cả khi host không tự động gửi offer
           if (participant.sendMedia) {
-            console.log(`[WebRTCService] Viewer: Participant ${participant.userId} is host, waiting for offer from host`);
+            console.log(`[WebRTCService] Viewer: Participant ${participant.userId} is host, creating offer to host`);
+            setTimeout(() => {
+              this.createOffer(peer.userId);
+            }, 100);
           } else {
             console.log(`[WebRTCService] Viewer: Waiting for offer from ${participant.userId}`);
           }
