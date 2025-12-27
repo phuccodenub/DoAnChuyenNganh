@@ -21,7 +21,9 @@ import { APP_CONSTANTS } from './constants/app.constants';
 import { ErrorHandler } from './errors/error.handler';
 
 // Import all models to register them with sequelize
+console.log('[STARTUP] Loading models...');
 import './models';
+console.log('[STARTUP] Models loaded');
 
 // Import Socket.IO gateways
 import { ChatGateway, setChatGateway } from './modules/chat/chat.gateway';
@@ -40,10 +42,18 @@ const PORT = process.env.PORT || 3000;
 
 async function startServer() {
   try {
+    // Log startup immediately
+    console.log('🚀 Starting server...');
+    console.log(`PORT: ${PORT}`);
+    console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+    
     // Setup global error handlers
+    console.log('Setting up error handlers...');
     ErrorHandler.setupGlobalHandlers();
+    console.log('✅ Error handlers setup complete');
     
     // Connect to database with timeout
+    console.log('Connecting to database...');
     logger.info('Connecting to database...');
     try {
       await Promise.race([
@@ -129,16 +139,29 @@ async function startServer() {
       logger.warn('   Get your API key at: https://aistudio.google.com/');
     }
     
-    // Initialize ProxyPal Health Check
-    logger.info('Initializing ProxyPal Health Check...');
-    const proxyPalStatus = await proxyPalHealthCheck.checkStatus();
-    if (proxyPalStatus.isOnline) {
-      logger.info('✅ ProxyPal: Available (Local AI processing enabled)');
-      logger.info(`   URL: ${process.env.PROXYPAL_BASE_URL || 'http://127.0.0.1:8317/v1'}`);
-      logger.info(`   Models available: ${proxyPalStatus.availableModels.length}`);
+    // Initialize ProxyPal Health Check (only if enabled)
+    if (process.env.PROXYPAL_ENABLED === 'true') {
+      logger.info('Initializing ProxyPal Health Check...');
+      try {
+        const proxyPalStatus = await Promise.race([
+          proxyPalHealthCheck.checkStatus(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('ProxyPal health check timeout after 5s')), 5000)
+          )
+        ]) as any;
+        if (proxyPalStatus.isOnline) {
+          logger.info('✅ ProxyPal: Available (Local AI processing enabled)');
+          logger.info(`   URL: ${process.env.PROXYPAL_BASE_URL || 'http://127.0.0.1:8317/v1'}`);
+          logger.info(`   Models available: ${proxyPalStatus.availableModels.length}`);
+        } else {
+          logger.warn('⚠️  ProxyPal: Not available (video analysis disabled)');
+        }
+      } catch (error: unknown) {
+        logger.warn('⚠️  ProxyPal: Health check failed or timeout (video analysis disabled)');
+        logger.warn(`   Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     } else {
-      logger.warn('⚠️  ProxyPal: Not available (video analysis disabled)');
-      logger.warn('   To enable video analysis, start ProxyPal server');
+      logger.info('ProxyPal: Disabled (PROXYPAL_ENABLED=false)');
     }
     
     // Start AI Analysis Queue Worker
@@ -180,5 +203,9 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-startServer();
+console.log('Calling startServer()...');
+startServer().catch((error) => {
+  console.error('Fatal error starting server:', error);
+  process.exit(1);
+});
 
