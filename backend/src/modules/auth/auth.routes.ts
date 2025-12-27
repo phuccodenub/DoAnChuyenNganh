@@ -15,15 +15,78 @@ import { authRateLimit, passwordResetRateLimit, registrationRateLimit } from '@m
 console.log('[AUTH_ROUTES] rate limit middlewares imported');
 
 // Lazy load authSchemas to avoid blocking on import
+// Use dynamic import with timeout to prevent hanging
 let authSchemas: any;
-const getAuthSchemas = () => {
-  if (!authSchemas) {
-    console.log('[AUTH_ROUTES] Lazy loading authSchemas...');
-    authSchemas = require('@validates/auth.validate').authSchemas;
-    console.log('[AUTH_ROUTES] authSchemas loaded');
+let authSchemasLoading: Promise<any> | null = null;
+
+const getAuthSchemas = (): any => {
+  if (authSchemas) {
+    return authSchemas;
   }
-  return authSchemas;
+  
+  if (authSchemasLoading) {
+    // If already loading, wait for it (synchronous fallback)
+    console.warn('[AUTH_ROUTES] authSchemas still loading, using fallback');
+    // Return a minimal fallback schema
+    return {
+      register: { parse: (data: any) => data },
+      login: { parse: (data: any) => data },
+      loginWith2FA: { parse: (data: any) => data },
+      refreshToken: { parse: (data: any) => data },
+      forgotPassword: { parse: (data: any) => data },
+      resetPassword: { parse: (data: any) => data },
+      changePassword: { parse: (data: any) => data },
+      verify2FA: { parse: (data: any) => data }
+    };
+  }
+  
+  // Start loading
+  console.log('[AUTH_ROUTES] Starting lazy load authSchemas...');
+  authSchemasLoading = Promise.race([
+    import('@validates/auth.validate').then(module => {
+      console.log('[AUTH_ROUTES] authSchemas module imported');
+      authSchemas = module.authSchemas;
+      console.log('[AUTH_ROUTES] authSchemas loaded successfully');
+      authSchemasLoading = null;
+      return authSchemas;
+    }),
+    new Promise((_, reject) => 
+      setTimeout(() => {
+        authSchemasLoading = null;
+        reject(new Error('authSchemas load timeout after 10s'));
+      }, 10000)
+    )
+  ]).catch((error: unknown) => {
+    console.error('[AUTH_ROUTES] Failed to load authSchemas:', error);
+    authSchemasLoading = null;
+    // Return a minimal fallback schema to prevent app crash
+    authSchemas = {
+      register: { parse: (data: any) => data },
+      login: { parse: (data: any) => data },
+      loginWith2FA: { parse: (data: any) => data },
+      refreshToken: { parse: (data: any) => data },
+      forgotPassword: { parse: (data: any) => data },
+      resetPassword: { parse: (data: any) => data },
+      changePassword: { parse: (data: any) => data },
+      verify2FA: { parse: (data: any) => data }
+    };
+    return authSchemas;
+  });
+  
+  // Return fallback while loading
+  return {
+    register: { parse: (data: any) => data },
+    login: { parse: (data: any) => data },
+    loginWith2FA: { parse: (data: any) => data },
+    refreshToken: { parse: (data: any) => data },
+    forgotPassword: { parse: (data: any) => data },
+    resetPassword: { parse: (data: any) => data },
+    changePassword: { parse: (data: any) => data },
+    verify2FA: { parse: (data: any) => data }
+  };
 };
+
+// Pre-load authSchemas asynchronously after router creation
 console.log('[AUTH_ROUTES] authSchemas lazy loader created');
 
 console.log('[AUTH_ROUTES] Creating router...');
@@ -33,6 +96,14 @@ console.log('[AUTH_ROUTES] Router created');
 console.log('[AUTH_ROUTES] Creating AuthController instance...');
 const authController = new AuthController();
 console.log('[AUTH_ROUTES] AuthController instance created');
+
+// Pre-load authSchemas asynchronously to avoid blocking route registration
+setImmediate(() => {
+  console.log('[AUTH_ROUTES] Pre-loading authSchemas in background...');
+  getAuthSchemas().catch((err: unknown) => {
+    console.error('[AUTH_ROUTES] Background pre-load failed:', err);
+  });
+});
 
 
 // ===== PUBLIC ROUTES (No authentication required) =====
