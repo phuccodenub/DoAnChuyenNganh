@@ -57,8 +57,23 @@ services:
         value: ./uploads
       - key: PUBLIC_URL
         sync: false  # Set manually: https://your-service.onrender.com
+        # PUBLIC_URL = URL của backend service (để serve files local hoặc generate URLs)
+        # Khác với R2_PUBLIC_URL (URL của Cloudflare R2 bucket)
       - key: STORAGE_TYPE
-        value: local  # local | google_cloud | aws_s3 | azure_blob
+        value: local  # local | google_cloud | aws_s3 | azure_blob | r2
+      # Cloudflare R2 Storage (nếu dùng R2 thay vì local storage)
+      - key: R2_ENDPOINT
+        sync: false  # Set manually: https://xxx.r2.cloudflarestorage.com
+      - key: R2_ACCESS_KEY_ID
+        sync: false  # Set manually: R2 access key
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false  # Set manually: R2 secret key
+      - key: R2_BUCKET_NAME
+        sync: false  # Set manually: R2 bucket name
+      - key: R2_PUBLIC_URL
+        sync: false  # Set manually: https://pub-xxx.r2.dev (public URL của R2 bucket)
+        # R2_PUBLIC_URL = URL của Cloudflare R2 bucket (để truy cập files trên R2)
+        # Khác với PUBLIC_URL (URL của backend service)
       # Rate Limiting Configuration
       - key: RATE_LIMIT_WINDOW_MS
         value: "900000"  # 15 minutes
