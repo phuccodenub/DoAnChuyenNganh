@@ -43,14 +43,38 @@ async function startServer() {
     // Setup global error handlers
     ErrorHandler.setupGlobalHandlers();
     
-    // Connect to database
-    await connectDatabase();
+    // Connect to database with timeout
+    logger.info('Connecting to database...');
+    try {
+      await Promise.race([
+        connectDatabase(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Database connection timeout after 30s')), 30000)
+        )
+      ]);
+      logger.info('✅ Database connected successfully');
+    } catch (error: unknown) {
+      logger.error('❌ Database connection failed:', error);
+      throw error;
+    }
     
     // Connect to Redis (allow disabling in local dev/tests)
     if (process.env.REDIS_DISABLED === 'true') {
       logger.info('Redis connection disabled via REDIS_DISABLED=true');
     } else {
-      await connectRedis();
+      logger.info('Connecting to Redis...');
+      try {
+        await Promise.race([
+          connectRedis(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Redis connection timeout after 10s')), 10000)
+          )
+        ]);
+        logger.info('✅ Redis connected successfully');
+      } catch (error: unknown) {
+        logger.error('❌ Redis connection failed:', error);
+        throw error;
+      }
     }
     
     // Create HTTP server from Express app
