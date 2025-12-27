@@ -49,6 +49,7 @@
     "node_modules",
     "dist",
     "**/*.test.ts",
+    "src/tests/**",
     "src/utils/tests/**",
     // Exclude ALL models except core ones for now
     "src/models/assignment*.ts",
