@@ -3,7 +3,7 @@ services:
   - type: web
     name: lms-frontend
     env: static
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: cd frontend && NPM_CONFIG_PRODUCTION=false npm install && npm run build
     staticPublishPath: ./frontend/dist
     # Render sẽ tự động serve files từ dist folder
     envVars:
