@@ -1,6 +1,11 @@
+console.log('[BASE_VALIDATE] Starting imports...');
 import { z } from 'zod';
-import { validatorsUtils } from '../utils/validators.util';
+console.log('[BASE_VALIDATE] zod imported');
 
+import { validatorsUtils } from '../utils/validators.util';
+console.log('[BASE_VALIDATE] validatorsUtils imported');
+
+console.log('[BASE_VALIDATE] Creating baseValidation object...');
 // Base validation schemas
 export const baseValidation = {
   // ===== COMMON FIELD VALIDATIONS =====
@@ -258,6 +263,8 @@ export const validationHelpers = {
 };
 
 // Legacy export for backward compatibility
+console.log('[BASE_VALIDATE] Exporting baseSchemas and validateHelpers...');
 export const baseSchemas = baseValidation;
 export const validateHelpers = validationHelpers;
+console.log('[BASE_VALIDATE] Exports complete');
 
