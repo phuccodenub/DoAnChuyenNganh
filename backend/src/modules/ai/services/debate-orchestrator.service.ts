@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import logger from '../../../utils/logger.util';
 import env from '../../../config/env.config';
+import { parseJsonFromLlmText } from '../../../utils/llm-json.util';
 import DebateHistory from '../../../models/debate-history.model';
 import { ProxyPalProvider } from '../providers/proxypal.provider';
 import { GoogleAIProvider } from '../providers/google-ai.provider';
@@ -527,20 +528,11 @@ OUTPUT JSON (chỉ JSON):
   }
 
   private extractJson(text: string): unknown | null {
-    const trimmed = text.trim();
-    const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    const jsonText = codeBlockMatch ? codeBlockMatch[1] : trimmed;
-
     try {
-      const objectMatch = jsonText.match(/\{[\s\S]*\}/);
-      if (objectMatch) {
-        return JSON.parse(objectMatch[0]);
-      }
-    } catch (error) {
+      return parseJsonFromLlmText<unknown>(text, { required: false });
+    } catch {
       return null;
     }
-
-    return null;
   }
 
   private calculateAverageAgreement(rounds: DebateRound[]): number {

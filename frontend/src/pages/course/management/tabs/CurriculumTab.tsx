@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { Plus, ChevronDown, ChevronRight, ClipboardList, FileText } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, ChevronDown, ChevronRight, ClipboardList, FileText, Sparkles, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal';
 import toast from 'react-hot-toast';
@@ -36,6 +36,7 @@ import { ManageQuizModal } from './ManageQuizModal';
 import { useInstructorQuizzes, useDeleteQuiz } from '@/hooks/useInstructorQuiz';
 import { useCourseAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment } from '@/hooks/useAssignments';
 import { Input } from '@/components/ui/Input';
+import { aiApi } from '@/services/api/ai.api';
 
 interface CurriculumTabProps {
   courseId: string;
@@ -304,6 +305,13 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
   const [assignmentAllowLate, setAssignmentAllowLate] = useState(false);
   const [assignmentSubmissionType, setAssignmentSubmissionType] = useState<'text' | 'file' | 'both'>('text');
   const [assignmentPublish, setAssignmentPublish] = useState(false);
+
+  // AI generate (for Assignment modal)
+  const [aiAssignmentSourceMode, setAiAssignmentSourceMode] = useState<'course' | 'file'>('course');
+  const [aiAssignmentNotes, setAiAssignmentNotes] = useState('');
+  const [aiRubricItems, setAiRubricItems] = useState(4);
+  const [aiSourceFile, setAiSourceFile] = useState<File | null>(null);
+  const [aiFileError, setAiFileError] = useState('');
   const [lessonForm, setLessonForm] = useState<{
     title: string;
     content_type: LessonContentType;
@@ -410,6 +418,25 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
     setSections(sections.map(s => s.id === sectionId ? { ...s, isExpanded: !s.isExpanded } : s));
   };
 
+  const resetAssignmentModalState = () => {
+    setEditingAssignment(null);
+    setSelectedAssignmentSectionId(undefined);
+    setAssignmentTitle('');
+    setAssignmentDescription('');
+    setAssignmentInstructions('');
+    setAssignmentMaxScore(100);
+    setAssignmentDueDate('');
+    setAssignmentAllowLate(false);
+    setAssignmentSubmissionType('text');
+    setAssignmentPublish(false);
+
+    setAiAssignmentSourceMode('course');
+    setAiAssignmentNotes('');
+    setAiRubricItems(4);
+    setAiSourceFile(null);
+    setAiFileError('');
+  };
+
   const handleCreateCourseAssignment = async () => {
     if (!assignmentTitle.trim()) {
       toast.error('Vui lòng nhập tiêu đề bài tập');
@@ -420,12 +447,11 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
         // Update assignment
         await updateAssignmentMutation.mutateAsync({
           assignmentId: editingAssignment.id,
-            data: {
-              title: assignmentTitle.trim(),
-              description: assignmentDescription.trim() || undefined,
-              instructions: assignmentInstructions.trim() || undefined,
+          data: {
+            title: assignmentTitle.trim(),
+            description: assignmentDescription.trim() || undefined,
+            instructions: assignmentInstructions.trim() || undefined,
             max_score: Number(assignmentMaxScore) || 100,
-
             submission_type: assignmentSubmissionType || 'text',
             allow_late_submission: assignmentAllowLate,
             due_date: assignmentDueDate ? assignmentDueDate : undefined,
@@ -442,27 +468,17 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
           description: assignmentDescription.trim() || undefined,
           instructions: assignmentInstructions.trim() || undefined,
           max_score: Number(assignmentMaxScore) || 100,
-
-          submission_type: assignmentSubmissionType || 'text', // Đảm bảo luôn có giá trị
+          submission_type: assignmentSubmissionType || 'text',
           allow_late_submission: assignmentAllowLate,
           due_date: assignmentDueDate ? assignmentDueDate : undefined,
           is_published: assignmentPublish,
         } as any);
         toast.success(isSectionLevel ? 'Đã tạo bài tập trong section' : 'Đã tạo bài tập cấp khóa');
       }
-      // Reset form
-      setAssignmentTitle('');
-      setAssignmentDescription('');
-      setAssignmentInstructions('');
-      setAssignmentMaxScore(100);
-      setAssignmentDueDate('');
-      setAssignmentAllowLate(false);
-      setAssignmentSubmissionType('text');
-      setAssignmentPublish(false);
-      setEditingAssignment(null);
+
       setIsAssignmentModalOpen(false);
       setIsSectionAssignmentModalOpen(false);
-      setSelectedAssignmentSectionId(undefined);
+      resetAssignmentModalState();
       refetchAssignments();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || (editingAssignment ? 'Không thể cập nhật bài tập' : 'Không thể tạo bài tập'));
@@ -473,15 +489,20 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
     setEditingAssignment(assignment);
     setAssignmentTitle(assignment.title || '');
     setAssignmentDescription(assignment.description || '');
-    // Đảm bảo instructions được load (có thể là null, undefined, hoặc empty string)
     setAssignmentInstructions(assignment.instructions ?? '');
     setAssignmentMaxScore(assignment.max_score || 100);
     setAssignmentDueDate(assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : '');
     setAssignmentAllowLate(assignment.allow_late_submission || false);
     setAssignmentSubmissionType(assignment.submission_type || 'text');
     setAssignmentPublish(assignment.is_published || false);
-    
-    // Debug log để kiểm tra instructions
+
+    // Reset AI panel state
+    setAiAssignmentSourceMode('course');
+    setAiAssignmentNotes('');
+    setAiRubricItems(4);
+    setAiSourceFile(null);
+    setAiFileError('');
+
     if (process.env.NODE_ENV === 'development') {
       console.log('[CurriculumTab] Editing assignment:', {
         id: assignment.id,
@@ -493,8 +514,7 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
         allKeys: Object.keys(assignment)
       });
     }
-    
-    // Phân biệt section-level và course-level (giống quiz)
+
     if (assignment.section_id) {
       setSelectedAssignmentSectionId(assignment.section_id);
       setIsSectionAssignmentModalOpen(true);
@@ -549,6 +569,92 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
       toast.error(error?.response?.data?.message || 'Không thể xóa quiz');
     }
   };
+
+  const buildCourseContextForAi = (): string => {
+    const lines: string[] = [];
+    if (course?.title) {
+      lines.push(`# Course: ${course.title}`);
+    }
+    if (course?.description) {
+      lines.push(`## Description\n${course.description}`);
+    }
+
+    if (sections.length > 0) {
+      lines.push('## Curriculum');
+      sections
+        .slice()
+        .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+        .forEach((section: any, secIdx: number) => {
+          lines.push(`\n### Section ${secIdx + 1}: ${section.title || 'Untitled'}`);
+          const lessons = Array.isArray(section.lessons) ? section.lessons : [];
+          lessons
+            .slice()
+            .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+            .forEach((lesson: any, lessonIdx: number) => {
+              lines.push(`- Lesson ${lessonIdx + 1}: ${lesson.title || 'Untitled'}`);
+              if (lesson.description) {
+                lines.push(`  - ${String(lesson.description).slice(0, 300)}`);
+              }
+            });
+        });
+    }
+
+    return lines.join('\n');
+  };
+
+  const generateAssignmentWithAi = useMutation({
+    mutationFn: async () => {
+      if (!courseId) {
+        throw new Error('Missing courseId');
+      }
+
+      if (aiAssignmentSourceMode === 'file') {
+        if (!aiSourceFile) {
+          throw new Error('Vui lòng chọn file');
+        }
+        if (aiFileError) {
+          throw new Error(aiFileError);
+        }
+        return aiApi.generateAssignmentFromFile({
+          courseId,
+          file: aiSourceFile,
+          maxScore: assignmentMaxScore,
+          submissionType: assignmentSubmissionType,
+          rubricItems: aiRubricItems,
+          additionalNotes: aiAssignmentNotes.trim() || undefined,
+        });
+      }
+
+      const content = buildCourseContextForAi();
+      if (!content.trim()) {
+        throw new Error('Nội dung khóa học trống');
+      }
+
+      return aiApi.generateAssignment({
+        courseId,
+        content,
+        maxScore: assignmentMaxScore,
+        submissionType: assignmentSubmissionType,
+        rubricItems: aiRubricItems,
+        additionalNotes: aiAssignmentNotes.trim() || undefined,
+      });
+    },
+    onSuccess: (data) => {
+      setAssignmentTitle(data.title || assignmentTitle);
+      setAssignmentDescription(data.description || assignmentDescription);
+      setAssignmentInstructions(data.instructions || assignmentInstructions);
+      if (data.max_score != null) {
+        setAssignmentMaxScore(Number(data.max_score));
+      }
+      if (data.submission_type) {
+        setAssignmentSubmissionType(data.submission_type);
+      }
+      toast.success('Đã tạo assignment bằng AI');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Không thể tạo assignment bằng AI');
+    },
+  });
 
   const handleAddLesson = async (sectionId: string) => {
     const section = sections.find(s => s.id === sectionId);
@@ -1351,16 +1457,7 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
         onClose={() => {
           setIsAssignmentModalOpen(false);
           setIsSectionAssignmentModalOpen(false);
-          setEditingAssignment(null);
-          setSelectedAssignmentSectionId(undefined);
-          // Reset form khi đóng
-          setAssignmentTitle('');
-          setAssignmentDescription('');
-          setAssignmentMaxScore(100);
-          setAssignmentDueDate('');
-          setAssignmentAllowLate(false);
-          setAssignmentSubmissionType('text');
-          setAssignmentPublish(false);
+          resetAssignmentModalState();
         }}
         title={
           editingAssignment 
@@ -1372,7 +1469,122 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
         size="md"
       >
         <ModalBody>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-600" />
+                    <p className="text-sm font-semibold text-gray-900">AI tạo Assignment</p>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-600">
+                    Tạo nhanh tiêu đề, mô tả, yêu cầu và rubric từ nội dung khóa học hoặc file.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700"
+                  disabled={generateAssignmentWithAi.isPending}
+                  onClick={() => generateAssignmentWithAi.mutate()}
+                >
+                  {generateAssignmentWithAi.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang tạo...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Tạo bằng AI
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Số tiêu chí rubric</label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={10}
+                    value={aiRubricItems}
+                    onChange={(e) => setAiRubricItems(Math.max(2, Math.min(10, Number(e.target.value) || 4)))}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Nguồn</label>
+                  <div className="mt-1 flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="aiAssignmentSource"
+                        checked={aiAssignmentSourceMode === 'course'}
+                        onChange={() => {
+                          setAiAssignmentSourceMode('course');
+                          setAiSourceFile(null);
+                          setAiFileError('');
+                        }}
+                      />
+                      Nội dung khóa học
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="aiAssignmentSource"
+                        checked={aiAssignmentSourceMode === 'file'}
+                        onChange={() => {
+                          setAiAssignmentSourceMode('file');
+                          setAiFileError('');
+                        }}
+                      />
+                      File
+                    </label>
+                  </div>
+
+                  {aiAssignmentSourceMode === 'file' && (
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-4 w-4 text-gray-500" />
+                        <Input
+                          type="file"
+                          accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0] || null;
+                            setAiSourceFile(file);
+                            if (!file) {
+                              setAiFileError('');
+                              return;
+                            }
+                            if (file.size > 10 * 1024 * 1024) {
+                              setAiFileError('File vượt quá 10MB, vui lòng chọn file nhỏ hơn.');
+                              setAiSourceFile(null);
+                              return;
+                            }
+                            setAiFileError('');
+                          }}
+                        />
+                      </div>
+                      {aiSourceFile && <p className="text-xs text-gray-700">Đã chọn: {aiSourceFile.name}</p>}
+                      {aiFileError && <p className="text-xs text-red-600">{aiFileError}</p>}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <label className="text-xs font-medium text-gray-700">Ghi chú thêm (tuỳ chọn)</label>
+                <textarea
+                  rows={2}
+                  value={aiAssignmentNotes}
+                  onChange={(e) => setAiAssignmentNotes(e.target.value)}
+                  placeholder="VD: yêu cầu có rubric chi tiết, deadline 7 ngày, bài làm có file PDF..."
+                  className="mt-1 w-full rounded-md border border-purple-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
             <div>
               <label className="text-sm text-gray-700">Tiêu đề</label>
               <Input
@@ -1449,11 +1661,13 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
               <span className="text-sm text-gray-700">Publish ngay</span>
             </div>
           </div>
+          </div>
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => {
             setIsAssignmentModalOpen(false);
             setIsSectionAssignmentModalOpen(false);
+            resetAssignmentModalState();
           }}>
             Hủy
           </Button>

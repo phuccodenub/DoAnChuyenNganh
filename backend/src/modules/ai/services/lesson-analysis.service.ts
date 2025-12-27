@@ -13,6 +13,7 @@ import AILessonAnalysis, { AILessonAnalysisAttributes } from '../models/ai-lesso
 import Lesson from '../../../models/lesson.model';
 import { ProxyPalProvider } from '../providers/proxypal.provider';
 import { GeminiVideoService } from './gemini-video.service';
+import { parseJsonFromLlmText } from '../../../utils/llm-json.util';
 
 interface VideoAnalysisResult {
   transcript: string;
@@ -314,10 +315,8 @@ Format trả về dưới dạng JSON:
       const metadata = { provider: 'google-direct', model };
       logger.info(`[LessonAnalysis] Video analysis completed with ${model} (direct Gemini API)`);
 
-      // Parse JSON response
-      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : text;
-      const result = JSON.parse(jsonStr);
+       // Parse JSON response (LLM-hardened)
+       const result = parseJsonFromLlmText<any>(text, { required: true });
 
       return {
         transcript: result.transcript || '',
@@ -397,9 +396,7 @@ Trả về format:
           });
 
 
-          const jsonMatch = response.text.match(/```json\s*([\s\S]*?)\s*```/);
-          const jsonStr = jsonMatch ? jsonMatch[1] : response.text;
-          const result = JSON.parse(jsonStr);
+           const result = parseJsonFromLlmText<any>(response.text, { required: true });
 
           return {
             keyConcepts: result.keyConcepts || [],

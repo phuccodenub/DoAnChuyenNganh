@@ -1,8 +1,8 @@
 # Test MegaLLM Integration
-# Script này test cả 2 fixes: session loginTime và MegaLLM 403
+# Script này test cả 2 fixes: session loginTime và ProxyPal Premium
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "   TEST MEGALLM INTEGRATION" -ForegroundColor Cyan
+Write-Host "   TEST PROXYPAL PREMIUM" -ForegroundColor Cyan
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 $baseUrl = "http://localhost:3000/api/v1.3.0"
@@ -64,14 +64,31 @@ $headers = @{
 try {
     $statusResponse = Invoke-RestMethod -Uri "$baseUrl/ai/status" -Method GET -Headers $headers
     Write-Host "   ✅ AI Status OK" -ForegroundColor Green
-    Write-Host "   ProxyPal: $($statusResponse.proxypal.status)" -ForegroundColor Gray
-    Write-Host "   Google: $($statusResponse.google.status)`n" -ForegroundColor Gray
+
+    if ($statusResponse.data) {
+        $status = $statusResponse.data
+    } else {
+        $status = $statusResponse
+    }
+
+    if ($status.providers) {
+        $providerSummary = $status.providers | ForEach-Object { "$($_.name): $($_.available)" }
+        Write-Host "   Providers: $($providerSummary -join ', ')" -ForegroundColor Gray
+    } elseif ($status.proxypal -or $status.google) {
+        if ($status.proxypal) { Write-Host "   ProxyPal: $($status.proxypal.status)" -ForegroundColor Gray }
+        if ($status.google) { Write-Host "   Google: $($status.google.status)" -ForegroundColor Gray }
+        if ($status.megallm) { Write-Host "   MegaLLM: $($status.megallm.status)" -ForegroundColor Gray }
+    } else {
+        Write-Host "   Status payload: $($status | ConvertTo-Json -Depth 3)" -ForegroundColor Gray
+    }
+
+    Write-Host ""
 } catch {
     Write-Host "   ❌ AI Status FAILED: $($_.Exception.Message)" -ForegroundColor Red
 }
 
 # Step 4: Test Quiz Generation with Premium Polish
-Write-Host "4️⃣ Testing Quiz Generation (Premium Polish - MegaLLM)..." -ForegroundColor Yellow
+Write-Host "4️⃣ Testing Quiz Generation (Premium Polish - ProxyPal)..." -ForegroundColor Yellow
 
 $quizBody = @{
     courseId = "test-course"
@@ -79,7 +96,7 @@ $quizBody = @{
     numberOfQuestions = 2
     difficulty = "easy"
     isPremium = $true
-    userId = $loginResponse.user.userId
+    userId = $actualData.user.userId
 } | ConvertTo-Json
 
 try {
@@ -87,16 +104,18 @@ try {
     
     $quizResponse = Invoke-RestMethod -Uri "$baseUrl/ai/generate-quiz" -Method POST -Headers $headers -Body $quizBody -TimeoutSec 90
     
+    $quizData = if ($quizResponse.data) { $quizResponse.data } else { $quizResponse }
+
     Write-Host "   ✅ Quiz Generated!" -ForegroundColor Green
-    Write-Host "   Quiz ID: $($quizResponse.quizId)" -ForegroundColor Gray
-    Write-Host "   Questions: $($quizResponse.questions.Count)" -ForegroundColor Gray
-    Write-Host "   Stages: $($quizResponse.metadata.stages -join ', ')" -ForegroundColor Gray
-    Write-Host "   Model: $($quizResponse.metadata.model)" -ForegroundColor Gray
+    Write-Host "   Quiz ID: $($quizData.quizId)" -ForegroundColor Gray
+    Write-Host "   Questions: $($quizData.questions.Count)" -ForegroundColor Gray
+    Write-Host "   Stages: $($quizData.metadata.stages -join ', ')" -ForegroundColor Gray
+    Write-Host "   Model: $($quizData.metadata.model)" -ForegroundColor Gray
     
-    if ($quizResponse.metadata.stages -contains "polish") {
-        Write-Host "   🎉 PREMIUM POLISH (MegaLLM) EXECUTED!" -ForegroundColor Magenta
+    if ($quizData.metadata.stages -contains "polish") {
+        Write-Host "   🎉 PREMIUM POLISH (ProxyPal) EXECUTED!" -ForegroundColor Magenta
     } else {
-        Write-Host "   ⚠️  Polish stage not found. Stages: $($quizResponse.metadata.stages -join ', ')" -ForegroundColor Yellow
+        Write-Host "   ⚠️  Polish stage not found. Stages: $($quizData.metadata.stages -join ', ')" -ForegroundColor Yellow
     }
     
     Write-Host ""
@@ -110,27 +129,28 @@ try {
     }
 }
 
-# Step 5: Check MegaLLM logs
-Write-Host "5️⃣ Checking MegaLLM logs..." -ForegroundColor Yellow
+# Step 5: Check ProxyPal logs
+Write-Host "5️⃣ Checking ProxyPal logs..." -ForegroundColor Yellow
 Start-Sleep -Seconds 2
 
-$megallmLogs = docker logs lms-backend-dev-1 --tail 150 2>&1 | Select-String -Pattern "MegaLLM|403|Premium.*polish|Claude"
+$proxypalLogs = docker logs lms-backend-dev-1 --tail 150 2>&1 | Select-String -Pattern "ProxyPal|Premium.*polish|gpt-5|403|tier|permission"
 
-if ($megallmLogs) {
-    Write-Host "   MegaLLM Activity Found:" -ForegroundColor Cyan
-    $megallmLogs | Select-Object -First 10 | ForEach-Object {
-        if ($_ -match "403") {
+if ($proxypalLogs) {
+    Write-Host "   ProxyPal Activity Found:" -ForegroundColor Cyan
+    $proxypalLogs | Select-Object -First 10 | ForEach-Object {
+        if ($_ -match "403|permission|tier") {
             Write-Host "   ❌ $_" -ForegroundColor Red
-        } elseif ($_ -match "polish|Claude") {
+        } elseif ($_ -match "polish|gpt-5|ProxyPal") {
             Write-Host "   ✅ $_" -ForegroundColor Green
         } else {
             Write-Host "   $_" -ForegroundColor Gray
         }
     }
 } else {
-    Write-Host "   ⚠️  No MegaLLM activity detected" -ForegroundColor Yellow
-    Write-Host "   (This might mean MegaLLM was not triggered or is not configured)" -ForegroundColor Gray
+    Write-Host "   ⚠️  No ProxyPal activity detected" -ForegroundColor Yellow
+    Write-Host "   (This might mean ProxyPal was not triggered or is not configured)" -ForegroundColor Gray
 }
+
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "   TEST COMPLETED" -ForegroundColor Cyan

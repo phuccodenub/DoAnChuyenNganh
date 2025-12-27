@@ -11,6 +11,7 @@ import { GoogleAIProvider } from '../providers/google-ai.provider';
 import { AICacheService } from './ai-cache.service';
 import { LessonAnalysisService } from './lesson-analysis.service';
 import env from '../../../config/env.config';
+import { parseJsonFromLlmText } from '../../../utils/llm-json.util';
 
 export interface QuizGenerationRequest {
   courseId: string;
@@ -589,43 +590,155 @@ QUAN TRỌNG: CHỈ trả về JSON, KHÔNG có text giải thích hoặc markdo
 
   /**
    * Parse JSON response thành QuizQuestion[]
+   * Hardened: Robust JSON extraction for LLM outputs (code fences, extra text, arrays/objects)
    */
   private parseQuestions(text: string): QuizQuestion[] {
-    try {
-      // Extract JSON từ response (xử lý markdown code blocks)
-      let jsonText = text.trim();
+    const raw = (text ?? '').toString();
+    const preview = raw.slice(0, 800);
 
-      // Remove markdown code block if present
-      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (codeBlockMatch) {
-        jsonText = codeBlockMatch[1].trim();
-      } else {
-        // Try to find JSON object
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonText = jsonMatch[0];
+    const attemptParse = (source: string) => {
+      const parsed = parseJsonFromLlmText<any>(source, { required: true });
+      const questions = normalizeQuestions(parsed);
+
+      if (!questions.length) {
+        logger.warn('[QuizGenerator] Parsed JSON but no valid questions found', {
+          parsedType: Array.isArray(parsed) ? 'array' : typeof parsed,
+          keys: parsed && typeof parsed === 'object' ? Object.keys(parsed).slice(0, 20) : undefined,
+        });
+        throw new Error('Parsed JSON but no questions array found/valid');
+      }
+
+      return questions;
+    };
+
+    const makeId = () => {
+      try {
+        // @ts-ignore
+        return (globalThis.crypto?.randomUUID?.() ?? undefined) || `q_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      } catch {
+        return `q_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      }
+    };
+
+    const normalizeQuestions = (parsed: any): QuizQuestion[] => {
+      const arr = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.questions) ? parsed.questions : [];
+      if (!Array.isArray(arr)) return [];
+
+      const norm: QuizQuestion[] = [];
+
+      for (const q of arr) {
+        if (!q || typeof q !== 'object') continue;
+
+        const question = typeof (q as any).question === 'string' ? (q as any).question.trim() : '';
+        const type = (typeof (q as any).type === 'string' && (q as any).type.trim()) ? (q as any).type : 'single_choice';
+
+        // true_false: may not include options
+        const options = Array.isArray((q as any).options) ? (q as any).options : undefined;
+
+        if (!question) continue;
+        if (type !== 'true_false' && (!options || options.length === 0)) continue;
+
+        let correctAnswer: any = (q as any).correctAnswer;
+
+        // infer from correctIndex if provided
+        if (correctAnswer == null && typeof (q as any).correctIndex === 'number' && options && options[(q as any).correctIndex] != null) {
+          correctAnswer = options[(q as any).correctIndex];
+        }
+
+        const normalizeLetterIndex = (value: string): number | null => {
+          const trimmed = value.trim().toUpperCase();
+          if (trimmed.length !== 1) return null;
+          const code = trimmed.charCodeAt(0);
+          if (code < 65 || code > 90) return null;
+          return code - 65;
+        };
+
+        if (options && typeof correctAnswer === 'string' && type !== 'true_false') {
+          const letterIndex = normalizeLetterIndex(correctAnswer);
+          if (letterIndex != null) {
+            correctAnswer = letterIndex;
+          }
+        }
+
+        if (type === 'true_false' && typeof correctAnswer === 'string') {
+          const v = correctAnswer.toLowerCase().trim();
+          if (v !== 'true' && v !== 'false') {
+            continue;
+          }
+          correctAnswer = v;
+        }
+
+        if (typeof correctAnswer === 'number') {
+          if (!options || correctAnswer < 0 || correctAnswer >= options.length) {
+            continue;
+          }
+        }
+
+        if (Array.isArray(correctAnswer)) {
+          if (!options) continue;
+          const normalizedIndexes: number[] = [];
+          for (const rawIndex of correctAnswer) {
+            if (typeof rawIndex === 'number') {
+              if (rawIndex < 0 || rawIndex >= options.length) {
+                normalizedIndexes.length = 0;
+                break;
+              }
+              normalizedIndexes.push(rawIndex);
+              continue;
+            }
+            if (typeof rawIndex === 'string') {
+              const letterIndex = normalizeLetterIndex(rawIndex);
+              if (letterIndex == null || letterIndex < 0 || letterIndex >= options.length) {
+                normalizedIndexes.length = 0;
+                break;
+              }
+              normalizedIndexes.push(letterIndex);
+              continue;
+            }
+            normalizedIndexes.length = 0;
+            break;
+          }
+          if (!normalizedIndexes.length) continue;
+          correctAnswer = normalizedIndexes;
+        }
+
+        norm.push({
+          id: (typeof (q as any).id === 'string' && (q as any).id.trim()) ? (q as any).id : makeId(),
+          question,
+          type,
+          options,
+          correctAnswer,
+          explanation: typeof (q as any).explanation === 'string' ? (q as any).explanation : '',
+          difficulty: typeof (q as any).difficulty === 'string' ? (q as any).difficulty : 'medium',
+          bloomLevel: typeof (q as any).bloomLevel === 'string' ? (q as any).bloomLevel : 'understand',
+          topic: typeof (q as any).topic === 'string' ? (q as any).topic : undefined,
+          points: typeof (q as any).points === 'number' && Number.isFinite((q as any).points) ? (q as any).points : 1,
+        });
+      }
+
+      return norm;
+    };
+
+    try {
+      return attemptParse(raw);
+    } catch (error) {
+      const firstError = error;
+      const firstPreview = preview;
+
+      const lastBracketIndex = Math.max(raw.lastIndexOf(']'), raw.lastIndexOf('}'));
+      if (lastBracketIndex > -1 && lastBracketIndex + 1 < raw.length) {
+        const trimmed = raw.slice(0, lastBracketIndex + 1).trim();
+        try {
+          return attemptParse(trimmed);
+        } catch (retryError) {
+          logger.warn('[QuizGenerator] Retry parse failed after trimming trailing text', {
+            error: (retryError as Error)?.message,
+          });
         }
       }
 
-      const parsed = JSON.parse(jsonText);
-      const questions = parsed.questions || [];
-
-      // Validate và normalize questions
-      return questions.map((q: any) => ({
-        id: q.id || crypto.randomUUID(),
-        question: q.question,
-        type: q.type || 'single_choice',
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation || '',
-        difficulty: q.difficulty || 'medium',
-        bloomLevel: q.bloomLevel || 'understand',
-        topic: q.topic,
-        points: q.points || 1,
-      }));
-    } catch (error) {
-      logger.error('[QuizGenerator] Failed to parse questions:', error);
-      logger.error('[QuizGenerator] Response text:', text.substring(0, 500));
+      logger.error('[QuizGenerator] Failed to parse questions:', firstError);
+      logger.error('[QuizGenerator] Response preview:', firstPreview);
       throw new Error('Không thể parse câu hỏi từ AI response. Vui lòng thử lại.');
     }
   }

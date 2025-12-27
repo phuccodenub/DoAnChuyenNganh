@@ -430,6 +430,38 @@ export const aiApi = {
     });
     return unwrapData(res.data);
   },
+
+  // ==================== DEBATE WORKFLOW ====================
+
+  startDebate: async (payload: {
+    topic: string;
+    context: string;
+    debateType: 'project_design' | 'curriculum' | 'content_review' | 'decision';
+    maxRounds?: number;
+    courseId?: string;
+  }): Promise<any> => {
+    const res = await apiClient.post<{ data: any }>('/ai/debate/start', payload, {
+      timeout: 120000,
+    });
+    return unwrapData(res.data);
+  },
+
+  getDebateResult: async (debateId: string): Promise<any> => {
+    const res = await apiClient.get<{ data: any }>(`/ai/debate/${debateId}`);
+    return unwrapData(res.data);
+  },
+
+  getDebateHistory: async (debateId: string): Promise<any> => {
+    const res = await apiClient.get<{ data: any }>(`/ai/debate/${debateId}/history`);
+    return unwrapData(res.data);
+  },
+
+  arbitrateDebate: async (debateId: string): Promise<any> => {
+    const res = await apiClient.post<{ data: any }>(`/ai/debate/${debateId}/arbitrate`, {}, {
+      timeout: 120000,
+    });
+    return unwrapData(res.data);
+  },
 };
 
 

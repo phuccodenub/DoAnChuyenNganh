@@ -16,6 +16,7 @@ import { ProxyPalProvider } from '../providers/proxypal.provider';
 import { GoogleAIProvider } from '../providers/google-ai.provider';
 import { AICacheService } from './ai-cache.service';
 import env from '../../../config/env.config';
+import { parseJsonFromLlmText } from '../../../utils/llm-json.util';
 
 
 // ============ INTERFACES ============
@@ -323,20 +324,7 @@ Hãy chấm điểm chi tiết, công bằng và xây dựng. Chỉ trả về J
    */
   private parseCodeGradingResponse(text: string): any {
     try {
-      // Extract JSON from response
-      let jsonText = text.trim();
-
-      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (codeBlockMatch) {
-        jsonText = codeBlockMatch[1].trim();
-      } else {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonText = jsonMatch[0];
-        }
-      }
-
-      const parsed = JSON.parse(jsonText);
+      const parsed = parseJsonFromLlmText<any>(text, { required: true });
 
       // Validate required fields (allow score=0)
       if (
@@ -506,19 +494,7 @@ Hãy chấm điểm công bằng, xây dựng và khích lệ học sinh. Chỉ 
    */
   private parseEssayGradingResponse(text: string): any {
     try {
-      let jsonText = text.trim();
-
-      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (codeBlockMatch) {
-        jsonText = codeBlockMatch[1].trim();
-      } else {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          jsonText = jsonMatch[0];
-        }
-      }
-
-      const parsed = JSON.parse(jsonText);
+      const parsed = parseJsonFromLlmText<any>(text, { required: true });
 
       // Validate required fields (allow score=0)
       if (

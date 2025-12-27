@@ -3,17 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PageWrapper, PageHeader } from '@/components/courseEditor';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { cn } from '@/lib/utils';
-import { 
-  BarChart3, 
-  BookOpen, 
-  Settings, 
-  Users, 
-  Loader2, 
+import {
+  BarChart3,
+  BookOpen,
+  Settings,
+  Users,
+  Loader2,
   AlertCircle,
   Info,
   ListChecks,
   FileCheck,
   Bot,
+  Scale,
 } from 'lucide-react';
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { useInstructorCourseDetail, useCourseStats } from '@/hooks/useInstructorCourse';
@@ -25,6 +26,7 @@ import { CourseInfoTab } from './tabs/CourseInfoTab';
 import { ContentTab } from './tabs/ContentTab';
 import { SubmissionsTab } from './tabs/SubmissionsTab';
 import { AiGraderTab } from './tabs/AiGraderTab';
+import { DebateTab } from './tabs/DebateTab';
 
 /**
  * CourseManagementDetailPage
@@ -195,6 +197,18 @@ export function CourseManagementDetailPage() {
                 AI Grader
               </button>
               <button
+                onClick={() => setActiveTab('debate')}
+                className={cn(
+                  'inline-flex items-center justify-center whitespace-nowrap rounded-none border-b-2 border-transparent px-6 py-4 text-sm font-medium transition-colors',
+                  activeTab === 'debate'
+                    ? 'border-blue-600 text-blue-600 bg-transparent'
+                    : 'text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                )}
+              >
+                <Scale className="w-4 h-4 mr-2" />
+                Debate
+              </button>
+              <button
                 onClick={() => setActiveTab('settings')}
                 className={cn(
                   'inline-flex items-center justify-center whitespace-nowrap rounded-none border-b-2 border-transparent px-6 py-4 text-sm font-medium transition-colors',
@@ -252,6 +266,12 @@ export function CourseManagementDetailPage() {
             </div>
           )}
 
+          {activeTab === 'debate' && (
+            <div className="mt-6">
+              <DebateTab courseId={courseId} />
+            </div>
+          )}
+ 
           {activeTab === 'settings' && (
             <div className="mt-6">
               <SettingsTab courseId={courseId} course={course} />

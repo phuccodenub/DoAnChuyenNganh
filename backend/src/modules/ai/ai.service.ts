@@ -15,6 +15,7 @@ import env from '../../config/env.config';
 
 import logger from '../../utils/logger.util';
 import { formatAiAnswer, shorten } from '../../utils/ai-format.util';
+import { parseJsonFromLlmText } from '../../utils/llm-json.util';
 import { ApiError } from '../../errors/api.error';
 import {
   ChatRequest,
@@ -565,15 +566,13 @@ Yêu cầu:
       const response = result.response;
       const text = response.text();
 
-      // Parse JSON response
+      // Parse JSON response (LLM-hardened)
       try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? jsonMatch[0] : text;
-        const parsed = JSON.parse(jsonText);
+        const parsed = parseJsonFromLlmText<any>(text, { required: true });
 
         return {
-          questions: parsed.questions || [],
-          totalQuestions: parsed.questions?.length || 0,
+          questions: parsed?.questions || [],
+          totalQuestions: parsed?.questions?.length || 0,
         };
       } catch (parseError) {
         logger.error('[AIService] Failed to parse quiz JSON:', parseError);
@@ -699,12 +698,10 @@ QUAN TRỌNG:
       const response = result.response;
       const text = response.text();
 
-      // Parse JSON response
+      // Parse JSON response (LLM-hardened)
       try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? jsonMatch[0] : text;
-        const parsed = JSON.parse(jsonText);
-
+        const parsed = parseJsonFromLlmText<any>(text, { required: true });
+ 
         // Tính lại totalEstimatedDuration từ tổng thời lượng các lessons (nếu AI tính sai)
         let calculatedTotalDuration = request.duration || 0;
         if (parsed.sections && Array.isArray(parsed.sections)) {
@@ -796,14 +793,12 @@ Trả về JSON format:
       const text = response.text();
 
       try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? jsonMatch[0] : text;
-        const parsed = JSON.parse(jsonText);
+        const parsed = parseJsonFromLlmText<any>(text, { required: true });
 
         return {
-          improvements: parsed.improvements || [],
-          overallScore: parsed.overallScore,
-          summary: parsed.summary || '',
+          improvements: parsed?.improvements || [],
+          overallScore: parsed?.overallScore,
+          summary: parsed?.summary || '',
         };
       } catch (parseError) {
         logger.error('[AIService] Failed to parse improvements JSON:', parseError);
@@ -1080,10 +1075,8 @@ Trả về JSON format:
 
     const text = response.response;
     try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const jsonText = jsonMatch ? jsonMatch[0] : text;
-      const parsed = JSON.parse(jsonText);
-      const rawRubric = Array.isArray(parsed.rubric) ? parsed.rubric : [];
+      const parsed = parseJsonFromLlmText<any>(text, { required: true });
+      const rawRubric = Array.isArray(parsed?.rubric) ? parsed.rubric : [];
       const formattedRubric = rawRubric.map((item: any) => ({
         name: String(item.name || '').trim() || 'Tiêu chí',
         description: item.description ? String(item.description).trim() : '',
@@ -1092,11 +1085,11 @@ Trả về JSON format:
       const normalizedRubric = this.normalizeRubric(formattedRubric, maxScore, rubricCount);
 
       return {
-        title: parsed.title || 'Assignment',
-        description: parsed.description || '',
-        instructions: parsed.instructions || '',
-        max_score: Number(parsed.max_score || maxScore),
-        submission_type: parsed.submission_type || submissionType,
+        title: parsed?.title || 'Assignment',
+        description: parsed?.description || '',
+        instructions: parsed?.instructions || '',
+        max_score: Number(parsed?.max_score || maxScore),
+        submission_type: parsed?.submission_type || submissionType,
         rubric: normalizedRubric,
       };
     } catch (error) {
@@ -1136,10 +1129,8 @@ Trả về JSON format:
 
     const text = response.response;
     try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const jsonText = jsonMatch ? jsonMatch[0] : text;
-      const parsed = JSON.parse(jsonText);
-      const rawRubric = Array.isArray(parsed.rubric) ? parsed.rubric : [];
+      const parsed = parseJsonFromLlmText<any>(text, { required: true });
+      const rawRubric = Array.isArray(parsed?.rubric) ? parsed.rubric : [];
       const formattedRubric = rawRubric.map((item: any) => ({
         name: String(item.name || '').trim() || 'Tiêu chí',
         description: item.description ? String(item.description).trim() : '',
@@ -1307,19 +1298,17 @@ Trả về JSON format:
       const text = response.text();
 
       try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? jsonMatch[0] : text;
-        const parsed = JSON.parse(jsonText);
+        const parsed = parseJsonFromLlmText<any>(text, { required: true });
 
         return {
           feedback: {
-            score: parsed.score,
-            feedback: parsed.feedback || '',
-            strengths: parsed.strengths || [],
-            improvements: parsed.improvements || [],
-            detailedComments: parsed.detailedComments || [],
+            score: parsed?.score,
+            feedback: parsed?.feedback || '',
+            strengths: parsed?.strengths || [],
+            improvements: parsed?.improvements || [],
+            detailedComments: parsed?.detailedComments || [],
           },
-          suggestedGrade: parsed.suggestedGrade,
+          suggestedGrade: parsed?.suggestedGrade,
         };
       } catch (parseError) {
         logger.error('[AIService] Failed to parse feedback JSON:', parseError);
@@ -1425,15 +1414,13 @@ Trả về JSON format:
       const response = result.response;
       const text = response.text();
 
-      // Parse JSON response
+      // Parse JSON response (LLM-hardened)
       try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? jsonMatch[0] : text;
-        const parsed = JSON.parse(jsonText);
+        const parsed = parseJsonFromLlmText<any>(text, { required: true });
 
         return {
-          prompt: parsed.prompt || `Professional course thumbnail for: ${request.courseTitle}`,
-          suggestions: parsed.suggestions || [],
+          prompt: parsed?.prompt || `Professional course thumbnail for: ${request.courseTitle}`,
+          suggestions: parsed?.suggestions || [],
         };
       } catch (parseError) {
         logger.error('[AIService] Failed to parse thumbnail prompt JSON:', parseError);

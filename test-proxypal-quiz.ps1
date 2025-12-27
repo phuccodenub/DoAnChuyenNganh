@@ -22,7 +22,7 @@ try {
 }
 
 # Step 2: Test Premium Quiz Generation với ProxyPal
-Write-Host "`n[2] Testing Premium Quiz Generation (ProxyPal GPT-5.1)..." -ForegroundColor Yellow
+Write-Host "`n[2] Testing Premium Quiz Generation (ProxyPal Premium)..." -ForegroundColor Yellow
 
 $headers = @{
     "Authorization" = "Bearer $token"
@@ -101,7 +101,7 @@ try {
 # Step 3: Check logs for ProxyPal usage
 Write-Host "`n[3] Checking backend logs for ProxyPal activity..." -ForegroundColor Yellow
 try {
-    $logs = docker logs lms-backend-dev-1 --tail 50 2>&1 | Select-String -Pattern "ProxyPal|GPT-5|polish"
+    $logs = docker logs lms-backend-dev-1 --tail 50 2>&1 | Select-String -Pattern "ProxyPal|gpt-5|polish|premium"
     if ($logs) {
         Write-Host "✓ Found ProxyPal activity:" -ForegroundColor Green
         $logs | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
