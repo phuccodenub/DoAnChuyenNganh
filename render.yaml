@@ -84,7 +84,8 @@ services:
         # PUBLIC_URL = URL của backend service (để serve files local hoặc generate URLs)
         # Khác với R2_PUBLIC_URL (URL của Cloudflare R2 bucket)
       - key: STORAGE_TYPE
-        value: local  # local | google_cloud | aws_s3 | azure_blob | r2
+        sync: false  # Set manually: r2 (nếu dùng R2) hoặc local (nếu dùng local storage)
+        # Options: local | google_cloud | aws_s3 | azure_blob | r2
       # Cloudflare R2 Storage (nếu dùng R2 thay vì local storage)
       - key: R2_ENDPOINT
         sync: false  # Set manually: https://xxx.r2.cloudflarestorage.com
