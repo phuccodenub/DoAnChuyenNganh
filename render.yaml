@@ -19,13 +19,14 @@ services:
       # Set DATABASE_URL từ Supabase connection string trong Render dashboard
       - key: DATABASE_URL
         sync: false  # Set manually: Supabase PostgreSQL connection string
-      # Redis - Có thể disable nếu không cần, hoặc dùng external Redis
-      # Option 1: Disable Redis (nếu không cần cache)
+      # Redis - Dùng Upstash Redis (External)
+      # BƯỚC: Set REDIS_URL thủ công trong Render Dashboard
+      # Format: rediss://default:[TOKEN]@[HOST]:6379
+      # Lấy từ Upstash: Database → Details → TCP tab → Copy connection string
+      - key: REDIS_URL
+        sync: false  # Set manually: Upstash Redis connection string (rediss://...)
       - key: REDIS_DISABLED
-        value: "true"
-      # Option 2: Dùng external Redis (uncomment và set URL)
-      # - key: REDIS_URL
-      #   sync: false  # Set manually: redis://your-redis-host:6379
+        value: "false"  # Enable Redis
       # JWT Configuration
       - key: JWT_SECRET
         generateValue: true  # Render tự động generate
@@ -49,7 +50,7 @@ services:
         value: "true"
       - key: AI_GRADER_ENABLED
         value: "false"
-      # Disable features không cần thiết trên Render (Redis đã disable ở trên)
+      # Disable features không cần thiết trên Render
       - key: DISABLE_CACHE
         value: "false"
       - key: DISABLE_RATE_LIMIT
