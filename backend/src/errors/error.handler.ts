@@ -3,22 +3,53 @@
  * Centralized error handling for Express.js
  */
 
+console.log('[ERROR_HANDLER] Starting imports...');
 import { Request, Response, NextFunction } from 'express';
+console.log('[ERROR_HANDLER] express imported');
+
 import { ZodError } from 'zod';
+console.log('[ERROR_HANDLER] zod imported');
+
 import { BaseError } from './base.error';
+console.log('[ERROR_HANDLER] BaseError imported');
+
 import { ApiError } from './api.error';
+console.log('[ERROR_HANDLER] ApiError imported');
+
 import { ValidationError } from './validation.error';
+console.log('[ERROR_HANDLER] ValidationError imported');
+
 import { AuthenticationError } from './authentication.error';
+console.log('[ERROR_HANDLER] AuthenticationError imported');
+
 import { AuthorizationError } from './authorization.error';
+console.log('[ERROR_HANDLER] AuthorizationError imported');
+
 import { DatabaseError } from './database.error';
+console.log('[ERROR_HANDLER] DatabaseError imported');
+
 import { FileError } from './file.error';
+console.log('[ERROR_HANDLER] FileError imported');
+
 import { ExternalServiceError } from './external-service.error';
+console.log('[ERROR_HANDLER] ExternalServiceError imported');
+
 import { ErrorFactory } from './error.factory';
+console.log('[ERROR_HANDLER] ErrorFactory imported');
+
 import { ErrorUtils } from './error.utils';
+console.log('[ERROR_HANDLER] ErrorUtils imported');
+
 import { responseUtils } from '../utils/response.util';
+console.log('[ERROR_HANDLER] responseUtils imported');
+
 import logger from '../utils/logger.util';
+console.log('[ERROR_HANDLER] logger imported');
 
 import { objectUtils } from '../utils/object.util';
+console.log('[ERROR_HANDLER] objectUtils imported');
+
+console.log('[ERROR_HANDLER] All imports complete, defining ErrorHandler class...');
 export class ErrorHandler {
   /**
    * Global error handler middleware
