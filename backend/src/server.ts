@@ -1,29 +1,47 @@
+// CRITICAL: Log immediately before any imports
+console.log('========================================');
+console.log('🚀 SERVER MODULE LOADING...');
+console.log(`NODE_ENV: ${process.env.NODE_ENV || 'undefined'}`);
+console.log(`PORT: ${process.env.PORT || 'undefined'}`);
+console.log('========================================');
+
 import 'dotenv-flow/config';
+console.log('[1] dotenv-flow loaded');
 // Enable runtime resolution for TypeScript path aliases in compiled JS (optional in dev/test)
 try {
   // eslint-disable-next-line import/no-extraneous-dependencies
   require('module-alias/register');
+  console.log('[2] module-alias loaded');
 } catch (error) {
   if (process.env.NODE_ENV !== 'production') {
     // eslint-disable-next-line no-console
     console.warn('module-alias/register not found; continuing without runtime aliases');
   }
 }
+console.log('[3] Starting imports...');
 import { createServer } from 'http';
+console.log('[4] http imported');
 import { Server as SocketIOServer } from 'socket.io';
+console.log('[5] socket.io imported');
 import app from './app';
+console.log('[6] app imported');
 import { connectRedis } from './config/redis.config';
+console.log('[7] redis config imported');
 import { connectDatabase } from './config/db';
+console.log('[8] db config imported');
 import logger from './utils/logger.util';
+console.log('[9] logger imported');
 import { APP_CONSTANTS } from './constants/app.constants';
+console.log('[10] constants imported');
 
 // Import error handling system
 import { ErrorHandler } from './errors/error.handler';
+console.log('[11] error handler imported');
 
 // Import all models to register them with sequelize
-console.log('[STARTUP] Loading models...');
+console.log('[12] Loading models...');
 import './models';
-console.log('[STARTUP] Models loaded');
+console.log('[13] Models loaded');
 
 // Import Socket.IO gateways
 import { ChatGateway, setChatGateway } from './modules/chat/chat.gateway';
