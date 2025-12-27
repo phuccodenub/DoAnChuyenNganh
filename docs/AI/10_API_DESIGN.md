@@ -272,32 +272,8 @@ Tài liệu này định nghĩa các API endpoints (REST) và WebSocket events c
         "message": "Variable không sử dụng"
       }
     ],
-    "canAppeal": true,
-    "appealDeadline": "2025-12-24T10:30:00Z"
+
   }
-}
-```
-
-#### POST /api/v1/ai/grader/appeal
-**Gửi appeal đánh giá lại**
-
-**Request:**
-```json
-{
-  "resultId": "result-123",
-  "reason": "Tôi không đồng ý vì...",
-  "attachments": ["url-to-explanation"]
-}
-```
-
-**Response:**
-```json
-{
-  "appealId": "appeal-999",
-  "status": "pending_review",
-  "message": "Appeal của bạn đã được gửi",
-  "reviewedBy": "teacher",
-  "estimatedReviewTime": "24h"
 }
 ```
 

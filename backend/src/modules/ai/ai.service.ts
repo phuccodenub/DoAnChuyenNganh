@@ -47,6 +47,8 @@ export class AIService {
   private genAI: GoogleGenerativeAI | null = null;
   private model: any = null;
   private useGroq: boolean = false;
+  private readonly maxFileContentLength = 12000;
+
 
   constructor() {
     // Initialize Groq first (priority for fast responses)
@@ -863,101 +865,290 @@ Trả về JSON format:
         validateStatus: (status) => status === 200,
       });
 
-      let content = '';
-
-      // Handle text files
-      if (textExtensions.includes(extension)) {
-        content = typeof response.data === 'string' 
-          ? response.data 
-          : JSON.stringify(response.data);
-      }
-      // Handle PDF files
-      else if (extension === 'pdf') {
-        try {
-          // pdf-parse uses CommonJS
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const pdfParse = require('pdf-parse');
-          const pdfBuffer = Buffer.from(response.data);
-          // @ts-ignore - pdf-parse has complex types
-          const pdfData = await pdfParse(pdfBuffer);
-          content = pdfData.text || '';
-          logger.info(`[AIService] Successfully extracted text from PDF: ${fileName}`);
-        } catch (pdfError: any) {
-          logger.error(`[AIService] Error parsing PDF ${fileName}:`, pdfError.message);
-          content = `[PDF file: ${fileName} - Could not extract text content]`;
-        }
-      }
-      // Handle DOCX files
-      else if (extension === 'docx' || extension === 'doc') {
-        try {
-          const docxBuffer = Buffer.from(response.data);
-          const result = await mammoth.extractRawText({ buffer: docxBuffer });
-          content = result.value;
-          if (result.messages.length > 0) {
-            logger.warn(`[AIService] DOCX extraction warnings for ${fileName}:`, result.messages);
-          }
-          logger.info(`[AIService] Successfully extracted text from DOCX: ${fileName}`);
-        } catch (docxError: any) {
-          logger.error(`[AIService] Error parsing DOCX ${fileName}:`, docxError.message);
-          content = `[DOCX file: ${fileName} - Could not extract text content]`;
-        }
-      }
-      // Handle Excel files (XLSX only)
-      else if (extension === 'xlsx' || extension === 'xls') {
-        try {
-          const excelBuffer = Buffer.from(response.data);
-          const xlsxBuffer = extension === 'xls' ? await this.convertXlsToXlsx(excelBuffer) : excelBuffer;
-          const workbook = new ExcelJS.Workbook();
-          await workbook.xlsx.load(xlsxBuffer);
-
-          const sheetContents: string[] = [];
-          workbook.worksheets.forEach((worksheet) => {
-            const rows: string[] = [];
-            worksheet.eachRow((row) => {
-              const values = row.values as Array<string | number | boolean | null | undefined>;
-              const line = values
-                .slice(1)
-                .map((value) => (value === null || value === undefined ? '' : String(value)))
-                .join(',');
-              if (line.trim()) rows.push(line);
-            });
-            sheetContents.push(`Sheet: ${worksheet.name}\n${rows.join('\n')}`);
-          });
-
-          content = sheetContents.join('\n\n---\n\n');
-          logger.info(`[AIService] Successfully extracted text from Excel: ${fileName}`);
-        } catch (excelError: any) {
-          logger.error(`[AIService] Error parsing Excel ${fileName}:`, excelError.message);
-          content = `[Excel file: ${fileName} - Could not extract text content]`;
-        }
-      }
-
-      // Handle PPTX files (PowerPoint) - basic text extraction
-      else if (extension === 'pptx' || extension === 'ppt') {
-        // Note: Full PPTX parsing requires more complex libraries
-        // For now, we'll indicate the file type
-        content = `[PowerPoint file: ${fileName} - Text extraction not yet implemented for this format]`;
-        logger.info(`[AIService] PPTX file detected but not parsed: ${fileName}`);
-      }
-      // Handle image files
-      else if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg'].includes(extension)) {
-        content = `[Image file: ${fileName} - Cannot extract text from image. Consider using OCR if needed.]`;
-        logger.info(`[AIService] Image file detected: ${fileName}`);
-      }
-      // Unknown file types
-      else {
-        content = `[File: ${fileName} (${extension}) - Format not supported for text extraction]`;
-        logger.info(`[AIService] Unsupported file type: ${extension} for ${fileName}`);
-      }
-      
+      const content = await this.extractTextFromFile(response.data, extension, fileName, textExtensions);
       return {
-        content: this.truncate(content, 10000), // Limit to 10000 chars per file (increased for PDF/DOCX)
+        content: this.truncate(content, this.maxFileContentLength),
         fileName,
         type: extension,
       };
     } catch (error: any) {
       logger.error(`[AIService] Error reading file from ${url}:`, error.message);
       return null;
+    }
+  }
+
+  private async extractTextFromFile(
+    data: any,
+    extension: string,
+    fileName: string,
+    textExtensions: string[]
+  ): Promise<string> {
+    // Handle text files
+    if (textExtensions.includes(extension)) {
+      return typeof data === 'string' ? data : JSON.stringify(data);
+    }
+
+    // Handle PDF files
+    if (extension === 'pdf') {
+      try {
+        // pdf-parse uses CommonJS
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pdfParse = require('pdf-parse');
+        const pdfBuffer = Buffer.from(data);
+        // @ts-ignore - pdf-parse has complex types
+        const pdfData = await pdfParse(pdfBuffer);
+        logger.info(`[AIService] Successfully extracted text from PDF: ${fileName}`);
+        return pdfData.text || '';
+      } catch (pdfError: any) {
+        logger.error(`[AIService] Error parsing PDF ${fileName}:`, pdfError.message);
+        return `[PDF file: ${fileName} - Could not extract text content]`;
+      }
+    }
+
+    // Handle DOCX/DOC files
+    if (extension === 'docx' || extension === 'doc') {
+      try {
+        const docxBuffer = Buffer.from(data);
+        const result = await mammoth.extractRawText({ buffer: docxBuffer });
+        if (result.messages.length > 0) {
+          logger.warn(`[AIService] DOCX extraction warnings for ${fileName}:`, result.messages);
+        }
+        logger.info(`[AIService] Successfully extracted text from DOCX: ${fileName}`);
+        return result.value;
+      } catch (docxError: any) {
+        logger.error(`[AIService] Error parsing DOCX ${fileName}:`, docxError.message);
+        return `[DOCX file: ${fileName} - Could not extract text content]`;
+      }
+    }
+
+    // Handle Excel files (XLSX only)
+    if (extension === 'xlsx' || extension === 'xls') {
+      try {
+        const excelBuffer = Buffer.from(data);
+        const xlsxBuffer = extension === 'xls' ? await this.convertXlsToXlsx(excelBuffer) : excelBuffer;
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(xlsxBuffer);
+
+        const sheetContents: string[] = [];
+        workbook.worksheets.forEach((worksheet) => {
+          const rows: string[] = [];
+          worksheet.eachRow((row) => {
+            const values = row.values as Array<string | number | boolean | null | undefined>;
+            const line = values
+              .slice(1)
+              .map((value) => (value === null || value === undefined ? '' : String(value)))
+              .join(',');
+            if (line.trim()) rows.push(line);
+          });
+          sheetContents.push(`Sheet: ${worksheet.name}\n${rows.join('\n')}`);
+        });
+
+        logger.info(`[AIService] Successfully extracted text from Excel: ${fileName}`);
+        return sheetContents.join('\n\n---\n\n');
+      } catch (excelError: any) {
+        logger.error(`[AIService] Error parsing Excel ${fileName}:`, excelError.message);
+        return `[Excel file: ${fileName} - Could not extract text content]`;
+      }
+    }
+
+    // Handle PPTX files (PowerPoint) - basic text extraction
+    if (extension === 'pptx' || extension === 'ppt') {
+      logger.info(`[AIService] PPTX file detected but not parsed: ${fileName}`);
+      return `[PowerPoint file: ${fileName} - Text extraction not yet implemented for this format]`;
+    }
+
+    // Handle image files
+    if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg'].includes(extension)) {
+      logger.info(`[AIService] Image file detected: ${fileName}`);
+      return `[Image file: ${fileName} - Cannot extract text from image. Consider using OCR if needed.]`;
+    }
+
+    // Unknown file types
+    logger.info(`[AIService] Unsupported file type: ${extension} for ${fileName}`);
+    return `[File: ${fileName} (${extension}) - Format not supported for text extraction]`;
+  }
+
+  public async readUploadedFileContent(file: Express.Multer.File): Promise<{ content: string; fileName: string; type: string } | null> {
+    try {
+      if (!file) return null;
+      const fileName = file.originalname || file.filename || 'upload';
+      const extension = fileName.split('.').pop()?.toLowerCase() || '';
+      const buffer = file.buffer;
+
+      const textExtensions = ['txt', 'md', 'json', 'xml', 'yaml', 'yml', 'csv', 'log',
+        'py', 'js', 'ts', 'java', 'c', 'cpp', 'h', 'cs', 'rb', 'go', 'rs', 'php',
+        'html', 'css', 'scss', 'sass', 'less', 'sql', 'sh', 'bat', 'ps1',
+        'vue', 'jsx', 'tsx', 'dart', 'swift', 'kt', 'scala', 'r', 'm', 'pl'];
+
+      const content = await this.extractTextFromFile(buffer, extension, fileName, textExtensions);
+      return {
+        content: this.truncate(content, this.maxFileContentLength),
+        fileName,
+        type: extension,
+      };
+    } catch (error: any) {
+      logger.error('[AIService] Error reading uploaded file:', error.message);
+      return null;
+    }
+  }
+
+  private ensurePlainText(text: string): string {
+    if (!text) return '';
+    return text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  private normalizeRubric(
+    rubric: Array<{ name: string; description?: string; points: number }>,
+    maxScore: number,
+    rubricCount: number
+  ) {
+    if (rubric.length === 0) {
+      const baseScore = Math.floor(maxScore / rubricCount);
+      const remainder = maxScore - baseScore * rubricCount;
+      return Array.from({ length: rubricCount }).map((_, idx) => ({
+        name: `Tiêu chí ${idx + 1}`,
+        description: '',
+        points: idx === 0 ? baseScore + remainder : baseScore,
+      }));
+    }
+
+    const total = rubric.reduce((sum, item) => sum + (item.points || 0), 0);
+    if (total === maxScore) return rubric;
+
+    const factor = total > 0 ? maxScore / total : 0;
+    let adjusted = rubric.map((item) => ({
+      ...item,
+      points: Math.max(1, Math.round(item.points * factor)),
+    }));
+
+    let adjustedTotal = adjusted.reduce((sum, item) => sum + item.points, 0);
+    const diff = maxScore - adjustedTotal;
+    if (diff !== 0) {
+      adjusted = adjusted.map((item, idx) =>
+        idx === 0 ? { ...item, points: item.points + diff } : item
+      );
+    }
+
+    return adjusted;
+  }
+
+  async generateAssignmentDraft(request: {
+    courseId: string;
+    content: string;
+    maxScore?: number;
+    submissionType?: 'text' | 'file' | 'both';
+    rubricItems?: number;
+    additionalNotes?: string;
+  }): Promise<{
+    title: string;
+    description: string;
+    instructions: string;
+    max_score: number;
+    submission_type: 'text' | 'file' | 'both';
+    rubric: Array<{ name: string; description?: string; points: number }>;
+  }> {
+    if (!this.useGroq && !this.model) {
+      throw new Error('AI service is not available. Please configure GROQ_API_KEY or GEMINI_API_KEY.');
+    }
+
+    const cleanedContent = this.ensurePlainText(request.content);
+    if (!cleanedContent) {
+      throw new Error('Empty content for assignment generation');
+    }
+
+    const rubricCount = request.rubricItems ?? 4;
+    const maxScore = request.maxScore ?? 100;
+    const submissionType = request.submissionType ?? 'both';
+
+    let prompt = 'Bạn là trợ lý tạo đề bài tập cho khóa học. Tạo nội dung đúng format JSON, ngắn gọn, rõ ràng.\n';
+    prompt += `Yêu cầu trả về JSON:\n{\n  "title": "...",\n  "description": "...",\n  "instructions": "...",\n  "max_score": ${maxScore},\n  "submission_type": "${submissionType}",\n  "rubric": [\n    {"name": "...", "description": "...", "points": 0}\n  ]\n}\n`;
+    prompt += 'Quy tắc:\n';
+    prompt += `- Tạo ${rubricCount} tiêu chí rubric, tổng điểm bằng ${maxScore}.\n`;
+    prompt += '- Mỗi tiêu chí có tên ngắn gọn, mô tả 1-2 câu.\n';
+    prompt += '- Description mô tả mục tiêu bài tập trong 1-2 câu.\n';
+    prompt += '- Instructions chi tiết 5-8 bullet, yêu cầu rõ ràng.\n';
+    prompt += '- Không thêm markdown, chỉ JSON thuần.\n';
+    if (request.additionalNotes) {
+      prompt += `Ghi chú bổ sung: ${request.additionalNotes}\n`;
+    }
+    prompt += `\nNội dung khóa học:\n${this.truncate(cleanedContent, 5000)}\n`;
+
+    const response = await this.callAIWithFallback(prompt, {
+      temperature: 0.5,
+      maxTokens: Math.min(env.ai.gemini.maxTokens, 1024),
+    }, 1024);
+
+    const text = response.response;
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonText = jsonMatch ? jsonMatch[0] : text;
+      const parsed = JSON.parse(jsonText);
+      const rawRubric = Array.isArray(parsed.rubric) ? parsed.rubric : [];
+      const formattedRubric = rawRubric.map((item: any) => ({
+        name: String(item.name || '').trim() || 'Tiêu chí',
+        description: item.description ? String(item.description).trim() : '',
+        points: Number(item.points || 0),
+      }));
+      const normalizedRubric = this.normalizeRubric(formattedRubric, maxScore, rubricCount);
+
+      return {
+        title: parsed.title || 'Assignment',
+        description: parsed.description || '',
+        instructions: parsed.instructions || '',
+        max_score: Number(parsed.max_score || maxScore),
+        submission_type: parsed.submission_type || submissionType,
+        rubric: normalizedRubric,
+      };
+    } catch (error) {
+      logger.error('[AIService] Failed to parse assignment JSON:', error);
+      throw new Error('Failed to parse AI response as JSON');
+    }
+  }
+
+  async generateRubricFromText(request: {
+    content: string;
+    maxScore: number;
+    rubricItems?: number;
+  }): Promise<Array<{ name: string; description?: string; points: number }>> {
+    if (!this.useGroq && !this.model) {
+      throw new Error('AI service is not available. Please configure GROQ_API_KEY or GEMINI_API_KEY.');
+    }
+
+    const cleanedContent = this.ensurePlainText(request.content);
+    if (!cleanedContent) {
+      throw new Error('Empty content for rubric generation');
+    }
+
+    const rubricCount = request.rubricItems ?? 4;
+    const maxScore = request.maxScore ?? 100;
+
+    let prompt = 'Bạn là trợ lý thiết kế rubric chấm điểm cho bài tập. Trả về JSON thuần.\n';
+    prompt += `JSON cần có dạng:\n{\n  "rubric": [\n    {"name": "...", "description": "...", "points": 0}\n  ]\n}\n`;
+    prompt += `Yêu cầu:\n- Tạo ${rubricCount} tiêu chí rubric, tổng điểm bằng ${maxScore}.\n`;
+    prompt += '- Mỗi tiêu chí có tên ngắn gọn, mô tả 1-2 câu.\n';
+    prompt += '- Không thêm markdown, chỉ JSON.\n';
+    prompt += `\nThông tin từ instructor:\n${this.truncate(cleanedContent, 5000)}\n`;
+
+    const response = await this.callAIWithFallback(prompt, {
+      temperature: 0.4,
+      maxTokens: Math.min(env.ai.gemini.maxTokens, 768),
+    }, 768);
+
+    const text = response.response;
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonText = jsonMatch ? jsonMatch[0] : text;
+      const parsed = JSON.parse(jsonText);
+      const rawRubric = Array.isArray(parsed.rubric) ? parsed.rubric : [];
+      const formattedRubric = rawRubric.map((item: any) => ({
+        name: String(item.name || '').trim() || 'Tiêu chí',
+        description: item.description ? String(item.description).trim() : '',
+        points: Number(item.points || 0),
+      }));
+      return this.normalizeRubric(formattedRubric, maxScore, rubricCount);
+    } catch (error) {
+      logger.error('[AIService] Failed to parse rubric JSON:', error);
+      throw new Error('Failed to parse AI response as JSON');
     }
   }
 

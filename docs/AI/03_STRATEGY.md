@@ -21,11 +21,11 @@ Request Received
     ↓
 ┌───────────────────────────────────────┐
 │ Is this a critical operation?        │
-│ (Grade appeal, Final exam, etc.)     │
+│ (Final exam, publish review, etc.)   │
 └───┬───────────────────────────────────┘
     │
-    ├─→ YES → Use Tier 3 (MegaLLM Claude)
-    │         Log usage, check budget
+    ├─→ YES → Use Tier 3 (ProxyPal Premium)
+    │         Log usage, enforce flags
     │
     └─→ NO
         ↓
@@ -56,7 +56,7 @@ Request Received
 ```
 
 Tóm tắt:
-- **Critical operation?** → dùng **Tier 3 (MegaLLM Claude)**, luôn log và kiểm tra budget.
+- **Critical operation?** → dùng **Tier 3 (ProxyPal Premium)**, luôn log và kiểm soát quyền/feature flag.
 - Không critical → quyết định theo **số tokens** và **tính chất (code hay không, real-time hay không)**.
 
 ---
@@ -145,7 +145,7 @@ function selectQuizModel(content: Content): ModelSelection {
 **Thứ tự ưu tiên model (Model Priority):**
 1. **ProxyPal Gemini 3 Pro** (Primary) – Chất lượng tốt nhất, context 2M.
 2. **Google Gemini Flash** (nội dung nhỏ) – Nhanh, context 1M.
-3. **MegaLLM Claude Sonnet** (chỉ dùng cho final exam) – Chất lượng premium.
+3. **ProxyPal GPT-5.1** (chỉ dùng cho final exam polish) – Chất lượng premium.
 
 **Quy trình nhiều bước (Multi-Stage Process):**
 
@@ -193,21 +193,6 @@ function selectCodeGrader(submission: CodeSubmission): ModelSelection {
 }
 ```
 
-**Quy trình xử lý kháng nghị điểm (Appeal Process):**
-
-```typescript
-function handleGradeAppeal(appeal: Appeal): ModelSelection {
-  // Kháng nghị điểm: luôn dùng model premium
-  return {
-    provider: 'megallm',
-    model: 'claude-sonnet-4-5',
-    rationale: 'Critical decision requiring highest accuracy',
-    logCost: true,
-    requireApproval: true
-  };
-}
-```
-
 #### 3B. Chấm bài luận (Essay/Written Grading)
 
 **Yêu cầu (Requirements):**
@@ -223,20 +208,11 @@ function selectEssayGrader(essay: Essay): ModelSelection {
   const wordCount = essay.content.split(' ').length;
   
   // Chấm hàng loạt: dùng Google Flash (free tier)
-  if (!essay.isAppealed) {
-    return {
-      provider: 'google',
-      model: 'gemini-1.5-flash',
-      rationale: 'Free tier sufficient for bulk grading',
-      temperature: 0.3 // Độ biến thiên thấp → chấm nhất quán hơn
-    };
-  }
-  
-  // Bài bị kháng nghị: dùng premium
   return {
-    provider: 'megallm',
-    model: 'claude-sonnet-4-5',
-    rationale: 'Appeal requires highest accuracy'
+    provider: 'google',
+    model: 'gemini-1.5-flash',
+    rationale: 'Free tier sufficient for bulk grading',
+    temperature: 0.3 // Độ biến thiên thấp → chấm nhất quán hơn
   };
 }
 ```
@@ -280,8 +256,8 @@ function selectDebateModels(topic: DebateTopic): DebateConfig {
     
     // Arbiter: chỉ gọi nếu mức độ bất đồng > 30%
     arbiter: {
-      provider: 'megallm',
-      model: 'claude-sonnet-4-5',
+      provider: 'proxypal',
+      model: 'gpt-5.2',
       role: 'impartial_judge',
       trigger: 'high_disagreement',
       systemPrompt: 'You are an impartial judge...'
@@ -297,7 +273,7 @@ function selectDebateModels(topic: DebateTopic): DebateConfig {
 2. Agent B (Qwen Coder) → Phản biện / review kỹ thuật
 3. Agent A → Phản hồi lại (rebuttal)
 4. Tính điểm bất đồng (disagreement score)
-5. Nếu score > 0.3 → Agent C (Claude Sonnet) → Ra phán quyết cuối
+5. Nếu score > 0.3 → Agent C (ProxyPal GPT-5.2) → Ra phán quyết cuối
    Ngược lại → Tổng hợp kết quả của A + B
 ```
 
@@ -398,9 +374,9 @@ const cacheDurations = {
   },
   
   // Không cache
-  gradeAppeal: {
+  publishReview: {
     ttl: 0,
-    rationale: 'Each appeal is unique and critical'
+    rationale: 'Each publish review is unique and critical'
   }
 };
 ```
@@ -487,7 +463,7 @@ class PremiumGatekeeper {
     }
     
     // Các tác vụ critical
-    const criticalOps = ['appeal', 'final_exam', 'plagiarism'];
+    const criticalOps = ['final_exam', 'publish_review', 'plagiarism'];
     if (criticalOps.includes(request.operation)) {
       // Yêu cầu manager approve
       return await this.getManagerApproval(request);
@@ -589,7 +565,7 @@ class OutputValidator {
 const fallbackChain = {
   'proxypal-gemini': ['google-flash', 'groq', 'cached-default'],
   'groq': ['google-flash', 'cached-response', 'error-message'],
-  'megallm': ['proxypal-gemini', 'human-review'] // Premium không có fallback rẻ
+  'proxypal-premium': ['proxypal-gemini', 'human-review'] // Premium phụ thuộc ProxyPal local
 };
 
 async function executeWithFallback(

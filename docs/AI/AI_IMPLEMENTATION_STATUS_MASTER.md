@@ -22,9 +22,9 @@ The AI system is designed as a **3-tier hybrid architecture** to balance cost, s
     *   **Solution:** Multi-key rotation (3 keys) + Intelligent Routing.
     *   **Status:** ✅ Active & Integrated with Rotation.
 
-3.  **Tier 3: ProxyPal (Local Dev - Unlimited)**
-    *   **Models:** `gemini-3-pro-preview`, `qwen3-coder-plus`.
-    *   **Role:** Local development, heavy lifting (long context), unlimited testing.
+3.  **Tier 3: ProxyPal (Premium / Dev)**
+    *   **Models:** `gpt-5.2`, `gpt-5.1`, `gpt-5`, `qwen3-coder-plus`.
+    *   **Role:** Premium polish/judging + local development heavy lifting.
     *   **Status:** ✅ Supported in Backend (Optional).
 
 ---

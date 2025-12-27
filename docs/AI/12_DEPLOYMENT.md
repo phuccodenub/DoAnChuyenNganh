@@ -304,8 +304,9 @@ services:
       PROXYPAL_URL: http://proxypal:8888
       GROQ_API_KEY: ${GROQ_API_KEY}
       GOOGLE_AI_KEY: ${GOOGLE_AI_KEY}
-      MEGALLM_ACCOUNT1_KEY: ${MEGALLM_ACCOUNT1_KEY}
-      MEGALLM_ACCOUNT2_KEY: ${MEGALLM_ACCOUNT2_KEY}
+      PROXYPAL_MODEL_PREMIUM: ${PROXYPAL_MODEL_PREMIUM}
+      PROXYPAL_MODEL_POLISH: ${PROXYPAL_MODEL_POLISH}
+      PROXYPAL_MODEL_FALLBACK: ${PROXYPAL_MODEL_FALLBACK}
       JWT_SECRET: ${JWT_SECRET}
       SENTRY_DSN: ${SENTRY_DSN}
     volumes:
@@ -686,7 +687,7 @@ sudo ufw enable
 # Using Kubernetes secrets
 kubectl create secret generic ai-keys \
   --from-literal=groq-api-key=$GROQ_API_KEY \
-  --from-literal=megallm-key=$MEGALLM_KEY \
+  --from-literal=proxypal-model-premium=$PROXYPAL_MODEL_PREMIUM \
   -n lms-ai
 
 # Or using HashiCorp Vault

@@ -169,7 +169,9 @@ export class SessionManagementService {
       
       // Check for rapid login attempts
       const recentSessions = sessions.filter(s => {
-        const timeDiff = Date.now() - s.loginTime.getTime();
+        // Parse loginTime to Date if it's a string (from cache)
+        const loginTime = s.loginTime instanceof Date ? s.loginTime : new Date(s.loginTime);
+        const timeDiff = Date.now() - loginTime.getTime();
         return timeDiff < 5 * 60 * 1000; // 5 minutes
       });
       

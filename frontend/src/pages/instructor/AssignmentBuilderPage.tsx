@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Save, Eye, Upload, Calendar, Loader2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Save, Eye, Calendar, Loader2, Sparkles } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useRoleBasedNavigation } from '@/hooks/useRoleBasedNavigation';
 import { useCreateAssignment, useUpdateAssignment } from '@/hooks/useAssignments';
+import { useCourseContent } from '@/hooks/useLessonData';
+import { aiApi } from '@/services/api/ai.api';
+import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
 /**
@@ -31,9 +34,11 @@ interface RubricCriteria {
 
 export function AssignmentBuilderPage() {
   const { courseId, assignmentId } = useParams<{ courseId: string; assignmentId?: string }>();
-  const navigate = useNavigate();
+
   const { navigateTo } = useRoleBasedNavigation();
   const isEditMode = !!assignmentId;
+  const { data: courseContent } = useCourseContent(courseId || '', { enabled: !!courseId });
+
 
   // Assignment form state
   const [assignmentForm, setAssignmentForm] = useState({
@@ -60,6 +65,10 @@ export function AssignmentBuilderPage() {
     { id: '3', criteria: 'Trình bày và format', max_score: 20, description: 'Bài làm được trình bày rõ ràng, dễ đọc' },
     { id: '4', criteria: 'Nộp đúng hạn', max_score: 10, description: 'Nộp bài đúng hoặc trước thời hạn' },
   ]);
+  const [assignmentNotes, setAssignmentNotes] = useState('');
+  const [assignmentSourceMode, setAssignmentSourceMode] = useState<'course' | 'file'>('course');
+  const [assignmentSourceFile, setAssignmentSourceFile] = useState<File | null>(null);
+  const [assignmentFileError, setAssignmentFileError] = useState('');
 
   const [showRubricModal, setShowRubricModal] = useState(false);
   const [rubricForm, setRubricForm] = useState<RubricCriteria>({
@@ -152,6 +161,11 @@ export function AssignmentBuilderPage() {
       description: assignmentForm.description,
       instructions: assignmentForm.instructions,
       max_score: assignmentForm.max_score,
+      rubric: rubric.map((item) => ({
+        name: item.criteria,
+        description: item.description,
+        points: item.max_score,
+      })),
       due_date: assignmentForm.due_date ? new Date(assignmentForm.due_date).toISOString() : undefined,
       allow_late_submission: assignmentForm.allow_late_submission,
       submission_type: assignmentForm.submission_type,
@@ -177,6 +191,115 @@ export function AssignmentBuilderPage() {
 
   const totalRubricPoints = rubric.reduce((sum, r) => sum + r.max_score, 0);
 
+  const buildCourseContent = () => {
+    if (!courseContent) return '';
+    const parts: string[] = [];
+
+    if (courseContent.sections && courseContent.sections.length > 0) {
+      parts.push('## Nội dung khóa học');
+      courseContent.sections
+        .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+        .forEach((section, secIdx) => {
+          parts.push(`\n### Chương ${secIdx + 1}: ${section.title || 'Chưa có tiêu đề'}`);
+          if (section.description) {
+            parts.push(`**Mô tả chương:** ${section.description}`);
+          }
+          const lessons = section.lessons || [];
+          lessons
+            .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+            .forEach((lesson, lessonIdx) => {
+              parts.push(`\n#### Bài ${lessonIdx + 1}: ${lesson.title || 'Chưa có tiêu đề'}`);
+              if (lesson.description) {
+                parts.push(`**Mô tả:** ${lesson.description}`);
+              }
+              if (lesson.content) {
+                const textContent = String(lesson.content)
+                  .replace(/<[^>]+>/g, ' ')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+                if (textContent) {
+                  parts.push(`**Nội dung:** ${textContent.substring(0, 1500)}`);
+                }
+              }
+            });
+        });
+    }
+
+    return parts.join('\n\n');
+  };
+
+  const generateAssignment = useMutation({
+    mutationFn: (payload: {
+      courseId: string;
+      content: string;
+      maxScore?: number;
+      submissionType?: 'text' | 'file' | 'both';
+      rubricItems?: number;
+      additionalNotes?: string;
+    }) => aiApi.generateAssignment(payload),
+    onSuccess: (data) => {
+      setAssignmentForm((prev) => ({
+        ...prev,
+        title: data.title || prev.title,
+        description: data.description || prev.description,
+        instructions: data.instructions || prev.instructions,
+        max_score: data.max_score || prev.max_score,
+        submission_type: data.submission_type || prev.submission_type,
+      }));
+      if (data.rubric && data.rubric.length > 0) {
+        setRubric(
+          data.rubric.map((item, idx) => ({
+            id: `${Date.now()}-${idx}`,
+            criteria: item.name,
+            max_score: item.points,
+            description: item.description || '',
+          }))
+        );
+      }
+      toast.success('Đã tạo Assignment từ AI');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Không thể tạo assignment');
+    },
+  });
+
+  const generateAssignmentFromFile = useMutation({
+    mutationFn: (payload: {
+      courseId: string;
+      file: File;
+      maxScore?: number;
+      submissionType?: 'text' | 'file' | 'both';
+      rubricItems?: number;
+      additionalNotes?: string;
+    }) => aiApi.generateAssignmentFromFile(payload),
+    onSuccess: (data) => {
+      setAssignmentForm((prev) => ({
+        ...prev,
+        title: data.title || prev.title,
+        description: data.description || prev.description,
+        instructions: data.instructions || prev.instructions,
+        max_score: data.max_score || prev.max_score,
+        submission_type: data.submission_type || prev.submission_type,
+      }));
+      if (data.rubric && data.rubric.length > 0) {
+        setRubric(
+          data.rubric.map((item, idx) => ({
+            id: `${Date.now()}-${idx}`,
+            criteria: item.name,
+            max_score: item.points,
+            description: item.description || '',
+          }))
+        );
+      }
+      toast.success('Đã tạo Assignment từ AI');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Không thể tạo assignment');
+    },
+  });
+
+  const isGeneratingAssignment = generateAssignment.isPending || generateAssignmentFromFile.isPending;
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
@@ -190,6 +313,211 @@ export function AssignmentBuilderPage() {
           </p>
         </div>
       </div>
+
+      {/* AI Assignment Generator */}
+      <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            <CardTitle className="text-lg">AI Tạo Assignment</CardTitle>
+          </div>
+          <p className="text-sm text-gray-600 mt-1">
+            Tạo nhanh đề bài, mô tả, hướng dẫn và rubric theo format Assignment
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tổng điểm</label>
+              <Input
+                type="number"
+                value={assignmentForm.max_score}
+                min={10}
+                max={200}
+                onChange={(e) =>
+                  setAssignmentForm({
+                    ...assignmentForm,
+                    max_score: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hình thức nộp</label>
+              <select
+                value={assignmentForm.submission_type}
+                onChange={(e) =>
+                  setAssignmentForm({
+                    ...assignmentForm,
+                    submission_type: e.target.value as SubmissionType,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="text">Nhập văn bản</option>
+                <option value="file">Upload file</option>
+                <option value="both">Văn bản + File</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Số tiêu chí rubric</label>
+              <Input
+                type="number"
+                min={2}
+                max={10}
+                value={rubric.length || 4}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (Number.isNaN(value) || value < 2) return;
+                  const baseScore = Math.floor(assignmentForm.max_score / value);
+                  const remainder = assignmentForm.max_score - baseScore * value;
+                  setRubric(
+                    Array.from({ length: value }).map((_, idx) => ({
+                      id: `${Date.now()}-${idx}`,
+                      criteria: '',
+                      max_score: idx === 0 ? baseScore + remainder : baseScore,
+                      description: '',
+                    }))
+                  );
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-lg border border-purple-100 bg-white p-3">
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio"
+                  name="assignmentSource"
+                  value="course"
+                  checked={assignmentSourceMode === 'course'}
+                  onChange={() => {
+                    setAssignmentSourceMode('course');
+                    setAssignmentFileError('');
+                    setAssignmentSourceFile(null);
+                  }}
+                  className="text-purple-600 focus:ring-purple-500"
+                />
+                Dùng nội dung khóa học
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio"
+                  name="assignmentSource"
+                  value="file"
+                  checked={assignmentSourceMode === 'file'}
+                  onChange={() => {
+                    setAssignmentSourceMode('file');
+                    setAssignmentFileError('');
+                  }}
+                  className="text-purple-600 focus:ring-purple-500"
+                />
+                Dùng file tải lên
+              </label>
+            </div>
+
+            {assignmentSourceMode === 'file' && (
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setAssignmentSourceFile(file);
+                    if (!file) {
+                      setAssignmentFileError('');
+                      return;
+                    }
+                    if (file.size > 10 * 1024 * 1024) {
+                      setAssignmentFileError('File vượt quá 10MB, vui lòng chọn file nhỏ hơn.');
+                      setAssignmentSourceFile(null);
+                      return;
+                    }
+                    setAssignmentFileError('');
+                  }}
+                />
+                <p className="text-xs text-gray-500">
+                  Hỗ trợ TXT, Markdown, CSV, JSON, PDF, DOC, DOCX (tối đa 10MB).
+                </p>
+                {assignmentSourceFile && (
+                  <p className="text-xs text-gray-700">Đã chọn: {assignmentSourceFile.name}</p>
+                )}
+                {assignmentFileError && (
+                  <p className="text-xs text-red-600">{assignmentFileError}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú thêm (tuỳ chọn)</label>
+            <textarea
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="VD: Nhấn mạnh phần phân tích, yêu cầu nộp kèm báo cáo PDF..."
+              value={assignmentNotes}
+              onChange={(e) => setAssignmentNotes(e.target.value)}
+            />
+          </div>
+
+          <Button
+            onClick={() => {
+              if (!courseId) {
+                toast.error('Không tìm thấy ID khóa học');
+                return;
+              }
+              if (assignmentSourceMode === 'file') {
+                if (!assignmentSourceFile) {
+                  toast.error('Vui lòng chọn file để tạo assignment');
+                  return;
+                }
+                if (assignmentFileError) {
+                  toast.error(assignmentFileError);
+                  return;
+                }
+                generateAssignmentFromFile.mutate({
+                  courseId,
+                  file: assignmentSourceFile,
+                  maxScore: assignmentForm.max_score,
+                  submissionType: assignmentForm.submission_type,
+                  rubricItems: rubric.length || 4,
+                  additionalNotes: assignmentNotes.trim() || undefined,
+                });
+                return;
+              }
+
+              const content = buildCourseContent();
+              if (!content.trim()) {
+                toast.error('Nội dung khóa học trống, vui lòng bổ sung bài học trước');
+                return;
+              }
+              generateAssignment.mutate({
+                courseId,
+                content,
+                maxScore: assignmentForm.max_score,
+                submissionType: assignmentForm.submission_type,
+                rubricItems: rubric.length || 4,
+                additionalNotes: assignmentNotes.trim() || undefined,
+              });
+            }}
+            disabled={isGeneratingAssignment}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
+            {isGeneratingAssignment ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Đang tạo assignment...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Tạo Assignment với AI
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Basic Info */}
       <Card>

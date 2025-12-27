@@ -34,8 +34,10 @@ export { default as CourseChatReadStatus } from './course-chat-read-status.model
 export { default as CoursePrerequisite } from './course-prerequisite.model';
 export { default as SystemSetting } from './system-setting.model';
 export { default as AIChatHistory } from './ai-chat-history.model';
+export { default as DebateHistory } from './debate-history.model';
 export { default as AILessonAnalysis } from '../modules/ai/models/ai-lesson-analysis.model';
 export { default as AIAnalysisQueue } from '../modules/ai/models/ai-analysis-queue.model';
+
 
 // Import models for associations
 import User from './user.model';
@@ -58,8 +60,10 @@ import DirectMessage from './direct-message.model';
 import Certificate from './certificate.model';
 import CourseChatReadStatus from './course-chat-read-status.model';
 import CoursePrerequisite from './course-prerequisite.model';
+import DebateHistory from './debate-history.model';
 import AILessonAnalysis from '../modules/ai/models/ai-lesson-analysis.model';
 import AIAnalysisQueue from '../modules/ai/models/ai-analysis-queue.model';
+
 
 // Define associations
 const models: { [key: string]: any } = { 
@@ -67,8 +71,16 @@ const models: { [key: string]: any } = {
   Section, LessonMaterial, LessonProgress, Notification, NotificationRecipient,
   Quiz, QuizQuestion, QuizAttempt, QuizAnswer, QuizOption,
   Conversation, DirectMessage, Certificate, CourseChatReadStatus, CoursePrerequisite,
-  AILessonAnalysis, AIAnalysisQueue
+  DebateHistory, AILessonAnalysis, AIAnalysisQueue
 };
+
+// Debate history association
+Course.hasMany(DebateHistory, { foreignKey: 'course_id', as: 'debates' });
+DebateHistory.belongsTo(Course, { foreignKey: 'course_id', as: 'course' });
+User.hasMany(DebateHistory, { foreignKey: 'initiated_by', as: 'debateHistory' });
+DebateHistory.belongsTo(User, { foreignKey: 'initiated_by', as: 'initiator' });
+
+
 
 // Define explicit associations for AI models
 Lesson.hasOne(AILessonAnalysis, { foreignKey: 'lesson_id', as: 'aiAnalysis' });

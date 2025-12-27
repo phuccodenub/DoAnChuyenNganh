@@ -283,12 +283,21 @@ export interface GenerateThumbnailResponse {
  */
 export interface GenerateLessonContentRequest {
   lessonTitle: string;
-  lessonDescription: string;
+  lessonDescription?: string;
   courseTitle: string;
   courseDescription?: string;
   sectionTitle?: string;
   level?: 'beginner' | 'intermediate' | 'advanced';
 }
+
+export interface DebateStartRequest {
+  topic: string;
+  context: string;
+  debateType: 'project_design' | 'curriculum' | 'content_review' | 'decision';
+  maxRounds?: number;
+  courseId?: string;
+}
+
 
 export interface GenerateLessonContentResponse {
   content: string; // Nội dung chi tiết đầy đủ (HTML hoặc markdown)

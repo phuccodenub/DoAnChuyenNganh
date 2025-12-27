@@ -291,103 +291,40 @@ export const groqConfig = {
 
 ---
 
-### 4. MegaLLM - Truy cập Premium (Premium Access)
+### 4. ProxyPal Premium - Premium Models (Local/Hosted)
+
+#### Tổng quan
+
+Tier premium hiện chạy thông qua **ProxyPal Premium Models** (ví dụ: `gpt-5.2`, `gpt-5.1`).
 
 #### Hướng dẫn thiết lập (Setup Instructions)
 
-1. **Thiết lập tài khoản (Account Setup):**
-   - Đã có sẵn 2 tài khoản, mỗi tài khoản có ~$75 credit.
-   - Tổng ngân sách: ~$150
-   - Đăng nhập tại https://megallm.com/
+1. **Bật ProxyPal và đảm bảo endpoint hoạt động:**
+   - Default: `http://127.0.0.1:8317/v1`
+   - Kiểm tra `GET /v1/models`
 
-2. **Cấu hình API (API Configuration):**
+2. **Cấu hình env cho premium models:**
    ```bash
-   # File .env
-   MEGALLM_API_KEY_1=your_primary_key
-   MEGALLM_API_KEY_2=your_backup_key
-   MEGALLM_BASE_URL=https://api.megallm.com/v1
+   # ProxyPal (Local)
+   PROXYPAL_BASE_URL=http://127.0.0.1:8317/v1
+   PROXYPAL_API_KEY=proxypal-local
+   PROXYPAL_ENABLED=true
+   PROXYPAL_TIMEOUT=60000
+
+   # Premium model mapping
+   PROXYPAL_MODEL_PREMIUM=gpt-5.2
+   PROXYPAL_MODEL_POLISH=gpt-5.1
+   PROXYPAL_MODEL_FALLBACK=gpt-5
    ```
 
-3. **Giám sát ngân sách (Budget Monitoring):**
-   ```typescript
-   // config/megallm-budget.ts
-   export const megallmBudget = {
-     totalBudget: 150,
-     warningThreshold: 100, // 70%
-     criticalThreshold: 135, // 90%
-     dailyLimit: 5, // tối đa $5 mỗi ngày
-     alertEmail: 'team@lms.com'
-   };
-   ```
+#### Model mapping khuyến nghị
 
-#### Các model khả dụng (Available Models)
+| Use Case | Model | Ghi chú |
+|----------|-------|---------|
+| Debate judging / arbitration | `gpt-5.2` | Model mạnh nhất cho quyết định cuối |
+| Quiz premium polish | `gpt-5.1` | Polish stage, cải thiện wording & ambiguity |
+| Premium fallback | `gpt-5` | Ổn định, dùng khi cần |
 
-**Claude Sonnet 4.5**
-
-| Thuộc tính (Attribute) | Giá trị (Value) |
-|------------------------|-----------------| 
-| **Model ID** | `claude-sonnet-4-5-20250929` |
-| **Context Window** | 200,000 tokens |
-| **Max Output** | 64,000 tokens |
-| **Cost** | Input: $3/M tokens, Output: $15/M tokens |
-| **Latency** | 2–4 giây |
-| **Strengths** | Reasoning rất mạnh, viết lách xuất sắc |
-| **Best For** | Sinh đề thi, xử lý kháng nghị điểm, arbitration |
-| **Use Cases** | Tối đa 10–20 call mỗi ngày |
-
-**Ví dụ tính chi phí (Cost Calculation Examples):**
-
-```
-Example 1: Grade Appeal (10K input + 2K output)
-- Input: 10,000 tokens × $3/1M = $0.03
-- Output: 2,000 tokens × $15/1M = $0.03
-- Total: $0.06 per appeal
-
-Example 2: Exam Review (50K input + 5K output)
-- Input: 50,000 tokens × $3/1M = $0.15
-- Output: 5,000 tokens × $15/1M = $0.075
-- Total: $0.225 per exam
-```
-
-**Claude Opus 4.5**
-
-| Thuộc tính (Attribute) | Giá trị (Value) |
-|------------------------|-----------------| 
-| **Model ID** | `claude-opus-4-5-20251101` |
-| **Context Window** | 200,000 tokens |
-| **Max Output** | 64,000 tokens |
-| **Cost** | Input: $5/M tokens, Output: $25/M tokens |
-| **Latency** | 3–6 giây |
-| **Strengths** | Chất lượng cao nhất, reasoning rất phức tạp |
-| **Best For** | **Chỉ dùng khi khẩn cấp** – đề thi cuối kỳ, tranh chấp quan trọng |
-| **Use Cases** | < 5 call mỗi tháng |
-
-**Ví dụ cấu hình (Configuration Example):**
-
-```typescript
-// config/ai-providers.ts
-export const megallmConfig = {
-  apiKeys: [
-    process.env.MEGALLM_API_KEY_1,
-    process.env.MEGALLM_API_KEY_2
-  ],
-  baseURL: process.env.MEGALLM_BASE_URL,
-  models: {
-    sonnet: 'claude-sonnet-4-5-20250929',
-    opus: 'claude-opus-4-5-20251101'
-  },
-  budget: {
-    daily: 5,
-    monthly: 150,
-    requireApproval: true
-  },
-  defaultParams: {
-    temperature: 0.7,
-    max_tokens: 4096,
-    top_p: 0.95
-  }
-};
-```
 
 ---
 
@@ -442,7 +379,7 @@ export class AIOrchestrator {
   private selectTier(classification: Classification): Tier {
     // Tier 3: Premium (chỉ cho tác vụ critical)
     if (classification.requiresPremium) {
-      return 'tier3-megallm';
+      return 'tier3-proxypal-premium';
     }
     
     // Tier 2: Local/ProxyPal (context lớn hoặc technical)
@@ -495,12 +432,12 @@ export class FailoverHandler {
   }
   
   private buildFailoverChain(primary: AIProvider): AIProvider[] {
-    // Ví dụ chain: Groq → Google Flash → ProxyPal Gemini → MegaLLM
+    // Ví dụ chain: Groq → Google Flash → ProxyPal Gemini → ProxyPal Premium
     const chains = {
       'groq': ['groq', 'google-flash', 'proxypal-gemini'],
       'google-flash': ['google-flash', 'groq', 'proxypal-gemini'],
-      'proxypal-gemini': ['proxypal-gemini', 'google-flash', 'megallm-sonnet'],
-      'megallm': ['megallm-sonnet'] // Premium không có fallback rẻ
+      'proxypal-gemini': ['proxypal-gemini', 'google-flash', 'proxypal-premium'],
+      'proxypal-premium': ['proxypal-premium'] // Premium phụ thuộc ProxyPal local/hosted
     };
     
     return chains[primary.name].map(name => this.providers.get(name));
@@ -615,12 +552,13 @@ export class AIUsageTracker {
   
   async checkBudgetAlerts(date: string): Promise<void> {
     const dailyCost = await this.getDailyCost(date);
-    
-    if (dailyCost > megallmBudget.dailyLimit) {
+    const dailyBudgetLimit = parseFloat(process.env.AI_DAILY_BUDGET || '5');
+
+    if (dailyCost > dailyBudgetLimit) {
       await this.sendAlert('Daily AI budget exceeded!', {
         date,
         cost: dailyCost,
-        limit: megallmBudget.dailyLimit
+        limit: dailyBudgetLimit
       });
     }
   }
@@ -647,10 +585,10 @@ GOOGLE_AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 GROQ_API_KEY=your_key_here
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 
-# MegaLLM (Premium - rotate key hàng tháng)
-MEGALLM_API_KEY_1=your_key_1_here
-MEGALLM_API_KEY_2=your_key_2_here
-MEGALLM_BASE_URL=https://api.megallm.com/v1
+# ProxyPal Premium Models (Local/Hosted)
+PROXYPAL_MODEL_PREMIUM=gpt-5.2
+PROXYPAL_MODEL_POLISH=gpt-5.1
+PROXYPAL_MODEL_FALLBACK=gpt-5
 
 # Budget & Monitoring
 AI_DAILY_BUDGET=5
@@ -671,7 +609,7 @@ AI_CACHE_TTL=3600
  * Lịch xoay (rotation) API Key:
  * - Google AI Studio: mỗi 90 ngày
  * - Groq: mỗi 90 ngày
- * - MegaLLM: mỗi 30 ngày (nhạy cảm hơn)
+ * - ProxyPal: theo policy của subscription cá nhân
  * 
  * Chạy script này hàng tháng bằng cron job
  */
@@ -705,7 +643,7 @@ npm run test:ai-providers
 ✓ ProxyPal Qwen 3 Coder Flash - Reachable (1.5s)
 ✓ Google AI Studio Flash - Reachable (1.8s)
 ✓ Groq Llama 3 70B - Reachable (0.9s)
-⚠ MegaLLM Sonnet 4.5 - Skipped (budget preservation)
+⚠ ProxyPal Premium - Skipped (not available in current env)
 
 Total: 5/6 providers ready
 ```
@@ -741,15 +679,14 @@ describe('AI Provider Integration', () => {
     expect(response.cost).toBe(0);
   });
   
-  test('should use MegaLLM only for critical operations', async () => {
+test('should use ProxyPal Premium only for critical operations', async () => {
     const response = await aiOrchestrator.process({
-      feature: 'appeal',
-      input: submissionData,
+      feature: 'publish_review',
+      input: quizDraft,
       requiresPremium: true
     });
-    
-    expect(response.provider).toContain('megallm');
-    expect(response.cost).toBeGreaterThan(0);
+
+    expect(response.provider).toContain('proxypal-premium');
   });
 });
 ```

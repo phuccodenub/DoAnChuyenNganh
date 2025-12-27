@@ -97,19 +97,12 @@ router.post(
 
 
 /**
- * @route   GET /api/assignments/course/:courseId
- * @desc    Get all assignments for a course
- * @access  Instructor, Admin, Enrolled Students
- */
-router.get('/course/:courseId', controller.getCourseAssignments);
-
-/**
  * @route   GET /api/assignments/course/:courseId/completion-status
  * @desc    Get assignment completion status for current user
  * @access  Authenticated
+ * NOTE: Must be registered BEFORE /course/:courseId to avoid route conflict
  */
 router.get('/course/:courseId/completion-status', controller.getCompletionStatus);
-
 
 /**
  * @route   GET /api/assignments/course/:courseId/stats
@@ -132,6 +125,14 @@ router.get(
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN]),
   controller.getCoursePendingGrading
 );
+
+/**
+ * @route   GET /api/assignments/course/:courseId
+ * @desc    Get all assignments for a course
+ * @access  Instructor, Admin, Enrolled Students
+ * NOTE: Must be registered AFTER more specific /course/:courseId/* routes
+ */
+router.get('/course/:courseId', controller.getCourseAssignments);
 
 // ===================================
 // ASSIGNMENT CRUD

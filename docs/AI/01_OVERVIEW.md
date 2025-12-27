@@ -61,10 +61,10 @@ Tài liệu này cung cấp cái nhìn tổng quan về chiến lược tích h�
         │          │          │            │
    ┌────▼───┐ ┌───▼────┐ ┌───▼─────┐ ┌───▼──────┐
    │ Local  │ │ Cloud  │ │ Cloud   │ │ Premium  │
-   │ProxyPal│ │Google  │ │  Groq   │ │ MegaLLM  │
+   │ProxyPal│ │Google  │ │  Groq   │ │ Premium  │
    └────────┘ └────────┘ └─────────┘ └──────────┘
-   Gemini 3   Gemini     Llama 3     Claude 4.5
-   Qwen 3     Flash      70B         Sonnet/Opus
+   Gemini 3   Gemini     Llama 3     GPT-5.x
+   Qwen 3     Flash      70B         (via ProxyPal)
 ```
 
 ### Phân rã thành phần (Component Breakdown)
@@ -149,31 +149,31 @@ Kiến trúc sử dụng chiến lược 3 tầng để tối ưu **chi phí, hi
 
 | Provider | Model | Input | Output | Context | Use Cases |
 |----------|-------|-------|--------|---------|-----------|
-| **MegaLLM** | Claude Sonnet 4.5 | $3/M | $15/M | 200K | Arbitration, Exam review |
-| **MegaLLM** | Claude Opus 4.5 | $5/M | $25/M | 200K | Critical analysis |
+| **ProxyPal** | GPT-5.2 | $0* | $0* | 128K+ | Arbitration, debate judging |
+| **ProxyPal** | GPT-5.1 | $0* | $0* | 128K+ | Final exam polish, premium review |
 
-**Ngân sách (Budget):** $150 tổng cho 2 account (~$75 mỗi account).
+**Ghi chú:** *Chi phí phụ thuộc subscription cá nhân chạy qua ProxyPal; backend không gọi trực tiếp API trả phí.*
 
 **Đặc điểm (Characteristics):**
 - Thời gian phản hồi: 2–5 giây.
-- Context window: 200K tokens.
+- Context window: phụ thuộc model (thường 128K+).
 - Chất lượng: reasoning thuộc top đầu.
-- Chi phí: cao → chỉ dùng cho tác vụ thật sự quan trọng.
+- Hạn chế: phụ thuộc ProxyPal local/hosted.
+
 
 **Khi nên dùng (When to Use):**
 - ✅ Giải quyết kết quả khác nhau giữa các model (debate arbitration).
 - ✅ Sinh câu hỏi cho bài thi cuối kỳ.
-- ✅ Xử lý khi học viên **kháng nghị điểm**.
 - ✅ Kiểm định chất lượng cho tính năng dành cho giảng viên.
 - ❌ Tác vụ thường ngày (routine).
 - ❌ Tính năng real-time dùng trực tiếp cho học viên.
 - ❌ Môi trường development/testing.
 
 **Quản lý ngân sách (Budget Management):**
-- Tối đa 10 call “critical” mỗi ngày.
-- Dùng Opus phải được approval rõ ràng.
-- Log tất cả API call premium.
-- Cảnh báo budget khi chi tiêu > $100/tháng.
+- Log tất cả các call premium (polish/judge).
+- Giới hạn theo feature flag / quyền user (nếu cần).
+- Theo dõi latency và tỉ lệ fallback để tránh lỗi.
+
 
 ---
 
@@ -185,8 +185,8 @@ Kiến trúc sử dụng chiến lược 3 tầng để tối ưu **chi phí, hi
 |---------------------|--------------------------|---------------|--------------|-------------------|
 | **AI Tutor (Chat)** | Tier 1 (Groq) | Tier 1 (Google Flash) | N/A | Cần tốc độ, câu hỏi đơn giản. |
 | **Quiz Generator** | Tier 2 (Gemini 3 Pro) | Tier 1 (Google Flash) | Tier 3 (Review only) | Cần context lớn. |
-| **AI Grader (Code)** | Tier 2 (Qwen Coder) | Tier 1 (Google Flash) | Tier 3 (Appeals) | Cần chuyên môn kỹ thuật. |
-| **AI Grader (Essay)** | Tier 1 (Google Flash) | Tier 2 (Gemini Pro) | Tier 3 (Appeals) | Chấm bài luận hàng loạt. |
+| **AI Grader (Code)** | Tier 2 (Qwen Coder) | Tier 1 (Google Flash) | Tier 3 (Instructor audit only) | Instructor override là nguồn sự thật cuối. |
+| **AI Grader (Essay)** | Tier 1 (Google Flash) | Tier 2 (Gemini Pro) | Tier 3 (Instructor audit only) | Instructor override là nguồn sự thật cuối. |
 | **Debate Workflow** | Tier 2 (Both models) | N/A | Tier 3 (Arbitration) | Cần nhiều model tranh luận. |
 | **Content Repurposing** | Tier 2 (Gemini 3 Pro) | Tier 1 (Google Flash) | N/A | Phân tích video/nội dung dài (2M tokens). |
 | **Adaptive Learning** | Tier 1 (Google Flash) | Tier 2 (Gemini Pro) | N/A | Phân tích dữ liệu nền (background analytics). |
@@ -244,29 +244,31 @@ Total time: 12s
 Cost: $0 (development), $0.15 (if Tier 3 used)
 ```
 
-### Ví dụ 3: Học viên kháng nghị điểm
+### Ví dụ 3: Review đề thi/quiz quan trọng trước khi publish
 
 ```typescript
-// Frontend sends appeal
-POST /api/v1/ai/appeal-grade
+// Instructor requests a quality review
+POST /api/v1/ai/quiz/review
 {
-  "submissionId": "uuid",
-  "appealReason": "...",
-  "originalGrade": 75
+  "quizId": "uuid",
+  "courseId": "uuid",
+  "requirements": {
+    "targetDifficulty": "medium",
+    "coverage": ["topic-1", "topic-2"],
+    "avoidAmbiguity": true
+  }
 }
 
 // Backend AI Router logic
-1. Retrieve original submission + AI grading rationale
-2. Classify → Critical operation
-3. Select model → Tier 3 (Claude Sonnet 4.5)
-4. Comprehensive re-evaluation
-5. Compare with original → Document differences
-6. Generate detailed report
-7. Notify instructor for final decision
-8. Log premium API usage
+1. Load quiz draft + course context
+2. Classify → Critical (publish-impacting)
+3. Select model → Tier 3 (Claude Sonnet 4.5) for review only
+4. Detect ambiguity, wrong answers, low-quality distractors
+5. Return structured review + suggested edits
+6. Instructor approves/edits → publish
 
-Total time: 8s
-Cost: $0.20-0.40 (depending on submission length)
+Total time: 5–10s
+Cost: depends on quiz size
 ```
 
 ---
@@ -330,7 +332,6 @@ Cost: $0.20-0.40 (depending on submission length)
 ### Phase 3: Tính năng nâng cao (Advanced Features – Tuần 7–10)
 - ⏳ Debate workflow (multi-tier).
 - ⏳ Content repurposing (Tier 2).
-- ⏳ Hệ thống kháng nghị điểm (Tier 3).
 
 ### Phase 4: Tối ưu (Optimization – Tuần 11–12)
 - ⏳ Tuning hiệu năng.

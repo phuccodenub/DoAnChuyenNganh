@@ -17,7 +17,7 @@
 - ✅ 3-Stage Pipeline hoàn chỉnh:
   - Stage 1: Generation (Gemini 3 Pro / Google Flash)
   - Stage 2: Technical Validation (Qwen Coder Plus)
-  - Stage 3: Premium Polish (Placeholder for MegaLLM)
+  - Stage 3: Premium Polish (ProxyPal GPT-5.1)
   
 - ✅ AI Orchestrator thông minh:
   - Content < 100K tokens → Google Flash (free, fast)
@@ -158,9 +158,9 @@ Tự động kích hoạt khi phát hiện:
 ### Premium Mode
 
 Khi `isPremium: true`:
-- **Planned:** Claude Sonnet 4.5 polish
-- **Current:** Log warning and skip (không ảnh hưởng flow)
-- **TODO:** Implement MegaLLM integration
+- ✅ **Implemented:** ProxyPal GPT-5.1 premium polish
+- Quality enhancement với advanced reasoning
+- Fallback to validated questions if polish fails
 
 ---
 
@@ -169,7 +169,7 @@ Khi `isPremium: true`:
 ### 1. Model Selection Strategy
 - ✅ Size-based routing works well
 - ✅ Fallback mechanism critical for reliability
-- ✅ ProxyPal optional = better production readiness
+- ✅ ProxyPal provides both free and premium models
 
 ### 2. Content Analysis
 - ✅ Simple keyword detection đủ cho technical content
@@ -190,14 +190,15 @@ Khi `isPremium: true`:
 
 ## ⚠️ KNOWN LIMITATIONS
 
-1. **MegaLLM Not Integrated**
-   - Premium polish chưa hoạt động
-   - Cần thêm MegaLLM provider + API keys
-   - Priority: P2 (not blocking)
+1. **ProxyPal JSON Parsing**
+   - GPT-5.1 sometimes returns extra text with JSON
+   - Parser needs improvement for robustness
+   - Current: Falls back to validated questions
 
-2. **ProxyPal Dev Only**
-   - Chỉ dùng cho development
-   - Production nên dùng Google Flash
+2. **ProxyPal Dependency**
+   - Requires ProxyPal running locally
+   - Production should have ProxyPal hosted
+   - Google Flash available as fallback
    - Không ảnh hưởng stability nhờ fallback
 
 3. **Content Size Limits**
@@ -221,7 +222,7 @@ Khi `isPremium: true`:
 ### Short Term (1-2 tuần)
 1. 📋 AI Tutor enhancement (P0)
 2. 📋 AI Grader implementation (P1)
-3. 📋 MegaLLM integration (P2)
+3. ✅ Premium polish with ProxyPal (COMPLETED)
 
 ### Long Term (1 tháng)
 1. 📋 Debate Workflow (P1)

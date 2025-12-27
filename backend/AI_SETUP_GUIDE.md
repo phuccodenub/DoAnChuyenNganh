@@ -11,7 +11,7 @@ Hệ thống AI mới đã được tích hợp hoàn toàn vào backend với k
 
 - **Tier 1 (Fast + Free):** Groq Llama 3, Google Gemini Flash
 - **Tier 2 (Powerful + Local):** ProxyPal (Gemini 3 Pro, Qwen Coder)
-- **Tier 3 (Premium):** MegaLLM (Claude Sonnet/Opus)
+- **Tier 3 (Premium):** ProxyPal Premium Models (GPT-5.2, GPT-5.1)
 
 ### ✅ Đã hoàn thành
 
@@ -57,9 +57,10 @@ PROXYPAL_BASE_URL=http://localhost:8317
 PROXYPAL_ENABLED=false
 PROXYPAL_TIMEOUT=60000
 
-# TIER 3: MegaLLM (Optional - chỉ dùng cho critical operations)
-MEGALM_API_KEY=
-MEGALM_BASE_URL=
+# TIER 3: ProxyPal Premium Models (for critical operations)
+PROXYPAL_MODEL_PREMIUM=gpt-5.2
+PROXYPAL_MODEL_POLISH=gpt-5.1
+PROXYPAL_MODEL_FALLBACK=gpt-5
 
 # AI Features Toggles
 AI_TUTOR_ENABLED=true

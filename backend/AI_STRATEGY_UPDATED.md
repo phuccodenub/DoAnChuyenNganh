@@ -72,24 +72,24 @@ Groq cung cấp **NHIỀU models tuyệt vời** với free tier rộng rãi:
 
 ---
 
-### 🔴 Tier 3: Premium (MegaLLM)
+### 🔴 Tier 3: Premium (ProxyPal)
 
-**🚨 DÙNG CỰC KỲ TIẾT KIỆM - $150 credit không hồi phục**
+**Mục tiêu:** dùng cho các tác vụ critical (judge/polish) bằng ProxyPal premium models.
 
-| Model | Input/Output | Use Cases |
-|-------|--------------|-----------|
-| **Claude Sonnet 4.5** | $3/$15 per M | Critical decisions, grade appeals |
-| **Claude Opus 4.5** | $5/$25 per M | Highest quality needed |
+| Model | Use Cases |
+|-------|----------|
+| **GPT-5.2** | Critical decisions, arbitration, debate judging |
+| **GPT-5.1** | Premium polish (final exams), language refinement |
+| **GPT-5** | Premium fallback |
 
 **✅ Ưu điểm:**
-- Chất lượng cao nhất
-- Reasoning tốt nhất
-- Chuyên sâu nhiều lĩnh vực
+- Chất lượng reasoning cao
+- Không phụ thuộc dịch vụ premium bên ngoài
+- Mapping rõ ràng theo use-case
 
 **⚠️ Hạn chế:**
-- Rất đắt
-- Credit có giới hạn ($150 total)
-- Chỉ dùng cho critical operations
+- Phụ thuộc ProxyPal local/hosted
+- Cần cơ chế parse/validate output (đặc biệt JSON)
 
 ---
 
@@ -101,7 +101,7 @@ Groq cung cấp **NHIỀU models tuyệt vời** với free tier rộng rãi:
 1. Groq FIRST - Tận dụng tối đa các models của Groq
 2. Google Fallback - Dùng khi Groq không available
 3. ProxyPal RARELY - Chỉ dùng cho dev hoặc tasks cần context lớn
-4. MegaLLM CRITICAL ONLY - Chỉ dùng cho quyết định quan trọng
+4. ProxyPal PREMIUM ONLY - Chỉ dùng cho quyết định quan trọng
 ```
 
 ### Phân bổ theo Use Case
@@ -134,14 +134,14 @@ Priority 2: Google Gemini 2.5 Flash (Context 1M)
    ↓ (if need very large context > 1M)
 Priority 3: ProxyPal Gemini 3 Pro (Context 2M) - DEV ONLY
    ↓ (if critical final exam)
-Priority 4: MegaLLM Claude Sonnet 4.5
+Priority 4: ProxyPal GPT-5.1 (Premium polish)
 ```
 
 **Tỷ lệ sử dụng mong đợi:**
 - Groq: 60-70%
 - Google: 25-35%
 - ProxyPal: 0% (production), <5% (dev)
-- MegaLLM: <1% (critical exams only)
+- ProxyPal Premium: <1% (critical exams only)
 
 #### 3. AI Grader
 
@@ -151,7 +151,7 @@ Priority 1: Groq Llama 3.3 70B (Simple code < 500 lines)
    ↓ (if complex code or need deep review)
 Priority 2: ProxyPal Qwen Coder Plus - DEV ONLY
    ↓ (if grade appeal)
-Priority 3: MegaLLM Claude Sonnet 4.5
+Priority 3: ProxyPal GPT-5.2 (judge/arbitration)
 ```
 
 **Essay Grading:**
@@ -160,14 +160,14 @@ Priority 1: Groq Llama 3.3 70B (Essays < 32K tokens)
    ↓ (if large essay)
 Priority 2: Google Gemini 2.5 Flash
    ↓ (if grade appeal)
-Priority 3: MegaLLM Claude Sonnet 4.5
+Priority 3: ProxyPal GPT-5.2 (judge/arbitration)
 ```
 
 **Tỷ lệ sử dụng mong đợi:**
 - Groq: 70-80%
 - Google: 15-20%
 - ProxyPal: 0% (production), <5% (dev)
-- MegaLLM: <2% (appeals only)
+- ProxyPal Premium: <2% (appeals only)
 
 #### 4. Content Repurposing (Video → Summary)
 
@@ -191,7 +191,7 @@ Priority 2: ProxyPal Gemini 3 Pro (Context 2M)
 - Groq: Primary (85-90% usage)
 - Google: Fallback (10-15% usage)
 - ProxyPal: Disabled
-- MegaLLM: Disabled
+- ProxyPal Premium: Disabled
 
 **Chi phí:** **$0/tháng** ✅
 
@@ -208,7 +208,7 @@ Priority 2: ProxyPal Gemini 3 Pro (Context 2M)
 - Groq: Primary (85-90%)
 - Google: Fallback (10-15%)
 - ProxyPal: Disabled
-- MegaLLM: Critical only (<2%)
+- ProxyPal Premium: Critical only (<2%)
 
 **Chi phí dự kiến:**
 - 100 students × 2 appeals/month = 200 appeals
@@ -225,7 +225,7 @@ Priority 2: ProxyPal Gemini 3 Pro (Context 2M)
 - Groq: Primary (70-80%)
 - Google: Fallback (15-20%)
 - ProxyPal: Dev testing (<5%)
-- MegaLLM: Disabled
+- ProxyPal Premium: Disabled
 
 **Chi phí:** **$0/tháng** (dùng subscription cá nhân)
 
@@ -249,9 +249,10 @@ GEMINI_MODEL=gemini-2.5-flash
 # Tier 2: ProxyPal (Disabled)
 PROXYPAL_ENABLED=false
 
-# Tier 3: MegaLLM (Enabled but limited)
-MEGALM_API_KEY=your-key-if-you-want-appeals
-MEGALM_BASE_URL=https://api.megallm.com
+# Tier 3: ProxyPal Premium (Enabled but limited)
+PROXYPAL_MODEL_PREMIUM=gpt-5.2
+PROXYPAL_MODEL_POLISH=gpt-5.1
+PROXYPAL_MODEL_FALLBACK=gpt-5
 
 # Features
 AI_TUTOR_ENABLED=true
@@ -282,7 +283,7 @@ AI_CONTENT_REPURPOSING_ENABLED=true
    Groq:      85-90%  ✅ Healthy
    Google:    10-15%  ✅ Good fallback rate
    ProxyPal:  0-5%    ✅ Dev only
-   MegaLLM:   <2%     ✅ Critical only
+   ProxyPal Premium: <2%     ✅ Critical only
    ```
 
 2. **Latency Targets**
@@ -294,7 +295,7 @@ AI_CONTENT_REPURPOSING_ENABLED=true
 
 3. **Cost Tracking**
    ```
-   MegaLLM usage: < $10/month
+   ProxyPal Premium usage: monitor weekly
    Remaining credit: Monitor weekly
    ```
 
@@ -305,7 +306,7 @@ AI_CONTENT_REPURPOSING_ENABLED=true
 - Review fallback logic
 - Optimize question classification
 
-**If MegaLLM usage > $15/month:**
+**If ProxyPal Premium usage spikes:**
 - Review critical operation criteria
 - Consider disabling grade appeals
 - Add human review layer
@@ -326,7 +327,7 @@ AI_CONTENT_REPURPOSING_ENABLED=true
 - [ ] Test Groq Math model với math questions
 - [ ] Test fallback chain: Groq → Google
 - [ ] Monitor provider distribution in logs
-- [ ] Setup MegaLLM (optional, for grade appeals)
+- [ ] Verify ProxyPal premium models for grade appeals
 
 ---
 
@@ -343,7 +344,7 @@ AI_CONTENT_REPURPOSING_ENABLED=true
 1. ✅ Dùng free tier tối đa (Groq + Google)
 2. ✅ Tận dụng nhiều specialized models của Groq
 3. ✅ Tiết kiệm ProxyPal cho dev/testing only
-4. ✅ Dự phòng MegaLLM cho critical operations
+4. ✅ Dự phòng ProxyPal Premium cho critical operations
 5. ✅ Chi phí production: $0-10/tháng
 
 **🎯 Mục tiêu cuối cùng: Zero cost trong 90% use cases, premium available khi cần!**

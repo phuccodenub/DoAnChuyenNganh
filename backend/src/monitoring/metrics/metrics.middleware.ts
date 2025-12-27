@@ -161,8 +161,10 @@ export class MetricsMiddleware {
       url: req.url,
       statusCode: statusCode,  // Use extracted status code, not res.statusCode
       userAgent: req.get('User-Agent'),
-      ip: req.ip
+      ip: req.ip,
+      requestId: (req as any).requestId
     });
+
 
     next(error);
   };

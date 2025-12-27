@@ -80,7 +80,7 @@ Quiz Generator tự động sinh ra các câu hỏi đánh giá chất lượng 
 ┌─────────────────────────────────────────────────────────────┐
 │                    POLISH STAGE 3 (Optional)                 │
 │  Premium Review (Final exams only)                          │
-│  - Claude Sonnet 4.5 refines questions                      │
+│  - ProxyPal GPT-5.1 refines questions                        │
 │  - Ensures professional language                             │
 │  - Eliminates ambiguity                                      │
 └────────────────────────┬────────────────────────────────────┘
@@ -219,7 +219,7 @@ Mô tả nhanh:
 import { AIOrchestrator } from './ai-orchestrator';
 import { ProxyPalService } from './proxypal.service';
 import { GoogleAIService } from './google-ai.service';
-import { MegaLLMService } from './megallm.service';
+import { ProxyPalService } from './proxypal.service';
 import { QuizValidator } from './quiz-validator';
 import crypto from 'crypto';
 import Redis from 'ioredis';
@@ -492,9 +492,9 @@ Return the same JSON with corrections if needed, or mark as "validated: true" if
   private async polishQuestions(
     questions: QuizQuestion[]
   ): Promise<QuizQuestion[]> {
-    console.log('[Quiz Generator] Premium polish with Claude Sonnet 4.5');
+    console.log('[Quiz Generator] Premium polish with ProxyPal GPT-5.1');
 
-    const megallm = new MegaLLMService();
+    const proxypal = new ProxyPalService();
     const polishPrompt = `Polish these quiz questions for a final exam:
 
 ${JSON.stringify(questions, null, 2)}
@@ -507,8 +507,8 @@ Improve:
 
 Return polished JSON in same format.`;
 
-    const response = await megallm.generateContent({
-      model: 'claude-sonnet-4-5',
+    const response = await proxypal.generateContent({
+      model: 'gpt-5.1',
       prompt: polishPrompt,
       temperature: 0.7
     });
@@ -714,7 +714,7 @@ export const QuizGenerator: React.FC<QuizGeneratorProps> = ({
             onChange={(e) => setIsPremium(e.target.checked)}
             className="mr-2"
           />
-          Premium Quality (for final exams - uses Claude Sonnet 4.5)
+          Premium Quality (for final exams - uses ProxyPal GPT-5.1)
         </label>
       </div>
 

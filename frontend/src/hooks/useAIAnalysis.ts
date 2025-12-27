@@ -51,6 +51,20 @@ export function useAIAnalysis(lessonId: string | null): UseAIAnalysisResult {
     fetchAnalysis();
   }, [fetchAnalysis]);
 
+  const shouldPoll = Boolean(
+    analysis && (analysis.status === 'pending' || analysis.status === 'processing')
+  ) || queueStatus.some((task) => task.status === 'pending' || task.status === 'processing');
+
+  useEffect(() => {
+    if (!lessonId || !shouldPoll) return;
+
+    const intervalId = window.setInterval(() => {
+      fetchAnalysis();
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [lessonId, shouldPoll, fetchAnalysis]);
+
   return {
     analysis,
     queueStatus,

@@ -18,10 +18,13 @@ export interface QuizGenerationRequest {
   content: string;
   contentType?: 'text' | 'video' | 'pdf';
   numberOfQuestions?: number;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
   questionTypes?: Array<'single_choice' | 'multiple_choice' | 'true_false'>;
   topicFocus?: string[];
-  bloomLevel?: 'remember' | 'understand' | 'apply' | 'analyze';
+  bloomLevel?: 'remember' | 'understand' | 'apply' | 'analyze' | 'mixed';
+  difficultyDistribution?: { easy: number; medium: number; hard: number };
+  questionTypeDistribution?: { single_choice: number; multiple_choice: number; true_false: number };
+  bloomDistribution?: { remember: number; understand: number; apply: number; analyze: number };
   userId: string;
   isPremium?: boolean;
 }
@@ -78,6 +81,7 @@ interface ModelSelection {
 export class QuizGeneratorService {
   private proxypalGemini: ProxyPalProvider;
   private proxypalQwen: ProxyPalProvider;
+  private proxypalPolish: ProxyPalProvider; // GPT-5.1 for premium polish
   private googleFlash: GoogleAIProvider;
   private cacheService: AICacheService;
   private lessonAnalysisService: LessonAnalysisService;
@@ -103,6 +107,16 @@ export class QuizGeneratorService {
       timeout: 60000,
     });
 
+    // GPT-5.1 cho premium polish (ProxyPal)
+    this.proxypalPolish = new ProxyPalProvider({
+      baseUrl: env.ai.proxypal?.baseUrl || 'http://127.0.0.1:8317',
+      apiKey: env.ai.proxypal?.apiKey || 'proxypal-local',
+      model: (env.ai.proxypal?.models?.polish as any) || 'gpt-5.1',
+      temperature: 0.5,
+      maxTokens: 8192,
+      timeout: 60000,
+    });
+
     this.googleFlash = new GoogleAIProvider({
       apiKey: env.ai.gemini.apiKeys[0],
       model: env.ai.gemini.models.flash3,
@@ -110,6 +124,8 @@ export class QuizGeneratorService {
       maxTokens: 8192,
       timeout: 60000,
     });
+
+    logger.info('[QuizGenerator] Initialized with ProxyPal GPT-5.1 for premium polish');
 
     this.cacheService = new AICacheService();
     this.lessonAnalysisService = new LessonAnalysisService();
@@ -170,8 +186,13 @@ export class QuizGeneratorService {
     let finalQuestions = validatedQuestions;
     if (request.isPremium) {
       stages.push('polish');
-      logger.warn('[QuizGenerator] Premium polish requested but MegaLLM not configured - skipping');
-      // TODO: Implement MegaLLM Claude Sonnet integration
+      try {
+        finalQuestions = await this.polishQuestions(validatedQuestions, request.content);
+        logger.info('[QuizGenerator] Premium polish with ProxyPal GPT-5.1 completed');
+      } catch (error) {
+        logger.error('[QuizGenerator] Premium polish failed, using validated questions:', error);
+        finalQuestions = validatedQuestions;
+      }
     }
 
     // Step 6: Assign IDs and metadata
@@ -330,7 +351,30 @@ export class QuizGeneratorService {
       questionTypes = ['single_choice'],
       topicFocus,
       bloomLevel = 'understand',
+      difficultyDistribution,
+      questionTypeDistribution,
+      bloomDistribution,
     } = request;
+
+    const resolvedDifficulty = difficulty === 'mixed' ? 'mixed' : difficulty;
+    const resolvedBloomLevel = bloomLevel === 'mixed' ? 'mixed' : bloomLevel;
+
+    const distributionLines: string[] = [];
+    if (resolvedDifficulty === 'mixed' && difficultyDistribution) {
+      distributionLines.push(
+        `- Phân bổ độ khó: easy ${difficultyDistribution.easy}%, medium ${difficultyDistribution.medium}%, hard ${difficultyDistribution.hard}%`
+      );
+    }
+    if (questionTypes.length > 1 && questionTypeDistribution) {
+      distributionLines.push(
+        `- Phân bổ loại câu hỏi: single ${questionTypeDistribution.single_choice}%, multiple ${questionTypeDistribution.multiple_choice}%, true/false ${questionTypeDistribution.true_false}%`
+      );
+    }
+    if (resolvedBloomLevel === 'mixed' && bloomDistribution) {
+      distributionLines.push(
+        `- Phân bổ Bloom: remember ${bloomDistribution.remember}%, understand ${bloomDistribution.understand}%, apply ${bloomDistribution.apply}%, analyze ${bloomDistribution.analyze}%`
+      );
+    }
 
     const questionTypeDesc = questionTypes
       .map((type) => {
@@ -347,6 +391,7 @@ export class QuizGeneratorService {
       })
       .join(', ');
 
+
     let prompt = `Bạn là chuyên gia thiết kế đánh giá giáo dục. Hãy tạo ${numberOfQuestions} câu hỏi quiz chất lượng cao từ nội dung sau.\n\n`;
 
     // Add lesson analysis context if available
@@ -357,10 +402,12 @@ export class QuizGeneratorService {
 
     prompt += `**NỘI DUNG KHÓA HỌC:**\n${content}\n\n**YÊU CẦU:**
 - Số câu hỏi: ${numberOfQuestions}
-- Độ khó: ${difficulty}
+- Độ khó: ${resolvedDifficulty === 'mixed' ? 'Đa dạng (easy/medium/hard)' : resolvedDifficulty}
 - Loại câu hỏi: ${questionTypeDesc}
-- Mức độ tư duy (Bloom's Taxonomy): ${bloomLevel}
+- Mức độ tư duy (Bloom's Taxonomy): ${resolvedBloomLevel === 'mixed' ? 'Đa dạng (remember/understand/apply/analyze)' : resolvedBloomLevel}
+${distributionLines.length > 0 ? `${distributionLines.join('\n')}` : ''}
 ${topicFocus ? `- Tập trung vào chủ đề: ${topicFocus.join(', ')}` : ''}
+
 
 **ĐỊNH DẠNG CÂU HỎI:**
 - Trắc nghiệm 1 đáp án: 4 lựa chọn (A, B, C, D), 1 đáp án đúng
@@ -383,8 +430,8 @@ ${topicFocus ? `- Tập trung vào chủ đề: ${topicFocus.join(', ')}` : ''}
       "options": ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
       "correctAnswer": 0,
       "explanation": "Giải thích chi tiết tại sao đáp án này đúng và các đáp án khác sai",
-      "difficulty": "${difficulty}",
-      "bloomLevel": "${bloomLevel}",
+      "difficulty": "${resolvedDifficulty === 'mixed' ? 'mixed' : resolvedDifficulty}",
+      "bloomLevel": "${resolvedBloomLevel === 'mixed' ? 'mixed' : resolvedBloomLevel}",
       "topic": "Chủ đề chính của câu hỏi"
     }
   ]
@@ -461,6 +508,82 @@ Chỉ trả về JSON, không có text giải thích:`;
     } catch (error) {
       logger.error('[QuizGenerator] Validation failed, using original questions:', error);
       return questions;
+    }
+  }
+
+  /**
+   * Polish câu hỏi bằng ProxyPal GPT-5.1 (Premium)
+   * Stage 3: Tinh chỉnh câu hỏi về mặt ngôn ngữ, độ chính xác và chất lượng
+   */
+  private async polishQuestions(questions: QuizQuestion[], content: string): Promise<QuizQuestion[]> {
+    // Smart content truncation for polish
+    let contentForPolish = content;
+    if (content.length > 12000) {
+      contentForPolish = content.substring(0, 12000);
+      const lastPeriod = contentForPolish.lastIndexOf('.');
+      const lastNewline = contentForPolish.lastIndexOf('\n');
+      const cutPoint = Math.max(lastPeriod, lastNewline);
+      if (cutPoint > 10000) {
+        contentForPolish = contentForPolish.substring(0, cutPoint + 1);
+      }
+    }
+
+    const polishPrompt = `Bạn là chuyên gia giáo dục hàng đầu. Nhiệm vụ của bạn là tinh chỉnh các câu hỏi quiz để đạt chất lượng cao nhất.
+
+**NỘI DUNG BÀI HỌC:**
+${contentForPolish}
+${content.length > 12000 ? '\n[...Nội dung đầy đủ dài hơn]' : ''}
+
+**CÁC CÂU HỎI CẦN TINH CHỈNH:**
+${JSON.stringify(questions, null, 2)}
+
+**YÊU CẦU TINH CHỈNH:**
+
+1. **Ngôn ngữ & Clarity:**
+   - Câu hỏi phải rõ ràng, không mơ hồ
+   - Sử dụng ngôn ngữ chuyên nghiệp nhưng dễ hiểu
+   - Tránh câu hỏi quá dài hoặc phức tạp không cần thiết
+
+2. **Độ chính xác:**
+   - Đảm bảo câu hỏi phản ánh chính xác nội dung bài học
+   - Đáp án đúng phải hoàn toàn chính xác
+   - Các đáp án sai phải hợp lý và không gây nhầm lẫn
+
+3. **Chất lượng giải thích:**
+   - Explanation phải giải thích rõ ràng TẠI SAO đáp án đúng
+   - Nêu lý do các đáp án khác sai
+   - Cung cấp thêm context hoặc insight nếu cần
+
+4. **Phân loại Bloom's Taxonomy:**
+   - Kiểm tra và điều chỉnh bloomLevel cho phù hợp với độ khó của câu hỏi
+   - Remember: Nhớ, nhận biết
+   - Understand: Hiểu, giải thích
+   - Apply: Áp dụng vào tình huống cụ thể
+   - Analyze: Phân tích, so sánh
+
+5. **Cân bằng độ khó:**
+   - Đảm bảo độ khó (difficulty) phù hợp với nội dung câu hỏi
+   - Easy: Kiến thức cơ bản, trực tiếp
+   - Medium: Cần hiểu và áp dụng
+   - Hard: Cần phân tích, tổng hợp
+
+**OUTPUT:**
+Trả về cùng cấu trúc JSON với các câu hỏi đã được tinh chỉnh. 
+
+QUAN TRỌNG: CHỈ trả về JSON, KHÔNG có text giải thích hoặc markdown:`;
+
+    try {
+      const response = await this.proxypalPolish.generateContent({
+        prompt: polishPrompt,
+        temperature: 0.5, // Slightly higher for more creativity in polishing
+        maxTokens: 8192,
+      });
+
+      logger.info('[QuizGenerator] ProxyPal GPT-5.1 polish response received');
+      return this.parseQuestions(response.text);
+    } catch (error) {
+      logger.error('[QuizGenerator] Premium polish failed:', error);
+      throw error;
     }
   }
 

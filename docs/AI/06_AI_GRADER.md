@@ -9,7 +9,7 @@
 
 ## 📖 TỔNG QUAN
 
-Hệ thống chấm điểm AI tự động đánh giá bài tập của sinh viên (code, bài luận, trắc nghiệm) dựa trên tiêu chí được định nghĩa. Hệ thống cung cấp phản hồi chi tiết, hỗ trợ khiếu nại, và tích hợp với hệ thống xếp hạng.
+Hệ thống chấm điểm AI tự động đánh giá bài tập của sinh viên (code, bài luận, trắc nghiệm) dựa trên tiêu chí được định nghĩa. Hệ thống cung cấp phản hồi chi tiết và hỗ trợ giảng viên duyệt/override điểm (giảng viên là nguồn sự thật cuối cùng).
 
 ### Giá trị kinh doanh
 - ⭐ **Tiết kiệm thời gian:** Giáo viên tiết kiệm 70% thời gian chấm bài
@@ -20,7 +20,7 @@ Hệ thống chấm điểm AI tự động đánh giá bài tập của sinh vi
 ### Thông số kỹ thuật
 - **Bài code:** Qwen 3 Coder Plus (kỹ thuật cao)
 - **Bài luận:** Google Gemini Flash (xử lý nhanh)
-- **Khiếu nại:** Claude Sonnet 4.5 (chất lượng cao)
+- **Duyệt điểm quan trọng (optional):** Claude Sonnet 4.5 (review trước khi publish/chốt)
 - **Hỗ trợ:** Tự động đối sánh rubric + feedback
 
 ---
@@ -64,12 +64,10 @@ Hệ thống chấm điểm AI tự động đánh giá bài tập của sinh vi
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│          KHIẾU Nại (CÓ THỂ)                                 │
-│  Sinh viên → Khiếu nại → Claude Sonnet 4.5                 │
-│             → Giáo viên quyết định cuối cùng               │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
+│          GIÁO VIÊN DUYỆT/OVERRIDE (NẾU CẦN)                 │
+│  AI đề xuất điểm → Instructor review → Chốt điểm cuối       │
+└─────────────────────────────────────────────────────────────┘
+
 ┌─────────────────────────────────────────────────────────────┐
 │          THÔNG BÁO KẾT QUẢ                                  │
 │  - Gửi điểm cho sinh viên                                   │
@@ -121,28 +119,6 @@ export class AIGraderController {
       rubric: body.rubric,
       courseId: body.courseId,
       gradedBy: 'ai'
-    });
-  }
-
-  /**
-   * Khiếu nại điểm
-   * POST /api/v1/ai/grader/appeal
-   */
-  @Post('appeal')
-  @UseGuards(AuthGuard('jwt'))
-  async appealGrade(
-    @Req() req: any,
-    @Body()
-    body: {
-      submissionId: string;
-      reason: string;
-    }
-  ) {
-    return await this.graderService.handleAppeal({
-      submissionId: body.submissionId,
-      userId: req.user.id,
-      reason: body.reason,
-      originalGrade: body.originalGrade
     });
   }
 
@@ -441,148 +417,6 @@ Hãy chấm điểm công bằng và xây dựng:`;
 }
 ```
 
-### Grader Service - Appeal Handling
-
-**File:** `backend/src/modules/ai/services/ai-grader-appeal.service.ts`
-
-```typescript
-import { Injectable } from '@nestjs/common';
-import { MegaLLMService } from './providers/megallm.service';
-import { GradeAppeal } from '@/database/models/GradeAppeal';
-import { Grade } from '@/database/models/Grade';
-
-interface AppealRequest {
-  submissionId: string;
-  userId: string;
-  reason: string;
-  originalGrade: number;
-}
-
-interface AppealResult {
-  appealId: string;
-  originalGrade: number;
-  reconsidered: boolean;
-  newGrade?: number;
-  reasoning: string;
-  decision: 'approved' | 'rejected' | 'partial';
-  status: 'pending_review' | 'approved' | 'rejected';
-  reviewedBy: 'teacher' | 'system';
-}
-
-@Injectable()
-export class AIGraderAppealService {
-  constructor(private megallm: MegaLLMService) {}
-
-  /**
-   * Xử lý khiếu nại điểm
-   * Sử dụng Claude Sonnet 4.5 để đánh giá lại
-   */
-  async handleAppeal(appeal: AppealRequest): Promise<AppealResult> {
-    // Lấy submission gốc và grading gốc
-    const submission = await this.getSubmission(appeal.submissionId);
-    const originalGrading = await this.getOriginalGrading(appeal.submissionId);
-
-    // Xây dựng prompt cho Claude
-    const prompt = this.buildAppealPrompt({
-      submission,
-      originalGrading,
-      originalGrade: appeal.originalGrade,
-      appealReason: appeal.reason
-    });
-
-    // Gọi Claude Sonnet 4.5 để đánh giá lại
-    const response = await this.megallm.generateContent({
-      model: 'claude-sonnet-4-5',
-      prompt,
-      temperature: 0.5
-    });
-
-    const appealResult = this.parseAppealResponse(response.text);
-
-    // Lưu khiếu nại vào database
-    const appealRecord = await GradeAppeal.create({
-      submissionId: appeal.submissionId,
-      userId: appeal.userId,
-      reason: appeal.reason,
-      originalGrade: appeal.originalGrade,
-      reviewedGrade: appealResult.newGrade,
-      reasoning: appealResult.reasoning,
-      decision: appealResult.decision,
-      status: 'pending_review', // Giáo viên xem lại cuối cùng
-      reviewedBy: 'ai_claude',
-      createdAt: new Date()
-    });
-
-    return {
-      appealId: appealRecord.id,
-      originalGrade: appeal.originalGrade,
-      reconsidered: true,
-      newGrade: appealResult.newGrade,
-      reasoning: appealResult.reasoning,
-      decision: appealResult.decision,
-      status: 'pending_review',
-      reviewedBy: 'system'
-    };
-  }
-
-  /**
-   * Xây dựng prompt cho Claude đánh giá lại
-   */
-  private buildAppealPrompt(data: any): string {
-    return `Bạn là một chuyên gia đánh giá độc lập. Sinh viên đang khiếu nại về điểm của họ.
-
-**LÝ DO KHIẾU Nại:**
-${data.appealReason}
-
-**BÀI NỘP GỐC:**
-${data.submission.content.substring(0, 1000)}...
-
-**PHẢN HỒI CHẤM ĐIỂM GỐC:**
-${JSON.stringify(data.originalGrading.feedback, null, 2)}
-
-**ĐIỂM GỐC:** ${data.originalGrade}/100
-
-**NHIỆM VỤ:**
-1. Xem xét lại bài nộp một cách công bằng
-2. Kiểm tra xem phản hồi chấm điểm gốc có công bằng không
-3. Quyết định xem có nên thay đổi điểm không
-4. Giải thích rõ ràng lý do quyết định
-
-**OUTPUT JSON:**
-{
-  "reconsidered": true,
-  "newGrade": 88,
-  "reasoning": "Bài làm có công bằng cao hơn điểm gốc. Lập luận logic tốt.",
-  "decision": "approved",
-  "comments": "Đồng ý với khiếu nại. Nên tăng 3 điểm."
-}
-
-Hãy được công bằng và chuyên nghiệp:`;
-  }
-
-  private parseAppealResponse(text: string): any {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Không thể parse phản hồi khiếu nại');
-    }
-
-    return JSON.parse(jsonMatch[0]);
-  }
-
-  private async getSubmission(submissionId: string) {
-    // Lấy từ database
-    return null; // Placeholder
-  }
-
-  private async getOriginalGrading(submissionId: string) {
-    // Lấy từ database
-    return null; // Placeholder
-  }
-}
-```
-
----
-
 ## 🎨 TRIỂN KHAI FRONTEND
 
 ### Grading Results Component
@@ -594,15 +428,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '@/services/api';
 import { ScoreDisplay, FeedbackCard, IssuesList } from '@/components/grading';
-import { Button } from '@/components/ui';
 
 export const GradingResultsPanel: React.FC = () => {
   const { submissionId } = useParams();
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [appealReason, setAppealReason] = useState('');
-  const [showAppealForm, setShowAppealForm] = useState(false);
-  const [appealing, setAppealing] = useState(false);
 
   useEffect(() => {
     loadGradingResults();
@@ -619,39 +449,17 @@ export const GradingResultsPanel: React.FC = () => {
     }
   };
 
-  const handleAppeal = async () => {
-    if (!appealReason.trim()) return;
-
-    setAppealing(true);
-    try {
-      await api.post('/ai/grader/appeal', {
-        submissionId,
-        reason: appealReason
-      });
-
-      alert('Khiếu nại đã gửi. Giáo viên sẽ xem xét trong 48 giờ.');
-      setShowAppealForm(false);
-      setAppealReason('');
-    } catch (error) {
-      alert('Lỗi gửi khiếu nại');
-    } finally {
-      setAppealing(false);
-    }
-  };
-
   if (loading) return <div>Đang tải...</div>;
   if (!results) return <div>Không tìm thấy kết quả</div>;
 
   return (
     <div className="grading-results space-y-6">
-      {/* Điểm số */}
       <ScoreDisplay
         score={results.score}
         maxScore={results.maxScore}
         percentage={results.percentage}
       />
 
-      {/* Chi tiết chấm điểm */}
       <div className="breakdown-section">
         <h3 className="text-lg font-bold mb-4">Chi tiết chấm điểm</h3>
         {results.breakdown?.map((item: any, idx: number) => (
@@ -667,55 +475,15 @@ export const GradingResultsPanel: React.FC = () => {
         ))}
       </div>
 
-      {/* Phản hồi */}
       <FeedbackCard
         feedback={results.feedback}
         strengths={results.strengths}
         improvements={results.improvements}
       />
 
-      {/* Vấn đề code (nếu có) */}
       {results.codeIssues && results.codeIssues.length > 0 && (
         <IssuesList issues={results.codeIssues} />
       )}
-
-      {/* Nút khiếu nại */}
-      <div className="appeal-section mt-6 p-4 border-t">
-        {!showAppealForm ? (
-          <Button
-            onClick={() => setShowAppealForm(true)}
-            variant="outline"
-            className="w-full"
-          >
-            📢 Khiếu nại về điểm số
-          </Button>
-        ) : (
-          <div className="space-y-4">
-            <textarea
-              value={appealReason}
-              onChange={(e) => setAppealReason(e.target.value)}
-              placeholder="Giải thích lý do bạn muốn khiếu nại..."
-              rows={4}
-              className="w-full p-3 border rounded"
-            />
-            <div className="flex gap-2">
-              <Button
-                onClick={handleAppeal}
-                disabled={appealing || !appealReason.trim()}
-                variant="primary"
-              >
-                {appealing ? 'Đang gửi...' : 'Gửi khiếu nại'}
-              </Button>
-              <Button
-                onClick={() => setShowAppealForm(false)}
-                variant="outline"
-              >
-                Hủy
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
@@ -731,17 +499,11 @@ export const GradingResultsPanel: React.FC = () => {
 # AI Grader Configuration
 AI_GRADER_CODE_MODEL=qwen3-coder-plus
 AI_GRADER_ESSAY_MODEL=gemini-1.5-flash
-AI_GRADER_APPEAL_MODEL=claude-sonnet-4-5
 
 # Grading Settings
 AI_GRADER_BATCH_SIZE=10
 AI_GRADER_TIMEOUT=30000
 AI_GRADER_CACHE_TTL=604800
-
-# Appeal Settings
-AI_GRADER_APPEAL_REQUIRE_TEACHER_REVIEW=true
-AI_GRADER_APPEAL_MAX_TOKENS=4000
-AI_GRADER_APPEAL_TIMEOUT=60000
 
 # Budget
 AI_GRADER_DAILY_BUDGET=20
@@ -771,18 +533,6 @@ describe('AI Grader Service', () => {
     expect(result.feedback).toBeTruthy();
   });
 
-  it('should handle appeal with Claude', async () => {
-    const result = await graderService.handleAppeal({
-      submissionId: 'test-1',
-      userId: 'student-1',
-      reason: 'Tôi nghĩ điểm này quá thấp',
-      originalGrade: 75
-    });
-
-    expect(result.status).toBe('pending_review');
-    expect(result.reasoning).toBeTruthy();
-  });
-
   it('should batch grade multiple submissions', async () => {
     const results = await graderService.batchGrade(
       'assign-1',
@@ -802,9 +552,9 @@ describe('AI Grader Service', () => {
 **Metrics to Track:**
 - Thời gian chấm bài trung bình
 - Tỷ lệ độ chính xác so với giáo viên
-- Số lượng khiếu nại hàng tháng
+- Tỷ lệ bài cần giáo viên review
 - Chi phí API hàng ngày
-- Thời gian xử lý khiếu nại
+- Thời gian giáo viên review/chốt điểm
 
 ---
 

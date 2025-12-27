@@ -31,9 +31,14 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     
     try {
-      logger.info('Verifying token:', token.substring(0, 50) + '...');
+      logger.info('Verifying token');
       const decoded = tokenUtils.jwt.verifyAccessToken(token);
-      logger.info('Token verified successfully:', decoded);
+      logger.info('Token verified successfully', {
+        userId: decoded.userId,
+        email: decoded.email,
+        role: decoded.role
+      });
+
       req.user = decoded;
       next();
     } catch (error) {

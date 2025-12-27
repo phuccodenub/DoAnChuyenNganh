@@ -15,7 +15,9 @@ import Lesson from '../../../models/lesson.model';
 import { LessonAnalysisService } from '../services/lesson-analysis.service';
 import { proxyPalHealthCheck } from '../services/proxypal-health.service';
 import { queueWorker } from '../services/ai-analysis-queue-worker.service';
+import { responseUtils } from '../../../utils/response.util';
 import logger from '../../../utils/logger.util';
+
 
 const lessonAnalysisService = new LessonAnalysisService();
 
@@ -32,10 +34,7 @@ export async function requestLessonAnalysis(req: Request, res: Response) {
     // Validate lesson exists
     const lesson = await Lesson.findByPk(lessonId);
     if (!lesson) {
-      return res.status(404).json({
-        success: false,
-        message: 'Bài học không tồn tại',
-      });
+      return responseUtils.sendNotFound(res, 'Bài học không tồn tại');
     }
 
     // Check if analysis already exists and is recent
@@ -47,11 +46,13 @@ export async function requestLessonAnalysis(req: Request, res: Response) {
       const hoursSinceUpdate = (Date.now() - existingAnalysis.updated_at.getTime()) / (1000 * 60 * 60);
       
       if (hoursSinceUpdate < 24) {
-        return res.status(200).json({
-          success: true,
-          message: 'Bài học đã được phân tích gần đây',
-          data: existingAnalysis,
-        });
+        return responseUtils.sendSuccess(
+          res,
+          'Bài học đã được phân tích gần đây',
+          existingAnalysis,
+          200,
+          { feature: 'ai-analysis' }
+        );
       }
     }
 
@@ -64,14 +65,16 @@ export async function requestLessonAnalysis(req: Request, res: Response) {
     });
 
     if (existingQueueTask) {
-      return res.status(200).json({
-        success: true,
-        message: 'Bài học đang trong hàng đợi phân tích',
-        data: {
+      return responseUtils.sendSuccess(
+        res,
+        'Bài học đang trong hàng đợi phân tích',
+        {
           queueTask: existingQueueTask,
           analysis: existingAnalysis,
         },
-      });
+        200,
+        { feature: 'ai-analysis' }
+      );
     }
 
     // Create analysis record if doesn't exist
@@ -101,24 +104,27 @@ export async function requestLessonAnalysis(req: Request, res: Response) {
     // Check if ProxyPal is available now
     const proxyPalAvailable = await proxyPalHealthCheck.isAvailable();
 
-    res.status(202).json({
-      success: true,
-      message: proxyPalAvailable
+    return responseUtils.sendSuccess(
+      res,
+      proxyPalAvailable
         ? 'Yêu cầu phân tích đã được tạo và sẽ được xử lý sớm'
         : 'Yêu cầu phân tích đã được tạo. Đang chờ ProxyPal online',
-      data: {
+      {
         queueTask,
         proxyPalStatus: proxyPalAvailable ? 'online' : 'offline',
       },
-    });
+      202,
+      { feature: 'ai-analysis' }
+    );
 
   } catch (error: any) {
     logger.error('[AIAnalysisController] Request analysis error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi tạo yêu cầu phân tích',
-      error: error.message,
-    });
+    return responseUtils.sendError(
+      res,
+      'Lỗi khi tạo yêu cầu phân tích',
+      500,
+      [{ message: error.message }]
+    );
   }
 }
 
@@ -135,10 +141,7 @@ export async function getLessonAnalysis(req: Request, res: Response) {
     });
 
     if (!analysis) {
-      return res.status(404).json({
-        success: false,
-        message: 'Chưa có phân tích cho bài học này',
-      });
+      return responseUtils.sendNotFound(res, 'Chưa có phân tích cho bài học này');
     }
 
     // Also check queue status if pending
@@ -152,21 +155,25 @@ export async function getLessonAnalysis(req: Request, res: Response) {
       });
     }
 
-    res.status(200).json({
-      success: true,
-      data: {
+    return responseUtils.sendSuccess(
+      res,
+      'Analysis retrieved',
+      {
         analysis,
         queueTask,
       },
-    });
+      200,
+      { feature: 'ai-analysis' }
+    );
 
   } catch (error: any) {
     logger.error('[AIAnalysisController] Get analysis error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi lấy kết quả phân tích',
-      error: error.message,
-    });
+    return responseUtils.sendError(
+      res,
+      'Lỗi khi lấy kết quả phân tích',
+      500,
+      [{ message: error.message }]
+    );
   }
 }
 
@@ -182,18 +189,22 @@ export async function deleteLessonAnalysis(req: Request, res: Response) {
       where: { lesson_id: lessonId },
     });
 
-    res.status(200).json({
-      success: true,
-      message: 'Đã xóa kết quả phân tích. Có thể yêu cầu phân tích lại.',
-    });
+    return responseUtils.sendSuccess(
+      res,
+      'Đã xóa kết quả phân tích. Có thể yêu cầu phân tích lại.',
+      null,
+      200,
+      { feature: 'ai-analysis' }
+    );
 
   } catch (error: any) {
     logger.error('[AIAnalysisController] Delete analysis error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi xóa kết quả phân tích',
-      error: error.message,
-    });
+    return responseUtils.sendError(
+      res,
+      'Lỗi khi xóa kết quả phân tích',
+      500,
+      [{ message: error.message }]
+    );
   }
 }
 
@@ -205,18 +216,22 @@ export async function getProxyPalStatus(req: Request, res: Response) {
   try {
     const status = proxyPalHealthCheck.getHealthStatus();
 
-    res.status(200).json({
-      success: true,
-      data: status,
-    });
+    return responseUtils.sendSuccess(
+      res,
+      'ProxyPal status retrieved',
+      status,
+      200,
+      { feature: 'ai-proxypal' }
+    );
 
   } catch (error: any) {
     logger.error('[AIAnalysisController] Get ProxyPal status error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi kiểm tra trạng thái ProxyPal',
-      error: error.message,
-    });
+    return responseUtils.sendError(
+      res,
+      'Lỗi khi kiểm tra trạng thái ProxyPal',
+      500,
+      [{ message: error.message }]
+    );
   }
 }
 
@@ -248,21 +263,25 @@ export async function getAnalysisQueue(req: Request, res: Response) {
 
     const workerStatus = queueWorker.getStatus();
 
-    res.status(200).json({
-      success: true,
-      data: {
+    return responseUtils.sendSuccess(
+      res,
+      'Queue retrieved',
+      {
         tasks,
         worker: workerStatus,
       },
-    });
+      200,
+      { feature: 'ai-analysis-queue' }
+    );
 
   } catch (error: any) {
     logger.error('[AIAnalysisController] Get queue error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi lấy danh sách queue',
-      error: error.message,
-    });
+    return responseUtils.sendError(
+      res,
+      'Lỗi khi lấy danh sách queue',
+      500,
+      [{ message: error.message }]
+    );
   }
 }
 
@@ -276,23 +295,24 @@ export async function forceProcessQueue(req: Request, res: Response) {
     const proxyPalAvailable = await proxyPalHealthCheck.forceCheck();
 
     if (!proxyPalAvailable) {
-      return res.status(503).json({
-        success: false,
-        message: 'ProxyPal không khả dụng',
-      });
+      return responseUtils.sendServiceUnavailable(res, 'ProxyPal không khả dụng');
     }
 
-    res.status(200).json({
-      success: true,
-      message: 'Đã kích hoạt xử lý queue. Worker sẽ xử lý trong vòng 1 phút.',
-    });
+    return responseUtils.sendSuccess(
+      res,
+      'Đã kích hoạt xử lý queue. Worker sẽ xử lý trong vòng 1 phút.',
+      null,
+      200,
+      { feature: 'ai-analysis-queue' }
+    );
 
   } catch (error: any) {
     logger.error('[AIAnalysisController] Force process error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi khi kích hoạt xử lý queue',
-      error: error.message,
-    });
+    return responseUtils.sendError(
+      res,
+      'Lỗi khi kích hoạt xử lý queue',
+      500,
+      [{ message: error.message }]
+    );
   }
 }

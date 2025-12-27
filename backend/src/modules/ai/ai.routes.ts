@@ -23,6 +23,14 @@ router.use(authMiddleware);
 router.get('/status', controller.getStatus);
 
 /**
+ * @route   GET /ai/jobs/:jobId
+ * @desc    Poll async AI job status
+ * @access  Private
+ */
+router.get('/jobs/:jobId', controller.getJobStatus);
+
+
+/**
  * @route   POST /ai/chat
  * @desc    Chat with AI assistant
  * @access  Private
@@ -38,6 +46,18 @@ router.post('/lesson-summary', controller.lessonSummary);
  * @access  Private (Instructor/Admin only - TODO: add role check)
  */
 router.post('/generate-quiz', controller.generateQuiz);
+
+/**
+ * @route   POST /ai/generate-quiz-file
+ * @desc    Generate quiz questions from uploaded file
+ * @access  Private (Instructor/Admin only - TODO: add role check)
+ */
+router.post(
+  '/generate-quiz-file',
+  controller.uploadAiFile,
+  controller.generateQuizFromFile
+);
+
 
 /**
  * @route   GET /ai/recommendations
@@ -104,7 +124,78 @@ router.post('/instructor/generate-thumbnail', controller.generateThumbnail);
  */
 router.post('/instructor/generate-lesson-content', controller.generateLessonContent);
 
+/**
+ * @route   POST /ai/instructor/generate-assignment
+ * @desc    Generate assignment draft
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/instructor/generate-assignment',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.generateAssignment
+);
+
+/**
+ * @route   POST /ai/instructor/generate-assignment-file
+ * @desc    Generate assignment draft from uploaded file
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/instructor/generate-assignment-file',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.uploadAiFile,
+  controller.generateAssignmentFromFile
+);
+
+
+// ==================== DEBATE WORKFLOW ====================
+
+/**
+ * @route   POST /ai/debate/start
+ * @desc    Start debate workflow
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/debate/start',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.startDebate
+);
+
+/**
+ * @route   GET /ai/debate/:debateId
+ * @desc    Get debate result
+ * @access  Private (Instructor/Admin only)
+ */
+router.get(
+  '/debate/:debateId',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.getDebateResult
+);
+
+/**
+ * @route   GET /ai/debate/:debateId/history
+ * @desc    Get debate history
+ * @access  Private (Instructor/Admin only)
+ */
+router.get(
+  '/debate/:debateId/history',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.getDebateHistory
+);
+
+/**
+ * @route   POST /ai/debate/:debateId/arbitrate
+ * @desc    Force judge arbitration
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/debate/:debateId/arbitrate',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.arbitrateDebate
+);
+
 // ==================== AI GRADER ====================
+
 
 /**
  * @route   POST /ai/grader/code
@@ -137,6 +228,29 @@ router.post(
   '/grader/assignment',
   authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   controller.gradeAssignment
+);
+
+/**
+ * @route   POST /ai/grader/rubric
+ * @desc    Generate rubric from text
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/grader/rubric',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.generateRubric
+);
+
+/**
+ * @route   POST /ai/grader/rubric-file
+ * @desc    Generate rubric from uploaded file
+ * @access  Private (Instructor/Admin only)
+ */
+router.post(
+  '/grader/rubric-file',
+  authorizeRoles([UserRole.INSTRUCTOR, UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  controller.uploadAiFile,
+  controller.generateRubricFromFile
 );
 
 // ==================== TESTING ====================

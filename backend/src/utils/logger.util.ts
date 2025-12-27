@@ -52,6 +52,25 @@ function getTracingContext() {
   };
 }
 
+function safeStringify(value: unknown, spacing?: number): string {
+  try {
+    const seen = new WeakSet();
+    return JSON.stringify(
+      value,
+      (_, item) => {
+        if (typeof item === 'object' && item !== null) {
+          if (seen.has(item)) return '[Circular]';
+          seen.add(item);
+        }
+        return item;
+      },
+      spacing
+    );
+  } catch {
+    return '[Unserializable]';
+  }
+}
+
 // Log format configuration
 const logFormat = winston.format.combine(
   winston.format.timestamp({
@@ -61,7 +80,7 @@ const logFormat = winston.format.combine(
   winston.format.json(),
   winston.format.printf((info: any) => {
     const tracingContext = getTracingContext();
-    return JSON.stringify({
+    return safeStringify({
       ...info,
       traceId: tracingContext.traceId,
       spanId: tracingContext.spanId
@@ -79,10 +98,11 @@ const consoleFormat = winston.format.combine(
     const tracingContext = getTracingContext();
     const traceInfo = tracingContext.traceId ? ` traceId=${tracingContext.traceId} spanId=${tracingContext.spanId}` : '';
     return `${timestamp} [${level}]: ${message} ${
-      Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
+      Object.keys(meta).length ? safeStringify(meta, 2) : ''
     }${traceInfo}`;
   })
 );
+
 
 // Create logger instance
 const logger = winston.createLogger({

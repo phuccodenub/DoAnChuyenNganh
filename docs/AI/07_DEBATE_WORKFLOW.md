@@ -38,7 +38,7 @@ Hệ thống Debate Workflow cho phép các AI agents cùng nhau thảo luận, 
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │          STAGE 1: KHỞI TẠO (INITIALIZATION)                 │
-│  - Agent A (Gemini): Đưa ra quan điểm ban đầu               │
+│  - Agent A (GPT): Đưa ra quan điểm ban đầu               │
 │  - Agent B (Qwen): Đưa ra quan điểm ban đầu                 │
 │  - Lưu trạng thái                                            │
 └────────────────────────┬────────────────────────────────────┘
@@ -60,7 +60,7 @@ Hệ thống Debate Workflow cho phép các AI agents cùng nhau thảo luận, 
          │               │               │
          ▼               ▼               ▼
    Tổng hợp A+B    Tổng hợp A+B    Gọi Agent C
-                                    (Claude Sonnet)
+                                     (ProxyPal GPT-5.2)
                          │
          ┌───────────────┼───────────────┐
          │               │               │
@@ -85,7 +85,7 @@ DEBATE ORCHESTRATOR
 │
 ├─ Agent A: Lý thuyết (Theory Expert)
 │  ├─ Provider: ProxyPal
-│  ├─ Model: Gemini 3 Pro Preview
+│  ├─ Model: GPT 5.2
 │  ├─ Vai trò: Đề xuất cấu trúc chuẩn
 │  └─ Perspective: Học thuật, logic, best practices
 │
@@ -96,8 +96,8 @@ DEBATE ORCHESTRATOR
 │  └─ Perspective: Lập trình, performance, reality
 │
 └─ Agent C: Phán xử (Judge)
-   ├─ Provider: MegaLLM
-   ├─ Model: Claude Sonnet 4.5
+   ├─ Provider: ProxyPal
+   ├─ Model: GPT-5.2
    ├─ Vai trò: Quyết định cuối khi tranh cãi
    └─ Trigger: Disagreement > 50%
 ```
@@ -184,7 +184,7 @@ export class DebateController {
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { ProxyPalService } from './providers/proxypal.service';
-import { MegaLLMService } from './providers/megallm.service';
+import { ProxyPalService } from './providers/proxypal.service';
 import { DebateHistory } from '@/database/models/DebateHistory';
 import Redis from 'ioredis';
 
@@ -226,12 +226,10 @@ interface DebateResult {
 @Injectable()
 export class DebateOrchestrator {
   private proxypal: ProxyPalService;
-  private megallm: MegaLLMService;
   private redis: Redis;
 
   constructor() {
     this.proxypal = new ProxyPalService();
-    this.megallm = new MegaLLMService();
     this.redis = new Redis({
       host: process.env.REDIS_HOST,
       port: Number(process.env.REDIS_PORT),
@@ -337,7 +335,7 @@ export class DebateOrchestrator {
     previousRound: DebateRound | null,
     agentAInstructions: string | null
   ): Promise<DebateRound> {
-    // Agent A (Gemini) - Lý thuyết
+    // Agent A (GPT) - Lý thuyết
     const promptA = this.buildAgentPrompt(
       roundNumber,
       context,
@@ -348,7 +346,7 @@ export class DebateOrchestrator {
     );
 
     const responseA = await this.proxypal.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'GPT 5.2',
       prompt: promptA,
       temperature: 0.7
     });
@@ -412,8 +410,8 @@ OUTPUT JSON:
   "keyPoints": ["...", "..."]
 }`;
 
-    const response = await this.megallm.generateContent({
-      model: 'claude-sonnet-4-5',
+    const response = await this.proxypal.generateContent({
+      model: 'gpt-5.2',
       prompt: judgePrompt,
       temperature: 0.5
     });
@@ -686,7 +684,7 @@ DEBATE_CACHE_TTL=604800
 
 # Judge Settings
 DEBATE_JUDGE_REQUIRE_DISAGREEMENT=50
-DEBATE_JUDGE_MODEL=claude-sonnet-4-5
+DEBATE_JUDGE_MODEL=gpt-5.2
 DEBATE_JUDGE_TEMPERATURE=0.5
 
 # Budget

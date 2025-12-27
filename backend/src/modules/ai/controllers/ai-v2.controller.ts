@@ -32,20 +32,26 @@ export class AIControllerV2 {
 
       logger.info(`[AIController] Status check: ${availableCount}/${providers.length} providers available`);
 
-      return responseUtils.success(res, {
-        available: isAvailable,
-        providers,
-        cache: {
-          available: this.aiCacheService.isAvailable(),
-          stats: cacheStats,
+      return responseUtils.sendSuccess(
+        res,
+        'AI service status retrieved',
+        {
+          available: isAvailable,
+          providers,
+          cache: {
+            available: this.aiCacheService.isAvailable(),
+            stats: cacheStats,
+          },
+          features: {
+            tutor: process.env.AI_TUTOR_ENABLED !== 'false',
+            quizGenerator: process.env.AI_QUIZ_GENERATOR_ENABLED === 'true',
+            grader: process.env.AI_GRADER_ENABLED === 'true',
+            contentRepurposing: process.env.AI_CONTENT_REPURPOSING_ENABLED === 'true',
+          },
         },
-        features: {
-          tutor: process.env.AI_TUTOR_ENABLED !== 'false',
-          quizGenerator: process.env.AI_QUIZ_GENERATOR_ENABLED === 'true',
-          grader: process.env.AI_GRADER_ENABLED === 'true',
-          contentRepurposing: process.env.AI_CONTENT_REPURPOSING_ENABLED === 'true',
-        },
-      }, 'AI service status retrieved');
+        200,
+        { feature: 'ai-status' }
+      );
     } catch (error) {
       next(error);
     }
@@ -77,16 +83,22 @@ export class AIControllerV2 {
         lessonId,
       });
 
-      return responseUtils.success(res, {
-        response: response.text,
-        metadata: {
-          model: response.model,
-          provider: response.provider,
-          tier: response.tier,
-          latency: response.latency,
-          usage: response.usage,
+      return responseUtils.sendSuccess(
+        res,
+        'AI response generated',
+        {
+          response: response.text,
+          metadata: {
+            model: response.model,
+            provider: response.provider,
+            tier: response.tier,
+            latency: response.latency,
+            usage: response.usage,
+          },
         },
-      }, 'AI response generated');
+        200,
+        { feature: 'ai-test-chat' }
+      );
     } catch (error: any) {
       logger.error('[AIController] Error in test chat:', error);
       return responseUtils.error(res, error.message || 'Failed to generate AI response', 500);
@@ -103,7 +115,13 @@ export class AIControllerV2 {
       
       logger.info('[AIController] AI cache cleared');
 
-      return responseUtils.success(res, null, 'AI cache cleared successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'AI cache cleared successfully',
+        null,
+        200,
+        { feature: 'ai-cache' }
+      );
     } catch (error) {
       next(error);
     }
@@ -117,7 +135,13 @@ export class AIControllerV2 {
     try {
       const providers = this.aiTutorService.getAvailableProviders();
 
-      return responseUtils.success(res, { providers }, 'Providers retrieved');
+      return responseUtils.sendSuccess(
+        res,
+        'Providers retrieved',
+        { providers },
+        200,
+        { feature: 'ai-providers' }
+      );
     } catch (error) {
       next(error);
     }

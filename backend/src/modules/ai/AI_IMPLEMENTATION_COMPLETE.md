@@ -10,7 +10,7 @@
 Hệ thống AI mới với kiến trúc **3-tier hybrid** đã được triển khai hoàn chỉnh, kết hợp:
 - **Tier 1:** Fast & Free (Groq, Google AI Studio)
 - **Tier 2:** Powerful & Local (ProxyPal - Gemini 3 Pro, Qwen 3 Coder)
-- **Tier 3:** Premium & Critical (MegaLLM - Optional)
+- **Tier 3:** Premium & Critical (ProxyPal Premium - GPT-5.2, GPT-5.1)
 
 ### Tính năng đã triển khai (Implemented Features)
 

@@ -73,14 +73,14 @@ Tài liệu hướng dẫn triển khai AI này được chia thành nhiều fil
 - **Cache:** Redis 7 (cache phản hồi AI)
 
 ### AI Providers (Nhà cung cấp AI)
-- **Local:** ProxyPal (Gemini 3 Pro, Qwen 3 Coder)
+- **Local/Dev:** ProxyPal (Gemini 3 Pro, Qwen 3 Coder)
 - **Cloud Free:** Google AI Studio, Groq
-- **Premium:** MegaLLM (Claude Sonnet 4.5, Claude Opus 4.5)
+- **Premium:** ProxyPal Premium Models (GPT-5.2, GPT-5.1)
 
 ### Integration Frameworks (Framework tích hợp)
 - **LangChain** - Cho các workflow AI phức tạp
 - **OpenAI SDK** - API interface thống nhất
-- **Custom Adapters** - Cho ProxyPal và MegaLLM
+- **Custom Adapters** - Cho ProxyPal (local gateway)
 
 ---
 
@@ -103,10 +103,10 @@ Tài liệu hướng dẫn triển khai AI này được chia thành nhiều fil
 ## ⚠️ GHI CHÚ QUAN TRỌNG (IMPORTANT NOTES)
 
 ### Quản lý chi phí (Cost Management)
-- **Ngân sách AI mỗi ngày:** tối đa $5
-- **Credit MegaLLM:** tổng $150 (dùng tiết kiệm)
-- **ProxyPal:** chịu giới hạn free tier
-- **Cần giám sát:** theo dõi tất cả API call
+- **Ngân sách AI mỗi ngày:** tối đa $5 (cloud paid)
+- **ProxyPal Premium:** dùng cục bộ theo subscription cá nhân
+- **ProxyPal (dev):** phụ thuộc máy dev chạy ProxyPal
+- **Cần giám sát:** theo dõi tất cả AI calls
 
 ### Bảo mật (Security Considerations)
 - Không bao giờ để lộ API key trên frontend

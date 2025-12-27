@@ -1040,7 +1040,8 @@ export function LessonDetailPage() {
     queryKey: ['all-quizzes', courseId],
     queryFn: async () => {
       try {
-        const res = await quizApi.getQuizzes({ course_id: courseId!, status: 'published' });
+        // Lấy tất cả quizzes với limit lớn để đảm bảo không bị thiếu
+        const res = await quizApi.getQuizzes({ course_id: courseId!, status: 'published', limit: 1000 });
         const list = Array.isArray(res?.data) ? res.data : [];
         return list.filter((q: any) => q.is_published);
       } catch (error: any) {

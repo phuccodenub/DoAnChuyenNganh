@@ -13,7 +13,7 @@ Hướng dẫn này cung cấp các bước cấu hình chi tiết để tích h
 
 ### Phạm vi
 - ✅ ProxyPal installation & configuration
-- ✅ MegaLLM setup
+- ✅ ProxyPal premium models config
 - ✅ Google AI Studio
 - ✅ Groq Cloud
 - ✅ Redis configuration
@@ -69,20 +69,12 @@ proxypal init --interactive
 
 **File:** `~/.proxypal/config/models.yaml`
 
+> ⚠️ Lưu ý: Theo `docs/AI/Provider_Rule.md`, Gemini qua ProxyPal không ổn định. Chỉ dùng GPT/Qwen trên ProxyPal (local).
+
 ```yaml
 version: 1.0
 
 providers:
-  - name: "gemini"
-    type: "google"
-    apiKey: "${GOOGLE_API_KEY}"
-    models:
-      - name: "gemini-3-pro-preview"
-        config:
-          contextWindow: 2000000
-          temperature: 0.7
-          timeout: 30000
-
   - name: "qwen"
     type: "qwen"
     apiKey: "${QWEN_API_KEY}"
@@ -99,15 +91,20 @@ providers:
           temperature: 0.7
           timeout: 10000
 
+  - name: "gpt"
+    type: "openai"
+    apiKey: "${OPENAI_API_KEY}"
+    models:
+      - name: "gpt-5"
+        config:
+          contextWindow: 128000
+          temperature: 0.7
+          timeout: 30000
+
 routing:
-  # Routing strategy
   strategies:
     - name: "default"
       rules:
-        - condition: "contextLength > 500000"
-          provider: "gemini"
-          model: "gemini-3-pro-preview"
-        
         - condition: "codeQuality == true"
           provider: "qwen"
           model: "qwen3-coder-plus"
@@ -117,8 +114,8 @@ routing:
           model: "qwen3-coder-flash"
         
         - condition: "default"
-          provider: "gemini"
-          model: "gemini-3-pro-preview"
+          provider: "gpt"
+          model: "gpt-5"
 
 cache:
   type: "redis"
@@ -133,6 +130,7 @@ logging:
   output: "file"
   path: "~/.proxypal/logs/proxypal.log"
 ```
+
 
 ### 1.4 Khởi động ProxyPal
 
@@ -161,9 +159,12 @@ proxypal status
 # 2. Chọn project hoặc tạo mới
 # 3. Copy API key
 
-# Lưu vào environment
-export GOOGLE_AI_KEY="AIzaSyD..."
+# Lưu vào environment (key rotation)
+export GEMINI_API_KEY="AIzaSyD..."
+export GEMINI_API_KEY_2="AIzaSyD..."
+export GEMINI_API_KEY_3="AIzaSyD..."
 ```
+
 
 ### 2.2 Groq Cloud (Llama 3)
 
@@ -177,20 +178,16 @@ export GOOGLE_AI_KEY="AIzaSyD..."
 export GROQ_API_KEY="gsk_..."
 ```
 
-### 2.3 MegaLLM (Claude)
+### 2.3 ProxyPal Premium Models (GPT-5.x)
 
 ```bash
-# Tạo 2 tài khoản MegaLLM riêng biệt (bố cục budget)
-# Account 1: Claude Sonnet 4.5
-# Account 2: Claude Opus 4.5
+# ProxyPal Premium (local/hosted)
+# GPT-5.2: debate judging / arbitration
+# GPT-5.1: quiz polish
 
-# Account 1
-export MEGALLM_ACCOUNT1_KEY="sk-ant-api-..."
-export MEGALLM_ACCOUNT1_BUDGET=75
-
-# Account 2
-export MEGALLM_ACCOUNT2_KEY="sk-ant-api-..."
-export MEGALLM_ACCOUNT2_BUDGET=75
+export PROXYPAL_MODEL_PREMIUM="gpt-5.2"
+export PROXYPAL_MODEL_POLISH="gpt-5.1"
+export PROXYPAL_MODEL_FALLBACK="gpt-5"
 ```
 
 ---
@@ -199,7 +196,7 @@ export MEGALLM_ACCOUNT2_BUDGET=75
 
 ### 3.1 Backend Environment
 
-**File:** `backend/.env.production`
+**File:** `backend/.env` (tham khảo `backend/env.example`)
 
 ```bash
 # ============ NODE ============
@@ -208,79 +205,69 @@ PORT=3000
 LOG_LEVEL=info
 
 # ============ DATABASE ============
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=lms_ai
-DB_USER=postgres
-DB_PASSWORD=your-secure-password
-DB_SSL=true
+DATABASE_URL=postgresql://lms_user:123456@localhost:5432/lms_db
 
 # ============ REDIS ============
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=redis-secure-password
-REDIS_DB=2
-REDIS_MAX_RETRIES=3
+REDIS_URL=redis://localhost:6379
 
-# ============ PROXYPAL ============
-PROXYPAL_URL=http://localhost:8888
-PROXYPAL_TIMEOUT=30000
-PROXYPAL_RETRY_COUNT=3
+# ============ PROXYPAL (Local only) ============
+# NOTE: ProxyPal chỉ dùng local/dev, không khuyến nghị production
+# Dùng 127.0.0.1 để tránh IPv6 issues
+PROXYPAL_BASE_URL=http://127.0.0.1:8317/v1
+PROXYPAL_API_KEY=proxypal-local
+PROXYPAL_ENABLED=false
+PROXYPAL_TIMEOUT=60000
 
-# ============ TIER 1: SPEED ============
+# ============ TIER 1: SPEED (Cloud Free) ============
 GROQ_API_KEY=gsk_...
-GOOGLE_AI_KEY=AIzaSyD...
+GROQ_MODEL_DEFAULT=llama-3.3-70b-versatile
+GROQ_MODEL_REASONING=llama-3.3-70b-versatile
+GROQ_MODEL_MATH=qwen-3-32b
+GROQ_MODEL_VISION=llama-4-scout
+GROQ_MODEL_SPEECH=whisper-large-v3
+GROQ_TEMPERATURE=0.7
+GROQ_MAX_TOKENS=2048
 
-# ============ TIER 2: POWER (ProxyPal) ============
-# Configured in ProxyPal local config
+# Google AI Studio (Gemini Flash) - key rotation
+GEMINI_API_KEY=your-gemini-api-key-1
+GEMINI_API_KEY_2=your-gemini-api-key-2
+GEMINI_API_KEY_3=your-gemini-api-key-3
+GEMINI_TEMPERATURE=0.7
+GEMINI_MAX_TOKENS=8192
 
-# ============ TIER 3: PREMIUM ============
-MEGALLM_ACCOUNT1_KEY=sk-ant-...
-MEGALLM_ACCOUNT2_KEY=sk-ant-...
-MEGALLM_ROUTING=round_robin # round_robin | sequential
+# Models
+GOOGLE_MODEL_3_FLASH=gemini-3-flash-preview
+GOOGLE_MODEL_2_5_FLASH=gemini-2.5-flash
+GOOGLE_MODEL_2_5_FLASH_LITE=gemini-2.5-flash-lite
+GOOGLE_MODEL_2_5_FLASH_TTS=gemini-2.5-flash-preview-tts
 
-# ============ AI CONFIG ============
-AI_CACHE_TTL_CHAT=3600 # 1h
-AI_CACHE_TTL_QUIZ=86400 # 24h
-AI_CACHE_TTL_GRADE=604800 # 7d
-AI_CACHE_TTL_CONTENT=2592000 # 30d
+# ============ TIER 3: PREMIUM (ProxyPal) ============
+PROXYPAL_MODEL_PREMIUM=gpt-5.2
+PROXYPAL_MODEL_POLISH=gpt-5.1
+PROXYPAL_MODEL_FALLBACK=gpt-5
 
-AI_REQUEST_TIMEOUT=60000
-AI_MAX_RETRIES=3
-AI_FALLBACK_ENABLED=true
+# ============ AI FEATURE FLAGS ============
+AI_TUTOR_ENABLED=true
+AI_QUIZ_GENERATOR_ENABLED=true
+AI_GRADER_ENABLED=false
+AI_CONTENT_REPURPOSING_ENABLED=false
 
-AI_BUDGET_DAILY_LIMIT=100
-AI_BUDGET_MONTHLY_LIMIT=2000
-
-# ============ FEATURES ============
-FEATURE_QUIZ_GENERATOR=true
-FEATURE_AI_TUTOR=true
-FEATURE_AI_GRADER=true
-FEATURE_DEBATE=true
-FEATURE_CONTENT_REPURPOSING=true
-FEATURE_ADAPTIVE_LEARNING=true
-
-# ============ MONITORING ============
-SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
-DATADOG_API_KEY=dd_apm_...
-
-# ============ SECURITY ============
-JWT_SECRET=your-jwt-secret-key
-JWT_EXPIRY=7d
-CORS_ORIGIN=https://yourdomain.com
-RATE_LIMIT_WINDOW=15 # minutes
-RATE_LIMIT_MAX_REQUESTS=100
+# ============ CACHE TTL ============
+CACHE_TTL_SHORT=300
+CACHE_TTL_MEDIUM=1800
+CACHE_TTL_LONG=3600
 ```
 
 ### 3.2 Frontend Environment
 
-**File:** `frontend/.env.production`
+**File:** `frontend/.env.production` (Vite)
 
 ```bash
-REACT_APP_API_URL=https://api.yourdomain.com
-REACT_APP_WS_URL=wss://api.yourdomain.com
-REACT_APP_ENV=production
-REACT_APP_LOG_LEVEL=warn
+VITE_API_URL=/api/v1.2.0
+VITE_SOCKET_URL=http://localhost:3000
+VITE_DEMO_MODE=false
+VITE_FILE_UPLOAD_MAX_SIZE=10485760
+VITE_DEBUG_MODE=false
 ```
 
 ### 3.3 Docker Environment
@@ -294,7 +281,7 @@ COMPOSE_FILE=docker-compose.prod.yml
 
 # Database
 POSTGRES_PASSWORD=db-secure-password
-POSTGRES_DB=lms_ai
+POSTGRES_DB=lms_db
 
 # Redis
 REDIS_PASSWORD=redis-secure-password
@@ -306,6 +293,7 @@ BACKEND_REPLICAS=3
 # Frontend
 FRONTEND_PORT=80
 ```
+
 
 ---
 

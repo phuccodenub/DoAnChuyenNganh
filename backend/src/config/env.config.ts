@@ -207,17 +207,22 @@ export const env = {
       apiKey: process.env.PROXYPAL_API_KEY || 'proxypal-local',
       enabled: toBool(process.env.PROXYPAL_ENABLED, false),
       timeout: toInt(process.env.PROXYPAL_TIMEOUT, 60000),
+      // Premium models for verification and polish
+      models: {
+        premium: process.env.PROXYPAL_MODEL_PREMIUM || 'gpt-5.2', // Debate judging, verification
+        polish: process.env.PROXYPAL_MODEL_POLISH || 'gpt-5.1',   // Quiz polish, reasoning
+        fallback: process.env.PROXYPAL_MODEL_FALLBACK || 'gpt-5', // Backup
+      },
     },
-    
-    // MegaLLM (Premium - Optional)
-    megalm: {
-      // Multiple API Keys for rotation
-      apiKeys: [
-        process.env.MEGALM_API_KEY || '',
-        process.env.MEGALM_API_KEY_2 || '',
-        process.env.MEGALM_API_KEY_3 || '',
-      ].filter(Boolean), // Remove empty keys
-      baseUrl: process.env.MEGALM_BASE_URL || 'https://api.megallm.com/v1',
+
+    debate: {
+      maxRounds: toInt(process.env.DEBATE_MAX_ROUNDS, 3),
+      disagreementThreshold: toInt(process.env.DEBATE_DISAGREEMENT_THRESHOLD, 50),
+      cacheTtl: toInt(process.env.DEBATE_CACHE_TTL, 7 * 24 * 60 * 60),
+      judgeModel: process.env.DEBATE_JUDGE_MODEL || 'gpt-5.2', // ProxyPal GPT-5.2
+      judgeTemperature: parseFloat(process.env.DEBATE_JUDGE_TEMPERATURE || '0.5'),
+      dailyLimit: toInt(process.env.DEBATE_DAILY_LIMIT, 10),
+      judgeCallsMonthlyMax: toInt(process.env.DEBATE_JUDGE_CALLS_MONTHLY_MAX, 50),
     },
     
     // Feature toggles
@@ -226,6 +231,7 @@ export const env = {
       quizGeneratorEnabled: toBool(process.env.AI_QUIZ_GENERATOR_ENABLED, true),
       graderEnabled: toBool(process.env.AI_GRADER_ENABLED, false),
       contentRepurposingEnabled: toBool(process.env.AI_CONTENT_REPURPOSING_ENABLED, false),
+      debateEnabled: toBool(process.env.AI_DEBATE_ENABLED, false),
     },
   },
 

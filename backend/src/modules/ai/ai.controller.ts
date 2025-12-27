@@ -20,9 +20,14 @@ import {
 } from './ai.types';
 import { responseUtils } from '../../utils/response.util';
 import logger from '../../utils/logger.util';
+import env from '../../config/env.config';
 import { CourseContentService } from '../course-content/course-content.service';
 import { QuizGeneratorService } from './services/quiz-generator.service';
 import { AIGraderService } from './services/ai-grader.service';
+import { aiJobService } from './services/ai-job.service';
+import { DebateOrchestratorService, DebateRequest } from './services/debate-orchestrator.service';
+import multer from 'multer';
+
 
 
 export class AIController {
@@ -30,13 +35,19 @@ export class AIController {
   private courseContentService: CourseContentService;
   private quizGeneratorService: QuizGeneratorService;
   private graderService: AIGraderService;
-
+  private debateService: DebateOrchestratorService;
+  private readonly aiUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+  });
+ 
   constructor() {
     this.aiService = new AIService();
     this.courseContentService = new CourseContentService();
     this.quizGeneratorService = new QuizGeneratorService();
     this.graderService = new AIGraderService();
-}
+    this.debateService = new DebateOrchestratorService();
+  }
 
   /**
    * Chat with AI assistant
@@ -62,7 +73,13 @@ export class AIController {
       };
 
       const response = await this.aiService.chat(chatRequest);
-      return responseUtils.success(res, response, 'AI response generated successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'AI response generated successfully',
+        response,
+        200,
+        { feature: 'ai-chat' }
+      );
     } catch (error) {
       logger.error('[AIController] Chat error:', error);
       next(error);
@@ -92,7 +109,13 @@ export class AIController {
         options,
       });
 
-      return responseUtils.success(res, response, 'AI response generated with lesson context');
+      return responseUtils.sendSuccess(
+        res,
+        'AI response generated with lesson context',
+        response,
+        200,
+        { feature: 'ai-lesson-chat' }
+      );
     } catch (error) {
       logger.error('[AIController] Lesson chat error:', error);
       next(error);
@@ -115,7 +138,13 @@ export class AIController {
       const lesson = await this.courseContentService.getLesson(lessonId, userId);
       const response = await this.aiService.summarizeLesson(lesson);
 
-      return responseUtils.success(res, response, 'Lesson summarized successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Lesson summarized successfully',
+        response,
+        200,
+        { feature: 'ai-lesson-summary' }
+      );
     } catch (error) {
       logger.error('[AIController] Lesson summary error:', error);
       next(error);
@@ -142,7 +171,11 @@ export class AIController {
         questionTypes,
         topicFocus,
         bloomLevel,
+        difficultyDistribution,
+        questionTypeDistribution,
+        bloomDistribution,
         isPremium,
+        asyncJob,
       } = req.body;
 
       // Support both 'content' and 'courseContent' for backward compatibility
@@ -167,6 +200,9 @@ export class AIController {
         questionTypes: questionTypes || [questionType || 'single_choice'],
         topicFocus,
         bloomLevel: bloomLevel || 'understand',
+        difficultyDistribution,
+        questionTypeDistribution,
+        bloomDistribution,
         userId,
         // Validate isPremium: only instructor/admin can use premium features
         isPremium: isPremium && ['instructor', 'admin', 'super_admin'].includes(req.user!.role) ? true : false,
@@ -179,10 +215,41 @@ export class AIController {
 
       logger.info(`[AIController] Generating quiz for course ${courseId}, ${quizRequest.numberOfQuestions} questions`);
 
+      if (asyncJob) {
+        const job = aiJobService.createJob({
+          type: 'quiz-generation',
+          courseId,
+          userId,
+        });
+
+        aiJobService.startJob(job.id, async () => {
+          const result = await this.quizGeneratorService.generate(quizRequest);
+          return {
+            quizId: result.quizId,
+            questions: result.questions,
+            totalQuestions: result.questions.length,
+            metadata: result.metadata,
+            fromCache: false,
+          };
+        });
+
+        return responseUtils.sendSuccess(
+          res,
+          'Quiz generation started',
+          {
+            jobId: job.id,
+            status: job.status,
+            pollUrl: `/api/v1/ai/jobs/${job.id}`,
+          },
+          202
+        );
+      }
+
       const result = await this.quizGeneratorService.generate(quizRequest);
 
-      return responseUtils.success(
+      return responseUtils.sendSuccess(
         res,
+        'Quiz được tạo thành công',
         {
           quizId: result.quizId,
           questions: result.questions,
@@ -190,7 +257,8 @@ export class AIController {
           metadata: result.metadata,
           fromCache: false, // TODO: Implement cache detection in response
         },
-        'Quiz được tạo thành công'
+        200,
+        { feature: 'quiz-generator' }
       );
     } catch (error: any) {
       logger.error('[AIController] Generate quiz error:', error);
@@ -204,6 +272,361 @@ export class AIController {
         return responseUtils.error(res, 'Không thể xử lý nội dung. Vui lòng kiểm tra lại định dạng.', 400);
       }
       
+      next(error);
+    }
+  };
+
+  /**
+   * Generate quiz questions from uploaded file
+   * POST /ai/generate-quiz-file
+   */
+  generateQuizFromFile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.userId;
+      const {
+        courseId,
+        difficulty,
+        bloomLevel,
+        difficultyDistribution,
+        questionTypeDistribution,
+        bloomDistribution,
+        asyncJob,
+      } = req.body;
+
+      if (!courseId) {
+        return responseUtils.sendValidationError(res, 'courseId là bắt buộc');
+      }
+
+      const file = req.file;
+      if (!file) {
+        return responseUtils.sendValidationError(res, 'file là bắt buộc');
+      }
+
+      const numberOfQuestions = req.body.numberOfQuestions ? Number(req.body.numberOfQuestions) : undefined;
+      if (numberOfQuestions && (numberOfQuestions < 1 || numberOfQuestions > 50)) {
+        return responseUtils.sendValidationError(res, 'Số câu hỏi phải từ 1 đến 50');
+      }
+
+      const extracted = await this.aiService.readUploadedFileContent(file);
+      if (!extracted || !extracted.content.trim()) {
+        return responseUtils.sendValidationError(res, 'Không thể đọc nội dung từ file.');
+      }
+
+      const questionTypes = req.body.questionTypes
+        ? JSON.parse(req.body.questionTypes)
+        : undefined;
+      const topicFocus = req.body.topicFocus
+        ? JSON.parse(req.body.topicFocus)
+        : undefined;
+
+      const quizRequest = {
+        courseId,
+        content: extracted.content,
+        contentType: 'text' as const,
+        numberOfQuestions: numberOfQuestions || 10,
+        difficulty: (difficulty || req.body.difficulty || 'medium') as 'easy' | 'medium' | 'hard' | 'mixed',
+        questionTypes: questionTypes || [req.body.questionType || 'single_choice'],
+        topicFocus,
+        bloomLevel: (bloomLevel || req.body.bloomLevel || 'understand') as 'remember' | 'understand' | 'apply' | 'analyze' | 'mixed',
+        difficultyDistribution: difficultyDistribution
+          ? JSON.parse(difficultyDistribution)
+          : undefined,
+        questionTypeDistribution: questionTypeDistribution
+          ? JSON.parse(questionTypeDistribution)
+          : undefined,
+        bloomDistribution: bloomDistribution
+          ? JSON.parse(bloomDistribution)
+          : undefined,
+        userId,
+        isPremium:
+          req.body.isPremium === 'true' && ['instructor', 'admin', 'super_admin'].includes(req.user!.role),
+      };
+
+      logger.info(`[AIController] Generating quiz from file ${extracted.fileName}`);
+
+      if (asyncJob) {
+        const job = aiJobService.createJob({
+          type: 'quiz-generation',
+          courseId,
+          userId,
+        });
+
+        aiJobService.startJob(job.id, async () => {
+          const result = await this.quizGeneratorService.generate(quizRequest);
+          return {
+            quizId: result.quizId,
+            questions: result.questions,
+            totalQuestions: result.questions.length,
+            metadata: result.metadata,
+            fromCache: false,
+          };
+        });
+
+        return responseUtils.sendSuccess(
+          res,
+          'Quiz generation started',
+          {
+            jobId: job.id,
+            status: job.status,
+            pollUrl: `/api/v1/ai/jobs/${job.id}`,
+          },
+          202
+        );
+      }
+
+      const result = await this.quizGeneratorService.generate(quizRequest);
+
+      return responseUtils.sendSuccess(
+        res,
+        'Quiz được tạo thành công',
+        {
+          quizId: result.quizId,
+          questions: result.questions,
+          totalQuestions: result.questions.length,
+          metadata: result.metadata,
+          fromCache: false,
+        },
+        200,
+        { feature: 'quiz-generator' }
+      );
+    } catch (error: any) {
+      logger.error('[AIController] Generate quiz from file error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Start a debate workflow
+   * POST /ai/debate/start
+   */
+  startDebate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!env.ai.features.debateEnabled) {
+        return responseUtils.sendServiceUnavailable(res, 'Debate workflow is disabled');
+      }
+
+      const userId = req.user!.userId;
+      const { topic, context, debateType, maxRounds, courseId } = req.body;
+    const normalizedDebateType = typeof debateType === 'string' ? debateType.trim() : debateType;
+
+      if (!topic || !context || !normalizedDebateType) {
+        return responseUtils.sendValidationError(res, 'topic, context, debateType là bắt buộc');
+      }
+
+      const allowedDebateTypes = ['project_design', 'curriculum', 'content_review', 'decision'];
+      if (!allowedDebateTypes.includes(normalizedDebateType)) {
+        return responseUtils.sendValidationError(res, 'debateType không hợp lệ');
+      }
+
+      const request: DebateRequest = {
+        topic,
+        context,
+        debateType: normalizedDebateType,
+        maxRounds: maxRounds ? Number(maxRounds) : undefined,
+        initiatedBy: userId,
+        courseId,
+      };
+
+      try {
+        const result = await this.debateService.startDebate(request);
+
+        return responseUtils.sendSuccess(
+          res,
+          'Debate completed',
+          result,
+          200,
+          { feature: 'debate-workflow' }
+        );
+      } catch (serviceError: any) {
+        if (serviceError?.message === 'Debate daily limit exceeded') {
+          return responseUtils.sendTooManyRequests(res, 'Debate daily limit exceeded');
+        }
+        throw serviceError;
+      }
+    } catch (error) {
+      logger.error('[AIController] Start debate error', {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+      });
+      next(error);
+    }
+  };
+
+  /**
+   * Get debate result
+   * GET /ai/debate/:debateId
+   */
+  getDebateResult = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!env.ai.features.debateEnabled) {
+        return responseUtils.sendServiceUnavailable(res, 'Debate workflow is disabled');
+      }
+
+      const { debateId } = req.params;
+
+      const result = await this.debateService.getDebateResult(debateId);
+
+      if (!result) {
+        return responseUtils.sendNotFound(res, 'Debate không tồn tại');
+      }
+
+      return responseUtils.sendSuccess(
+        res,
+        'Debate result retrieved',
+        result,
+        200,
+        { feature: 'debate-workflow' }
+      );
+
+    } catch (error) {
+      logger.error('[AIController] Get debate result error', {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+      });
+      next(error);
+    }
+  };
+
+  /**
+   * Get debate history
+   * GET /ai/debate/:debateId/history
+   */
+  getDebateHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!env.ai.features.debateEnabled) {
+        return responseUtils.sendServiceUnavailable(res, 'Debate workflow is disabled');
+      }
+
+      const { debateId } = req.params;
+      const history = await this.debateService.getDebateHistory(debateId);
+
+      if (!history) {
+        return responseUtils.sendNotFound(res, 'Debate không tồn tại');
+      }
+
+      return responseUtils.sendSuccess(
+        res,
+        'Debate history retrieved',
+        history,
+        200,
+        { feature: 'debate-workflow' }
+      );
+    } catch (error) {
+      logger.error('[AIController] Get debate history error', {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+      });
+      next(error);
+    }
+  };
+
+  /**
+   * Arbitrate debate manually
+   * POST /ai/debate/:debateId/arbitrate
+   */
+  arbitrateDebate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!env.ai.features.debateEnabled) {
+        return responseUtils.sendServiceUnavailable(res, 'Debate workflow is disabled');
+      }
+
+      const { debateId } = req.params;
+      const result = await this.debateService.arbitrateDebate(debateId);
+
+      if (!result) {
+        return responseUtils.sendNotFound(res, 'Debate không tồn tại');
+      }
+
+      return responseUtils.sendSuccess(
+        res,
+        'Judge arbitration completed',
+        result,
+        200,
+        { feature: 'debate-workflow' }
+      );
+    } catch (error) {
+      logger.error('[AIController] Arbitrate debate error', {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+      });
+      next(error);
+    }
+  };
+
+  /**
+   * Generate assignment draft
+   * POST /ai/instructor/generate-assignment
+   */
+  generateAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseId, content, maxScore, submissionType, rubricItems, additionalNotes } = req.body;
+
+      if (!courseId || !content) {
+        return responseUtils.sendValidationError(res, 'courseId và content là bắt buộc');
+      }
+
+      const assignment = await this.aiService.generateAssignmentDraft({
+        courseId,
+        content,
+        maxScore,
+        submissionType,
+        rubricItems,
+        additionalNotes,
+      });
+
+      return responseUtils.sendSuccess(
+        res,
+        'Assignment được tạo thành công',
+        assignment,
+        200,
+        { feature: 'assignment-generator' }
+      );
+    } catch (error) {
+      logger.error('[AIController] Generate assignment error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Generate assignment draft from uploaded file
+   * POST /ai/instructor/generate-assignment-file
+   */
+  generateAssignmentFromFile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { courseId, maxScore, submissionType, rubricItems, additionalNotes } = req.body;
+
+      if (!courseId) {
+        return responseUtils.sendValidationError(res, 'courseId là bắt buộc');
+      }
+
+      const file = req.file;
+      if (!file) {
+        return responseUtils.sendValidationError(res, 'file là bắt buộc');
+      }
+
+      const extracted = await this.aiService.readUploadedFileContent(file);
+      if (!extracted || !extracted.content.trim()) {
+        return responseUtils.sendValidationError(res, 'Không thể đọc nội dung từ file.');
+      }
+
+      const assignment = await this.aiService.generateAssignmentDraft({
+        courseId,
+        content: extracted.content,
+        maxScore: maxScore ? Number(maxScore) : undefined,
+        submissionType,
+        rubricItems: rubricItems ? Number(rubricItems) : undefined,
+        additionalNotes,
+      });
+
+      return responseUtils.sendSuccess(
+        res,
+        'Assignment được tạo thành công',
+        assignment,
+        200,
+        { feature: 'assignment-generator' }
+      );
+    } catch (error) {
+      logger.error('[AIController] Generate assignment from file error:', error);
       next(error);
     }
   };
@@ -223,7 +646,13 @@ export class AIController {
       };
 
       const response = await this.aiService.getContentRecommendations(request);
-      return responseUtils.success(res, response, 'Recommendations retrieved successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Recommendations retrieved successfully',
+        response,
+        200,
+        { feature: 'ai-recommendations' }
+      );
     } catch (error) {
       logger.error('[AIController] Get recommendations error:', error);
       next(error);
@@ -245,7 +674,13 @@ export class AIController {
       };
 
       const response = await this.aiService.getLearningAnalytics(request);
-      return responseUtils.success(res, response, 'Analytics retrieved successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Analytics retrieved successfully',
+        response,
+        200,
+        { feature: 'ai-analytics' }
+      );
     } catch (error) {
       logger.error('[AIController] Get analytics error:', error);
       next(error);
@@ -259,10 +694,12 @@ export class AIController {
   getStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const isAvailable = this.aiService.isAvailable();
-      return responseUtils.success(
+      return responseUtils.sendSuccess(
         res,
+        isAvailable ? 'AI service is available' : 'AI service is not available',
         { available: isAvailable },
-        isAvailable ? 'AI service is available' : 'AI service is not available'
+        200,
+        { service: 'ai', version: 'v1' }
       );
     } catch (error) {
       logger.error('[AIController] Get status error:', error);
@@ -293,7 +730,13 @@ export class AIController {
       };
 
       const response = await this.aiService.generateCourseOutline(request);
-      return responseUtils.success(res, response, 'Course outline generated successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Course outline generated successfully',
+        response,
+        200,
+        { feature: 'ai-course-outline' }
+      );
     } catch (error) {
       logger.error('[AIController] Generate course outline error:', error);
       next(error);
@@ -318,7 +761,13 @@ export class AIController {
       };
 
       const response = await this.aiService.suggestCourseImprovements(request);
-      return responseUtils.success(res, response, 'Course improvements suggested successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Course improvements suggested successfully',
+        response,
+        200,
+        { feature: 'ai-course-improvements' }
+      );
     } catch (error) {
       logger.error('[AIController] Suggest improvements error:', error);
       next(error);
@@ -343,7 +792,13 @@ export class AIController {
       };
 
       const response = await this.aiService.analyzeStudents(request);
-      return responseUtils.success(res, response, 'Student analysis completed successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Student analysis completed successfully',
+        response,
+        200,
+        { feature: 'ai-student-analysis' }
+      );
     } catch (error) {
       logger.error('[AIController] Analyze students error:', error);
       next(error);
@@ -376,7 +831,13 @@ export class AIController {
       };
 
       const response = await this.aiService.generateFeedback(request);
-      return responseUtils.success(res, response, 'Feedback generated successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Feedback generated successfully',
+        response,
+        200,
+        { feature: 'ai-feedback' }
+      );
     } catch (error) {
       logger.error('[AIController] Generate feedback error:', error);
       next(error);
@@ -403,7 +864,13 @@ export class AIController {
       };
 
       const response = await this.aiService.autoGrade(request);
-      return responseUtils.success(res, response, 'Assignment auto-graded successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Assignment auto-graded successfully',
+        response,
+        200,
+        { feature: 'ai-auto-grade' }
+      );
     } catch (error) {
       logger.error('[AIController] Auto-grade error:', error);
       next(error);
@@ -426,7 +893,13 @@ export class AIController {
         category,
         level,
       });
-      return responseUtils.success(res, response, 'Thumbnail prompt generated successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Thumbnail prompt generated successfully',
+        response,
+        200,
+        { feature: 'ai-thumbnail' }
+      );
     } catch (error) {
       logger.error('[AIController] Generate thumbnail prompt error:', error);
       next(error);
@@ -455,7 +928,13 @@ export class AIController {
       };
 
       const response = await this.aiService.generateLessonContent(request);
-      return responseUtils.success(res, response, 'Lesson content generated successfully');
+      return responseUtils.sendSuccess(
+        res,
+        'Lesson content generated successfully',
+        response,
+        200,
+        { feature: 'ai-lesson-content' }
+      );
     } catch (error) {
       logger.error('[AIController] Generate lesson content error:', error);
       next(error);
@@ -477,13 +956,19 @@ export class AIController {
       // Test the specific provider
       const response = await this.aiService.testProvider(message, provider);
       
-      return responseUtils.success(res, {
-        provider,
-        model: response.model || 'unknown',
-        latency: response.latency,
-        answer: response.answer,
-        metadata: response.metadata,
-      }, `Provider ${provider} tested successfully`);
+      return responseUtils.sendSuccess(
+        res,
+        `Provider ${provider} tested successfully`,
+        {
+          provider,
+          model: response.model || 'unknown',
+          latency: response.latency,
+          answer: response.answer,
+          metadata: response.metadata,
+        },
+        200,
+        { feature: 'ai-test-provider' }
+      );
     } catch (error) {
       logger.error(`[AIController] Test provider error:`, error);
       next(error);
@@ -527,7 +1012,13 @@ export class AIController {
         context,
       });
 
-      return responseUtils.success(res, result, 'Chấm điểm code thành công');
+      return responseUtils.sendSuccess(
+        res,
+        'Chấm điểm code thành công',
+        result,
+        200,
+        { feature: 'ai-grader-code' }
+      );
     } catch (error: any) {
       logger.error('[AIController] Grade code error:', error);
 
@@ -575,7 +1066,13 @@ export class AIController {
         context,
       });
 
-      return responseUtils.success(res, result, 'Chấm điểm bài luận thành công');
+      return responseUtils.sendSuccess(
+        res,
+        'Chấm điểm bài luận thành công',
+        result,
+        200,
+        { feature: 'ai-grader-essay' }
+      );
     } catch (error: any) {
       logger.error('[AIController] Grade essay error:', error);
 
@@ -626,7 +1123,13 @@ export class AIController {
 
       const result = await this.graderService.gradeAssignment(gradingRequest);
 
-      return responseUtils.success(res, result, 'Chấm điểm assignment thành công');
+      return responseUtils.sendSuccess(
+        res,
+        'Chấm điểm assignment thành công',
+        result,
+        200,
+        { feature: 'ai-grader-assignment' }
+      );
     } catch (error: any) {
       logger.error('[AIController] Grade assignment error:', error);
 
@@ -637,5 +1140,117 @@ export class AIController {
       next(error);
     }
   };
+
+  /**
+   * Generate rubric from instructor text
+   * POST /ai/grader/rubric
+   */
+  generateRubric = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { content, maxScore, rubricItems } = req.body;
+
+      if (!content) {
+        return responseUtils.sendValidationError(res, 'content là bắt buộc');
+      }
+
+      const scoreValue = Number(maxScore || 0);
+      if (!scoreValue || scoreValue <= 0) {
+        return responseUtils.sendValidationError(res, 'maxScore không hợp lệ');
+      }
+
+      const rubric = await this.aiService.generateRubricFromText({
+        content,
+        maxScore: scoreValue,
+        rubricItems: rubricItems ? Number(rubricItems) : undefined,
+      });
+
+      return responseUtils.sendSuccess(
+        res,
+        'Rubric được tạo thành công',
+        rubric,
+        200,
+        { feature: 'grader-rubric' }
+      );
+    } catch (error) {
+      logger.error('[AIController] Generate rubric error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Generate rubric from uploaded file
+   * POST /ai/grader/rubric-file
+   */
+  generateRubricFromFile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { maxScore, rubricItems } = req.body;
+
+      const file = req.file;
+      if (!file) {
+        return responseUtils.sendValidationError(res, 'file là bắt buộc');
+      }
+
+      const scoreValue = Number(maxScore || 0);
+      if (!scoreValue || scoreValue <= 0) {
+        return responseUtils.sendValidationError(res, 'maxScore không hợp lệ');
+      }
+
+      const extracted = await this.aiService.readUploadedFileContent(file);
+      if (!extracted || !extracted.content.trim()) {
+        return responseUtils.sendValidationError(res, 'Không thể đọc nội dung từ file.');
+      }
+
+      const rubric = await this.aiService.generateRubricFromText({
+        content: extracted.content,
+        maxScore: scoreValue,
+        rubricItems: rubricItems ? Number(rubricItems) : undefined,
+      });
+
+      return responseUtils.sendSuccess(
+        res,
+        'Rubric được tạo thành công',
+        rubric,
+        200,
+        { feature: 'grader-rubric' }
+      );
+    } catch (error) {
+      logger.error('[AIController] Generate rubric file error:', error);
+      next(error);
+    }
+  };
+
+  getJobStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { jobId } = req.params;
+      const job = await aiJobService.getJob(jobId);
+      if (!job) {
+        return responseUtils.sendNotFound(res, 'Job không tồn tại');
+      }
+
+      return responseUtils.sendSuccess(
+        res,
+        'Job status retrieved',
+        {
+          jobId: job.id,
+          status: job.status,
+          result: job.result,
+          error: job.error,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+          meta: job.meta,
+        },
+        200,
+        { feature: 'ai-job' }
+      );
+    } catch (error) {
+      logger.error('[AIController] Get job status error:', error);
+      next(error);
+    }
+  };
+
+  /**
+   * Multer middleware for AI file uploads
+   */
+  uploadAiFile = this.aiUpload.single('file');
 }
 

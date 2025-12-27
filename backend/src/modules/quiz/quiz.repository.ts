@@ -490,8 +490,26 @@ export class QuizRepository {
 
   async getCompletedQuizIdsForCourse(courseId: string, userId: string): Promise<string[]> {
     const { default: Quiz } = await import('../../models/quiz.model');
+    const { default: Section } = await import('../../models/section.model');
     const sequelize = (QuizAttempt as any).sequelize!;
     const passingScore = sequelize.fn('COALESCE', sequelize.col('quiz.passing_score'), 70);
+
+    // Lấy tất cả section IDs thuộc course này
+    const sections = await (Section as any).findAll({
+      where: { course_id: courseId },
+      attributes: ['id'],
+    });
+    const sectionIds = sections.map((s: any) => s.id);
+
+    // Tạo where clause để bao gồm cả course-level và section-level quizzes
+    const quizWhereClause: any = {
+      [Op.or]: [
+        { course_id: courseId },
+        ...(sectionIds.length ? [{ section_id: sectionIds }] : []),
+      ],
+      is_published: true,
+      is_practice: false,
+    };
 
     const rows = await (QuizAttempt as any).findAll({
       attributes: ['quiz_id'],
@@ -501,11 +519,7 @@ export class QuizRepository {
           as: 'quiz',
           attributes: [],
           required: true,
-          where: {
-            course_id: courseId,
-            is_published: true,
-            is_practice: false,
-          },
+          where: quizWhereClause,
         }
       ],
       where: {

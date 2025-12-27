@@ -15,7 +15,8 @@ import {
   Clock, 
   CheckCircle, 
   XCircle,
-  RefreshCw 
+  RefreshCw,
+  Loader2 
 } from 'lucide-react';
 
 interface AIAnalysisStatusProps {
@@ -50,7 +51,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
     if (currentQueueTask) {
       return {
         type: currentQueueTask.status,
-        label: currentQueueTask.status === 'processing' ? 'Processing' : 'Queued',
+        label: currentQueueTask.status === 'processing' ? 'Đang phân tích' : 'Đang xếp hàng',
         color: 'text-yellow-600',
         bgColor: 'bg-yellow-50',
         icon: Clock,
@@ -61,7 +62,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
       if (analysis.status === 'completed') {
         return {
           type: 'completed',
-          label: 'Completed',
+          label: 'Đã hoàn tất',
           color: 'text-green-600',
           bgColor: 'bg-green-50',
           icon: CheckCircle,
@@ -70,17 +71,26 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
       if (analysis.status === 'failed') {
         return {
           type: 'failed',
-          label: 'Failed',
+          label: 'Thất bại',
           color: 'text-red-600',
           bgColor: 'bg-red-50',
           icon: XCircle,
+        };
+      }
+      if (analysis.status === 'pending' || analysis.status === 'processing') {
+        return {
+          type: analysis.status,
+          label: analysis.status === 'processing' ? 'Đang phân tích' : 'Đang xếp hàng',
+          color: 'text-yellow-600',
+          bgColor: 'bg-yellow-50',
+          icon: Clock,
         };
       }
     }
 
     return {
       type: 'not_started',
-      label: 'Not Analyzed',
+      label: 'Chưa phân tích',
       color: 'text-gray-600',
       bgColor: 'bg-gray-50',
       icon: Sparkles,
@@ -89,6 +99,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
 
   const status = getStatus();
   const StatusIcon = status.icon;
+  const showSpinner = status.type === 'pending' || status.type === 'processing';
 
   const summaryHtml = useMemo(
     () => (analysis && analysis.summary ? renderMarkdownToHtml(analysis.summary) : ''),
@@ -98,7 +109,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
   const handleRequestAnalysis = async () => {
     const success = await requestAnalysis(false);
     if (success) {
-      setTimeout(() => refreshAnalysis(), 2000);
+      await refreshAnalysis();
     }
   };
 
@@ -106,7 +117,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
     if (confirm('Re-analyze this lesson? This will delete the current analysis and queue a new one.')) {
       const success = await deleteAnalysis();
       if (success) {
-        setTimeout(() => refreshAnalysis(), 2000);
+        await refreshAnalysis();
       }
     }
   };
@@ -124,9 +135,12 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
             <h3 className="text-sm font-semibold text-gray-900">
               AI Analysis
             </h3>
-            <p className={`text-sm font-medium ${status.color}`}>
-              {status.label}
-            </p>
+            <div className={`flex items-center text-sm font-medium ${status.color}`}>
+              <span>{status.label}</span>
+              {showSpinner && (
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              )}
+            </div>
 
             {/* Show queue info */}
             {currentQueueTask && (
@@ -203,7 +217,7 @@ export const AIAnalysisStatus: React.FC<AIAnalysisStatusProps> = ({
             className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className="h-4 w-4 mr-1" />
-            Làm mới
+            {loading ? 'Đang cập nhật...' : 'Làm mới'}
           </button>
         </div>
       </div>

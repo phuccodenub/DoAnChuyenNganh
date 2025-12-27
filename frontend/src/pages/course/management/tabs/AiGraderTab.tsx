@@ -72,6 +72,12 @@ export function AiGraderTab({ courseId, courseTitle }: AiGraderTabProps) {
   const [manualContent, setManualContent] = useState('');
   const [overrideScore, setOverrideScore] = useState<number | ''>('');
   const [overrideFeedback, setOverrideFeedback] = useState('');
+  const [rubricSourceMode, setRubricSourceMode] = useState<'text' | 'file'>('text');
+  const [rubricSourceText, setRubricSourceText] = useState('');
+  const [rubricSourceFile, setRubricSourceFile] = useState<File | null>(null);
+  const [rubricFileError, setRubricFileError] = useState('');
+  const [rubricItemCount, setRubricItemCount] = useState(4);
+  const [isGeneratingRubric, setIsGeneratingRubric] = useState(false);
 
   const assignmentsQuery = useQuery({
     queryKey: ['ai-grader-assignments', courseId],
@@ -153,6 +159,62 @@ export function AiGraderTab({ courseId, courseTitle }: AiGraderTabProps) {
     );
     setDraftRubricName('');
     toast.success('Đã áp dụng rubric từ assignment');
+  };
+
+  const handleGenerateRubric = async () => {
+    if (!selectedAssignment?.max_score) {
+      toast.error('Không xác định được tổng điểm assignment');
+      return;
+    }
+
+    if (rubricSourceMode === 'text' && !rubricSourceText.trim()) {
+      toast.error('Vui lòng nhập nội dung rubric');
+      return;
+    }
+
+    if (rubricSourceMode === 'file') {
+      if (!rubricSourceFile) {
+        toast.error('Vui lòng chọn file rubric');
+        return;
+      }
+      if (rubricFileError) {
+        toast.error(rubricFileError);
+        return;
+      }
+    }
+
+    setIsGeneratingRubric(true);
+    try {
+      const maxScore = Number(selectedAssignment.max_score);
+      const result = rubricSourceMode === 'file'
+        ? await aiApi.generateRubricFromFile({
+            file: rubricSourceFile as File,
+            maxScore,
+            rubricItems: rubricItemCount,
+          })
+        : await aiApi.generateRubric({
+            content: rubricSourceText.trim(),
+            maxScore,
+            rubricItems: rubricItemCount,
+          });
+
+      if (!Array.isArray(result) || result.length === 0) {
+        throw new Error('Rubric trống');
+      }
+
+      setRubricItems(
+        result.map((item, idx) => ({
+          name: item.name || `Tiêu chí ${idx + 1}`,
+          description: item.description || '',
+          points: typeof item.points === 'number' ? item.points : Number(item.points || 0),
+        }))
+      );
+      toast.success('Đã tạo rubric bằng AI');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Không thể tạo rubric bằng AI');
+    } finally {
+      setIsGeneratingRubric(false);
+    }
   };
 
   const handleUpdateRubricItem = (index: number, field: keyof RubricItem, value: string | number) => {
@@ -549,6 +611,110 @@ export function AiGraderTab({ courseId, courseTitle }: AiGraderTabProps) {
                 </Button>
               </div>
             </div>
+
+            <Card className="border border-purple-200 bg-purple-50">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-900">Tạo rubric bằng AI</p>
+                    <p className="text-xs text-purple-700">Nhập mô tả hoặc tải file rubric mẫu.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={rubricSourceMode === 'text' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setRubricSourceMode('text');
+                        setRubricFileError('');
+                        setRubricSourceFile(null);
+                      }}
+                    >
+                      Nhập text
+                    </Button>
+                    <Button
+                      variant={rubricSourceMode === 'file' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setRubricSourceMode('file');
+                        setRubricFileError('');
+                      }}
+                    >
+                      Tải file
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-purple-900">Số tiêu chí</label>
+                    <Input
+                      type="number"
+                      min={2}
+                      max={10}
+                      value={rubricItemCount}
+                      onChange={(e) => setRubricItemCount(Number(e.target.value) || 4)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-purple-900">Tổng điểm</label>
+                    <Input
+                      type="number"
+                      value={selectedAssignment?.max_score || ''}
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                {rubricSourceMode === 'text' && (
+                  <textarea
+                    value={rubricSourceText}
+                    onChange={(e) => setRubricSourceText(e.target.value)}
+                    rows={4}
+                    placeholder="Ví dụ: Đánh giá theo các tiêu chí: nội dung, phân tích, trình bày, trích dẫn..."
+                    className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm"
+                  />
+                )}
+
+                {rubricSourceMode === 'file' && (
+                  <div className="space-y-2">
+                    <Input
+                      type="file"
+                      accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] || null;
+                        setRubricSourceFile(file);
+                        if (!file) {
+                          setRubricFileError('');
+                          return;
+                        }
+                        if (file.size > 10 * 1024 * 1024) {
+                          setRubricFileError('File vượt quá 10MB, vui lòng chọn file nhỏ hơn.');
+                          setRubricSourceFile(null);
+                          return;
+                        }
+                        setRubricFileError('');
+                      }}
+                    />
+                    <p className="text-xs text-purple-700">Hỗ trợ TXT, Markdown, CSV, JSON, PDF, DOC, DOCX.</p>
+                    {rubricSourceFile && (
+                      <p className="text-xs text-purple-900">Đã chọn: {rubricSourceFile.name}</p>
+                    )}
+                    {rubricFileError && (
+                      <p className="text-xs text-red-600">{rubricFileError}</p>
+                    )}
+                  </div>
+                )}
+
+                <Button
+                  className="w-full"
+                  onClick={handleGenerateRubric}
+                  disabled={isGeneratingRubric}
+                >
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  {isGeneratingRubric ? 'Đang tạo rubric...' : 'Tạo rubric bằng AI'}
+                </Button>
+              </CardContent>
+            </Card>
 
             <div className="space-y-3">
               {rubricItems.map((item, idx) => (

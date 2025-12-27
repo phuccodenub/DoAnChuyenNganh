@@ -15,7 +15,7 @@ Quiz Generator đã được triển khai đầy đủ theo tài liệu `docs/AI
 1. **3-Stage Pipeline hoàn chỉnh**
    - ✅ Stage 1: Generation (Gemini 3 Pro / Google Flash)
    - ✅ Stage 2: Technical Validation (Qwen Coder Plus)
-   - ✅ Stage 3: Premium Polish (Placeholder cho MegaLLM Claude)
+   - ✅ Stage 3: Premium Polish (ProxyPal GPT-5.1)
 
 2. **AI Orchestrator thông minh**
    - ✅ Tự động chọn model dựa trên kích thước nội dung
@@ -209,8 +209,8 @@ Nếu phát hiện nội dung kỹ thuật (có ≥3 keywords: function, class, 
 
 Khi `isPremium: true`:
 - Stage 3 Polish được kích hoạt
-- **TODO:** Tích hợp MegaLLM Claude Sonnet 4.5
-- Hiện tại: Log warning và skip (không ảnh hưởng flow)
+- ✅ Sử dụng ProxyPal GPT-5.1 để polish
+- Nếu polish gặp lỗi parse JSON → fallback về validated questions
 
 ---
 
@@ -272,9 +272,8 @@ Service tự động log:
 
 ### Known Limitations
 
-1. **MegaLLM Integration:** Chưa triển khai (TODO)
-   - Premium polish hiện chưa hoạt động
-   - Cần thêm MegaLLM provider và API keys
+1. **Premium polish (ProxyPal GPT-5.1):** ✅ Đã triển khai
+   - Nếu polish gặp lỗi parse JSON → fallback về validated questions
 
 2. **ProxyPal Dependency:** 
    - Chỉ dùng cho development
@@ -304,7 +303,7 @@ Service tự động log:
 
 ### Future Enhancements
 
-- [ ] MegaLLM Claude integration cho premium polish
+- [x] ProxyPal GPT-5.1 integration cho premium polish
 - [ ] Multi-language support
 - [ ] Question difficulty auto-adjustment
 - [ ] Image generation cho câu hỏi

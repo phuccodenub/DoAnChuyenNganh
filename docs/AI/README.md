@@ -34,7 +34,7 @@
   - Qwen 3 Coder Flash (128K tokens)
 - ✅ Thiết lập Google AI Studio (Gemini Flash)
 - ✅ Cấu hình Groq (Llama 3 70B)
-- ✅ Thiết lập MegaLLM (ngân sách $150)
+- ✅ Thiết lập ProxyPal Premium models (GPT-5.x)
   - Claude Sonnet 4.5 ($3/$15 per M tokens)
   - Claude Opus 4.5 ($5/$25 per M tokens)
 - ✅ Chiến lược load balancing & failover
@@ -90,7 +90,7 @@
 - Chấm bài luận với Gemini Flash
 - Tích hợp rubric
 - Sinh feedback
-- Kháng nghị điểm với Claude Sonnet
+
 - Xử lý batch
 - Tích hợp phát hiện đạo văn
 
@@ -283,7 +283,7 @@
 ### 1. Chiến lược 3-Tier
 - **Tier 1:** Nhanh & Miễn phí (Groq, Google Flash) cho real-time
 - **Tier 2:** Mạnh & Local (ProxyPal) cho tác vụ phức tạp
-- **Tier 3:** Premium & Critical (MegaLLM) cho quyết định cuối cùng
+- **Tier 3:** Premium & Critical (ProxyPal Premium - GPT-5.x) cho quyết định cuối cùng
 
 ### 2. Tối ưu chi phí
 - Cache mạnh (Redis, TTL 1–7 ngày)
@@ -337,7 +337,7 @@
 ### Hỗ trợ kỹ thuật (Technical Support)
 - ProxyPal: https://proxypal.ai/support
 - Google AI: https://ai.google.dev/support
-- MegaLLM: Hệ thống ticket hỗ trợ
+- ProxyPal: https://proxypal.ai/support
 
 ---
 

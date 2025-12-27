@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -14,40 +14,117 @@ interface AiQuizGeneratorProps {
 
 export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizGeneratorProps) {
   const [numberOfQuestions, setNumberOfQuestions] = useState(10);
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
-  const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false'>('single_choice');
-  const [bloomLevel, setBloomLevel] = useState<'remember' | 'understand' | 'apply' | 'analyze'>('understand');
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'mixed'>('medium');
+  const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false' | 'mixed'>('single_choice');
+  const [bloomLevel, setBloomLevel] = useState<'remember' | 'understand' | 'apply' | 'analyze' | 'mixed'>('understand');
   const [isPremium, setIsPremium] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
+  const [sourceMode, setSourceMode] = useState<'lesson' | 'file'>('lesson');
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string>('');
+  const [difficultyMix, setDifficultyMix] = useState({ easy: 30, medium: 50, hard: 20 });
+  const [questionTypeMix, setQuestionTypeMix] = useState({ single_choice: 50, multiple_choice: 30, true_false: 20 });
+  const [bloomMix, setBloomMix] = useState({ remember: 25, understand: 35, apply: 25, analyze: 15 });
 
   const generateQuiz = useMutation({
     mutationFn: (payload: {
       courseId: string;
       courseContent: string;
       numberOfQuestions?: number;
-      difficulty?: 'easy' | 'medium' | 'hard';
-      questionType?: 'single_choice' | 'multiple_choice' | 'true_false';
-      bloomLevel?: 'remember' | 'understand' | 'apply' | 'analyze';
+      difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
+      questionTypes?: Array<'single_choice' | 'multiple_choice' | 'true_false'>;
+      bloomLevel?: 'remember' | 'understand' | 'apply' | 'analyze' | 'mixed';
+      difficultyDistribution?: { easy: number; medium: number; hard: number };
+      questionTypeDistribution?: { single_choice: number; multiple_choice: number; true_false: number };
+      bloomDistribution?: { remember: number; understand: number; apply: number; analyze: number };
       isPremium?: boolean;
     }) => aiApi.generateQuiz(payload),
   });
 
+  const generateQuizFromFile = useMutation({
+    mutationFn: (payload: {
+      courseId: string;
+      file: File;
+      numberOfQuestions?: number;
+      difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
+      questionTypes?: Array<'single_choice' | 'multiple_choice' | 'true_false'>;
+      bloomLevel?: 'remember' | 'understand' | 'apply' | 'analyze' | 'mixed';
+      difficultyDistribution?: { easy: number; medium: number; hard: number };
+      questionTypeDistribution?: { single_choice: number; multiple_choice: number; true_false: number };
+      bloomDistribution?: { remember: number; understand: number; apply: number; analyze: number };
+      isPremium?: boolean;
+    }) => aiApi.generateQuizFromFile(payload),
+  });
+
+  const isGenerating = generateQuiz.isPending || generateQuizFromFile.isPending;
+
   const handleGenerate = async () => {
-    if (!courseContent.trim()) {
+    if (sourceMode === 'lesson' && !courseContent.trim()) {
       toast.error('Vui lòng cung cấp nội dung khóa học');
       return;
     }
 
+    if (sourceMode === 'file') {
+      if (!sourceFile) {
+        toast.error('Vui lòng chọn file để tạo quiz');
+        return;
+      }
+      if (fileError) {
+        toast.error(fileError);
+        return;
+      }
+    }
+
     try {
-      const result = await generateQuiz.mutateAsync({
-        courseId: 'temp', // Will be replaced with actual courseId
-        courseContent: courseContent.trim(),
-        numberOfQuestions,
-        difficulty,
-        questionType,
-        bloomLevel,
-        isPremium,
-      });
+      const questionTypes: Array<'single_choice' | 'multiple_choice' | 'true_false'> =
+        questionType === 'mixed'
+          ? ['single_choice', 'multiple_choice', 'true_false']
+          : [questionType as 'single_choice' | 'multiple_choice' | 'true_false'];
+
+      const buildDistribution = <T extends Record<string, number>>(mix: T): T => {
+        const values = Object.values(mix);
+        const total = values.reduce((sum, val) => sum + val, 0);
+        if (total !== 100) {
+          throw new Error('Tổng tỷ lệ phải bằng 100%');
+        }
+        return mix;
+      };
+
+      const difficultyDistribution = difficulty === 'mixed'
+        ? buildDistribution(difficultyMix)
+        : undefined;
+      const questionTypeDistribution = questionType === 'mixed'
+        ? buildDistribution(questionTypeMix)
+        : undefined;
+      const bloomDistribution = bloomLevel === 'mixed'
+        ? buildDistribution(bloomMix)
+        : undefined;
+
+      const result = sourceMode === 'file'
+        ? await generateQuizFromFile.mutateAsync({
+            courseId: 'temp',
+            file: sourceFile as File,
+            numberOfQuestions,
+            difficulty,
+            questionTypes,
+            bloomLevel,
+            difficultyDistribution,
+            questionTypeDistribution,
+            bloomDistribution,
+            isPremium,
+          })
+        : await generateQuiz.mutateAsync({
+            courseId: 'temp',
+            courseContent: courseContent.trim(),
+            numberOfQuestions,
+            difficulty,
+            questionTypes,
+            bloomLevel,
+            difficultyDistribution,
+            questionTypeDistribution,
+            bloomDistribution,
+            isPremium,
+          });
 
       setGeneratedQuestions(result.questions || []);
       
@@ -66,7 +143,8 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
         onQuestionsGenerated(result.questions || []);
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Không thể tạo câu hỏi');
+      const message = error?.message || error?.response?.data?.message;
+      toast.error(message || 'Không thể tạo câu hỏi');
     }
   };
 
@@ -75,6 +153,36 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
       onQuestionsGenerated([question]);
     }
   };
+
+  const handleSourceModeChange = (mode: 'lesson' | 'file') => {
+    setSourceMode(mode);
+    setFileError('');
+    if (mode === 'lesson') {
+      setSourceFile(null);
+    }
+  };
+
+  const validateFile = (file: File | null) => {
+    if (!file) {
+      setFileError('');
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setFileError('File vượt quá 10MB, vui lòng chọn file nhỏ hơn.');
+      setSourceFile(null);
+      return;
+    }
+
+    setFileError('');
+  };
+
+  const fileDescription = useMemo(() => {
+    if (!sourceFile) return '';
+    const sizeMb = (sourceFile.size / (1024 * 1024)).toFixed(2);
+    return `${sourceFile.name} (${sizeMb} MB)`;
+  }, [sourceFile]);
 
   return (
     <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
@@ -115,6 +223,7 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
               <option value="easy">Dễ</option>
               <option value="medium">Trung bình</option>
               <option value="hard">Khó</option>
+              <option value="mixed">Đa dạng</option>
             </select>
           </div>
 
@@ -130,6 +239,7 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
               <option value="single_choice">Trắc nghiệm (1 đáp án)</option>
               <option value="multiple_choice">Nhiều đáp án đúng</option>
               <option value="true_false">Đúng/Sai</option>
+              <option value="mixed">Đa dạng</option>
             </select>
           </div>
 
@@ -146,9 +256,154 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
               <option value="understand">Hiểu biết</option>
               <option value="apply">Áp dụng</option>
               <option value="analyze">Phân tích</option>
+              <option value="mixed">Đa dạng</option>
             </select>
           </div>
         </div>
+
+        {difficulty === 'mixed' && (
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-gray-600">Dễ (%)</label>
+              <Input
+                type="number"
+                value={difficultyMix.easy}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setDifficultyMix({ ...difficultyMix, easy: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Trung bình (%)</label>
+              <Input
+                type="number"
+                value={difficultyMix.medium}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setDifficultyMix({ ...difficultyMix, medium: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Khó (%)</label>
+              <Input
+                type="number"
+                value={difficultyMix.hard}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setDifficultyMix({ ...difficultyMix, hard: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+          </div>
+        )}
+
+        {questionType === 'mixed' && (
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-gray-600">Single (%)</label>
+              <Input
+                type="number"
+                value={questionTypeMix.single_choice}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setQuestionTypeMix({
+                    ...questionTypeMix,
+                    single_choice: Number(e.target.value) || 0,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Multiple (%)</label>
+              <Input
+                type="number"
+                value={questionTypeMix.multiple_choice}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setQuestionTypeMix({
+                    ...questionTypeMix,
+                    multiple_choice: Number(e.target.value) || 0,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">True/False (%)</label>
+              <Input
+                type="number"
+                value={questionTypeMix.true_false}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setQuestionTypeMix({
+                    ...questionTypeMix,
+                    true_false: Number(e.target.value) || 0,
+                  })
+                }
+              />
+            </div>
+          </div>
+        )}
+
+        {bloomLevel === 'mixed' && (
+          <div className="grid grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs text-gray-600">Remember (%)</label>
+              <Input
+                type="number"
+                value={bloomMix.remember}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setBloomMix({ ...bloomMix, remember: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Understand (%)</label>
+              <Input
+                type="number"
+                value={bloomMix.understand}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setBloomMix({ ...bloomMix, understand: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Apply (%)</label>
+              <Input
+                type="number"
+                value={bloomMix.apply}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setBloomMix({ ...bloomMix, apply: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Analyze (%)</label>
+              <Input
+                type="number"
+                value={bloomMix.analyze}
+                min={0}
+                max={100}
+                onChange={(e) =>
+                  setBloomMix({ ...bloomMix, analyze: Number(e.target.value) || 0 })
+                }
+              />
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <input
@@ -164,12 +419,62 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
           </label>
         </div>
 
+        <div className="grid gap-3 rounded-lg border border-blue-100 bg-white p-3">
+          <div className="flex items-center gap-3">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                name="quizSource"
+                value="lesson"
+                checked={sourceMode === 'lesson'}
+                onChange={() => handleSourceModeChange('lesson')}
+                className="text-blue-600 focus:ring-blue-500"
+              />
+              Dùng nội dung khóa học
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                name="quizSource"
+                value="file"
+                checked={sourceMode === 'file'}
+                onChange={() => handleSourceModeChange('file')}
+                className="text-blue-600 focus:ring-blue-500"
+              />
+              Dùng file tải lên
+            </label>
+          </div>
+
+          {sourceMode === 'file' && (
+            <div className="space-y-2">
+              <Input
+                type="file"
+                accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  setSourceFile(file);
+                  validateFile(file);
+                }}
+              />
+              <p className="text-xs text-gray-500">
+                Hỗ trợ TXT, Markdown, CSV, JSON, PDF, DOC, DOCX (tối đa 10MB).
+              </p>
+              {fileDescription && (
+                <p className="text-xs text-gray-700">Đã chọn: {fileDescription}</p>
+              )}
+              {fileError && (
+                <p className="text-xs text-red-600">{fileError}</p>
+              )}
+            </div>
+          )}
+        </div>
+
         <Button
           onClick={handleGenerate}
-          disabled={generateQuiz.isPending || !courseContent.trim()}
+          disabled={isGenerating || (sourceMode === 'lesson' && !courseContent.trim())}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {generateQuiz.isPending ? (
+          {isGenerating ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Đang tạo câu hỏi...
@@ -183,7 +488,7 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
         </Button>
         
         {/* Hiển thị preview nội dung sẽ được dùng để generate */}
-        {courseContent && courseContent.length > 0 && (
+        {sourceMode === 'lesson' && courseContent && courseContent.length > 0 && (
           <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-xs font-medium text-gray-700 mb-2">
               Nội dung sẽ được dùng để tạo quiz:
@@ -195,6 +500,7 @@ export function AiQuizGenerator({ courseContent, onQuestionsGenerated }: AiQuizG
             </div>
           </div>
         )}
+
 
         {generatedQuestions.length > 0 && (
           <div className="space-y-3 mt-4">
