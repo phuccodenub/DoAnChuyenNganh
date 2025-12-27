@@ -3,42 +3,120 @@
  * Centralized exports for v1 API routes
  */
 
+console.log('[V1_ROUTES] Starting imports...');
 import { Router, Request, Response, NextFunction } from 'express';
+console.log('[V1_ROUTES] express imported');
+
 import authRoutes from './auth.routes';
+console.log('[V1_ROUTES] authRoutes imported');
+
 import userRoutes from './user.routes';
+console.log('[V1_ROUTES] userRoutes imported');
+
 import courseRoutes from './course.routes';
+console.log('[V1_ROUTES] courseRoutes imported');
+
 import enrollmentRoutes from './enrollment.routes';
+console.log('[V1_ROUTES] enrollmentRoutes imported');
+
 import lessonRoutes from './lesson.routes';
+console.log('[V1_ROUTES] lessonRoutes imported');
+
 import sectionRoutes from './section.routes';
+console.log('[V1_ROUTES] sectionRoutes imported');
+
 import assignmentRoutes from './assignment.routes';
+console.log('[V1_ROUTES] assignmentRoutes imported');
+
 import quizRoutes from './quiz.routes';
+console.log('[V1_ROUTES] quizRoutes imported');
+
+console.log('[V1_ROUTES] Importing user module...');
 import { userAdminRoutes, UserModuleController } from '../../../modules/user';
+console.log('[V1_ROUTES] user module imported');
+
 import { UserAdminController } from '../../../modules/user/user.admin.controller';
+console.log('[V1_ROUTES] UserAdminController imported');
+
 import { courseAdminRoutes } from '../../../modules/course/course.admin.routes';
+console.log('[V1_ROUTES] courseAdminRoutes imported');
+
 import { AuthController } from '../../../modules/auth/auth.controller';
+console.log('[V1_ROUTES] AuthController imported');
+
 import { authMiddleware, authorizeRoles } from '../../../middlewares/auth.middleware';
+console.log('[V1_ROUTES] auth middleware imported');
+
 import { UserRole } from '../../../constants/roles.enum';
+console.log('[V1_ROUTES] UserRole imported');
+
 import { validateBody } from '../../../middlewares/validate.middleware';
+console.log('[V1_ROUTES] validateBody imported');
+
 import { userValidation as userSchemas } from '../../../validates/user.validate';
+console.log('[V1_ROUTES] userValidation imported');
+
 import { authSchemas } from '../../../validates/auth.validate';
+console.log('[V1_ROUTES] authSchemas imported');
+
+console.log('[V1_ROUTES] Importing course-content...');
 import { default as courseContentRoutes } from '../../../modules/course-content/course-content.routes';
+console.log('[V1_ROUTES] courseContentRoutes imported');
+
 import { default as notificationsRoutes } from '../../../modules/notifications/notifications.routes';
+console.log('[V1_ROUTES] notificationsRoutes imported');
+
 import { default as gradeRoutes } from '../../../modules/grade/grade.routes';
+console.log('[V1_ROUTES] gradeRoutes imported');
+
 import { default as liveStreamRoutes } from '../../../modules/livestream/livestream.routes';
+console.log('[V1_ROUTES] liveStreamRoutes imported');
+
 import { default as analyticsRoutes } from '../../../modules/analytics/analytics.routes';
+console.log('[V1_ROUTES] analyticsRoutes imported');
+
 import systemSettingsRoutes from '../../../modules/system-settings/system.settings.routes';
+console.log('[V1_ROUTES] systemSettingsRoutes imported');
+
 import categoryRoutes from '../../../modules/category/category.routes';
+console.log('[V1_ROUTES] categoryRoutes imported');
+
+console.log('[V1_ROUTES] Importing AI module...');
 import { aiRoutes, aiRoutesV2 } from '../../../modules/ai';
+console.log('[V1_ROUTES] AI module imported');
+
 import moderationRoutes from '../../../modules/moderation/moderation.routes';
+console.log('[V1_ROUTES] moderationRoutes imported');
+
 import { default as reviewRoutes } from '../../../modules/review/review.routes';
+console.log('[V1_ROUTES] reviewRoutes imported');
+
+console.log('[V1_ROUTES] Importing files module...');
 import { filesRoutes, mediaRoutes } from '../../../modules/files';
+console.log('[V1_ROUTES] files module imported');
+
 import { conversationRoutes, messageRoutes } from '../../../modules/conversation';
+console.log('[V1_ROUTES] conversation module imported');
+
 import certificateRoutes from '../../../modules/certificate/certificate.routes';
+console.log('[V1_ROUTES] certificateRoutes imported');
+
 import { chatRoutes } from '../../../modules/chat';
+console.log('[V1_ROUTES] chatRoutes imported');
+
 import logger from '../../../utils/logger.util';
+console.log('[V1_ROUTES] logger imported');
+
 import activityLogsAdminRoutes from '../../../modules/activity-logs/activity-logs.admin.routes';
+console.log('[V1_ROUTES] activityLogsAdminRoutes imported');
+
 import { ReportsAdminController } from '../../../modules/reports/reports.admin.controller';
+console.log('[V1_ROUTES] ReportsAdminController imported');
+
 import instructorRoutes from './instructor.routes';
+console.log('[V1_ROUTES] instructorRoutes imported');
+
+console.log('[V1_ROUTES] All imports complete, creating router...');
 
 const router = Router();
 
