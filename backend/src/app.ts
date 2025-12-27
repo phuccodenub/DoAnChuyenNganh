@@ -85,8 +85,20 @@ app.use(loggerMiddleware);
 // Tracing middleware (route-level spans)
 app.use(tracingMiddleware);
 
-// Security middleware
-app.use(helmet());
+// Security middleware - configure for Swagger UI compatibility
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Required for Swagger UI
+      imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Disable for Swagger UI compatibility
+}));
 
 // CORS configuration (centralized)
 // Skip CORS for Socket.IO path (Socket.IO handles its own CORS)
@@ -201,14 +213,17 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
     .swagger-ui .opblock.opblock-delete { border-color: #ef4444 }
   `,
   customSiteTitle: 'LMS Backend API Documentation',
-  customfavIcon: '/favicon.ico',
+  // Remove customfavIcon to avoid 404 error
   swaggerOptions: {
     persistAuthorization: true,
     displayRequestDuration: true,
     filter: true,
     showExtensions: true,
     showCommonExtensions: true,
-    tryItOutEnabled: true
+    tryItOutEnabled: true,
+    // Use CDN for Swagger UI assets if needed
+    customJs: [],
+    customCssUrl: []
   }
 }));
 
