@@ -4,7 +4,7 @@ services:
     name: lms-frontend
     env: node
     buildCommand: cd frontend && npm install --include=dev && npm run build
-    startCommand: cd frontend && node server.js
+    startCommand: cd frontend && npm start
     # SPA routing: server.js sẽ serve index.html cho tất cả routes
     envVars:
       - key: NPM_CONFIG_PRODUCTION
