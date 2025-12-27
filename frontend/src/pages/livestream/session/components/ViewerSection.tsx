@@ -173,7 +173,7 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
         });
       });
 
-      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+      hls.on(Hls.Events.MANIFEST_PARSED, (_: any, data: any) => {
         retryCount = 0;
         playAttemptedRef.current = false;
         loadedFragmentsCount = 0;
@@ -214,7 +214,7 @@ const HlsPreview = memo(({ playbackUrl }: { playbackUrl: string }) => {
 
       hls.on(Hls.Events.LEVEL_SWITCHED, () => {});
 
-      hls.on(Hls.Events.FRAG_LOADING, (_, data) => {
+      hls.on(Hls.Events.FRAG_LOADING, (_: any, data: any) => {
         if (loadedFragmentsCount % 10 === 0) {
           console.debug(`[HlsPreview] Fragment loading: ${data.frag?.relurl || 'unknown'}`);
         }

@@ -5,6 +5,9 @@ interface ImportMetaEnv {
   readonly VITE_WS_URL?: string;
   readonly VITE_SOCKET_URL?: string;
   readonly VITE_APP_NAME: string;
+  readonly DEV: boolean;
+  readonly PROD: boolean;
+  readonly MODE: string;
 }
 
 interface ImportMeta {

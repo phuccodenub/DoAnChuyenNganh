@@ -26,14 +26,14 @@ export function getCourseThumbnailUrl(course: Course): string | null {
       return `${window.location.origin}${thumbnail}`;
     }
     // Nếu là API path, thêm API base URL
-    const apiBaseUrl = httpClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || '';
+    const apiBaseUrl = httpClient.defaults.baseURL || import.meta.env.VITE_API_URL || '';
     return `${apiBaseUrl}${thumbnail}`;
   }
 
   // Nếu là filename hoặc path không bắt đầu bằng /, có thể là:
   // 1. Path trong uploads folder -> dùng /files/view endpoint
   // 2. Hoặc thêm API base URL
-  const apiBaseUrl = httpClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || '';
+  const apiBaseUrl = httpClient.defaults.baseURL || import.meta.env.VITE_API_URL || '';
   
   // Nếu path chứa / hoặc có vẻ là file path, dùng files/view endpoint
   if (thumbnail.includes('/') || thumbnail.includes('.')) {
