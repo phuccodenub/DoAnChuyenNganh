@@ -1,0 +1,76 @@
+services:
+  # Backend API Service
+  - type: web
+    name: lms-backend
+    env: node
+    region: singapore  # hoặc chọn region gần bạn nhất
+    plan: free  # free cho test, starter cho production
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: LOG_LEVEL
+        value: info
+      # Database - Sử dụng Render PostgreSQL
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lms-postgres
+          property: connectionString
+      # Redis - Sử dụng Render Redis
+      - key: REDIS_URL
+        fromService:
+          name: lms-redis
+          type: redis
+          property: connectionString
+      # JWT Configuration
+      - key: JWT_SECRET
+        generateValue: true  # Render tự động generate
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      # CORS - Cập nhật với domain của bạn
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://your-frontend-domain.onrender.com,http://localhost:3000
+      - key: FRONTEND_URL
+        value: https://your-frontend-domain.onrender.com
+      # AI Configuration (optional)
+      - key: GEMINI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: GROQ_API_KEY
+        sync: false
+      - key: AI_TUTOR_ENABLED
+        value: "true"
+      - key: AI_QUIZ_GENERATOR_ENABLED
+        value: "true"
+      - key: AI_GRADER_ENABLED
+        value: "false"
+      # Disable features không cần thiết trên Render
+      - key: REDIS_DISABLED
+        value: "false"
+      - key: DISABLE_CACHE
+        value: "false"
+      - key: DISABLE_RATE_LIMIT
+        value: "false"
+      - key: DISABLE_METRICS
+        value: "false"
+      - key: ENABLE_OTLP
+        value: "false"
+
+  # PostgreSQL Database
+  - type: pspg
+    name: lms-postgres
+    plan: free  # free cho test (90 ngày), starter cho production
+    databaseName: lms_db
+    databaseUser: lms_user
+
+  # Redis Cache
+  - type: redis
+    name: lms-redis
+    plan: free  # free cho test, starter cho production
+    maxmemoryPolicy: allkeys-lru
+
