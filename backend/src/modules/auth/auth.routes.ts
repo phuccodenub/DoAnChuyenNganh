@@ -14,77 +14,54 @@ console.log('[AUTH_ROUTES] authMiddleware imported');
 import { authRateLimit, passwordResetRateLimit, registrationRateLimit } from '@middlewares/auth-rate-limit.middleware';
 console.log('[AUTH_ROUTES] rate limit middlewares imported');
 
-// Lazy load authSchemas to avoid blocking on import
-// Use dynamic import with timeout to prevent hanging
-let authSchemas: any;
-let authSchemasLoading: Promise<any> | null = null;
+// Create simple inline validation schemas to avoid blocking on import
+// This bypasses the complex baseValidation dependency chain
+import { z } from 'zod';
 
-const getAuthSchemas = (): any => {
-  if (authSchemas) {
-    return authSchemas;
-  }
-  
-  if (authSchemasLoading) {
-    // If already loading, wait for it (synchronous fallback)
-    console.warn('[AUTH_ROUTES] authSchemas still loading, using fallback');
-    // Return a minimal fallback schema
-    return {
-      register: { parse: (data: any) => data },
-      login: { parse: (data: any) => data },
-      loginWith2FA: { parse: (data: any) => data },
-      refreshToken: { parse: (data: any) => data },
-      forgotPassword: { parse: (data: any) => data },
-      resetPassword: { parse: (data: any) => data },
-      changePassword: { parse: (data: any) => data },
-      verify2FA: { parse: (data: any) => data }
-    };
-  }
-  
-  // Start loading
-  console.log('[AUTH_ROUTES] Starting lazy load authSchemas...');
-  authSchemasLoading = Promise.race([
-    import('@validates/auth.validate').then(module => {
-      console.log('[AUTH_ROUTES] authSchemas module imported');
-      authSchemas = module.authSchemas;
-      console.log('[AUTH_ROUTES] authSchemas loaded successfully');
-      authSchemasLoading = null;
-      return authSchemas;
-    }),
-    new Promise((_, reject) => 
-      setTimeout(() => {
-        authSchemasLoading = null;
-        reject(new Error('authSchemas load timeout after 10s'));
-      }, 10000)
-    )
-  ]).catch((error: unknown) => {
-    console.error('[AUTH_ROUTES] Failed to load authSchemas:', error);
-    authSchemasLoading = null;
-    // Return a minimal fallback schema to prevent app crash
-    authSchemas = {
-      register: { parse: (data: any) => data },
-      login: { parse: (data: any) => data },
-      loginWith2FA: { parse: (data: any) => data },
-      refreshToken: { parse: (data: any) => data },
-      forgotPassword: { parse: (data: any) => data },
-      resetPassword: { parse: (data: any) => data },
-      changePassword: { parse: (data: any) => data },
-      verify2FA: { parse: (data: any) => data }
-    };
-    return authSchemas;
-  });
-  
-  // Return fallback while loading
-  return {
-    register: { parse: (data: any) => data },
-    login: { parse: (data: any) => data },
-    loginWith2FA: { parse: (data: any) => data },
-    refreshToken: { parse: (data: any) => data },
-    forgotPassword: { parse: (data: any) => data },
-    resetPassword: { parse: (data: any) => data },
-    changePassword: { parse: (data: any) => data },
-    verify2FA: { parse: (data: any) => data }
-  };
+console.log('[AUTH_ROUTES] Creating inline validation schemas...');
+const authSchemas = {
+  register: z.object({
+    email: z.string().email('Invalid email format').toLowerCase().max(255),
+    username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_-]+$/),
+    password: z.string().min(8).max(128).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/),
+    first_name: z.string().min(2).max(100).optional(),
+    last_name: z.string().min(2).max(100).optional(),
+    phone: z.string().optional(),
+    role: z.enum(['student', 'instructor', 'admin', 'super_admin']).default('student')
+  }),
+  login: z.object({
+    email: z.string().email('Invalid email format').toLowerCase(),
+    password: z.string().min(1, 'Password is required')
+  }),
+  loginWith2FA: z.object({
+    email: z.string().email('Invalid email format').toLowerCase(),
+    password: z.string().min(1, 'Password is required'),
+    code: z.string().length(6, '2FA code must be 6 digits').regex(/^\d+$/)
+  }),
+  refreshToken: z.object({
+    refreshToken: z.string().min(1, 'Refresh token is required')
+  }),
+  changePassword: z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8).max(128).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/),
+    confirmPassword: z.string().min(1, 'Password confirmation is required')
+  }).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"]
+  }),
+  forgotPassword: z.object({
+    email: z.string().email('Invalid email format').toLowerCase(),
+    mode: z.enum(['link', 'password']).optional().default('link')
+  }),
+  resetPassword: z.object({
+    token: z.string().min(1, 'Reset token is required'),
+    newPassword: z.string().min(8).max(128).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/)
+  }),
+  verify2FA: z.object({
+    code: z.string().length(6, '2FA code must be 6 digits').regex(/^\d+$/)
+  })
 };
+console.log('[AUTH_ROUTES] Inline validation schemas created');
 
 // Pre-load authSchemas asynchronously after router creation
 console.log('[AUTH_ROUTES] authSchemas lazy loader created');
@@ -97,13 +74,6 @@ console.log('[AUTH_ROUTES] Creating AuthController instance...');
 const authController = new AuthController();
 console.log('[AUTH_ROUTES] AuthController instance created');
 
-// Pre-load authSchemas asynchronously to avoid blocking route registration
-setImmediate(() => {
-  console.log('[AUTH_ROUTES] Pre-loading authSchemas in background...');
-  getAuthSchemas().catch((err: unknown) => {
-    console.error('[AUTH_ROUTES] Background pre-load failed:', err);
-  });
-});
 
 
 // ===== PUBLIC ROUTES (No authentication required) =====
@@ -112,7 +82,7 @@ setImmediate(() => {
 router.post(
   '/register',
   registrationRateLimit,
-  validateBody(getAuthSchemas().register),
+  validateBody(authSchemas.register),
   (req: Request, res: Response, next: NextFunction) => authController.register(req, res, next)
 );
 
@@ -120,7 +90,7 @@ router.post(
 router.post(
   '/login',
   authRateLimit,
-  validateBody(getAuthSchemas().login),
+  validateBody(authSchemas.login),
   (req: Request, res: Response, next: NextFunction) => authController.login(req, res, next)
 );
 
@@ -128,14 +98,14 @@ router.post(
 router.post(
   '/login-2fa',
   authRateLimit,
-  validateBody(getAuthSchemas().loginWith2FA),
+  validateBody(authSchemas.loginWith2FA),
   (req: Request, res: Response, next: NextFunction) => authController.loginWith2FA(req, res, next)
 );
 
 // Refresh token
 router.post(
   '/refresh',
-  validateBody(getAuthSchemas().refreshToken),
+  validateBody(authSchemas.refreshToken),
   (req: Request, res: Response, next: NextFunction) => authController.refreshToken(req, res, next)
 );
 
@@ -149,7 +119,7 @@ router.get(
 router.post(
   '/forgot-password',
   passwordResetRateLimit,
-  validateBody(getAuthSchemas().forgotPassword),
+  validateBody(authSchemas.forgotPassword),
   (req: Request, res: Response, next: NextFunction) => authController.forgotPassword(req, res, next)
 );
 
@@ -157,7 +127,7 @@ router.post(
 router.post(
   '/reset-password',
   passwordResetRateLimit,
-  validateBody(getAuthSchemas().resetPassword),
+  validateBody(authSchemas.resetPassword),
   (req: Request, res: Response, next: NextFunction) => authController.resetPassword(req, res, next)
 );
 
@@ -193,7 +163,7 @@ router.put(
 // Change password
 router.post(
   '/change-password',
-  validateBody(getAuthSchemas().changePassword),
+  validateBody(authSchemas.changePassword),
   (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next)
 );
 
@@ -208,14 +178,14 @@ router.post(
 // Verify 2FA setup
 router.post(
   '/2fa/verify-setup',
-  validateBody(getAuthSchemas().verify2FA),
+  validateBody(authSchemas.verify2FA),
   (req: Request, res: Response, next: NextFunction) => authController.verify2FASetup(req, res, next)
 );
 
 // Disable 2FA
 router.post(
   '/2fa/disable',
-  validateBody(getAuthSchemas().verify2FA),
+  validateBody(authSchemas.verify2FA),
   (req: Request, res: Response, next: NextFunction) => authController.disable2FA(req, res, next)
 );
 
