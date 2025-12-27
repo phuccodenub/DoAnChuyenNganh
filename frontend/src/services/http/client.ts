@@ -12,9 +12,29 @@ declare const import_meta: { env: Record<string, string> };
  * - Headers: Content-Type JSON
  */
 
-// API Base URL: http://localhost:3000/api/v1.3.0
-// Set VITE_API_URL in .env file, fallback to /api (proxy handles versioning)
-const baseURL = (import.meta as any).env?.VITE_API_URL || '/api';
+// API Base URL: Set VITE_API_URL in .env file or Render env vars
+// In production, must use full URL (https://...)
+// In dev, can use /api (proxy handles versioning)
+const getBaseURL = (): string => {
+  const env = (import.meta as any).env || {};
+  const viteApiUrl = env.VITE_API_URL;
+  
+  if (viteApiUrl) {
+    return viteApiUrl;
+  }
+  
+  // In production (not dev), we need full URL
+  if (env.PROD) {
+    // If no VITE_API_URL set in production, this is an error
+    console.error('[HTTP Client] VITE_API_URL not set in production!');
+    return '';
+  }
+  
+  // In dev, use relative path (proxy will handle it)
+  return '/api';
+};
+
+const baseURL = getBaseURL();
 
 
 export const httpClient: AxiosInstance = axios.create({

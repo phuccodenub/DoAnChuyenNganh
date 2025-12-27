@@ -2,7 +2,26 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useCallback, useState } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Use VITE_API_URL from env, fallback to relative /api in dev
+const getApiUrl = (): string => {
+  const env = (import.meta as any).env || {};
+  const viteApiUrl = env.VITE_API_URL;
+  
+  if (viteApiUrl) {
+    return viteApiUrl;
+  }
+  
+  // In production, must have VITE_API_URL
+  if (env.PROD) {
+    console.error('[Search API] VITE_API_URL not set in production!');
+    return '';
+  }
+  
+  // In dev, use relative path
+  return '/api';
+};
+
+const API_URL = getApiUrl();
 
 export interface SearchResult {
   id: string;
