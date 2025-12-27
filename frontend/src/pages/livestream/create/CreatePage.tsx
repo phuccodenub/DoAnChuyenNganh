@@ -98,6 +98,7 @@ export function CreateLiveStreamPage() {
   const [cameraPreviewError, setCameraPreviewError] = useState<string | null>(null);
   const [streamPreviewLoading, setStreamPreviewLoading] = useState(false);
   const [streamPreviewError, setStreamPreviewError] = useState<string | null>(null);
+  const [permissionRequested, setPermissionRequested] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const streamRef = useRef<MediaStream | null>(null);
@@ -230,58 +231,83 @@ export function CreateLiveStreamPage() {
     }
   };
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchDevices = async () => {
-      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        stream.getTracks().forEach((track) => track.stop());
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        if (!mounted) return;
-        const cameras = devices
-          .filter((d) => d.kind === 'videoinput')
-          .map((d, index) => ({
-            deviceId: d.deviceId || `camera-${index + 1}`,
-            label: d.label || `Camera ${index + 1}`,
-          }));
-        const microphones = devices
-          .filter((d) => d.kind === 'audioinput')
-          .map((d, index) => ({
-            deviceId: d.deviceId || `mic-${index + 1}`,
-            label: d.label || `Microphone ${index + 1}`,
-          }));
-        if (cameras.length) {
-          setCameraOptions(cameras);
-          let nextCamera = cameras[0].deviceId;
-          if (typeof window !== 'undefined') {
-            const storedCamera = localStorage.getItem('livestream:cameraDevice');
-            if (storedCamera && cameras.some((camera) => camera.deviceId === storedCamera)) {
-              nextCamera = storedCamera;
-            }
+  // Request permissions và load devices (chỉ khi user click button)
+  const requestMediaPermissions = async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) {
+      setCameraPreviewError('Trình duyệt không hỗ trợ truy cập camera/micro.');
+      return;
+    }
+    
+    setPermissionRequested(true);
+    setCameraPreviewError(null);
+    setCameraPreviewLoading(true);
+    
+    try {
+      // Request permissions với user interaction
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      stream.getTracks().forEach((track) => track.stop());
+      
+      // Sau khi có permissions, enumerate devices để lấy labels
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices
+        .filter((d) => d.kind === 'videoinput')
+        .map((d, index) => ({
+          deviceId: d.deviceId || `camera-${index + 1}`,
+          label: d.label || `Camera ${index + 1}`,
+        }));
+      const microphones = devices
+        .filter((d) => d.kind === 'audioinput')
+        .map((d, index) => ({
+          deviceId: d.deviceId || `mic-${index + 1}`,
+          label: d.label || `Microphone ${index + 1}`,
+        }));
+      
+      if (cameras.length) {
+        setCameraOptions(cameras);
+        let nextCamera = cameras[0].deviceId;
+        if (typeof window !== 'undefined') {
+          const storedCamera = localStorage.getItem('livestream:cameraDevice');
+          if (storedCamera && cameras.some((camera) => camera.deviceId === storedCamera)) {
+            nextCamera = storedCamera;
           }
-          setValue('cameraDevice', nextCamera);
         }
-        if (microphones.length) {
-          setMicrophoneOptions(microphones);
-          let nextMic = microphones[0].deviceId;
-          if (typeof window !== 'undefined') {
-            const storedMic = localStorage.getItem('livestream:microphoneDevice');
-            if (storedMic && microphones.some((mic) => mic.deviceId === storedMic)) {
-              nextMic = storedMic;
-            }
-          }
-          setValue('microphoneDevice', nextMic);
-        }
-      } catch (error) {
-        console.warn('Cannot load media devices', error);
+        setValue('cameraDevice', nextCamera);
       }
-    };
-    fetchDevices();
-    return () => {
-      mounted = false;
-    };
-  }, [setValue]);
+      
+      if (microphones.length) {
+        setMicrophoneOptions(microphones);
+        let nextMic = microphones[0].deviceId;
+        if (typeof window !== 'undefined') {
+          const storedMic = localStorage.getItem('livestream:microphoneDevice');
+          if (storedMic && microphones.some((mic) => mic.deviceId === storedMic)) {
+            nextMic = storedMic;
+          }
+        }
+        setValue('microphoneDevice', nextMic);
+      }
+      
+      setCameraPreviewLoading(false);
+    } catch (error: any) {
+      console.warn('Cannot load media devices', error);
+      setCameraPreviewLoading(false);
+      
+      // Cải thiện error message
+      if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDismissedError') {
+        setCameraPreviewError(
+          'Bạn đã từ chối quyền truy cập camera/micro. Để sử dụng tính năng này:\n\n' +
+          '1. Click vào biểu tượng khóa/camera ở thanh địa chỉ trình duyệt\n' +
+          '2. Cho phép truy cập Camera và Microphone\n' +
+          '3. Refresh trang và thử lại'
+        );
+      } else if (error?.name === 'NotFoundError') {
+        setCameraPreviewError('Không tìm thấy camera hoặc microphone. Vui lòng kiểm tra thiết bị của bạn.');
+      } else if (error?.name === 'OverconstrainedError') {
+        setCameraPreviewError('Thiết bị được chọn không khả dụng. Vui lòng chọn thiết bị khác.');
+      } else {
+        setCameraPreviewError('Không thể truy cập camera/micro. Vui lòng kiểm tra quyền trình duyệt và thiết bị.');
+      }
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -326,10 +352,17 @@ export function CreateLiveStreamPage() {
         setCameraPreviewError(null);
         return;
       }
+      
+      // Chỉ setup preview nếu đã có permissions
+      if (!permissionRequested) {
+        return;
+      }
+      
       if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
         setCameraPreviewError('Trình duyệt không hỗ trợ truy cập camera.');
         return;
       }
+      
       setCameraPreviewLoading(true);
       setCameraPreviewError(null);
       try {
@@ -344,9 +377,24 @@ export function CreateLiveStreamPage() {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => undefined);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Camera preview error', error);
-        setCameraPreviewError('Không thể truy cập camera/micro. Vui lòng kiểm tra quyền trình duyệt.');
+        
+        // Cải thiện error message
+        if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDismissedError') {
+          setCameraPreviewError(
+            'Bạn đã từ chối quyền truy cập camera/micro. Vui lòng:\n\n' +
+            '1. Click vào biểu tượng khóa/camera ở thanh địa chỉ\n' +
+            '2. Cho phép truy cập Camera và Microphone\n' +
+            '3. Refresh trang và thử lại'
+          );
+        } else if (error?.name === 'NotFoundError') {
+          setCameraPreviewError('Không tìm thấy camera hoặc microphone. Vui lòng kiểm tra thiết bị.');
+        } else if (error?.name === 'OverconstrainedError') {
+          setCameraPreviewError('Thiết bị được chọn không khả dụng. Vui lòng chọn thiết bị khác.');
+        } else {
+          setCameraPreviewError('Không thể truy cập camera/micro. Vui lòng kiểm tra quyền trình duyệt.');
+        }
         stopPreviewStream();
       } finally {
         setCameraPreviewLoading(false);
@@ -357,7 +405,7 @@ export function CreateLiveStreamPage() {
     return () => {
       stopPreviewStream();
     };
-  }, [videoSource, cameraDevice, microphoneDevice]);
+  }, [videoSource, cameraDevice, microphoneDevice, permissionRequested]);
 
   useEffect(() => {
     if (videoSource !== 'software') {
@@ -1107,10 +1155,28 @@ export function CreateLiveStreamPage() {
                   </label> */}
 
                   <div className="bg-gray-50 rounded-lg border border-dashed border-gray-300 flex items-center justify-center relative overflow-hidden w-full aspect-video min-h-[300px]">
-                    {!cameraPreviewError ? (
+                    {!permissionRequested ? (
+                      <div className="text-center px-6 py-8">
+                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                          <Video className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <h4 className="text-base font-semibold text-gray-900 mb-2">Cần quyền truy cập camera & microphone</h4>
+                        <p className="text-sm text-gray-600 mb-4">
+                          Để sử dụng tính năng livestream, vui lòng cấp quyền truy cập camera và microphone.
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={requestMediaPermissions}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Video className="w-4 h-4 mr-2" />
+                          Cho phép truy cập camera & microphone
+                        </Button>
+                      </div>
+                    ) : !cameraPreviewError ? (
                       <>
                         {cameraPreviewLoading && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
                             <div className="text-center space-y-2">
                               <div className="w-10 h-10 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin mx-auto" />
                               <p className="text-sm text-gray-500">Đang kiểm tra camera...</p>
@@ -1125,19 +1191,29 @@ export function CreateLiveStreamPage() {
                           autoPlay
                         />
                         {!cameraPreviewLoading && !streamRef.current && (
-                          <div className="text-center text-sm text-gray-600">
-                            Video preview sẽ hiển thị sau khi bạn cấp quyền camera.
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80">
+                            <div className="text-center text-sm text-gray-600">
+                              Đang khởi tạo camera preview...
+                            </div>
                           </div>
                         )}
                       </>
                     ) : (
-                      <div className="text-center px-6">
-                        <div className="w-12 h-12 rounded-full bg-white shadow flex items-center justify-center mx-auto mb-3">
-                          <Video className="w-5 h-5 text-gray-400" />
+                      <div className="text-center px-6 py-8">
+                        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+                          <Video className="w-6 h-6 text-red-600" />
                         </div>
-                        <p className="text-sm text-gray-600">
-                          {cameraPreviewError || 'Video preview sẽ hiển thị sau khi bạn cấp quyền camera.'}
+                        <p className="text-sm text-gray-700 whitespace-pre-line mb-4">
+                          {cameraPreviewError}
                         </p>
+                        <Button
+                          type="button"
+                          onClick={requestMediaPermissions}
+                          variant="outline"
+                          className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                        >
+                          Thử lại
+                        </Button>
                       </div>
                     )}
                   </div>
