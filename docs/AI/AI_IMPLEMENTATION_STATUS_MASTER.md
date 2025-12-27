@@ -2,7 +2,7 @@
 
 **Last Updated:** December 23, 2025  
 **Status:** Active Development  
-**Current Focus:** Quiz Generator Complete, Moving to AI Tutor Enhancement
+**Current Focus:** Video Understanding V2 (Groq Speech + Vision) + AI Tutor Enhancement
 
 ## 📊 SYSTEM OVERVIEW
 
@@ -26,6 +26,18 @@ The AI system is designed as a **3-tier hybrid architecture** to balance cost, s
     *   **Models:** `gpt-5.2`, `gpt-5.1`, `gpt-5`, `qwen3-coder-plus`.
     *   **Role:** Premium polish/judging + local development heavy lifting.
     *   **Status:** ✅ Supported in Backend (Optional).
+
+---
+
+## 🎬 VIDEO UNDERSTANDING STATUS (IMPORTANT UPDATE)
+
+- Historical design referenced **ProxyPal Gemini `gemini-3-pro-preview`** for video analysis.
+- Current reality: ProxyPal no longer reliably supports that model, so “read video directly” is not a safe dependency.
+- New direction: **Video Understanding V2** using **Groq Speech-to-Text (Whisper)** + **Groq Vision** + **Reasoning fusion**.
+
+**📄 New docs:**
+- `docs/AI/14_VIDEO_UNDERSTANDING_V2_STT_VISION_PIPELINE.md`
+- `docs/AI/15_BACKEND_CHANGES_ROADMAP_GROQ_MULTIMODAL.md`
 
 ---
 

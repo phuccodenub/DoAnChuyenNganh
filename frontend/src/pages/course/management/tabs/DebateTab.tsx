@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +20,11 @@ const extractErrorMessage = (error: any): string => {
     return 'Bạn đã vượt giới hạn debate hôm nay. Vui lòng thử lại sau.';
   }
 
-  if (status === 401 || status === 403) {
+  if (status === 401) {
+    return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  }
+
+  if (status === 403) {
     return 'Không có quyền gọi model premium để judge. Vui lòng kiểm tra API key hoặc tier.';
   }
 
@@ -65,7 +69,7 @@ const decisionBadge = (decision?: string) => {
   if (decision === 'approved') return <Badge className="bg-green-100 text-green-700">APPROVED</Badge>;
   if (decision === 'needs_revision') return <Badge className="bg-yellow-100 text-yellow-700">NEEDS REVISION</Badge>;
   if (decision === 'rejected') return <Badge className="bg-red-100 text-red-700">REJECTED</Badge>;
-  return <Badge className="bg-gray-100 text-gray-700">UNKNOWN</Badge>;
+  return <Badge className="bg-gray-100 text-gray-700">NO DECISION</Badge>;
 };
 
 export function DebateTab({ courseId }: DebateTabProps) {
@@ -75,16 +79,35 @@ export function DebateTab({ courseId }: DebateTabProps) {
   const [maxRounds, setMaxRounds] = useState(3);
   const [debateId, setDebateId] = useState('');
   const [lastError, setLastError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ topic?: string; context?: string; debateId?: string }>({});
+  const [idNotice, setIdNotice] = useState('');
 
   const startDebate = useMutation({
     mutationFn: () => {
       setLastError('');
-      if (!topic.trim() || !context.trim()) {
+      setFieldErrors({});
+
+      const trimmedTopic = topic.trim();
+      const trimmedContext = context.trim();
+      const nextErrors: { topic?: string; context?: string } = {};
+
+      if (!trimmedTopic) {
+        nextErrors.topic = 'Vui lòng nhập topic.';
+      }
+      if (!trimmedContext) {
+        nextErrors.context = 'Vui lòng nhập context.';
+      }
+
+      if (Object.keys(nextErrors).length) {
+        setFieldErrors(nextErrors);
         throw new Error('Vui lòng nhập topic và context');
       }
+
+      setIdNotice('');
+
       return aiApi.startDebate({
-        topic: topic.trim(),
-        context: context.trim(),
+        topic: trimmedTopic,
+        context: trimmedContext,
         debateType,
         maxRounds,
         courseId,
@@ -94,6 +117,7 @@ export function DebateTab({ courseId }: DebateTabProps) {
       const id = data?.debateId || data?.data?.debateId;
       if (id) {
         setDebateId(id);
+        setIdNotice('Debate ID đã tạo. Dùng để xem lại lịch sử hoặc gọi Judge.');
       }
       toast.success('Debate hoàn tất');
     },
@@ -107,8 +131,12 @@ export function DebateTab({ courseId }: DebateTabProps) {
   const fetchResult = useMutation({
     mutationFn: async () => {
       setLastError('');
+      setFieldErrors((prev) => ({ ...prev, debateId: undefined }));
       const id = debateId.trim();
-      if (!id) throw new Error('Vui lòng nhập debateId');
+      if (!id) {
+        setFieldErrors((prev) => ({ ...prev, debateId: 'Vui lòng nhập debateId.' }));
+        throw new Error('Vui lòng nhập debateId');
+      }
       return aiApi.getDebateResult(id);
     },
     onError: (error: any) => {
@@ -121,8 +149,12 @@ export function DebateTab({ courseId }: DebateTabProps) {
   const fetchHistory = useMutation({
     mutationFn: async () => {
       setLastError('');
+      setFieldErrors((prev) => ({ ...prev, debateId: undefined }));
       const id = debateId.trim();
-      if (!id) throw new Error('Vui lòng nhập debateId');
+      if (!id) {
+        setFieldErrors((prev) => ({ ...prev, debateId: 'Vui lòng nhập debateId.' }));
+        throw new Error('Vui lòng nhập debateId');
+      }
       return aiApi.getDebateHistory(id);
     },
     onError: (error: any) => {
@@ -135,8 +167,12 @@ export function DebateTab({ courseId }: DebateTabProps) {
   const arbitrate = useMutation({
     mutationFn: async () => {
       setLastError('');
+      setFieldErrors((prev) => ({ ...prev, debateId: undefined }));
       const id = debateId.trim();
-      if (!id) throw new Error('Vui lòng nhập debateId');
+      if (!id) {
+        setFieldErrors((prev) => ({ ...prev, debateId: 'Vui lòng nhập debateId.' }));
+        throw new Error('Vui lòng nhập debateId');
+      }
       return aiApi.arbitrateDebate(id);
     },
     onSuccess: () => toast.success('Đã gọi Judge'),
@@ -163,7 +199,26 @@ export function DebateTab({ courseId }: DebateTabProps) {
     return maybe as DebateRound[];
   }, [fetchHistory.data]);
 
+  useEffect(() => {
+    if (debateId.trim() && fieldErrors.debateId) {
+      setFieldErrors((prev) => ({ ...prev, debateId: undefined }));
+    }
+  }, [debateId, fieldErrors.debateId]);
+
   const isBusy = startDebate.isPending || fetchResult.isPending || fetchHistory.isPending || arbitrate.isPending;
+
+
+  useEffect(() => {
+    if (topic.trim() && fieldErrors.topic) {
+      setFieldErrors((prev) => ({ ...prev, topic: undefined }));
+    }
+  }, [topic, fieldErrors.topic]);
+
+  useEffect(() => {
+    if (context.trim() && fieldErrors.context) {
+      setFieldErrors((prev) => ({ ...prev, context: undefined }));
+    }
+  }, [context, fieldErrors.context]);
 
   return (
     <div className="space-y-6">
@@ -177,13 +232,21 @@ export function DebateTab({ courseId }: DebateTabProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Input label="Topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="VD: MVC vs Clean Architecture" />
+            <Input
+              label="Topic"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="VD: MVC vs Clean Architecture"
+              disabled={isBusy}
+              error={fieldErrors.topic}
+            />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Debate Type</label>
               <select
                 value={debateType}
                 onChange={(e) => setDebateType(e.target.value as DebateType)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                disabled={isBusy}
               >
                 <option value="project_design">Project design</option>
                 <option value="curriculum">Curriculum</option>
@@ -198,6 +261,7 @@ export function DebateTab({ courseId }: DebateTabProps) {
               max={6}
               value={maxRounds}
               onChange={(e) => setMaxRounds(Math.max(1, Math.min(6, Number(e.target.value) || 3)))}
+              disabled={isBusy}
             />
           </div>
 
@@ -208,12 +272,18 @@ export function DebateTab({ courseId }: DebateTabProps) {
               onChange={(e) => setContext(e.target.value)}
               rows={6}
               placeholder="Mô tả bối cảnh, ràng buộc kỹ thuật, mục tiêu, deadline..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${fieldErrors.context ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+              aria-invalid={fieldErrors.context ? 'true' : 'false'}
+              aria-describedby={fieldErrors.context ? 'debate-context-error' : undefined}
+              disabled={isBusy}
             />
+            {fieldErrors.context && (
+              <p id="debate-context-error" className="mt-1 text-sm text-red-600">{fieldErrors.context}</p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => startDebate.mutate()} disabled={startDebate.isPending} className="gap-2">
+            <Button onClick={() => startDebate.mutate()} disabled={isBusy} className="gap-2">
               {startDebate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scale className="h-4 w-4" />}
               Start debate
             </Button>
@@ -221,21 +291,36 @@ export function DebateTab({ courseId }: DebateTabProps) {
             <Input
               label="Debate ID"
               value={debateId}
-              onChange={(e) => setDebateId(e.target.value)}
+              onChange={(e) => {
+                setDebateId(e.target.value);
+                if (idNotice) {
+                  setIdNotice('');
+                }
+              }}
               placeholder="Dán debateId để xem lại"
+              disabled={isBusy}
+              error={fieldErrors.debateId}
+              helperText={idNotice || undefined}
+              id="debate-id"
             />
           </div>
 
+          {idNotice && (
+            <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+              {idNotice}
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => fetchResult.mutate()} disabled={fetchResult.isPending} className="gap-2">
+            <Button variant="outline" onClick={() => fetchResult.mutate()} disabled={fetchResult.isPending || !debateId.trim() || isBusy} className="gap-2">
               {fetchResult.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Refresh result
             </Button>
-            <Button variant="outline" onClick={() => fetchHistory.mutate()} disabled={fetchHistory.isPending} className="gap-2">
+            <Button variant="outline" onClick={() => fetchHistory.mutate()} disabled={fetchHistory.isPending || !debateId.trim() || isBusy} className="gap-2">
               {fetchHistory.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScrollText className="h-4 w-4" />}
               Load history
             </Button>
-            <Button variant="outline" onClick={() => arbitrate.mutate()} disabled={arbitrate.isPending} className="gap-2">
+            <Button variant="outline" onClick={() => arbitrate.mutate()} disabled={arbitrate.isPending || !debateId.trim() || isBusy} className="gap-2">
               {arbitrate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scale className="h-4 w-4" />}
               Call Judge
             </Button>
@@ -290,6 +375,10 @@ export function DebateTab({ courseId }: DebateTabProps) {
                 <p className="text-sm font-semibold mb-1">Judge Decision</p>
                 <pre className="text-xs whitespace-pre-wrap break-words">{normalizedResult.judgeDecision}</pre>
               </div>
+            )}
+
+            {!normalizedResult.judgeDecision && !normalizedResult.requiresJudge && (
+              <p className="text-xs text-gray-500">Chưa có quyết định từ Judge.</p>
             )}
           </CardContent>
         </Card>

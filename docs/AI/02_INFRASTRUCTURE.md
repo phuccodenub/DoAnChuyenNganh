@@ -139,6 +139,12 @@ Tạo file `proxypal.config.json` ở thư mục gốc của project:
 
 **Gemini 3 Pro Preview (qua ProxyPal)**
 
+> ⚠️ **Status update (Dec 2025):** ProxyPal không còn hỗ trợ ổn định `gemini-3-pro-preview` (đặc biệt cho use case video).  
+> - Giữ cấu hình legacy để có đường quay lại nếu provider phục hồi.  
+> - Hướng thay thế khuyến nghị: **Video Understanding V2** dùng **Groq Speech-to-Text + Groq Vision + Reasoning fusion**.
+>   - Xem: `docs/AI/14_VIDEO_UNDERSTANDING_V2_STT_VISION_PIPELINE.md`
+>   - Roadmap code: `docs/AI/15_BACKEND_CHANGES_ROADMAP_GROQ_MULTIMODAL.md`
+
 | Thuộc tính (Attribute) | Giá trị (Value) |
 |------------------------|-----------------| 
 | **Model ID** | `gemini-3-pro-preview` |

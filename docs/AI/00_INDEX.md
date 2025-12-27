@@ -29,6 +29,11 @@ Tài liệu hướng dẫn triển khai AI này được chia thành nhiều fil
 11. **[11_CONFIGURATION.md](11_CONFIG_GUIDE.md)** - Cấu hình môi trường và thiết lập (environment configuration & setup)
 12. **[12_DEPLOYMENT.md](12_DEPLOYMENT.md)** - Chiến lược deploy và best practices (deployment strategies & best practices)
 
+### Groq Expansion (Mở rộng Groq: reasoning / multimodal)
+13. **[13_GROQ_MODEL_UTILIZATION_PLAN.md](13_GROQ_MODEL_UTILIZATION_PLAN.md)** - Kế hoạch tận dụng Groq models (reasoning/tool-use/vision/speech)
+14. **[14_VIDEO_UNDERSTANDING_V2_STT_VISION_PIPELINE.md](14_VIDEO_UNDERSTANDING_V2_STT_VISION_PIPELINE.md)** - Video Understanding V2 (STT + Vision) thay thế đọc video trực tiếp
+15. **[15_BACKEND_CHANGES_ROADMAP_GROQ_MULTIMODAL.md](15_BACKEND_CHANGES_ROADMAP_GROQ_MULTIMODAL.md)** - Roadmap backend để triển khai multimodal + tool use
+
 ---
 
 ## 🎯 QUICK START (BẮT ĐẦU NHANH)
