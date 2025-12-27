@@ -40,20 +40,27 @@ import { proxyPalHealthCheck } from './modules/ai/services/proxypal-health.servi
 
 const PORT = process.env.PORT || 3000;
 
+// Log immediately when module loads
+console.log('========================================');
+console.log('🚀 SERVER STARTING...');
+console.log(`PORT: ${PORT}`);
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log('========================================');
+
 async function startServer() {
   try {
     // Log startup immediately
-    console.log('🚀 Starting server...');
-    console.log(`PORT: ${PORT}`);
-    console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log('[STARTUP] Starting server function...');
+    console.log(`[STARTUP] PORT: ${PORT}`);
+    console.log(`[STARTUP] NODE_ENV: ${process.env.NODE_ENV}`);
     
     // Setup global error handlers
-    console.log('Setting up error handlers...');
+    console.log('[STARTUP] Setting up error handlers...');
     ErrorHandler.setupGlobalHandlers();
-    console.log('✅ Error handlers setup complete');
+    console.log('[STARTUP] ✅ Error handlers setup complete');
     
     // Connect to database with timeout
-    console.log('Connecting to database...');
+    console.log('[STARTUP] Connecting to database...');
     logger.info('Connecting to database...');
     try {
       await Promise.race([
@@ -63,15 +70,20 @@ async function startServer() {
         )
       ]);
       logger.info('✅ Database connected successfully');
+      console.log('[STARTUP] ✅ Database connected successfully');
+      logger.info('✅ Database connected successfully');
     } catch (error: unknown) {
+      console.error('[STARTUP] ❌ Database connection failed:', error);
       logger.error('❌ Database connection failed:', error);
       throw error;
     }
     
     // Connect to Redis (allow disabling in local dev/tests)
     if (process.env.REDIS_DISABLED === 'true') {
+      console.log('[STARTUP] Redis connection disabled via REDIS_DISABLED=true');
       logger.info('Redis connection disabled via REDIS_DISABLED=true');
     } else {
+      console.log('[STARTUP] Connecting to Redis...');
       logger.info('Connecting to Redis...');
       try {
         await Promise.race([
@@ -80,17 +92,22 @@ async function startServer() {
             setTimeout(() => reject(new Error('Redis connection timeout after 10s')), 10000)
           )
         ]);
+        console.log('[STARTUP] ✅ Redis connected successfully');
         logger.info('✅ Redis connected successfully');
       } catch (error: unknown) {
+        console.error('[STARTUP] ❌ Redis connection failed:', error);
         logger.error('❌ Redis connection failed:', error);
         throw error;
       }
     }
     
     // Create HTTP server from Express app
+    console.log('[STARTUP] Creating HTTP server...');
     const httpServer = createServer(app);
+    console.log('[STARTUP] ✅ HTTP server created');
     
     // Create SINGLE Socket.IO server instance (shared by all gateways)
+    console.log('[STARTUP] Creating Socket.IO server...');
     const io = new SocketIOServer(httpServer, {
       cors: {
         origin: APP_CONSTANTS.CORS.ALLOWED_ORIGINS,
@@ -101,6 +118,7 @@ async function startServer() {
       transports: ['websocket', 'polling']
     });
     
+    console.log('[STARTUP] ✅ Socket.IO server created');
     logger.info('Socket.IO server created');
     
     // Initialize Socket.IO gateways with shared server instance
@@ -170,13 +188,20 @@ async function startServer() {
     logger.info('✅ AI Analysis Queue Worker started (processing every 1 minute)');
     
     // Start HTTP server (this will also start Socket.IO)
-    httpServer.listen(PORT, () => {
+    console.log(`[STARTUP] Starting HTTP server on port ${PORT}...`);
+    httpServer.listen(PORT, '0.0.0.0', () => {
+      console.log(`[STARTUP] 🚀 Server running on port ${PORT}`);
+      console.log(`[STARTUP] Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`[STARTUP] 📡 Socket.IO available at ws://0.0.0.0:${PORT}/socket.io`);
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`📡 Socket.IO available at ws://localhost:${PORT}/socket.io`);
     });
     
+    console.log(`[STARTUP] HTTP server listen() called, waiting for bind...`);
+    
   } catch (error: unknown) {
+    console.error('[STARTUP] ❌ Failed to start server:', error);
     logger.error('Failed to start server:', error);
     process.exit(1);
   }
