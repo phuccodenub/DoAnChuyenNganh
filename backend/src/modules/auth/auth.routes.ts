@@ -1,12 +1,29 @@
+console.log('[AUTH_ROUTES] Starting imports...');
 import express, { Request, Response, NextFunction } from 'express';
-import { AuthController } from './auth.controller';
-import { validateBody } from '@middlewares/validate.middleware';
-import { authMiddleware } from '@middlewares/auth.middleware';
-import { authRateLimit, passwordResetRateLimit, registrationRateLimit } from '@middlewares/auth-rate-limit.middleware';
-import { authSchemas } from '@validates/auth.validate';
+console.log('[AUTH_ROUTES] express imported');
 
+import { AuthController } from './auth.controller';
+console.log('[AUTH_ROUTES] AuthController imported');
+
+import { validateBody } from '@middlewares/validate.middleware';
+console.log('[AUTH_ROUTES] validateBody imported');
+
+import { authMiddleware } from '@middlewares/auth.middleware';
+console.log('[AUTH_ROUTES] authMiddleware imported');
+
+import { authRateLimit, passwordResetRateLimit, registrationRateLimit } from '@middlewares/auth-rate-limit.middleware';
+console.log('[AUTH_ROUTES] rate limit middlewares imported');
+
+import { authSchemas } from '@validates/auth.validate';
+console.log('[AUTH_ROUTES] authSchemas imported');
+
+console.log('[AUTH_ROUTES] Creating router...');
 const router = express.Router();
+console.log('[AUTH_ROUTES] Router created');
+
+console.log('[AUTH_ROUTES] Creating AuthController instance...');
 const authController = new AuthController();
+console.log('[AUTH_ROUTES] AuthController instance created');
 
 
 // ===== PUBLIC ROUTES (No authentication required) =====
