@@ -148,7 +148,7 @@ services:
         value: "false"
       - key: HOT_RELOAD
         value: "false"
-      # Email Configuration (optional - set manually if needed)
+      # Email Configuration (SMTP)
       - key: MAIL_HOST
         sync: false  # Set manually: smtp.gmail.com
       - key: MAIL_PORT
@@ -161,17 +161,52 @@ services:
         sync: false  # Set manually if needed
       - key: MAIL_FROM
         value: LMS System <noreply@lms.com>
-      # AI Configuration (optional - set manually in dashboard)
+      # Alternative Email Configuration Names
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      # AI Configuration - Gemini (Google AI)
       - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_API_KEY_2
+        sync: false  # Optional: 2nd Google account API key for rotation
+      - key: GEMINI_API_KEY_3
+        sync: false  # Optional: 3rd Google account API key for rotation
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
       - key: GEMINI_TEMPERATURE
         value: "0.7"
       - key: GEMINI_MAX_TOKENS
         value: "8192"
+      # Google AI Models (Task-specific routing)
+      - key: GOOGLE_MODEL_3_FLASH
+        value: gemini-3-flash-preview
+      - key: GOOGLE_MODEL_2_5_FLASH
+        value: gemini-2.5-flash
+      - key: GOOGLE_MODEL_2_5_FLASH_TTS
+        value: gemini-2.5-flash-preview-tts
+      - key: GOOGLE_MODEL_2_5_FLASH_LITE
+        value: gemini-2.5-flash-lite
+      # AI Configuration - GROQ
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL_DEFAULT
         value: llama-3.3-70b-versatile
+      - key: GROQ_MODEL_REASONING
+        value: llama-3.3-70b-versatile
+      - key: GROQ_MODEL_MATH
+        value: qwen/qwen3-32b
+      - key: GROQ_MODEL_VISION
+        value: meta-llama/llama-4-scout-17b-16e-instruct
+      - key: GROQ_MODEL_SPEECH
+        value: whisper-large-v3-turbo
       - key: GROQ_TEMPERATURE
         value: "0.7"
       - key: GROQ_MAX_TOKENS
@@ -187,26 +222,75 @@ services:
       # ProxyPal (Local AI - disable on Render)
       - key: PROXYPAL_ENABLED
         value: "false"
-      # Google Drive (optional - set manually if needed)
+      - key: PROXYPAL_BASE_URL
+        value: http://host.docker.internal:8317/v1
+      - key: PROXYPAL_API_KEY
+        value: proxypal-local
+      - key: PROXYPAL_TIMEOUT
+        value: "60000"
+      # MegaLLM (Premium AI Provider - optional)
+      - key: MEGALM_API_KEY
+        sync: false
+      - key: MEGALM_API_KEY_2
+        sync: false
+      - key: MEGALM_BASE_URL
+        value: https://megallm.io/
+      # Google Drive OAuth 2.0 Configuration
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REFRESH_TOKEN
         sync: false
-      # Cloud Storage (optional - set manually if needed)
+      - key: GOOGLE_REDIRECT_URI
+        value: https://developers.google.com/oauthplayground
+      # Google Drive Folder IDs
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        sync: false  # ID thư mục LMS_DATA/DB_Backups
+      - key: GDRIVE_RESOURCES_FOLDER_ID
+        sync: false  # ID thư mục gốc chứa tài liệu khóa học (Course Resources)
+      - key: GDRIVE_LIVE_RAW_FOLDER_ID
+        sync: false  # ID thư mục gốc chứa raw livestream recordings
+      - key: GDRIVE_BACKUP_FOLDER_ID
+        sync: false  # ID thư mục gốc chứa backup database
+      # Cloudinary Configuration (for images: Avatar, Thumbnail)
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      # Livestream Configuration (optional - set manually if needed)
+      # Pinata IPFS Configuration
+      - key: PINATA_API_KEY
+        sync: false
+      - key: PINATA_SECRET_KEY
+        sync: false
+      - key: PINATA_GATEWAY_URL
+        value: https://gateway.pinata.cloud/ipfs/
+      # Blockchain Configuration (Sepolia Testnet)
+      - key: BLOCKCHAIN_NETWORK
+        value: sepolia
+      - key: PRIVATE_KEY
+        sync: false  # Private key for blockchain transactions
+      - key: SEPOLIA_RPC_URL
+        sync: false  # Sepolia RPC endpoint
+      - key: CERTIFICATE_CONTRACT_ADDRESS
+        sync: false  # Smart contract address (set after deployment)
+      # Livestream Configuration
       - key: HLS_BASE_URL
-        sync: false
+        sync: false  # URL để truy cập HLS streams
       - key: RTMP_SERVER_URL
-        sync: false
+        sync: false  # URL để OBS connect
       - key: RTMP_CONTROL_URL
+        sync: false  # URL để control RTMP streams
+      - key: FORCE_DELETE_LIVESTREAMS
+        value: "true"  # Force delete livestreams on cleanup
+      # Twilio Network Traversal Service (WebRTC)
+      - key: TWILIO_NTS_ENABLED
+        value: "false"  # Set to true if using Twilio for WebRTC
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
         sync: false
       # Feature Flags
       - key: DISABLE_CACHE
