@@ -732,25 +732,38 @@ class WebRTCService {
       return;
     }
 
-    console.log(`[WebRTCService] User joined: ${participant.userId} (sendMedia: ${participant.sendMedia})`);
+    console.log(`[WebRTCService] User joined: ${participant.userId} (sendMedia: ${participant.sendMedia}), isPublishing: ${this.isPublishing}`);
 
     if (participant.userId === this.currentUserId) {
+      console.log(`[WebRTCService] Ignoring self join event`);
       return;
     }
 
     // Create peer connection for new user
     if (!this.peers.has(participant.userId)) {
+      console.log(`[WebRTCService] Creating peer connection for new participant ${participant.userId}`);
       const peerConnection = this.createPeerConnection(participant.userId);
       const peer = this.registerPeer(participant.userId, peerConnection);
 
       // Nếu mình đang publish (host), tạo offer cho tất cả participants
       // Nếu mình không publish (viewer), chỉ chờ nhận offer từ host
       if (this.isPublishing) {
-        console.log(`[WebRTCService] Creating offer for new participant ${participant.userId} (host publishing)`);
-        this.createOffer(peer.userId);
+        console.log(`[WebRTCService] Host: Creating offer for new participant ${participant.userId}`);
+        // Delay một chút để đảm bảo peer connection đã sẵn sàng
+        setTimeout(() => {
+          this.createOffer(peer.userId);
+        }, 100);
       } else {
-        console.log(`[WebRTCService] Waiting for offer from ${participant.userId} (viewer mode)`);
+        // Viewer: Nếu participant mới join là host (có sendMedia), viewer nên tạo offer đến host
+        // Hoặc chờ host gửi offer (tùy vào implementation)
+        if (participant.sendMedia) {
+          console.log(`[WebRTCService] Viewer: New participant ${participant.userId} is host, waiting for offer from host`);
+        } else {
+          console.log(`[WebRTCService] Viewer: Waiting for offer from ${participant.userId}`);
+        }
       }
+    } else {
+      console.log(`[WebRTCService] Peer connection already exists for ${participant.userId}`);
     }
 
     // Trigger callback
@@ -784,6 +797,7 @@ class WebRTCService {
   private handleParticipantsList(data: { sessionId: string; participants: any[] }): void {
     const { participants } = data;
     console.log(`[WebRTCService] Participants list received:`, participants.map(p => ({ userId: p.userId, sendMedia: p.sendMedia })));
+    console.log(`[WebRTCService] Current user: ${this.currentUserId}, isPublishing: ${this.isPublishing}`);
 
     // Đảm bảo session ID khớp
     if (data.sessionId !== this.currentSessionId) {
@@ -794,22 +808,34 @@ class WebRTCService {
     // Create peer connections for existing participants
     participants.forEach((participant) => {
       if (participant.userId === this.currentUserId) {
+        console.log(`[WebRTCService] Skipping self in participants list`);
         return;
       }
 
       // Chỉ tạo peer connection nếu chưa có
       if (!this.peers.has(participant.userId)) {
+        console.log(`[WebRTCService] Creating peer connection for existing participant ${participant.userId}`);
         const peerConnection = this.createPeerConnection(participant.userId);
         const peer = this.registerPeer(participant.userId, peerConnection);
 
         // Nếu mình đang publish (host), tạo offer cho tất cả participants
         // Nếu mình không publish (viewer), chỉ chờ nhận offer từ host
         if (this.isPublishing) {
-          console.log(`[WebRTCService] Creating offer for existing participant ${participant.userId} (host publishing)`);
-          this.createOffer(peer.userId);
+          console.log(`[WebRTCService] Host: Creating offer for existing participant ${participant.userId}`);
+          // Delay một chút để đảm bảo peer connection đã sẵn sàng
+          setTimeout(() => {
+            this.createOffer(peer.userId);
+          }, 100);
         } else {
-          console.log(`[WebRTCService] Waiting for offer from ${participant.userId} (viewer mode)`);
+          // Viewer: Nếu participant là host (có sendMedia), viewer nên chờ host gửi offer
+          if (participant.sendMedia) {
+            console.log(`[WebRTCService] Viewer: Participant ${participant.userId} is host, waiting for offer from host`);
+          } else {
+            console.log(`[WebRTCService] Viewer: Waiting for offer from ${participant.userId}`);
+          }
         }
+      } else {
+        console.log(`[WebRTCService] Peer connection already exists for ${participant.userId}`);
       }
     });
 
