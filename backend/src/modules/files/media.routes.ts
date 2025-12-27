@@ -24,7 +24,7 @@ const imageUpload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.'));
+      cb(new Error('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.'), false);
     }
   }
 });
@@ -39,7 +39,7 @@ const videoUpload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only MP4, WebM, MOV, and AVI are allowed.'));
+      cb(new Error('Invalid file type. Only MP4, WebM, MOV, and AVI are allowed.'), false);
     }
   }
 });

@@ -158,7 +158,7 @@ const materialUpload = (() => {
       const categoryConfig = FILE_CATEGORIES[category.toUpperCase() as keyof typeof FILE_CATEGORIES];
       
       if (!categoryConfig) {
-        return cb(new Error(`Invalid file category: ${category}`));
+        return cb(new Error(`Invalid file category: ${category}`), false);
       }
       
       const path = require('path');
@@ -169,7 +169,7 @@ const materialUpload = (() => {
       if (isValidExt && isValidMime) {
         cb(null, true);
       } else {
-        cb(new Error(`File type not allowed. Allowed: ${categoryConfig.extensions.join(', ')}`));
+        cb(new Error(`File type not allowed. Allowed: ${categoryConfig.extensions.join(', ')}`), false);
       }
     },
     limits: {

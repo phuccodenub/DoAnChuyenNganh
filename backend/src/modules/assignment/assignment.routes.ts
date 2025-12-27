@@ -33,7 +33,7 @@ const assignmentUpload = multer({
     if (allowedExtensions.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error(`File type ${ext} is not allowed`));
+      cb(new Error(`File type ${ext} is not allowed`), false);
     }
   }
 }).single('file');
