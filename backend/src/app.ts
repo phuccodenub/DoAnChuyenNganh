@@ -1,39 +1,77 @@
+// CRITICAL: Log immediately when app.ts loads
+console.log('[APP] app.ts module loading...');
+
 // Ensure runtime alias resolution for compiled JS (optional in tests/CI)
 try { require('module-alias/register'); } catch { /* no-op for CI */ }
+console.log('[APP] module-alias loaded');
+
 import express, { Request, Response, NextFunction } from 'express';
+console.log('[APP] express imported');
+
 import { corsMiddleware } from './config/cors.config';
+console.log('[APP] cors config imported');
+
 import helmet from 'helmet';
+console.log('[APP] helmet imported');
+
 import rateLimit from 'express-rate-limit';
+console.log('[APP] rateLimit imported');
+
 import { startTracing } from './tracing/tracing';
+console.log('[APP] tracing imported');
+
 import { tracingMiddleware } from './middlewares/tracing.middleware';
+console.log('[APP] tracing middleware imported');
+
 import 'dotenv-flow/config';
+console.log('[APP] dotenv-flow loaded');
 
 // Import Swagger
 import { specs, swaggerUi } from './config/swagger.config';
+console.log('[APP] swagger config imported');
 
 // Import middlewares
 import { requestIdMiddleware, loggerMiddleware } from '@middlewares/logger.middleware';
+console.log('[APP] logger middleware imported');
+
 import { auditLogMiddleware } from './middlewares/audit-log.middleware';
+console.log('[APP] audit log middleware imported');
+
 import { errorHandler, notFoundHandler } from '@middlewares/error.middleware';
+console.log('[APP] error middleware imported');
+
 import logger from '@utils/logger.util';
+console.log('[APP] logger imported');
 
 // Import error handling system
 import { ErrorHandler } from './errors/error.handler';
+console.log('[APP] ErrorHandler imported');
 
 // Import constants
 import { APP_CONSTANTS } from '@constants/app.constants';
+console.log('[APP] constants imported');
 
 // Import API routes
+console.log('[APP] Importing API routes...');
 import { apiRoutes } from './api';
+console.log('[APP] API routes imported');
 
 // Import monitoring
+console.log('[APP] Importing monitoring...');
 import { healthRoutes, metricsRoutes, metricsMiddleware, pingRoutes } from './monitoring';
+console.log('[APP] monitoring imported');
 
 // Import caching
+console.log('[APP] Importing cache...');
 import { cacheMiddleware } from './cache';
+console.log('[APP] cache imported');
 
 // Initialize tracing once at app bootstrap
-startTracing().catch(() => {});
+console.log('[APP] Starting tracing...');
+startTracing().catch((err) => {
+  console.error('[APP] Tracing failed:', err);
+});
+console.log('[APP] Tracing started (async)');
 
 const app = express();
 export { app };
