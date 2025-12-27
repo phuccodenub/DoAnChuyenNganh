@@ -3,7 +3,7 @@
  * Multer configuration for handling file uploads
  */
 
-import multer, { FileFilterCallback } from 'multer';
+import multer, { FileFilterCallback, StorageEngine } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { Request } from 'express';
@@ -30,7 +30,7 @@ if (!isCloudStorage) {
  * Configure storage
  */
 const localDiskStorage = multer.diskStorage({
-  destination: (req: Request, file: Express.Multer.File, cb) => {
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     // Get folder from request or use default
     const folder = (req.body.folder as string) || 'misc';
     const fullPath = path.join(uploadDir, folder);
@@ -43,7 +43,7 @@ const localDiskStorage = multer.diskStorage({
     cb(null, fullPath);
   },
   
-  filename: (req: Request, file: Express.Multer.File, cb) => {
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
     // Generate unique filename
     const userId = req.user?.userId || 'anonymous';
     const timestamp = Date.now();
