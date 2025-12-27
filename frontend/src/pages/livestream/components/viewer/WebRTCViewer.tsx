@@ -459,6 +459,7 @@ export function WebRTCViewer({
         }
         
         await webrtcService.joinSession(sessionId, displayName, 'student', { sendMedia: false });
+        console.log('[WebRTCViewer] Successfully joined session, waiting for remote stream...');
       } catch (error) {
         console.error('[WebRTCViewer] Join error', error);
       } finally {
@@ -470,7 +471,11 @@ export function WebRTCViewer({
 
     webrtcService.onRemoteStream = (userId, stream) => {
       if (!mounted) return;
-      console.log(`[WebRTCViewer] Remote stream received from ${userId}`);
+      console.log(`[WebRTCViewer] ✅ Remote stream received from ${userId}`, {
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length,
+        streamId: stream.id
+      });
       setRemoteStreams((prev) => ({ ...prev, [userId]: stream }));
       setAutoplayWarning(false);
     };

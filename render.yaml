@@ -23,6 +23,8 @@ services:
         value: LMS Platform
       - key: NODE_ENV
         value: production
+      - key: PORT
+        generateValue: true  # Render sẽ tự động set PORT cho web service
 
   # Backend API Service
   - type: web
