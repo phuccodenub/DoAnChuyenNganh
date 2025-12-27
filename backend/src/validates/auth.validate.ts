@@ -1,7 +1,14 @@
+console.log('[AUTH_VALIDATE] Starting imports...');
 import { z } from 'zod';
-import { baseValidation } from './base.validate';
-import { validatorsUtils } from '../utils/validators.util';
+console.log('[AUTH_VALIDATE] zod imported');
 
+import { baseValidation } from './base.validate';
+console.log('[AUTH_VALIDATE] baseValidation imported');
+
+import { validatorsUtils } from '../utils/validators.util';
+console.log('[AUTH_VALIDATE] validatorsUtils imported');
+
+console.log('[AUTH_VALIDATE] Creating authValidation object...');
 // Auth validation schemas
 export const authValidation = {
   // Register schema
@@ -143,6 +150,8 @@ export const authValidateHelpers = {
 };
 
 // Legacy export for backward compatibility
+console.log('[AUTH_VALIDATE] Exporting authSchemas...');
 export const authSchemas = authValidation;
+console.log('[AUTH_VALIDATE] authSchemas exported');
 
 
