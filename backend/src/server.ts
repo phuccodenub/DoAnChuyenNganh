@@ -87,13 +87,14 @@ async function startServer() {
           setTimeout(() => reject(new Error('Database connection timeout after 30s')), 30000)
         )
       ]);
-      logger.info('✅ Database connected successfully');
       console.log('[STARTUP] ✅ Database connected successfully');
       logger.info('✅ Database connected successfully');
     } catch (error: unknown) {
-      console.error('[STARTUP] ❌ Database connection failed:', error);
-      logger.error('❌ Database connection failed:', error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn('[STARTUP] ⚠️  Database connection failed:', errorMessage);
+      logger.warn('⚠️  Database connection failed:', { message: errorMessage });
+      // Don't throw - allow app to start and retry connection later
+      // throw error;
     }
     
     // Connect to Redis (allow disabling in local dev/tests)
@@ -113,9 +114,11 @@ async function startServer() {
         console.log('[STARTUP] ✅ Redis connected successfully');
         logger.info('✅ Redis connected successfully');
       } catch (error: unknown) {
-        console.error('[STARTUP] ❌ Redis connection failed:', error);
-        logger.error('❌ Redis connection failed:', error);
-        throw error;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('[STARTUP] ⚠️  Redis connection failed:', errorMessage);
+        logger.warn('⚠️  Redis connection failed:', { message: errorMessage });
+        // Don't throw - allow app to start and retry connection later
+        // throw error;
       }
     }
     
@@ -220,9 +223,11 @@ async function startServer() {
     console.log(`[STARTUP] HTTP server listen() called, waiting for bind...`);
     
   } catch (error: unknown) {
-    console.error('[STARTUP] ❌ Failed to start server:', error);
-    logger.error('Failed to start server:', error);
-    process.exit(1);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[STARTUP] ❌ Failed to start server:', errorMessage);
+    logger.error('Failed to start server:', { message: errorMessage });
+    // Give a moment for logs to flush before exiting
+    setTimeout(() => process.exit(1), 1000);
   }
 }
 
@@ -248,8 +253,10 @@ process.on('SIGINT', () => {
 });
 
 console.log('Calling startServer()...');
-startServer().catch((error) => {
-  console.error('Fatal error starting server:', error);
-  process.exit(1);
+startServer().catch((error: unknown) => {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  console.error('Fatal error starting server:', errorMessage);
+  // Give a moment for logs to flush before exiting
+  setTimeout(() => process.exit(1), 1000);
 });
 
