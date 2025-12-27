@@ -1,6 +1,8 @@
 declare module 'hls.js' {
   export enum Events {
     MEDIA_ATTACHED = 'hlsMediaAttached',
+    MANIFEST_LOADING = 'hlsManifestLoading',
+    MANIFEST_LOADED = 'hlsManifestLoaded',
     MANIFEST_PARSED = 'hlsManifestParsed',
     LEVEL_LOADED = 'hlsLevelLoaded',
     LEVEL_SWITCHED = 'hlsLevelSwitched',
@@ -11,6 +13,7 @@ declare module 'hls.js' {
     FRAG_PARSED = 'hlsFragParsed',
     BUFFER_APPENDING = 'hlsBufferAppending',
     BUFFER_APPENDED = 'hlsBufferAppended',
+    BUFFER_RESET = 'hlsBufferReset',
     ERROR = 'hlsError',
   }
 
@@ -97,12 +100,16 @@ declare module 'hls.js' {
     config: HlsConfig;
     levels: Level[];
     currentLevel: number;
+    media?: HTMLMediaElement;
     
     constructor(config?: HlsConfig);
     
     loadSource(url: string): void;
+    startLoad(startPosition?: number): void;
+    stopLoad(): void;
     attachMedia(media: HTMLMediaElement): void;
     detachMedia(): void;
+    recoverMediaError(): void;
     destroy(): void;
     
     on(event: Events, callback: (event: string, data: any) => void): void;
