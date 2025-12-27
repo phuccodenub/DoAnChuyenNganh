@@ -15,8 +15,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(DIST_PATH, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Serving static files from ${DIST_PATH}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Frontend server running on port ${PORT}`);
+  console.log(`📁 Serving static files from ${DIST_PATH}`);
+  console.log(`✅ SPA routing enabled - all routes will serve index.html`);
 });
 
