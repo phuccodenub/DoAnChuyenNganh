@@ -1,6 +1,6 @@
 services:
   # Frontend Static Site
-  - type: static
+  - type: static_site
     name: lms-frontend
     region: singapore
     buildCommand: cd frontend && npm install && npm run build
