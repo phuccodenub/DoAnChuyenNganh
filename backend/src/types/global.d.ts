@@ -4,8 +4,16 @@
  */
 
 declare module 'nodemailer' {
-  export function createTransport(options: any): any;
-  export default function nodemailer(options: any): any;
+  export interface Transporter {
+    sendMail(mailOptions: any): Promise<any>;
+  }
+  
+  interface Nodemailer {
+    createTransport(options: any): Transporter;
+  }
+  
+  const nodemailer: Nodemailer;
+  export default nodemailer;
 }
 
 declare module 'swagger-ui-express' {
@@ -29,6 +37,11 @@ declare module 'multer' {
     filename?: string;
     path?: string;
     buffer?: Buffer;
+  }
+
+  export class MulterError extends Error {
+    code: string;
+    field?: string;
   }
 
   export interface StorageEngine {
@@ -58,7 +71,9 @@ declare module 'multer' {
 
   export type FileFilterCallback = (error: Error | null, acceptFile: boolean) => void;
 
-  const multer: Multer;
+  const multer: Multer & {
+    MulterError: typeof MulterError;
+  };
   export default multer;
 }
 

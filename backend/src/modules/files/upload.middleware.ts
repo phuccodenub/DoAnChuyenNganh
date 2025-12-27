@@ -86,7 +86,7 @@ const fileFilter = (
     const categoryConfig = FILE_CATEGORIES[category.toUpperCase() as keyof typeof FILE_CATEGORIES];
     
     if (!categoryConfig) {
-      cb(new Error(`Invalid file category: ${category}`));
+      cb(new Error(`Invalid file category: ${category}`), false);
       return;
     }
 
@@ -97,11 +97,11 @@ const fileFilter = (
     if (isValidExt && isValidMime) {
       cb(null, true);
     } else {
-      cb(new Error(`File type not allowed. Allowed types: ${categoryConfig.extensions.join(', ')}`));
+      cb(new Error(`File type not allowed. Allowed types: ${categoryConfig.extensions.join(', ')}`), false);
     }
   } catch (error: unknown) {
     logger.error('File filter error:', error);
-    cb(new Error('File validation failed'));
+    cb(new Error('File validation failed'), false);
   }
 };
 
