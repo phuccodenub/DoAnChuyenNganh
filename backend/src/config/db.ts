@@ -32,10 +32,11 @@ export function getSequelize(): Sequelize {
     // - acquire: Maximum time (ms) to wait for a connection from pool
     // - idle: Maximum time (ms) a connection can be idle before being released
     // - evict: Interval to check for idle connections
-    const poolMax = parseInt(process.env.DB_POOL_MAX || '10', 10);
+    // Increased pool size for production with multiple concurrent users
+    const poolMax = parseInt(process.env.DB_POOL_MAX || '20', 10); // Increased from 10 to 20
     const poolMin = parseInt(process.env.DB_POOL_MIN || '2', 10);
     const poolAcquire = parseInt(process.env.DB_POOL_ACQUIRE || '60000', 10); // 60s
-    const poolIdle = parseInt(process.env.DB_POOL_IDLE || '30000', 10); // 30s
+    const poolIdle = parseInt(process.env.DB_POOL_IDLE || '10000', 10); // Reduced from 30s to 10s to release connections faster
     
     const baseOptions = {
       dialect: 'postgres',

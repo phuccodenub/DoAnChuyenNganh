@@ -48,6 +48,15 @@ services:
       # Set DATABASE_URL từ Supabase connection string trong Render dashboard
       - key: DATABASE_URL
         sync: false  # Set manually: Supabase PostgreSQL connection string
+      # Database Connection Pool Configuration
+      - key: DB_POOL_MAX
+        value: "20"  # Increased from 10 to handle more concurrent users
+      - key: DB_POOL_MIN
+        value: "2"
+      - key: DB_POOL_ACQUIRE
+        value: "60000"  # 60s timeout to acquire connection
+      - key: DB_POOL_IDLE
+        value: "10000"  # 10s idle timeout (reduced to release connections faster)
       # Redis - Dùng Upstash Redis (External)
       # BƯỚC: Set REDIS_URL thủ công trong Render Dashboard
       # Format: rediss://default:[TOKEN]@[HOST]:6379
