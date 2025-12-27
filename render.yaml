@@ -15,19 +15,17 @@ services:
         value: 3000
       - key: LOG_LEVEL
         value: info
-      # Database - Link với PostgreSQL đã tạo thủ công
-      # LƯU Ý: Tạo PostgreSQL database thủ công trước, sau đó link ở đây
+      # Database - Sử dụng Supabase PostgreSQL (external database)
+      # Set DATABASE_URL từ Supabase connection string trong Render dashboard
       - key: DATABASE_URL
-        fromDatabase:
-          name: lms-postgres
-          property: connectionString
-      # Redis - Link với Redis đã tạo thủ công
-      # LƯU Ý: Tạo Redis thủ công trước, sau đó link ở đây
-      - key: REDIS_URL
-        fromService:
-          name: lms-redis
-          type: redis
-          property: connectionString
+        sync: false  # Set manually: Supabase PostgreSQL connection string
+      # Redis - Có thể disable nếu không cần, hoặc dùng external Redis
+      # Option 1: Disable Redis (nếu không cần cache)
+      - key: REDIS_DISABLED
+        value: "true"
+      # Option 2: Dùng external Redis (uncomment và set URL)
+      # - key: REDIS_URL
+      #   sync: false  # Set manually: redis://your-redis-host:6379
       # JWT Configuration
       - key: JWT_SECRET
         generateValue: true  # Render tự động generate
@@ -51,9 +49,7 @@ services:
         value: "true"
       - key: AI_GRADER_ENABLED
         value: "false"
-      # Disable features không cần thiết trên Render
-      - key: REDIS_DISABLED
-        value: "false"
+      # Disable features không cần thiết trên Render (Redis đã disable ở trên)
       - key: DISABLE_CACHE
         value: "false"
       - key: DISABLE_RATE_LIMIT
