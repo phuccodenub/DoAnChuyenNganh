@@ -14,8 +14,17 @@ console.log('[AUTH_ROUTES] authMiddleware imported');
 import { authRateLimit, passwordResetRateLimit, registrationRateLimit } from '@middlewares/auth-rate-limit.middleware';
 console.log('[AUTH_ROUTES] rate limit middlewares imported');
 
-import { authSchemas } from '@validates/auth.validate';
-console.log('[AUTH_ROUTES] authSchemas imported');
+// Lazy load authSchemas to avoid blocking on import
+let authSchemas: any;
+const getAuthSchemas = () => {
+  if (!authSchemas) {
+    console.log('[AUTH_ROUTES] Lazy loading authSchemas...');
+    authSchemas = require('@validates/auth.validate').authSchemas;
+    console.log('[AUTH_ROUTES] authSchemas loaded');
+  }
+  return authSchemas;
+};
+console.log('[AUTH_ROUTES] authSchemas lazy loader created');
 
 console.log('[AUTH_ROUTES] Creating router...');
 const router = express.Router();
@@ -32,7 +41,7 @@ console.log('[AUTH_ROUTES] AuthController instance created');
 router.post(
   '/register',
   registrationRateLimit,
-  validateBody(authSchemas.register),
+  validateBody(getAuthSchemas().register),
   (req: Request, res: Response, next: NextFunction) => authController.register(req, res, next)
 );
 
@@ -40,7 +49,7 @@ router.post(
 router.post(
   '/login',
   authRateLimit,
-  validateBody(authSchemas.login),
+  validateBody(getAuthSchemas().login),
   (req: Request, res: Response, next: NextFunction) => authController.login(req, res, next)
 );
 
@@ -48,14 +57,14 @@ router.post(
 router.post(
   '/login-2fa',
   authRateLimit,
-  validateBody(authSchemas.loginWith2FA),
+  validateBody(getAuthSchemas().loginWith2FA),
   (req: Request, res: Response, next: NextFunction) => authController.loginWith2FA(req, res, next)
 );
 
 // Refresh token
 router.post(
   '/refresh',
-  validateBody(authSchemas.refreshToken),
+  validateBody(getAuthSchemas().refreshToken),
   (req: Request, res: Response, next: NextFunction) => authController.refreshToken(req, res, next)
 );
 
@@ -69,7 +78,7 @@ router.get(
 router.post(
   '/forgot-password',
   passwordResetRateLimit,
-  validateBody(authSchemas.forgotPassword),
+  validateBody(getAuthSchemas().forgotPassword),
   (req: Request, res: Response, next: NextFunction) => authController.forgotPassword(req, res, next)
 );
 
@@ -77,7 +86,7 @@ router.post(
 router.post(
   '/reset-password',
   passwordResetRateLimit,
-  validateBody(authSchemas.resetPassword),
+  validateBody(getAuthSchemas().resetPassword),
   (req: Request, res: Response, next: NextFunction) => authController.resetPassword(req, res, next)
 );
 
@@ -113,7 +122,7 @@ router.put(
 // Change password
 router.post(
   '/change-password',
-  validateBody(authSchemas.changePassword),
+  validateBody(getAuthSchemas().changePassword),
   (req: Request, res: Response, next: NextFunction) => authController.changePassword(req, res, next)
 );
 
@@ -128,14 +137,14 @@ router.post(
 // Verify 2FA setup
 router.post(
   '/2fa/verify-setup',
-  validateBody(authSchemas.verify2FA),
+  validateBody(getAuthSchemas().verify2FA),
   (req: Request, res: Response, next: NextFunction) => authController.verify2FASetup(req, res, next)
 );
 
 // Disable 2FA
 router.post(
   '/2fa/disable',
-  validateBody(authSchemas.verify2FA),
+  validateBody(getAuthSchemas().verify2FA),
   (req: Request, res: Response, next: NextFunction) => authController.disable2FA(req, res, next)
 );
 
