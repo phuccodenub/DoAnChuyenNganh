@@ -28,7 +28,7 @@ import { default as liveStreamRoutes } from '../../../modules/livestream/livestr
 import { default as analyticsRoutes } from '../../../modules/analytics/analytics.routes';
 import systemSettingsRoutes from '../../../modules/system-settings/system.settings.routes';
 import categoryRoutes from '../../../modules/category/category.routes';
-import { aiRoutes, aiRoutesV2 } from '../../../modules/ai';
+import { aiRoutes, aiRoutesV2, learningSupportRoutes } from '../../../modules/ai';
 import moderationRoutes from '../../../modules/moderation/moderation.routes';
 import { default as reviewRoutes } from '../../../modules/review/review.routes';
 import { filesRoutes, mediaRoutes } from '../../../modules/files';
@@ -126,6 +126,10 @@ router.use('/ai/analysis', aiAnalysisRoutes);
 // AI routes (legacy + new) - Register after /ai/analysis to avoid conflicts
 router.use('/ai', aiRoutes);
 router.use('/ai', aiRoutesV2); // New AI system routes
+
+// Learning Support routes (Remediation, Study Planner)
+logger.info('Registering v1 Learning Support at /learning-support');
+router.use('/learning-support', learningSupportRoutes);
 
 // Moderation routes
 router.use('/moderation', moderationRoutes);

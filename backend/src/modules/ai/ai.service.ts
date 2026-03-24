@@ -81,7 +81,10 @@ export class AIService {
   /**
    * Call Groq API
    */
-  private async callGroq(prompt: string, options?: { temperature?: number; maxTokens?: number }): Promise<ChatResponse> {
+  private async callGroq(
+    prompt: string,
+    options?: { temperature?: number; maxTokens?: number; model?: string }
+  ): Promise<ChatResponse> {
     if (!env.ai.groq.apiKey) {
       throw new Error('Groq API key not configured');
     }
@@ -89,9 +92,10 @@ export class AIService {
     try {
       const startTime = Date.now();
       const apiKeyPreview = env.ai.groq.apiKey.substring(0, 10) + '...';
+      const model = options?.model || env.ai.groq.model;
       
       logger.info('[AIService] 📤 Sending request to Groq API...', {
-        model: env.ai.groq.model,
+        model,
         apiKeyPreview,
         promptLength: prompt.length,
         maxTokens: options?.maxTokens ?? env.ai.groq.maxTokens,
@@ -100,7 +104,7 @@ export class AIService {
       const response = await axios.post(
         'https://api.groq.com/openai/v1/chat/completions',
         {
-          model: env.ai.groq.model,
+          model,
           messages: [
             { role: 'user', content: prompt }
           ],
@@ -119,7 +123,7 @@ export class AIService {
       const duration = Date.now() - startTime;
       logger.info(`[AIService] ✅ Groq API request completed in ${duration}ms`, {
         status: response.status,
-        model: env.ai.groq.model,
+        model,
         responseLength: response.data.choices[0]?.message?.content?.length || 0,
         usage: response.data.usage,
       });
@@ -153,21 +157,23 @@ export class AIService {
    */
   private async callAIWithFallback(
     prompt: string, 
-    options?: { temperature?: number; maxTokens?: number },
+    options?: { temperature?: number; maxTokens?: number; groqModel?: string },
     geminiMaxTokens?: number
   ): Promise<ChatResponse> {
     // Try Groq first (if available)
     if (this.useGroq) {
       try {
+        const groqModel = options?.groqModel || env.ai.groq.model;
         logger.info('[AIService] Attempting Groq API call...', {
           promptLength: prompt.length,
-          model: env.ai.groq.model,
+          model: groqModel,
           temperature: options?.temperature ?? env.ai.groq.temperature,
         });
         const maxTokens = options?.maxTokens ?? Math.min(env.ai.groq.maxTokens, 2048);
         const result = await this.callGroq(prompt, {
           temperature: options?.temperature ?? env.ai.groq.temperature,
           maxTokens: maxTokens,
+          model: groqModel,
         });
         logger.info('[AIService] ✅ Groq API call successful');
         return result;
@@ -880,7 +886,13 @@ Trả về JSON format:
   ): Promise<string> {
     // Handle text files
     if (textExtensions.includes(extension)) {
-      return typeof data === 'string' ? data : JSON.stringify(data);
+      return typeof data === 'string'
+        ? data
+        : Buffer.isBuffer(data)
+        ? data.toString('utf-8')
+        : data instanceof ArrayBuffer
+        ? Buffer.from(data).toString('utf-8')
+        : JSON.stringify(data);
     }
 
     // Handle PDF files
@@ -913,6 +925,18 @@ Trả về JSON format:
       } catch (docxError: any) {
         logger.error(`[AIService] Error parsing DOCX ${fileName}:`, docxError.message);
         return `[DOCX file: ${fileName} - Could not extract text content]`;
+      }
+    }
+
+    // Handle raw text fallback when extension is missing but data looks textual
+    if (!extension) {
+      const asString = Buffer.isBuffer(data)
+        ? data.toString('utf-8')
+        : typeof data === 'string'
+        ? data
+        : '';
+      if (asString.trim()) {
+        return asString;
       }
     }
 
@@ -989,8 +1013,63 @@ Trả về JSON format:
 
   private ensurePlainText(text: string): string {
     if (!text) return '';
-    return text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const normalized = text
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
+
+    const lines = normalized
+      .split('\n')
+      .map((line) => line.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(0, 400);
+
+    return lines.join('\n');
   }
+
+  private normalizeNumberedContent(text: string): string {
+    if (!text) return '';
+    return text.replace(/(^|\n|\s)(Câu|Question)\s*(\d+)\s*[:.-]?\s*/gi, (_m, prefix, _label, num) => {
+      const leading = prefix && prefix !== '\n' ? '\n' : prefix;
+      return `${leading}Câu ${num}: `;
+    });
+  }
+
+  private normalizeNumberedInstructions(text: string): string {
+    if (!text) return '';
+    const lines = text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        if (/^Câu\s*\d+\s*:/i.test(line)) return line;
+        const match = line.match(/^(\d+)\s*[).:-]\s*(.*)$/);
+        if (match) return `Câu ${match[1]}: ${match[2]}`.trim();
+        return line;
+      });
+    return lines.join('\n');
+  }
+
+  private extractNumberedQuestions(text: string): string[] {
+    if (!text) return [];
+    const normalized = this.normalizeNumberedContent(text);
+    const regex = /(^|\n)Câu\s*(\d+)\s*:\s*/gi;
+    const matches = Array.from(normalized.matchAll(regex));
+    if (matches.length === 0) return [];
+
+    const results: string[] = [];
+    for (let i = 0; i < matches.length; i++) {
+      const start = (matches[i].index ?? 0) + matches[i][0].length;
+      const end = i + 1 < matches.length ? matches[i + 1].index ?? normalized.length : normalized.length;
+      const num = matches[i][2];
+      const body = normalized.slice(start, end).trim();
+      if (body) {
+        results.push(`Câu ${num}: ${body}`);
+      }
+    }
+    return results;
+  }
+
 
   private normalizeRubric(
     rubric: Array<{ name: string; description?: string; points: number }>,
@@ -1032,7 +1111,6 @@ Trả về JSON format:
     content: string;
     maxScore?: number;
     submissionType?: 'text' | 'file' | 'both';
-    rubricItems?: number;
     additionalNotes?: string;
   }): Promise<{
     title: string;
@@ -1040,7 +1118,6 @@ Trả về JSON format:
     instructions: string;
     max_score: number;
     submission_type: 'text' | 'file' | 'both';
-    rubric: Array<{ name: string; description?: string; points: number }>;
   }> {
     if (!this.useGroq && !this.model) {
       throw new Error('AI service is not available. Please configure GROQ_API_KEY or GEMINI_API_KEY.');
@@ -1051,51 +1128,72 @@ Trả về JSON format:
       throw new Error('Empty content for assignment generation');
     }
 
-    const rubricCount = request.rubricItems ?? 4;
     const maxScore = request.maxScore ?? 100;
     const submissionType = request.submissionType ?? 'both';
 
-    let prompt = 'Bạn là trợ lý tạo đề bài tập cho khóa học. Tạo nội dung đúng format JSON, ngắn gọn, rõ ràng.\n';
-    prompt += `Yêu cầu trả về JSON:\n{\n  "title": "...",\n  "description": "...",\n  "instructions": "...",\n  "max_score": ${maxScore},\n  "submission_type": "${submissionType}",\n  "rubric": [\n    {"name": "...", "description": "...", "points": 0}\n  ]\n}\n`;
+    const normalizedContent = this.normalizeNumberedContent(cleanedContent);
+    const extractedQuestions = this.extractNumberedQuestions(normalizedContent);
+    const hasNumberedQuestions = extractedQuestions.length > 0;
+
+    let prompt = 'Bạn là trợ lý tạo đề bài tập cho khóa học. Trả về JSON thuần, rõ ràng, dễ đọc.\n';
+    prompt += `JSON schema:\n{\n  "title": "...",\n  "description": "...",\n  "instructions": ["..."] ,\n  "max_score": ${maxScore},\n  "submission_type": "${submissionType}"\n}\n`;
     prompt += 'Quy tắc:\n';
-    prompt += `- Tạo ${rubricCount} tiêu chí rubric, tổng điểm bằng ${maxScore}.\n`;
-    prompt += '- Mỗi tiêu chí có tên ngắn gọn, mô tả 1-2 câu.\n';
-    prompt += '- Description mô tả mục tiêu bài tập trong 1-2 câu.\n';
-    prompt += '- Instructions chi tiết 5-8 bullet, yêu cầu rõ ràng.\n';
+    prompt += '- Description: 1-2 câu, ngắn gọn.\n';
+    prompt += '- Instructions: mảng 5-12 bullet, mỗi item là một câu.\n';
     prompt += '- Không thêm markdown, chỉ JSON thuần.\n';
+    prompt += '- Nếu input là đề bài có đánh số Câu/Question, PHẢI giữ nguyên số thứ tự và nội dung chính của từng câu.\n';
+    prompt += '- Mỗi mục instructions phải bắt đầu bằng "Câu X:" tương ứng.\n';
+    prompt += '- Không được gộp, không được lược bỏ nội dung của từng câu.\n';
+    prompt += '- Chỉ được rút gọn khi input không có cấu trúc câu hỏi đánh số.\n';
     if (request.additionalNotes) {
       prompt += `Ghi chú bổ sung: ${request.additionalNotes}\n`;
     }
-    prompt += `\nNội dung khóa học:\n${this.truncate(cleanedContent, 5000)}\n`;
+    if (hasNumberedQuestions) {
+      prompt += '\nLưu ý đặc biệt: Input có các câu hỏi đánh số. Hãy giữ nguyên định dạng "Câu X:" trong output.\n';
+    }
+    prompt += `\nNội dung khóa học/đề bài gốc:\n${this.truncate(normalizedContent, 8000)}\n`;
 
     const response = await this.callAIWithFallback(prompt, {
-      temperature: 0.5,
-      maxTokens: Math.min(env.ai.gemini.maxTokens, 1024),
-    }, 1024);
+      temperature: 0.2,
+      maxTokens: Math.min(env.ai.gemini.maxTokens, 2000),
+      groqModel: env.ai.groq.models.assignment || env.ai.groq.models.reasoning || env.ai.groq.model,
+    }, 2000);
 
     const text = response.response;
     try {
       const parsed = parseJsonFromLlmText<any>(text, { required: true });
-      const rawRubric = Array.isArray(parsed?.rubric) ? parsed.rubric : [];
-      const formattedRubric = rawRubric.map((item: any) => ({
-        name: String(item.name || '').trim() || 'Tiêu chí',
-        description: item.description ? String(item.description).trim() : '',
-        points: Number(item.points || 0),
-      }));
-      const normalizedRubric = this.normalizeRubric(formattedRubric, maxScore, rubricCount);
+
+      let instructions = Array.isArray(parsed?.instructions)
+        ? parsed.instructions
+            .map((item: any) => String(item || '').trim())
+            .filter((item: string) => item.length > 0)
+            .join('\n')
+        : String(parsed?.instructions || '').trim();
+
+      if (hasNumberedQuestions) {
+        instructions = this.normalizeNumberedInstructions(instructions);
+        const lines = instructions
+          .split('\n')
+          .map((line: string) => line.trim())
+          .filter(Boolean);
+        const labeledCount = lines.filter((line: string) => /^Câu\s*\d+\s*:/i.test(line)).length;
+        if (labeledCount < extractedQuestions.length) {
+          instructions = extractedQuestions.join('\n');
+        }
+      }
 
       return {
         title: parsed?.title || 'Assignment',
         description: parsed?.description || '',
-        instructions: parsed?.instructions || '',
+        instructions,
         max_score: Number(parsed?.max_score || maxScore),
         submission_type: parsed?.submission_type || submissionType,
-        rubric: normalizedRubric,
       };
     } catch (error) {
       logger.error('[AIService] Failed to parse assignment JSON:', error);
       throw new Error('Failed to parse AI response as JSON');
     }
+
   }
 
   async generateRubricFromText(request: {

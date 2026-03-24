@@ -454,8 +454,7 @@ export class UserRepository extends BaseRepository<UserInstance> {
   async getTopInstructors(limit: number = 5): Promise<any[]> {
     try {
       const { Sequelize } = await import('sequelize');
-      const sequelize = new Sequelize();
-      
+
       const result = await (User as any).findAll({
         where: { role: 'instructor' },
         attributes: [

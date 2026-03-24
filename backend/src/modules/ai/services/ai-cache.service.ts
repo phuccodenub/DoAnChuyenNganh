@@ -149,6 +149,44 @@ export class AICacheService {
   }
 
   /**
+   * Delete a specific cache key
+   */
+  async delete(key: string): Promise<void> {
+    if (!this.connected || !this.client) {
+      return;
+    }
+
+    try {
+      const fullKey = `${this.keyPrefix}${key}`;
+      await this.client.del(fullKey);
+      logger.debug(`[AICacheService] Deleted cache key: ${key}`);
+    } catch (error) {
+      logger.error('[AICacheService] Error deleting cache key:', error);
+    }
+  }
+
+  /**
+   * Delete cache keys by pattern
+   */
+  async deleteByPattern(pattern: string): Promise<number> {
+    if (!this.connected || !this.client) {
+      return 0;
+    }
+
+    try {
+      const keys = await this.client.keys(`${this.keyPrefix}${pattern}`);
+      if (keys.length > 0) {
+        await this.client.del(keys);
+        logger.debug(`[AICacheService] Deleted ${keys.length} keys matching pattern: ${pattern}`);
+      }
+      return keys.length;
+    } catch (error) {
+      logger.error('[AICacheService] Error deleting by pattern:', error);
+      return 0;
+    }
+  }
+
+  /**
    * Disconnect from Redis
    */
   async disconnect(): Promise<void> {

@@ -178,7 +178,6 @@ export const aiApi = {
     content: string;
     maxScore?: number;
     submissionType?: 'text' | 'file' | 'both';
-    rubricItems?: number;
     additionalNotes?: string;
   }): Promise<{
     title: string;
@@ -186,7 +185,6 @@ export const aiApi = {
     instructions: string;
     max_score: number;
     submission_type: 'text' | 'file' | 'both';
-    rubric: Array<{ name: string; description?: string; points: number }>;
   }> => {
     const res = await apiClient.post<{ data: any }>('/ai/instructor/generate-assignment', payload, {
       timeout: 90000,
@@ -202,7 +200,6 @@ export const aiApi = {
     file: File;
     maxScore?: number;
     submissionType?: 'text' | 'file' | 'both';
-    rubricItems?: number;
     additionalNotes?: string;
   }): Promise<{
     title: string;
@@ -210,7 +207,6 @@ export const aiApi = {
     instructions: string;
     max_score: number;
     submission_type: 'text' | 'file' | 'both';
-    rubric: Array<{ name: string; description?: string; points: number }>;
   }> => {
     const formData = new FormData();
     formData.append('file', payload.file);
@@ -220,9 +216,6 @@ export const aiApi = {
     }
     if (payload.submissionType) {
       formData.append('submissionType', payload.submissionType);
-    }
-    if (payload.rubricItems != null) {
-      formData.append('rubricItems', String(payload.rubricItems));
     }
     if (payload.additionalNotes) {
       formData.append('additionalNotes', payload.additionalNotes);
@@ -462,7 +455,162 @@ export const aiApi = {
     });
     return unwrapData(res.data);
   },
+
+  // ==================== LEARNING SUPPORT ====================
+
+  /**
+   * Get remediation cards for a quiz attempt
+   */
+  getRemediation: async (attemptId: string, maxCards?: number): Promise<RemediationResult> => {
+    const params = new URLSearchParams({ attemptId });
+    if (maxCards) params.append('maxCards', String(maxCards));
+    const res = await apiClient.get<{ data: RemediationResult }>(`/learning-support/remediation?${params}`, {
+      timeout: 60000,
+    });
+    return unwrapData(res.data);
+  },
+
+  /**
+   * Get study plan for a course
+   */
+  getStudyPlan: async (courseId: string): Promise<StudentStudyPlan> => {
+    const res = await apiClient.get<{ data: StudentStudyPlan }>(`/learning-support/plan?courseId=${courseId}`, {
+      timeout: 30000,
+    });
+    return unwrapData(res.data);
+  },
+
+  /**
+   * Clear study plan cache
+   */
+  clearStudyPlanCache: async (courseId: string): Promise<void> => {
+    await apiClient.delete(`/learning-support/plan/cache?courseId=${courseId}`);
+  },
+
+  /**
+   * Get instructor insights for a course
+   */
+  getInstructorInsights: async (courseId: string): Promise<InstructorInsights> => {
+    const res = await apiClient.get<{ data: InstructorInsights }>(`/learning-support/instructor/insights?courseId=${courseId}`, {
+      timeout: 30000,
+    });
+    return unwrapData(res.data);
+  },
 };
+
+// ==================== LEARNING SUPPORT TYPES ====================
+
+export interface PracticeQuestion {
+  id: string;
+  question: string;
+  type: 'single_choice' | 'multiple_choice' | 'true_false';
+  options: string[];
+  correctAnswer: number | number[];
+  explanation: string;
+}
+
+export interface RemediationCard {
+  questionId: string;
+  originalQuestion: string;
+  studentAnswer: string;
+  correctAnswer: string;
+  misconception: string;
+  conceptExplanation: string;
+  practiceQuestions: PracticeQuestion[];
+}
+
+export interface RemediationResult {
+  attemptId: string;
+  quizId: string;
+  quizTitle: string;
+  totalQuestions: number;
+  incorrectCount: number;
+  score: number;
+  maxScore: number;
+  cards: RemediationCard[];
+  generatedAt: string;
+  metadata: {
+    model: string;
+    processingTimeMs: number;
+    cached: boolean;
+  };
+}
+
+export interface WeakArea {
+  id: string;
+  type: 'quiz' | 'section' | 'lesson';
+  title: string;
+  weaknessScore: number;
+  performance: number;
+  attemptCount: number;
+  lastAttemptAt: string | null;
+  trend: 'improving' | 'declining' | 'stable';
+  sectionId?: string;
+  sectionTitle?: string;
+}
+
+export interface StudyAction {
+  priority: number;
+  actionType: 'review_lesson' | 'retake_quiz' | 'practice';
+  targetId: string;
+  targetType: 'lesson' | 'quiz';
+  targetTitle: string;
+  suggestedTimeMinutes: number;
+  reason: string;
+}
+
+export interface Checkpoint {
+  scheduledDate: string;
+  type: 'mini_quiz' | 'review';
+  targetId: string;
+  targetTitle: string;
+  description: string;
+}
+
+export interface StudentStudyPlan {
+  userId: string;
+  courseId: string;
+  courseTitle: string;
+  generatedAt: string;
+  weakAreas: WeakArea[];
+  nextActions: StudyAction[];
+  checkpoints: Checkpoint[];
+  summary: {
+    totalQuizzesTaken: number;
+    averageScore: number;
+    weakestArea: string;
+    estimatedStudyTimeMinutes: number;
+  };
+  metadata: {
+    calculationMethod: string;
+    cached: boolean;
+    cacheExpiresAt?: string;
+  };
+}
+
+export interface InstructorInsights {
+  courseId: string;
+  courseTitle: string;
+  generatedAt: string;
+  totalStudents: number;
+  activeStudents: number;
+  overallAverageScore: number;
+  weakAreasAggregate: Array<{
+    quizId: string;
+    quizTitle: string;
+    sectionId?: string;
+    sectionTitle?: string;
+    averageScore: number;
+    attemptCount: number;
+    studentCount: number;
+    mostMissedQuestions: Array<{
+      questionId: string;
+      questionText: string;
+      incorrectRate: number;
+    }>;
+  }>;
+  recommendations: string[];
+}
 
 
 

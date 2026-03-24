@@ -42,6 +42,7 @@ export const ROUTES = {
     SETTINGS: '/student/settings',
     NOTIFICATIONS: '/student/notifications',
     CHAT: '/student/chat',
+    STUDY_PLAN: '/student/courses/:courseId/study-plan',
   },
   
   // Instructor routes
@@ -130,6 +131,7 @@ export const generateRoute = {
       `/student/courses/${courseId}/assignments/${assignmentId}`,
     chat: (courseId?: string) => 
       courseId ? `/messages?courseId=${courseId}` : '/messages',
+    studyPlan: (courseId: string) => `/student/courses/${courseId}/study-plan`,
   },
   
   instructor: {

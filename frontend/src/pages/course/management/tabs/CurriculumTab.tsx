@@ -309,7 +309,6 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
   // AI generate (for Assignment modal)
   const [aiAssignmentSourceMode, setAiAssignmentSourceMode] = useState<'course' | 'file'>('course');
   const [aiAssignmentNotes, setAiAssignmentNotes] = useState('');
-  const [aiRubricItems, setAiRubricItems] = useState(4);
   const [aiSourceFile, setAiSourceFile] = useState<File | null>(null);
   const [aiFileError, setAiFileError] = useState('');
   const [lessonForm, setLessonForm] = useState<{
@@ -432,7 +431,6 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
 
     setAiAssignmentSourceMode('course');
     setAiAssignmentNotes('');
-    setAiRubricItems(4);
     setAiSourceFile(null);
     setAiFileError('');
   };
@@ -499,7 +497,6 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
     // Reset AI panel state
     setAiAssignmentSourceMode('course');
     setAiAssignmentNotes('');
-    setAiRubricItems(4);
     setAiSourceFile(null);
     setAiFileError('');
 
@@ -620,7 +617,6 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
           file: aiSourceFile,
           maxScore: assignmentMaxScore,
           submissionType: assignmentSubmissionType,
-          rubricItems: aiRubricItems,
           additionalNotes: aiAssignmentNotes.trim() || undefined,
         });
       }
@@ -635,7 +631,6 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
         content,
         maxScore: assignmentMaxScore,
         submissionType: assignmentSubmissionType,
-        rubricItems: aiRubricItems,
         additionalNotes: aiAssignmentNotes.trim() || undefined,
       });
     },
@@ -1478,7 +1473,7 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                     <p className="text-sm font-semibold text-gray-900">AI tạo Assignment</p>
                   </div>
                   <p className="mt-1 text-xs text-gray-600">
-                    Tạo nhanh tiêu đề, mô tả, yêu cầu và rubric từ nội dung khóa học hoặc file.
+                    Tạo nhanh tiêu đề, mô tả và yêu cầu từ nội dung khóa học hoặc file.
                   </p>
                 </div>
                 <Button
@@ -1501,75 +1496,63 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                 </Button>
               </div>
 
-              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Số tiêu chí rubric</label>
-                  <Input
-                    type="number"
-                    min={2}
-                    max={10}
-                    value={aiRubricItems}
-                    onChange={(e) => setAiRubricItems(Math.max(2, Math.min(10, Number(e.target.value) || 4)))}
-                  />
+              <div className="mt-3">
+                <label className="text-xs font-medium text-gray-700">Nguồn</label>
+                <div className="mt-1 flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="radio"
+                      name="aiAssignmentSource"
+                      checked={aiAssignmentSourceMode === 'course'}
+                      onChange={() => {
+                        setAiAssignmentSourceMode('course');
+                        setAiSourceFile(null);
+                        setAiFileError('');
+                      }}
+                    />
+                    Nội dung khóa học
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="radio"
+                      name="aiAssignmentSource"
+                      checked={aiAssignmentSourceMode === 'file'}
+                      onChange={() => {
+                        setAiAssignmentSourceMode('file');
+                        setAiFileError('');
+                      }}
+                    />
+                    File
+                  </label>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="text-xs font-medium text-gray-700">Nguồn</label>
-                  <div className="mt-1 flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                      <input
-                        type="radio"
-                        name="aiAssignmentSource"
-                        checked={aiAssignmentSourceMode === 'course'}
-                        onChange={() => {
-                          setAiAssignmentSourceMode('course');
-                          setAiSourceFile(null);
-                          setAiFileError('');
-                        }}
-                      />
-                      Nội dung khóa học
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                      <input
-                        type="radio"
-                        name="aiAssignmentSource"
-                        checked={aiAssignmentSourceMode === 'file'}
-                        onChange={() => {
-                          setAiAssignmentSourceMode('file');
-                          setAiFileError('');
-                        }}
-                      />
-                      File
-                    </label>
-                  </div>
 
-                  {aiAssignmentSourceMode === 'file' && (
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Upload className="h-4 w-4 text-gray-500" />
-                        <Input
-                          type="file"
-                          accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
-                          onChange={(event) => {
-                            const file = event.target.files?.[0] || null;
-                            setAiSourceFile(file);
-                            if (!file) {
-                              setAiFileError('');
-                              return;
-                            }
-                            if (file.size > 10 * 1024 * 1024) {
-                              setAiFileError('File vượt quá 10MB, vui lòng chọn file nhỏ hơn.');
-                              setAiSourceFile(null);
-                              return;
-                            }
+                {aiAssignmentSourceMode === 'file' && (
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Upload className="h-4 w-4 text-gray-500" />
+                      <Input
+                        type="file"
+                        accept=".txt,.md,.csv,.json,.pdf,.doc,.docx"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] || null;
+                          setAiSourceFile(file);
+                          if (!file) {
                             setAiFileError('');
-                          }}
-                        />
-                      </div>
-                      {aiSourceFile && <p className="text-xs text-gray-700">Đã chọn: {aiSourceFile.name}</p>}
-                      {aiFileError && <p className="text-xs text-red-600">{aiFileError}</p>}
+                            return;
+                          }
+                          if (file.size > 10 * 1024 * 1024) {
+                            setAiFileError('File vượt quá 10MB, vui lòng chọn file nhỏ hơn.');
+                            setAiSourceFile(null);
+                            return;
+                          }
+                          setAiFileError('');
+                        }}
+                      />
                     </div>
-                  )}
-                </div>
+                    {aiSourceFile && <p className="text-xs text-gray-700">Đã chọn: {aiSourceFile.name}</p>}
+                    {aiFileError && <p className="text-xs text-red-600">{aiFileError}</p>}
+                  </div>
+                )}
               </div>
 
               <div className="mt-3">
@@ -1578,7 +1561,7 @@ export function CurriculumTab({ courseId }: CurriculumTabProps) {
                   rows={2}
                   value={aiAssignmentNotes}
                   onChange={(e) => setAiAssignmentNotes(e.target.value)}
-                  placeholder="VD: yêu cầu có rubric chi tiết, deadline 7 ngày, bài làm có file PDF..."
+                  placeholder="VD: yêu cầu deadline 7 ngày, bài làm có file PDF..."
                   className="mt-1 w-full rounded-md border border-purple-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>

@@ -4,6 +4,8 @@
 **Status:** Active Development  
 **Current Focus:** Video Understanding V2 (Groq Speech + Vision) + AI Tutor Enhancement
 
+**New Planning Focus:** Instructor/Student Learning Support MVP (Study Planner + Remediation + Draft Coach + Flashcards)
+
 ## 📊 SYSTEM OVERVIEW
 
 The AI system is designed as a **3-tier hybrid architecture** to balance cost, speed, and capability.
@@ -118,6 +120,7 @@ The system uses **Task-Based Routing** instead of simple fallbacks:
 *   **Architecture & Strategy:** `docs/AI/01_OVERVIEW.md`, `docs/AI/03_STRATEGY.md`
 *   **AI Tutor Spec:** `docs/AI/05_AI_TUTOR.md` (Use this for Frontend implementation)
 *   **Infrastructure:** `docs/AI/02_INFRASTRUCTURE.md`
+*   **Learning Support MVP Plan:** `docs/AI/16_INSTRUCTOR_STUDENT_LEARNING_SUPPORT_PLAN_MVP.md`
 *   **Historical Context:** `docs/AI/AI_STRATEGY_AND_HISTORY_ARCHIVE.md`
 
 ---

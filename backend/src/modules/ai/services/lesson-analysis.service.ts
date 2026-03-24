@@ -13,6 +13,7 @@ import AILessonAnalysis, { AILessonAnalysisAttributes } from '../models/ai-lesso
 import Lesson from '../../../models/lesson.model';
 import { ProxyPalProvider } from '../providers/proxypal.provider';
 import { GeminiVideoService } from './gemini-video.service';
+import { VideoUnderstandingV2Service } from './video-understanding-v2.service';
 import { parseJsonFromLlmText } from '../../../utils/llm-json.util';
 
 interface VideoAnalysisResult {
@@ -34,6 +35,7 @@ interface LessonAnalysisResult {
 export class LessonAnalysisService {
   private proxyPalProviders: Map<string, ProxyPalProvider>;
   private geminiVideoService: GeminiVideoService | null = null;
+  private videoUnderstandingV2Service: VideoUnderstandingV2Service | null = null;
   // Priority order: Start with GPT models (more stable in ProxyPal), then Gemini as fallback
   private readonly PROXYPAL_MODELS = ['gpt-5.2', 'gpt-5.1', 'gpt-5'];
 
@@ -270,12 +272,52 @@ export class LessonAnalysisService {
   }
 
   /**
-   * Analyze video content with Gemini 3 Pro (multimodal)
+   * Analyze video content
+   *
+   * Default (legacy): Direct Gemini API video understanding.
+   * Optional (v2): Deterministic pipeline: download -> ffmpeg -> Groq STT -> (optional) Groq vision -> Groq fusion.
    */
   private async analyzeVideoContent(videoUrl: string): Promise<VideoAnalysisResult & { metadata: { provider: string; model: string } }> {
     try {
+      const pipeline = (process.env.AI_VIDEO_PIPELINE || 'legacy').toLowerCase();
+
       // Prepare video URL (handle R2 and YouTube)
       const processedUrl = this.prepareVideoUrl(videoUrl);
+
+      if (pipeline === 'v2') {
+        try {
+          if (!this.videoUnderstandingV2Service) {
+            this.videoUnderstandingV2Service = new VideoUnderstandingV2Service();
+          }
+
+          const v2 = await this.videoUnderstandingV2Service.analyzeFromUrl(processedUrl);
+          const sttModel = v2.metadata?.providers?.stt?.model || 'unknown-stt';
+          const fusionModel = v2.metadata?.providers?.fusion?.model || 'unknown-fusion';
+
+          return {
+            transcript: v2.transcript || '',
+            keyPoints: v2.keyPoints || [],
+            summary: v2.summary || '',
+            duration: v2.duration || 0,
+            metadata: {
+              provider: 'video-v2-groq',
+              model: `${sttModel}+${fusionModel}`,
+            },
+          };
+        } catch (e: any) {
+          logger.warn('[LessonAnalysis] Video V2 pipeline failed', {
+            message: e?.message || 'Unknown error',
+          });
+
+          const fallback = (process.env.AI_VIDEO_PIPELINE_FALLBACK || '').toLowerCase();
+          if (fallback !== 'legacy') {
+            throw e;
+          }
+
+          logger.warn('[LessonAnalysis] Falling back to legacy Gemini video pipeline');
+          // continue to legacy path below
+        }
+      }
 
       const prompt = `Phân tích video bài giảng này và cung cấp:
 

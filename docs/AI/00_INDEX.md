@@ -34,6 +34,9 @@ Tài liệu hướng dẫn triển khai AI này được chia thành nhiều fil
 14. **[14_VIDEO_UNDERSTANDING_V2_STT_VISION_PIPELINE.md](14_VIDEO_UNDERSTANDING_V2_STT_VISION_PIPELINE.md)** - Video Understanding V2 (STT + Vision) thay thế đọc video trực tiếp
 15. **[15_BACKEND_CHANGES_ROADMAP_GROQ_MULTIMODAL.md](15_BACKEND_CHANGES_ROADMAP_GROQ_MULTIMODAL.md)** - Roadmap backend để triển khai multimodal + tool use
 
+### Instructor/Student Learning Support (Kế hoạch tính năng học tập)
+16. **[16_INSTRUCTOR_STUDENT_LEARNING_SUPPORT_PLAN_MVP.md](16_INSTRUCTOR_STUDENT_LEARNING_SUPPORT_PLAN_MVP.md)** - Kế hoạch MVP: Study Planner + Remediation + Draft Coach + Flashcards
+
 ---
 
 ## 🎯 QUICK START (BẮT ĐẦU NHANH)

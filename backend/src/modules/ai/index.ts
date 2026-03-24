@@ -26,5 +26,11 @@ export { GoogleAIProvider } from './providers/google-ai.provider';
 // Orchestrator
 export { AIOrchestrator } from './orchestrator/ai-orchestrator';
 
+// Learning Support (MVP)
+export { LearningSupportController } from './learning-support.controller';
+export { default as learningSupportRoutes } from './learning-support.routes';
+export { RemediationService } from './services/remediation.service';
+export { StudyPlannerService } from './services/study-planner.service';
+
 
 

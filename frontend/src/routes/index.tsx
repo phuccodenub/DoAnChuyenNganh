@@ -29,6 +29,7 @@ const LearningPage = lazy(() => import('@/pages/student/LearningPage'));
 const LessonDetailPage = lazy(() => import('@/pages/course/learning/LessonDetailPage'));
 const QuizPage = lazy(() => import('@/pages/student/QuizPage'));
 const QuizResultsPage = lazy(() => import('@/pages/student/QuizResultsPage'));
+const StudyPlanPage = lazy(() => import('@/pages/student/StudyPlanPage'));
 const AssignmentPage = lazy(() => import('@/pages/student/AssignmentPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
@@ -157,6 +158,7 @@ function AppRoutes() {
             <Route path={ROUTES.STUDENT.QUIZ} element={<QuizPage />} />
             <Route path={ROUTES.STUDENT.QUIZ_RESULTS} element={<QuizResultsPage />} />
             <Route path={ROUTES.STUDENT.ASSIGNMENT} element={<AssignmentPage />} />
+            <Route path={ROUTES.STUDENT.STUDY_PLAN} element={<StudyPlanPage />} />
           </Route>
 
           {/* Livestream create route & course editor */}

@@ -234,7 +234,6 @@ export function AssignmentBuilderPage() {
       content: string;
       maxScore?: number;
       submissionType?: 'text' | 'file' | 'both';
-      rubricItems?: number;
       additionalNotes?: string;
     }) => aiApi.generateAssignment(payload),
     onSuccess: (data) => {
@@ -246,16 +245,6 @@ export function AssignmentBuilderPage() {
         max_score: data.max_score || prev.max_score,
         submission_type: data.submission_type || prev.submission_type,
       }));
-      if (data.rubric && data.rubric.length > 0) {
-        setRubric(
-          data.rubric.map((item, idx) => ({
-            id: `${Date.now()}-${idx}`,
-            criteria: item.name,
-            max_score: item.points,
-            description: item.description || '',
-          }))
-        );
-      }
       toast.success('Đã tạo Assignment từ AI');
     },
     onError: (error: any) => {
@@ -269,7 +258,6 @@ export function AssignmentBuilderPage() {
       file: File;
       maxScore?: number;
       submissionType?: 'text' | 'file' | 'both';
-      rubricItems?: number;
       additionalNotes?: string;
     }) => aiApi.generateAssignmentFromFile(payload),
     onSuccess: (data) => {
@@ -281,16 +269,6 @@ export function AssignmentBuilderPage() {
         max_score: data.max_score || prev.max_score,
         submission_type: data.submission_type || prev.submission_type,
       }));
-      if (data.rubric && data.rubric.length > 0) {
-        setRubric(
-          data.rubric.map((item, idx) => ({
-            id: `${Date.now()}-${idx}`,
-            criteria: item.name,
-            max_score: item.points,
-            description: item.description || '',
-          }))
-        );
-      }
       toast.success('Đã tạo Assignment từ AI');
     },
     onError: (error: any) => {
@@ -322,11 +300,11 @@ export function AssignmentBuilderPage() {
             <CardTitle className="text-lg">AI Tạo Assignment</CardTitle>
           </div>
           <p className="text-sm text-gray-600 mt-1">
-            Tạo nhanh đề bài, mô tả, hướng dẫn và rubric theo format Assignment
+            Tạo nhanh đề bài, mô tả và hướng dẫn theo format Assignment
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tổng điểm</label>
               <Input
@@ -359,30 +337,8 @@ export function AssignmentBuilderPage() {
                 <option value="both">Văn bản + File</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Số tiêu chí rubric</label>
-              <Input
-                type="number"
-                min={2}
-                max={10}
-                value={rubric.length || 4}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  if (Number.isNaN(value) || value < 2) return;
-                  const baseScore = Math.floor(assignmentForm.max_score / value);
-                  const remainder = assignmentForm.max_score - baseScore * value;
-                  setRubric(
-                    Array.from({ length: value }).map((_, idx) => ({
-                      id: `${Date.now()}-${idx}`,
-                      criteria: '',
-                      max_score: idx === 0 ? baseScore + remainder : baseScore,
-                      description: '',
-                    }))
-                  );
-                }}
-              />
-            </div>
           </div>
+
 
           <div className="grid gap-3 rounded-lg border border-purple-100 bg-white p-3">
             <div className="flex items-center gap-3">
@@ -476,14 +432,14 @@ export function AssignmentBuilderPage() {
                   toast.error(assignmentFileError);
                   return;
                 }
-                generateAssignmentFromFile.mutate({
-                  courseId,
-                  file: assignmentSourceFile,
-                  maxScore: assignmentForm.max_score,
-                  submissionType: assignmentForm.submission_type,
-                  rubricItems: rubric.length || 4,
-                  additionalNotes: assignmentNotes.trim() || undefined,
-                });
+                 generateAssignmentFromFile.mutate({
+                   courseId,
+                   file: assignmentSourceFile,
+                   maxScore: assignmentForm.max_score,
+                   submissionType: assignmentForm.submission_type,
+                   additionalNotes: assignmentNotes.trim() || undefined,
+                 });
+
                 return;
               }
 
@@ -492,14 +448,14 @@ export function AssignmentBuilderPage() {
                 toast.error('Nội dung khóa học trống, vui lòng bổ sung bài học trước');
                 return;
               }
-              generateAssignment.mutate({
-                courseId,
-                content,
-                maxScore: assignmentForm.max_score,
-                submissionType: assignmentForm.submission_type,
-                rubricItems: rubric.length || 4,
-                additionalNotes: assignmentNotes.trim() || undefined,
-              });
+               generateAssignment.mutate({
+                 courseId,
+                 content,
+                 maxScore: assignmentForm.max_score,
+                 submissionType: assignmentForm.submission_type,
+                 additionalNotes: assignmentNotes.trim() || undefined,
+               });
+
             }}
             disabled={isGeneratingAssignment}
             className="w-full bg-purple-600 hover:bg-purple-700"

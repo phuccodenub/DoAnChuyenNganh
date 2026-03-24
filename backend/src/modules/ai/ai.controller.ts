@@ -559,7 +559,7 @@ export class AIController {
    */
   generateAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { courseId, content, maxScore, submissionType, rubricItems, additionalNotes } = req.body;
+      const { courseId, content, maxScore, submissionType, additionalNotes } = req.body;
 
       if (!courseId || !content) {
         return responseUtils.sendValidationError(res, 'courseId và content là bắt buộc');
@@ -570,7 +570,6 @@ export class AIController {
         content,
         maxScore,
         submissionType,
-        rubricItems,
         additionalNotes,
       });
 
@@ -593,7 +592,7 @@ export class AIController {
    */
   generateAssignmentFromFile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { courseId, maxScore, submissionType, rubricItems, additionalNotes } = req.body;
+      const { courseId, maxScore, submissionType, additionalNotes } = req.body;
 
       if (!courseId) {
         return responseUtils.sendValidationError(res, 'courseId là bắt buộc');
@@ -614,7 +613,6 @@ export class AIController {
         content: extracted.content,
         maxScore: maxScore ? Number(maxScore) : undefined,
         submissionType,
-        rubricItems: rubricItems ? Number(rubricItems) : undefined,
         additionalNotes,
       });
 

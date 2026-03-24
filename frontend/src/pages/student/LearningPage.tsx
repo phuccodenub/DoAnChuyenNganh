@@ -10,7 +10,8 @@ import {
   MessageSquare,
   FolderOpen,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  Brain
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useCourseContent, useLesson, useLessonProgress, useMarkLessonComplete } from '@/hooks/useLessonData';
@@ -278,6 +279,16 @@ export function LearningPage() {
                 <p className="text-xs text-gray-500 mt-2">
                   {courseContent.completed_lessons}/{courseContent.total_lessons} bài học đã hoàn thành
                 </p>
+                {/* Study Plan Link */}
+                {courseId && (
+                  <button
+                    onClick={() => navigate(generateRoute.student.studyPlan(courseId))}
+                    className="w-full mt-3 flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                  >
+                    <Brain className="w-4 h-4" />
+                    Kế hoạch học tập AI
+                  </button>
+                )}
               </div>
             )}
           </aside>

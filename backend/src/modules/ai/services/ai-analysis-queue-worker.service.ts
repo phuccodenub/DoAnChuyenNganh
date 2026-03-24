@@ -19,7 +19,7 @@ class AIAnalysisQueueWorker {
   private static instance: AIAnalysisQueueWorker;
   private isRunning = false;
   private workerInterval: NodeJS.Timeout | null = null;
-  private pollInterval = 60000; // 1 minute
+  private pollInterval = 300000; // 5 minutes
   private maxConcurrent = 3; // Process max 3 tasks at once
   private currentlyProcessing = 0;
 

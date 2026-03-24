@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, Clock, RotateCcw, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, RotateCcw, ChevronDown, ChevronUp, AlertCircle, Brain } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ROUTES, generateRoute } from '@/constants/routes';
 import { useQuizAttempt } from '@/hooks/useQuizData';
+import { RemediationCards } from '@/components/student/RemediationCards';
 
 /**
  * QuizResultsPage - Student
@@ -26,6 +27,7 @@ export function QuizResultsPage() {
   
   const { data: attempt, isLoading } = useQuizAttempt(attemptId!);
   const [expandedQuestions, setExpandedQuestions] = useState<string[]>([]);
+  const [showRemediation, setShowRemediation] = useState(false);
 
   const handleToggleQuestion = (questionId: string) => {
     setExpandedQuestions((prev) =>
@@ -264,6 +266,34 @@ export function QuizResultsPage() {
               })}
             </div>
           </CardContent>
+        </Card>
+      )}
+
+      {/* AI Remediation Section */}
+      {attemptId && (attempt as any)?.incorrect_answers > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-purple-600" />
+                <CardTitle>Hỗ trợ học tập AI</CardTitle>
+              </div>
+              <Button
+                variant={showRemediation ? "secondary" : "primary"}
+                onClick={() => setShowRemediation(!showRemediation)}
+              >
+                {showRemediation ? 'Ẩn' : 'Xem phân tích AI'}
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600">
+              AI sẽ phân tích các câu sai và đề xuất bài tập để củng cố kiến thức.
+            </p>
+          </CardHeader>
+          {showRemediation && (
+            <CardContent className="pt-0">
+              <RemediationCards attemptId={attemptId} />
+            </CardContent>
+          )}
         </Card>
       )}
 

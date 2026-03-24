@@ -191,10 +191,19 @@ export const env = {
       // Specific models for specialized tasks
       models: {
         default: process.env.GROQ_MODEL_DEFAULT || 'llama-3.3-70b-versatile',
+        // Use a stronger reasoning model when available (e.g. openai/gpt-oss-120b)
         reasoning: process.env.GROQ_MODEL_REASONING || 'llama-3.3-70b-versatile',
-        math: process.env.GROQ_MODEL_MATH || 'qwen-3-32b',
-        vision: process.env.GROQ_MODEL_VISION || 'llama-4-scout',
-        speech: process.env.GROQ_MODEL_SPEECH || 'whisper-large-v3',
+        // Assignment generation typically needs stronger instruction-following + structured JSON
+        assignment:
+          process.env.GROQ_MODEL_ASSIGNMENT ||
+          process.env.GROQ_MODEL_REASONING ||
+          process.env.GROQ_MODEL_DEFAULT ||
+          'llama-3.3-70b-versatile',
+        // Groq catalog naming may differ; keep defaults aligned with known-working ids.
+        math: process.env.GROQ_MODEL_MATH || 'qwen/qwen3-32b',
+        vision: process.env.GROQ_MODEL_VISION || 'meta-llama/llama-4-scout-17b-16e-instruct',
+
+        speech: process.env.GROQ_MODEL_SPEECH || 'whisper-large-v3-turbo',
       },
       temperature: parseFloat(process.env.GROQ_TEMPERATURE || '0.7'),
       maxTokens: toInt(process.env.GROQ_MAX_TOKENS, 4096),

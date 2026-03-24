@@ -26,14 +26,20 @@ export function getSequelize(): Sequelize {
     }
 
     // Prefer DATABASE_URL if provided; fallback to discrete DB_* variables
+    const poolMax = Math.max(1, parseInt(process.env.DB_POOL_MAX || '5', 10));
+    const poolMin = Math.max(0, parseInt(process.env.DB_POOL_MIN || '0', 10));
+    const poolAcquire = Math.max(1000, parseInt(process.env.DB_POOL_ACQUIRE_MS || '30000', 10));
+    const poolIdle = Math.max(1000, parseInt(process.env.DB_POOL_IDLE_MS || '10000', 10));
+    const poolMinSafe = poolMin > poolMax ? poolMax : poolMin;
+
     const baseOptions = {
       dialect: 'postgres',
       logging: false,
       pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
+        max: poolMax,
+        min: poolMinSafe,
+        acquire: poolAcquire,
+        idle: poolIdle
       },
       define: {
         underscored: true,

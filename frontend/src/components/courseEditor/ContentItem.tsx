@@ -35,7 +35,8 @@ export function ContentItem({ type, title, duration, isPreview, isPractice, onEd
     const Icon = getIcon();
 
     return (
-        <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
+        <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow pointer-events-auto">
+
             <Icon className={`w-5 h-5 ${getColor()}`} />
             <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
