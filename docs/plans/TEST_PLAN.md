@@ -379,10 +379,10 @@ docker logs dacn-backend-1 --tail 50
 docker exec dacn-postgres-1 psql -U lms_user -d lms_db -c "SELECT COUNT(*) FROM users;"
 
 # Phase 2-3: API Testing (PowerShell)
-cd backend
-.\test-admin-endpoints.ps1 -BaseUrl "http://localhost:3000/api/v1.2.0" -AdminEmail "admin@example.com" -AdminPassword "Admin123!"
+.\tests\manual\backend\test-admin-endpoints.ps1 -BaseUrl "http://localhost:3000/api/v1.2.0" -AdminEmail "admin@example.com" -AdminPassword "Admin123!"
 
 # Phase 4: Integration Tests
+cd backend
 npm run test:integration
 
 # Phase 6: Unit Tests

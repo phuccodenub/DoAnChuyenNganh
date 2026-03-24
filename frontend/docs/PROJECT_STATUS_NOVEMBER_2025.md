@@ -312,8 +312,8 @@ frontend/
 - `BATCH_12_FINAL_SUMMARY.md` - Full Phase 5 summary (600+ lines)
 
 ### Development References
-- `backend/DEVELOPMENT_SETUP.md` - Backend setup guide
-- `frontend/DEVELOPMENT_SETUP.md` - Frontend setup guide
+- `backend/docs/DEVELOPMENT_SETUP.md` - Backend setup guide
+- `frontend/docs/ROUTING.md` - Frontend routing reference
 - API Postman collection available
 - Database schema documented
 

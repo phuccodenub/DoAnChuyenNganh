@@ -66,7 +66,7 @@ The AI system is designed as a **3-tier hybrid architecture** to balance cost, s
 | **Integration** | ✅ **COMPLETE** | • Controller updated với service mới<br>• Routes & types verified<br>• Type check & lint passed<br>• Documentation complete |
 | **Priority** | 🔥 **P0** | High business value (60% time savings) |
 
-**📄 Documentation:** `backend/QUIZ_GENERATOR_IMPLEMENTATION.md`  
+**📄 Documentation:** `backend/docs/AI/QUIZ_GENERATOR_IMPLEMENTATION.md`  
 **✅ Status:** Fully Implemented & Ready for Testing  
 **👉 NEXT ACTION:** Test with real course content and collect instructor feedback.
 

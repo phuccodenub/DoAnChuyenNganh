@@ -302,7 +302,7 @@ npm run lint
 ## 📚 Related Documentation
 
 - [AI Grader Implementation](./backend/docs/AI/AI_GRADER_IMPLEMENTATION.md)
-- [Quiz Generator Implementation](./backend/QUIZ_GENERATOR_IMPLEMENTATION.md)
+- [Quiz Generator Implementation](./QUIZ_GENERATOR_IMPLEMENTATION.md)
 - [AI Implementation Status](./docs/AI/AI_IMPLEMENTATION_STATUS_MASTER.md)
 
 ---

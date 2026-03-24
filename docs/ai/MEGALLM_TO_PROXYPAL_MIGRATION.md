@@ -127,10 +127,10 @@ proxypal: {
 ### 3. Documentation Updates
 
 Updated files:
-- ✅ `backend/QUIZ_GENERATOR_IMPLEMENTATION.md`
-- ✅ `backend/AI_SETUP_GUIDE.md`
+- ✅ `backend/docs/AI/QUIZ_GENERATOR_IMPLEMENTATION.md`
+- ✅ `backend/docs/AI/AI_SETUP_GUIDE.md`
 - ✅ `backend/src/modules/ai/AI_IMPLEMENTATION_COMPLETE.md`
-- ✅ `QUIZ_GENERATOR_COMPLETE_SUMMARY.md`
+- ✅ `docs/ai/QUIZ_GENERATOR_COMPLETE_SUMMARY.md`
 
 All references updated from legacy premium provider to "ProxyPal GPT-5.x" (project docs)
 
@@ -153,7 +153,7 @@ All references updated from legacy premium provider to "ProxyPal GPT-5.x" (proje
 
 **Quiz Generation Test:**
 ```powershell
-.\test-proxypal-quiz.ps1
+.\tests\manual\scripts\test-proxypal-quiz.ps1
 ```
 
 **Results:**
@@ -239,12 +239,12 @@ npm run lint
 - `backend/.env`
 
 **Docs:**
-- `QUIZ_GENERATOR_COMPLETE_SUMMARY.md`
-- `backend/QUIZ_GENERATOR_IMPLEMENTATION.md`
-- `backend/AI_SETUP_GUIDE.md`
+- `docs/ai/QUIZ_GENERATOR_COMPLETE_SUMMARY.md`
+- `backend/docs/AI/QUIZ_GENERATOR_IMPLEMENTATION.md`
+- `backend/docs/AI/AI_SETUP_GUIDE.md`
 
 **Tests:**
-- `test-proxypal-quiz.ps1`
+- `tests/manual/scripts/test-proxypal-quiz.ps1`
 
 ---
 

@@ -143,7 +143,7 @@ Tài liệu này giúp bạn:
 - **401/403**: Token hết hạn hoặc sai quyền → chạy lại request login tương ứng.
 - **422/400**: Kiểm tra lại payload, đặc biệt với các trường UUID hoặc enum.
 - **429**: Có rate limiting → thiết lập `DISABLE_RATE_LIMIT=true` trong `.env` khi test hàng loạt.
-- Có thể tham khảo thêm file `test-admin-endpoints.http` để lấy ví dụ payload mẫu cho các request quản trị.
+- Có thể tham khảo thêm file `tests/manual/backend/test-admin-endpoints.http` để lấy ví dụ payload mẫu cho các request quản trị.
 
 ## 10. Kết luận
 Sau khi hoàn thành các bước trên, bạn có thể test toàn bộ API thông qua Postman, dễ dàng chuyển đổi giữa các môi trường (local, staging, production) và tự động hóa quá trình kiểm thử bằng Collection Runner hoặc Newman.

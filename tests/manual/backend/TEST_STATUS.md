@@ -54,7 +54,7 @@ This document summarizes what’s already in place for backend testing and what 
 
 - Backend container crash loop on startup
   - Root cause: TS path aliases like `@middlewares/*` are unresolved in `dist` at runtime inside Docker.
-  - Symptom: `/health` returns no response; run-tests.ps1 fails at Phase 1.
+  - Symptom: `/health` returns no response; `tests/manual/scripts/run-tests.ps1` fails at Phase 1.
 - DB for integration tests
   - On fresh environments, `lms_db_test` may not exist and the DB user may lack `CREATEDB` permission.
   - Our bootstrap now falls back to `lms_db` if creation is denied, but this needs a re-run to confirm.
@@ -75,7 +75,7 @@ This document summarizes what’s already in place for backend testing and what 
 - Our fallback to `lms_db` should keep tests running even without the above; confirm via re-run.
 
 3) Re-run tests and collect failures
-- Run API smoke: `run-tests.ps1` (expects backend `/health` and admin login).
+- Run API smoke: `tests/manual/scripts/run-tests.ps1` (expects backend `/health` and admin login).
 - Run integration: `npm run test:integration` (backend folder) and record pass/fail deltas.
 
 4) Triage and fix functional failures
@@ -107,12 +107,12 @@ If quoting causes issues in your terminal, prefer running the two separate comma
 
 ## Quick checklist
 - [ ] Backend container boots; `/health` 200
-- [ ] `run-tests.ps1` Phase 1+2 pass (health/metrics + admin login)
+- [ ] `tests/manual/scripts/run-tests.ps1` Phase 1+2 pass (health/metrics + admin login)
 - [ ] Jest integration connects (fallback or `lms_db_test` exists) and runs migrations
 - [ ] Baseline restored (~69/86 passing); proceed to fix remaining auth/validation/numeric issues
 
 ## Notes
 - Two test modes are used in this repo:
-  - E2E via Docker (`run-tests.ps1`) against `lms_db` inside the stack.
+  - E2E via Docker (`tests/manual/scripts/run-tests.ps1`) against `lms_db` inside the stack.
   - Local Jest integration against `lms_db_test` (or fallback to `lms_db` if creation denied).
 - Keep ports consistent (5432 for Postgres, 3000 backend, 3001 frontend).

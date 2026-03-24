@@ -76,7 +76,7 @@
 ### New Files
 ```
 ✨ backend/src/modules/ai/services/quiz-generator.service.ts    [770 lines]
-📄 backend/QUIZ_GENERATOR_IMPLEMENTATION.md                    [Documentation]
+📄 backend/docs/AI/QUIZ_GENERATOR_IMPLEMENTATION.md           [Documentation]
 ```
 
 ### Modified Files
